@@ -101,6 +101,21 @@ struct Client final : public IWindow
         uint32_t modsLocked, uint32_t group
     );
     void keyboardRepeatInfo(wl_keyboard* pKeyboard, int32_t rate, int32_t delay);
+
+    void pointerEnter(
+        wl_pointer* pPointer, uint32_t serial, wl_surface* pSurface, wl_fixed_t surfaceX,
+        wl_fixed_t surfaceY
+    );
+    void pointerLeave(wl_pointer* pPointer, uint32_t serial, wl_surface* pSurface);
+    void pointerMotion(wl_pointer* pPointer, uint32_t time, wl_fixed_t surfaceX, wl_fixed_t surfaceY);
+    void pointerButton(wl_pointer* pPointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state);
+    void pointerAxis(wl_pointer* pPointer, uint32_t time, uint32_t axis, wl_fixed_t value);
+    void pointerFrame(wl_pointer* pPointer);
+    void pointerAxisSource(wl_pointer* pPointer, uint32_t axisSource);
+    void pointerAxisStop(wl_pointer* pPointer, uint32_t time, uint32_t axis);
+    void pointerAxisDiscrete(wl_pointer* pPointer, uint32_t axis, int32_t discrete);
+    void pointerAxisValue120(wl_pointer* pPointer, uint32_t axis, int32_t value120);
+    void pointerAxisRelativeDirection(wl_pointer* pPointer, uint32_t axis, uint32_t direction);
     /* */
 
     void callbackDone(wl_callback* pCallback, uint32_t callbackData);

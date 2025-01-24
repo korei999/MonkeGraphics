@@ -5,6 +5,7 @@
 
 namespace platform::wayland
 {
+
 void
 Client::keyboardKeymap(wl_keyboard* pKeyboard, uint32_t format, int32_t fd, uint32_t size)
 {
@@ -13,13 +14,11 @@ Client::keyboardKeymap(wl_keyboard* pKeyboard, uint32_t format, int32_t fd, uint
 void
 Client::keyboardEnter(wl_keyboard* pKeyboard, uint32_t serial, wl_surface* pSurface, wl_array* pKeys)
 {
-    LOG("keyboardEnter()\n");
 }
 
 void
 Client::keyboardLeave(wl_keyboard* pKeyboard, uint32_t serial, wl_surface* pSurface)
 {
-    LOG("keyboardLeave()\n");
 }
 
 void
@@ -49,6 +48,64 @@ Client::keyboardModifiers(
 
 void
 Client::keyboardRepeatInfo(wl_keyboard* pKeyboard, int32_t rate, int32_t delay)
+{
+}
+
+void
+Client::pointerEnter(
+    wl_pointer* pPointer, uint32_t serial, wl_surface* pSurface, wl_fixed_t surfaceX,
+    wl_fixed_t surfaceY
+)
+{
+}
+
+void
+Client::pointerLeave(wl_pointer* pPointer, uint32_t serial, wl_surface* pSurface)
+{
+}
+
+void
+Client::pointerMotion(wl_pointer* pPointer, uint32_t time, wl_fixed_t surfaceX, wl_fixed_t surfaceY)
+{
+}
+
+void
+Client::pointerButton(wl_pointer* pPointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state)
+{
+}
+
+void
+Client::pointerAxis(wl_pointer* pPointer, uint32_t time, uint32_t axis, wl_fixed_t value)
+{
+}
+
+void
+Client::pointerFrame(wl_pointer* pPointer)
+{
+}
+
+void
+Client::pointerAxisSource(wl_pointer* pPointer, uint32_t axisSource)
+{
+}
+
+void
+Client::pointerAxisStop(wl_pointer* pPointer, uint32_t time, uint32_t axis)
+{
+}
+
+void
+Client::pointerAxisDiscrete(wl_pointer* pPointer, uint32_t axis, int32_t discrete)
+{
+}
+
+void
+Client::pointerAxisValue120(wl_pointer* pPointer, uint32_t axis, int32_t value120)
+{
+}
+
+void
+Client::pointerAxisRelativeDirection(wl_pointer* pPointer, uint32_t axis, uint32_t direction)
 {
 }
 
