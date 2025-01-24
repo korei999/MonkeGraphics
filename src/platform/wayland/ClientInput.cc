@@ -29,6 +29,10 @@ Client::keyboardKey(wl_keyboard* pKeyboard, uint32_t serial, uint32_t time, uint
     {
         m_bRunning = false;
     }
+    else if (key == KEY_F && state == WL_KEYBOARD_KEY_STATE_PRESSED)
+    {
+        toggleFullscreen();
+    }
 }
 
 void

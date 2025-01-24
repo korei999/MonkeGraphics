@@ -9,17 +9,17 @@
 #include <concepts>
 #include <limits>
 
-#ifdef __clang__
+#if defined __clang__
     #pragma clang diagnostic push
     #pragma clang diagnostic ignored "-Wmissing-braces"
-#elif defined __GNUC__
+#endif
+
+#if defined __GNUC__
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wmissing-braces"
 #endif
 
-namespace adt
-{
-namespace math
+namespace adt::math
 {
 
 constexpr f64 PI64 = 3.14159265358979323846;
@@ -57,46 +57,25 @@ constexpr auto cube(const auto& x) { return x*x*x; }
 union V2
 {
     f32 e[2];
-    struct {
-        f32 x, y;
-    };
-    struct {
-        f32 u, v;
-    };
+    struct { f32 x, y; };
+    struct { f32 u, v; };
 };
 
 union V3
 {
     f32 e[3];
-    struct {
-        V2 xy;
-        f32 __v2pad;
-    };
-    struct {
-        f32 x, y, z;
-    };
-    struct {
-        f32 r, g, b;
-    };
+    struct { V2 xy; f32 __v2pad; };
+    struct { f32 x, y, z; };
+    struct { f32 r, g, b; };
 };
 
 union V4
 {
     f32 e[4];
-    struct {
-        V3 xyz;
-        f32 __v3pad;
-    };
-    struct {
-        V2 xy;
-        V2 zw;
-    };
-    struct {
-        f32 x, y, z, w;
-    };
-    struct {
-        f32 r, g, b, a;
-    };
+    struct { V3 xyz; f32 __v3pad; };
+    struct { V2 xy; V2 zw; };
+    struct { f32 x, y, z, w; };
+    struct { f32 r, g, b, a; };
 };
 
 union M2
@@ -124,9 +103,7 @@ union Qt
 {
     V4 base;
     f32 e[4];
-    struct {
-        f32 x, y, z, w;
-    };
+    struct { f32 x, y, z, w; };
 };
 
 inline M3
@@ -179,6 +156,15 @@ operator*(f32 s, const V2& v)
     return {
         .x = v.x * s,
         .y = v.y * s
+    };
+}
+
+inline V2
+operator*(const V2& l, const V2& r)
+{
+    return {
+        l.x * r.x,
+        l.y * r.y
     };
 }
 
@@ -242,6 +228,16 @@ operator*(const V3& v, f32 s)
         .x = v.x * s,
         .y = v.y * s,
         .z = v.z * s
+    };
+}
+
+inline V3
+operator*(const V3& l, const V3& r)
+{
+    return {
+        l.x * r.x,
+        l.y * r.y,
+        l.z * r.z
     };
 }
 
@@ -1081,12 +1077,9 @@ bezier(
     return cube(1-t)*p0 + 3*sq(1-t)*t*p1 + 3*(1-t)*sq(t)*p2 + cube(t)*p3;
 }
 
-} /* namespace math */
-} /* namespace adt */
+} /* namespace adt::math */
 
-namespace adt
-{
-namespace print
+namespace adt::print
 {
 
 inline ssize
@@ -1152,11 +1145,12 @@ formatToContext(Context ctx, [[maybe_unused]] FormatArgs fmtArgs, const math::M4
     );
 }
 
-} /* namespace print */
-} /* namespace adt */
+} /* namespace adt::print */
 
 #if defined __clang__
     #pragma clang diagnostic pop
-#elif defined __GNUC__
+#endif
+
+#if defined __GNUC__
     #pragma GCC diagnostic pop
 #endif

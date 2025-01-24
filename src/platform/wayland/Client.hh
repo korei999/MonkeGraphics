@@ -3,6 +3,7 @@
 #include "IWindow.hh"
 
 #include "wayland-protocols/xdg-shell.h"
+#include "wayland-protocols/viewporter.h"
 
 namespace platform::wayland
 {
@@ -32,6 +33,9 @@ struct Client final : public IWindow
     int m_newHeight {};
 
     wl_callback* m_pCallBack {};
+
+    wp_viewporter* m_pViewporter {};
+    wp_viewport* m_pViewport {};
 
     /* */
 

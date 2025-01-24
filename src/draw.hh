@@ -1,6 +1,7 @@
 #pragma once
 
 #include "adt/Span2D.hh"
+#include "adt/math.hh"
 
 namespace draw
 {

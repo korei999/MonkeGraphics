@@ -10,22 +10,23 @@ using namespace adt;
 namespace frame
 {
 
-f64 g_currTime {};
+f64 g_time {};
+f64 g_frameTime {};
 f64 g_dt = FIXED_DELTA_TIME;
 f64 g_gt {};
 
 static void
 fpsCounter()
 {
-    static f64 s_lastFPSTime = g_currTime;
+    static f64 s_lastFPSTime = g_time;
     static int s_nFrames = 0;
 
     ++s_nFrames;
 
-    if (g_currTime > s_lastFPSTime + 1000.0)
+    if (g_time > s_lastFPSTime + 1000.0)
     {
         CERR("FPS: {}\n", s_nFrames);
-        s_lastFPSTime = g_currTime;
+        s_lastFPSTime = g_time;
         s_nFrames = 0;
     }
 }
@@ -36,6 +37,24 @@ refresh(void*)
     auto& win = *app::g_pWindow;
     Span2D sp = win.getSurfaceBuffer();
 
+    static f64 accumulator = 0.0;
+
+    f64 newTime = utils::timeNowMS();
+    f64 frameTime = newTime - g_time;
+    g_frameTime = frameTime;
+    g_time = newTime;
+    if (frameTime > 0.25)
+        frameTime = 0.25;
+
+    accumulator += frameTime;
+
+    while (accumulator >= g_dt)
+    {
+        /*game::updateState(&arena);*/
+        g_gt += g_dt;
+        accumulator -= g_dt;
+    }
+
     draw::toBuffer(sp);
     fpsCounter();
 }
@@ -45,25 +64,14 @@ start()
 {
     auto& win = *app::g_pWindow;
     win.m_bRunning = true;
-    g_currTime = utils::timeNowMS();
+    g_time = utils::timeNowMS();
 
     win.regDrawCB(refresh, {});
     win.draw(); /* draw once to get events */
 
-    f64 accumulator = 0.0;
-
     while (win.m_bRunning)
     {
-        g_currTime = utils::timeNowMS();
-
         win.procEvents();
-
-        while (accumulator >= g_dt)
-        {
-            /*game::updateState(&arena);*/
-            g_gt += g_dt;
-            accumulator -= g_dt;
-        }
     }
 }
 

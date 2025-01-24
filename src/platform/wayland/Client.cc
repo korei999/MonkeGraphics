@@ -60,6 +60,9 @@ Client::start()
 {
     LOG_GOOD("starting wayland client...\n");
 
+    m_width = 640;
+    m_height = 480;
+
     m_pDisplay = wl_display_connect(nullptr);
     if (!m_pDisplay)
         throw RuntimeException("wl_display_connect() failed");
@@ -69,11 +72,17 @@ Client::start()
         throw RuntimeException("wl_display_get_registry() failed");
 
     wl_registry_add_listener(m_pRegistry, &s_registryListener, this);
+    /* proc all the registries */
     wl_display_roundtrip(m_pDisplay);
 
     m_pSurface = wl_compositor_create_surface(m_pCompositor);
     if (!m_pSurface)
         throw RuntimeException("wl_compositor_create_surface() failed");
+
+    m_pViewport = wp_viewporter_get_viewport(m_pViewporter, m_pSurface);
+    if (!m_pViewport)
+        throw RuntimeException("wp_viewporter_get_viewport() failed");
+    wp_viewport_set_source(m_pViewport, wl_fixed_from_int(0), wl_fixed_from_int(0), wl_fixed_from_int(m_width), wl_fixed_from_int(m_height));
 
     m_pXdgSurface = xdg_wm_base_get_xdg_surface(m_pXdgWmBase, m_pSurface);
     if (!m_pXdgSurface)
@@ -87,7 +96,6 @@ Client::start()
 
     xdg_toplevel_add_listener(m_pXdgToplevel, &s_xdgTopLevelListener, this);
     xdg_toplevel_set_title(m_pXdgToplevel, m_ntsName);
-    xdg_toplevel_set_fullscreen(m_pXdgToplevel, m_pOutput);
     wl_surface_commit(m_pSurface);
 
 	/* Perform the initial commit and wait for the first configure event */
@@ -97,13 +105,8 @@ Client::start()
 
     wl_shm_add_listener(m_pShm, &s_shmListener, this);
 
-    const int width = m_newWidth;
-    const int height = m_newHeight;
-    const int stride = width * 4;
-    const int shmPoolSize = height * stride * 2;
-
-    m_wWidth = width;
-    m_wHeight = height;
+    const int stride = m_width * 4;
+    const int shmPoolSize = m_height * stride * 2;
 
     int fd = shm::allocFile(shmPoolSize);
     m_pPoolData = static_cast<u8*>(mmap(nullptr, shmPoolSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
@@ -114,7 +117,7 @@ Client::start()
     if (!m_pShmPool)
         throw RuntimeException("wl_shm_create_pool() failed");
 
-    m_pBuffer = wl_shm_pool_create_buffer(m_pShmPool, 0, m_wWidth, m_wHeight, stride, WL_SHM_FORMAT_ARGB8888);
+    m_pBuffer = wl_shm_pool_create_buffer(m_pShmPool, 0, m_width, m_height, stride, WL_SHM_FORMAT_XRGB8888);
     if (!m_pBuffer)
         throw RuntimeException("wl_shm_pool_create_buffer() failed");
 }
@@ -122,7 +125,7 @@ Client::start()
 Span2D<draw::Pixel>
 Client::getSurfaceBuffer()
 {
-    return {reinterpret_cast<draw::Pixel*>(m_pPoolData), m_wWidth, m_wHeight};
+    return {reinterpret_cast<draw::Pixel*>(m_pPoolData), m_width, m_height};
 }
 
 void
@@ -143,6 +146,7 @@ Client::togglePointerRelativeMode()
 void
 Client::toggleFullscreen()
 {
+    m_bFullscreen ? unsetFullscreen() : setFullscreen();
 }
 
 void
@@ -158,11 +162,15 @@ Client::setCursorImage(String cursorType)
 void
 Client::setFullscreen()
 {
+    xdg_toplevel_set_fullscreen(m_pXdgToplevel, m_pOutput);
+    m_bFullscreen = true;
 }
 
 void
 Client::unsetFullscreen()
 {
+    xdg_toplevel_unset_fullscreen(m_pXdgToplevel);
+    m_bFullscreen = false;
 }
 
 void
@@ -179,7 +187,7 @@ void
 Client::swapBuffers()
 {
     wl_surface_attach(m_pSurface, m_pBuffer, 0, 0);
-    wl_surface_damage(m_pSurface, 0, 0, m_wWidth, m_wHeight);
+    wl_surface_damage(m_pSurface, 0, 0, m_winWidth, m_winHeight);
     wl_surface_commit(m_pSurface);
 }
 
@@ -245,6 +253,10 @@ Client::global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, 
         m_pOutput = static_cast<wl_output*>(wl_registry_bind(pRegistry, name, &wl_output_interface, 4));
         wl_output_add_listener(m_pOutput, &s_outputListener, this);
     }
+    else if (sInterface == wp_viewporter_interface.name)
+    {
+        m_pViewporter = static_cast<wp_viewporter*>(wl_registry_bind(pRegistry, name, &wp_viewporter_interface, 1));
+    }
 }
 
 void
@@ -280,6 +292,10 @@ Client::xdgToplevelConfigure(xdg_toplevel* pXdgToplevel, int32_t width, int32_t 
 {
     if (width > 0 && height > 0)
     {
+        m_winWidth = width;
+        m_winHeight = height;
+
+        wp_viewport_set_destination(m_pViewport, width, height);
         /*LOG("xdgTopLevelConfigure() width: {}, height: {}\n", width, height);*/
         /*m_newWidth = width;*/
         /*m_newHeight = height;*/

@@ -92,7 +92,7 @@ run()
         # ASAN_OPTIONS=detect_leaks=1 LSAN_OPTIONS=suppressions=leaks.txt ./build/$BIN "$@" # 2> /tmp/$BIN-dbg.txt
         # ASAN_OPTIONS=halt_on_error=0 ./build/$BIN "$@" # 2> /tmp/$BIN-dbg.txt
         # ./build/$BIN "$@" 2> /tmp/$BIN-dbg.txt
-        UBSAN_OPTIONS=print_stacktrace=1 LSAN_OPTIONS=suppressions=leaks.txt ./build/$BIN "$@" 2> /tmp/$BIN-dbg.tx
+        UBSAN_OPTIONS=print_stacktrace=1 LSAN_OPTIONS=suppressions=leaks.txt ./build/$BIN "$@" 2> /tmp/$BIN-dbg.txt
     fi
 }
 

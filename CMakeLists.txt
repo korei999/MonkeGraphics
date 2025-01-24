@@ -178,7 +178,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     set(XDG_SHELL "${WAYLAND_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml")
     set(POINTER_CONSTRAINTS "${WAYLAND_PROTOCOLS_DIR}/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml")
     set(RELATIVE_POINTER "${WAYLAND_PROTOCOLS_DIR}/unstable/relative-pointer/relative-pointer-unstable-v1.xml")
-    set(PRESENTATION "${WAYLAND_PROTOCOLS_DIR}/stable/presentation-time/presentation-time.xml")
+    set(VIEWPORTER "${WAYLAND_PROTOCOLS_DIR}/stable/viewporter/viewporter.xml")
     # set(TEARING "${WAYLAND_PROTOCOLS_DIR}/staging/tearing-control/tearing-control-v1.xml")
 
     message(STATUS "WLP: '${WLP}'")
@@ -188,7 +188,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     message(STATUS "XDG_SHELL: '${XDG_SHELL}'")
     message(STATUS "POINTER_CONSTRAINTS: '${POINTER_CONSTRAINTS}'")
     message(STATUS "RELATIVE_POINTER: '${RELATIVE_POINTER}'")
-    message(STATUS "PRESENTATION: '${PRESENTATION}'")
+    message(STATUS "VIEWPORTER: '${VIEWPORTER}'")
 
     execute_process(COMMAND mkdir -p ${CMAKE_SOURCE_DIR}/${WLPD})
     execute_process(COMMAND ${WAYLAND_SCANNER} client-header ${RELATIVE_POINTER}    ${CMAKE_SOURCE_DIR}/${WLPD}/relative-pointer-unstable-v1.h)
@@ -197,8 +197,8 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     execute_process(COMMAND ${WAYLAND_SCANNER} private-code  ${POINTER_CONSTRAINTS} ${CMAKE_SOURCE_DIR}/${WLPD}/pointer-constraints-unstable-v1.c)
     execute_process(COMMAND ${WAYLAND_SCANNER} client-header ${XDG_SHELL}           ${CMAKE_SOURCE_DIR}/${WLPD}/xdg-shell.h)
     execute_process(COMMAND ${WAYLAND_SCANNER} private-code  ${XDG_SHELL}           ${CMAKE_SOURCE_DIR}/${WLPD}/xdg-shell.c)
-    execute_process(COMMAND ${WAYLAND_SCANNER} client-header ${PRESENTATION}        ${CMAKE_SOURCE_DIR}/${WLPD}/presentation-time.h)
-    execute_process(COMMAND ${WAYLAND_SCANNER} private-code  ${PRESENTATION}        ${CMAKE_SOURCE_DIR}/${WLPD}/presentation-time.c)
+    execute_process(COMMAND ${WAYLAND_SCANNER} client-header ${VIEWPORTER}          ${CMAKE_SOURCE_DIR}/${WLPD}/viewporter.h)
+    execute_process(COMMAND ${WAYLAND_SCANNER} private-code  ${VIEWPORTER}          ${CMAKE_SOURCE_DIR}/${WLPD}/viewporter.c)
 
     target_sources(
         ${CMAKE_PROJECT_NAME} PRIVATE
@@ -207,7 +207,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
         ${WLPD}/pointer-constraints-unstable-v1.c
         ${WLPD}/relative-pointer-unstable-v1.c
         ${WLPD}/xdg-shell.c
-        ${WLPD}/presentation-time.c
+        ${WLPD}/viewporter.c
     )
 endif()
 

@@ -7,15 +7,19 @@
 struct IWindow
 {
     const char* m_ntsName {};
-    int m_wWidth {};
-    int m_wHeight {};
+
+    int m_width {};
+    int m_height {};
+    int m_winWidth {};
+    int m_winHeight {};
+
     bool m_bRunning {};
     bool m_bPaused {};
     bool m_bPointerRelativeMode {};
     bool m_bHideCursor {};
     bool m_bFullscreen {};
     int m_swapInterval {};
-    adt::f64 m_hideCursorTimeMS {};
+    adt::f64 m_hideCursorTimeoutMS {};
 
     void (*m_pfnDrawCB)(void*) {};
     void* m_pDrawArg {};
