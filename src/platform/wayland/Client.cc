@@ -86,7 +86,7 @@ Client::start(int width, int height)
         throw RuntimeException("wl_display_get_registry() failed");
 
     wl_registry_add_listener(m_pRegistry, &s_registryListener, this);
-    /* proc all the registries */
+    /* proc all the interfaces */
     wl_display_roundtrip(m_pDisplay);
 
     m_pSurface = wl_compositor_create_surface(m_pCompositor);
@@ -128,6 +128,8 @@ Client::start(int width, int height)
     if (!m_pPoolData)
         throw RuntimeException("mmap() failed");
 
+    m_vDepthBuffer.setSize(m_pAlloc, width * height);
+
     m_pShmPool = wl_shm_create_pool(m_pShm, fd, shmPoolSize);
     if (!m_pShmPool)
         throw RuntimeException("wl_shm_create_pool() failed");
@@ -138,7 +140,7 @@ Client::start(int width, int height)
 }
 
 Span2D<draw::Pixel>
-Client::getSurfaceBuffer()
+Client::surfaceBuffer()
 {
     return {reinterpret_cast<draw::Pixel*>(m_pPoolData), m_width, m_height};
 }

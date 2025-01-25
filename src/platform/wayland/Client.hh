@@ -2,8 +2,6 @@
 
 #include "IWindow.hh"
 
-#include "adt/Vec.hh"
-
 #include "wayland-protocols/xdg-shell.h"
 #include "wayland-protocols/viewporter.h"
 
@@ -50,7 +48,7 @@ struct Client final : public IWindow
     /* */
 
     virtual void start(int width, int height) override;
-    virtual adt::Span2D<draw::Pixel> getSurfaceBuffer() override;
+    virtual adt::Span2D<draw::Pixel> surfaceBuffer() override;
     virtual void disableRelativeMode() override;
     virtual void enableRelativeMode() override;
     virtual void togglePointerRelativeMode() override;

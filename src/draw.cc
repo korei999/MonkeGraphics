@@ -1,7 +1,6 @@
 /* Rasterization goes here */
 
 #include "draw.hh"
-#include "adt/logs.hh"
 #include "app.hh"
 #include "frame.hh"
 #include "colors.hh"
@@ -23,7 +22,7 @@ projectPoint(math::V3 pos)
 {
     using namespace adt::math;
     auto& win = *app::g_pWindow;
-    Span2D sp = win.getSurfaceBuffer();
+    Span2D sp = win.surfaceBuffer();
 
     V2 res = pos.xy / pos.z;
     res = 0.5f * (res + V2{1.0f, 1.0f});
@@ -38,7 +37,8 @@ drawTriangle(Span<math::V3> spPoints, math::V3* pColors)
     using namespace adt::math;
 
     auto& win = *app::g_pWindow;
-    Span2D sp = win.getSurfaceBuffer();
+    Span2D sp = win.surfaceBuffer();
+    Span2D spDepth = win.depthBuffer();
 
     V2 pointA = projectPoint(spPoints[0]);
     V2 pointB = projectPoint(spPoints[1]);
@@ -84,15 +84,21 @@ drawTriangle(Span<math::V3> spPoints, math::V3* pColors)
                 (crossLen2 > 0.0f || (bTopLeft2 && crossLen2 == 0.0f))
             )
             {
+                ssize invY = sp.getHeight() - 1 - y;
+
                 f32 t0 = -crossLen1 / barycentricDiv;
                 f32 t1 = -crossLen2 / barycentricDiv;
                 f32 t2 = -crossLen0 / barycentricDiv;
-                V3 finalCol = (t0 * pColors[0] + t1 * pColors[1] + t2 * pColors[2]);
 
-                V4 cv4; cv4.xyz = finalCol; cv4.w = 255.0f;
-                u32 col = colors::V4ToARGB(cv4);
+                f32 depth = 1.0f / (t0 * (1.0f / spPoints[0].z) + t1 * (1.0f / spPoints[1].z) + t2 * (1.0f / spPoints[2].z));
+                if (depth < spDepth(x, invY))
+                {
+                    V3 finalCol = (t0 * pColors[0] + t1 * pColors[1] + t2 * pColors[2]);
+                    V4 cv4; cv4.xyz = finalCol; cv4.w = 255.0f;
 
-                sp(x, sp.getHeight() - 1 - y).data = col;
+                    sp(x, invY).data = colors::V4ToARGB(cv4);;
+                    spDepth(x, invY) = depth;
+                }
             }
         }
     }
@@ -102,7 +108,7 @@ drawTriangle(Span<math::V3> spPoints, math::V3* pColors)
 gradientTest()
 {
     auto& win = *app::g_pWindow;
-    Span2D sp = win.getSurfaceBuffer();
+    Span2D sp = win.surfaceBuffer();
 
     static int frame = 0;
 
@@ -131,38 +137,67 @@ toBuffer()
     namespace f = frame;
 
     auto& win = *app::g_pWindow;
-    Span2D sp = win.getSurfaceBuffer();
+    Span2D sp = win.surfaceBuffer();
 
     /* clear */
-    utils::set(sp.data(), 0, sp.getWidth() * sp.getHeight());
+    win.clearBuffer();
+    win.clearDepthBuffer();
 
-    V3 aColors[] {
+    V3 aPositions0[] {
+        { 0.0f,  0.5f, 1.0f},
+        { 0.5f, -0.5f, 1.0f},
+        {-0.5f, -0.5f, 1.0f},
+    };
+
+    V3 aPositions1[] {
+        { 0.0f,  0.5f, 1.0f},
+        { 0.5f, -0.5f, 1.2f},
+        {-0.5f, -0.5f, 0.8f},
+    };
+
+    V3 aPositions2[] {
+        { 0.0f, -0.5f, 0.6f},
+        {-1.5f,  0.5f, 3.0f},
+        { 1.5f,  0.5f, 3.0f},
+    };
+
+    V3 aColors0[] {
         {1.0f, 0.0f, 0.0f},
         {0.0f, 1.0f, 0.0f},
         {0.0f, 0.0f, 1.0f},
     };
 
-    for (ssize triangleIdx = 10; triangleIdx >= 0; --triangleIdx)
-    {
-        f32 depth = std::pow(2, triangleIdx + 1);
+    V3 aColors1[] {
+        {1.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 1.0f},
+        {1.0f, 0.0f, 1.0f},
+    };
 
-        V3 aPoints[] {
-            {-1.0f, -0.5f, depth},
-            {0.0f, 0.5f, depth},
-            {1.0f, -0.5f, depth},
-        };
+    drawTriangle(aPositions1, aColors1);
+    drawTriangle(aPositions0, aColors0);
+    drawTriangle(aPositions2, aColors1);
 
-        for (auto& point : aPoints)
-        {
-            point += V3{
-                std::cosf(f::g_gt * f::g_dt * 2),
-                std::sinf(f::g_gt * f::g_dt * 2),
-                0.0f
-            };
-        }
+    // for (ssize triangleIdx = 0; triangleIdx < 10; ++triangleIdx)
+    // {
+    //     f32 depth = std::pow(2, triangleIdx + 1);
 
-        drawTriangle(aPoints, aColors);
-    }
+    //     V3 aPoints[] {
+    //         {-1.0f, -0.5f, depth},
+    //         {0.0f, 0.5f, depth},
+    //         {1.0f, -0.5f, depth},
+    //     };
+
+    //     for (auto& point : aPoints)
+    //     {
+    //         point += V3{
+    //             std::cosf(f::g_gt * f::g_dt * 2),
+    //             std::sinf(f::g_gt * f::g_dt * 2),
+    //             0.0f
+    //         };
+    //     }
+
+    //     drawTriangle(aPoints, aColors0);
+    // }
 }
 
 } /* namespace draw */

@@ -2,6 +2,7 @@
 
 #include "adt/String.hh"
 #include "adt/Span2D.hh"
+#include "adt/Vec.hh"
 
 #include "draw.hh"
 
@@ -10,6 +11,7 @@ struct IWindow
 {
     adt::IAllocator* m_pAlloc {};
     const char* m_ntsName {};
+    adt::VecBase<adt::f32> m_vDepthBuffer {};
 
     int m_width {};
     int m_height {};
@@ -36,7 +38,7 @@ struct IWindow
     /* */
 
     virtual void start(int width, int height) = 0;
-    virtual adt::Span2D<draw::Pixel> getSurfaceBuffer() = 0;
+    virtual adt::Span2D<draw::Pixel> surfaceBuffer() = 0;
     virtual void disableRelativeMode() = 0;
     virtual void enableRelativeMode() = 0;
     virtual void togglePointerRelativeMode() = 0;
@@ -54,6 +56,10 @@ struct IWindow
     virtual void scheduleFrame() = 0;
 
     /* */
+
+    adt::Span2D<adt::f32> depthBuffer() { return {m_vDepthBuffer.data(), m_width, m_height}; }
+    void clearBuffer() { adt::utils::set(surfaceBuffer().data(), 0, surfaceBuffer().getHeight() * surfaceBuffer().getWidth()); }
+    void clearDepthBuffer() { for (auto& e : m_vDepthBuffer) e = std::numeric_limits<adt::f32>::max(); }
 
     void
     regDrawCB(void (*pfn)(void*), void* pArg)
