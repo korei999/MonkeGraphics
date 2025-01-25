@@ -4,6 +4,7 @@
 #include "adt/logs.hh"
 #include "app.hh"
 #include "frame.hh"
+#include "colors.hh"
 
 #include "adt/math.hh"
 
@@ -11,6 +12,11 @@ using namespace adt;
 
 namespace draw
 {
+
+struct Vertex
+{
+    math::V3 pos {};
+};
 
 [[nodiscard]] inline math::V2
 projectPoint(math::V3 pos)
@@ -27,7 +33,7 @@ projectPoint(math::V3 pos)
 }
 
 static void
-drawTriangle(Span<math::V3> spPoints, u32 color)
+drawTriangle(Span<math::V3> spPoints, math::V3* pColors)
 {
     using namespace adt::math;
 
@@ -38,17 +44,24 @@ drawTriangle(Span<math::V3> spPoints, u32 color)
     V2 pointB = projectPoint(spPoints[1]);
     V2 pointC = projectPoint(spPoints[2]);
 
+    int minX = utils::min(utils::min(static_cast<int>(pointA.x),             static_cast<int>(pointB.x)),             static_cast<int>(pointC.x));
+    int maxX = utils::max(utils::max(static_cast<int>(std::round(pointA.x)), static_cast<int>(std::round(pointB.x))), static_cast<int>(std::round(pointC.x)));
+    int minY = utils::min(utils::min(static_cast<int>(pointA.y),             static_cast<int>(pointB.y)),             static_cast<int>(pointC.y));
+    int maxY = utils::max(utils::max(static_cast<int>(std::round(pointA.y)), static_cast<int>(std::round(pointB.y))), static_cast<int>(std::round(pointC.y)));
+
     V2 edge0 = pointB - pointA;
     V2 edge1 = pointC - pointB;
     V2 edge2 = pointA - pointC;
 
-    bool bTopLeft0 = (edge0.x >= 0.0f && edge0.y > 0.0f) || (edge0.x > 0.0f && edge0.y == 0.0f);
-    bool bTopLeft1 = (edge1.x >= 0.0f && edge1.y > 0.0f) || (edge1.x > 0.0f && edge1.y == 0.0f);
-    bool bTopLeft2 = (edge2.x >= 0.0f && edge2.y > 0.0f) || (edge2.x > 0.0f && edge2.y == 0.0f);
+    bool bTopLeft0 = (edge0.y > 0.0f) || (edge0.x > 0.0f && edge0.y == 0.0f);
+    bool bTopLeft1 = (edge1.y > 0.0f) || (edge1.x > 0.0f && edge1.y == 0.0f);
+    bool bTopLeft2 = (edge2.y > 0.0f) || (edge2.x > 0.0f && edge2.y == 0.0f);
 
-    for (ssize y = 0; y < sp.getHeight(); ++y)
+    f32 barycentricDiv = V2Cross(pointB - pointA, pointC - pointA);
+
+    for (ssize y = minY; y <= maxY; ++y)
     {
-        for (ssize x = 0; x < sp.getWidth(); ++x)
+        for (ssize x = minX; x <= maxX; ++x)
         {
             V2 pixPoint = V2{static_cast<f32>(x), static_cast<f32>(y)} + V2{0.5f, 0.5f};
 
@@ -66,13 +79,21 @@ drawTriangle(Span<math::V3> spPoints, u32 color)
                 (crossLen2 > 0.0f || (bTopLeft2 && crossLen2 == 0.0f))
             )
             {
-                sp(x, y).data = color;
+                f32 t0 = -crossLen1 / barycentricDiv;
+                f32 t1 = -crossLen2 / barycentricDiv;
+                f32 t2 = -crossLen0 / barycentricDiv;
+                V3 finalCol = (t0 * pColors[0] + t1 * pColors[1] + t2 * pColors[2]);
+
+                V4 cv4; cv4.xyz = finalCol; cv4.w = 255.0f;
+                u32 col = colors::V4ToARGB(cv4);
+
+                sp(x, y).data = col;
             }
         }
     }
 }
 
-static void
+[[maybe_unused]] static void
 gradientTest()
 {
     auto& win = *app::g_pWindow;
@@ -110,22 +131,10 @@ toBuffer()
     /* clear */
     utils::set(sp.data(), 0, sp.getWidth() * sp.getHeight());
 
-    u32 aColors[] {
-        0xffff0000,
-        0xff00ff00,
-        0xff0000ff,
-    };
-
-    V3 aPoints0[] {
-        {-1.0f, -1.0f, 1.0f},
-        {-1.0f,  1.0f, 1.0f},
-        { 1.0f,  1.0f, 1.0f},
-    };
-
-    V3 aPoints1[] {
-        { 1.0f,  1.0f, 1.0f},
-        { 1.0f, -1.0f, 1.0f},
-        {-1.0f, -1.0f, 1.0f},
+    V3 aColors[] {
+        {1.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f},
     };
 
     for (ssize triangleIdx = 10; triangleIdx >= 0; --triangleIdx)
@@ -147,7 +156,7 @@ toBuffer()
             };
         }
 
-        drawTriangle(aPoints, aColors[triangleIdx % utils::size(aColors)]);
+        drawTriangle(aPoints, aColors);
     }
 }
 

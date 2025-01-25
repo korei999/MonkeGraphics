@@ -238,6 +238,12 @@ operator*(const V3& v, f32 s)
 }
 
 inline V3
+operator*(f32 s, const V3& v)
+{
+    return v * s;
+}
+
+inline V3
 operator*(const V3& l, const V3& r)
 {
     return {
