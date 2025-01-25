@@ -1,7 +1,6 @@
 #pragma once
 
-#include "adt/Span2D.hh"
-#include "adt/math.hh"
+#include "adt/types.hh"
 
 namespace draw
 {
@@ -12,6 +11,6 @@ union Pixel
     adt::u32 data;
 };
 
-void toBuffer(adt::Span2D<Pixel> sp);
+void toBuffer();
 
 } /* namespace draw */

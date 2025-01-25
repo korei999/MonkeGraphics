@@ -22,7 +22,7 @@ allocWindow(IAllocator* pAlloc, const char* ntsName)
         default: throw RuntimeException("allocWindow(): can't create platform window");
 
         case WINDOW_TYPE::WAYLAND:
-        return pAlloc->alloc<platform::wayland::Client>(ntsName);
+        return pAlloc->alloc<platform::wayland::Client>(pAlloc, ntsName);
     }
 }
 

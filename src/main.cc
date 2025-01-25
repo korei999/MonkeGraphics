@@ -1,5 +1,5 @@
 #include "adt/String.hh"
-#include "adt/Arena.hh"
+#include "adt/FreeList.hh"
 #include "adt/defer.hh"
 
 #include "app.hh"
@@ -31,12 +31,12 @@ main(int argc, char** argv)
 
     try
     {
-        Arena arena(SIZE_1K);
-        defer( arena.freeAll() );
+        FreeList allocator(SIZE_1K);
+        defer( allocator.freeAll() );
 
         const char* ntsName = "MonkeGraphics";
 
-        app::g_pWindow = app::allocWindow(&arena, ntsName);
+        app::g_pWindow = app::allocWindow(&allocator, ntsName);
         app::g_pWindow->start();
         defer( app::g_pWindow->destroy() );
 

@@ -1,11 +1,14 @@
 #pragma once
 
 #include "adt/String.hh"
+#include "adt/Span2D.hh"
+
 #include "draw.hh"
 
 /* Platform abstracted application/window interface */
 struct IWindow
 {
+    adt::IAllocator* m_pAlloc {};
     const char* m_ntsName {};
 
     int m_width {};
@@ -27,8 +30,8 @@ struct IWindow
     /* */
 
     IWindow() = default;
-    IWindow(const char* ntsName)
-        : m_ntsName(ntsName) {}
+    IWindow(adt::IAllocator* pAlloc, const char* ntsName)
+        : m_pAlloc(pAlloc), m_ntsName(ntsName) {}
 
     /* */
 

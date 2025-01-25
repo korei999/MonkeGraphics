@@ -168,6 +168,12 @@ operator*(const V2& l, const V2& r)
     };
 }
 
+inline V2&
+operator*=(V2& l, const V2& r)
+{
+    return l = l * r;
+}
+
 inline V2
 operator/(const V2& v, f32 s)
 {
@@ -866,6 +872,12 @@ M4Ortho(const f32 l, const f32 r, const f32 b, const f32 t, const f32 n, const f
         0,             0,           -2/(f-n),     0,
         -(r+l)/(r-l), -(t+b)/(t-b), -(f+n)/(f-n), 1
     };
+}
+
+inline f32
+V2Cross(const V2& l, const V2& r)
+{
+    return l.x * r.y - l.y * r.x;
 }
 
 inline V3

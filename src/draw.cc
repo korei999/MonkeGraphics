@@ -1,8 +1,11 @@
 /* Rasterization goes here */
 
 #include "draw.hh"
+#include "adt/logs.hh"
 #include "app.hh"
 #include "frame.hh"
+
+#include "adt/math.hh"
 
 using namespace adt;
 
@@ -13,17 +16,64 @@ namespace draw
 projectPoint(math::V3 pos)
 {
     using namespace adt::math;
-    const auto& win = *app::g_pWindow;
+    auto& win = *app::g_pWindow;
+    Span2D sp = win.getSurfaceBuffer();
 
     V2 res = pos.xy / pos.z;
-    res = 0.5f * (res + V2{1, 1}) * V2{static_cast<f32>(win.m_width), static_cast<f32>(win.m_height)};
+    res = 0.5f * (res + V2{1.0f, 1.0f});
+    res *= V2{static_cast<f32>(sp.getWidth()), static_cast<f32>(sp.getHeight())};
 
     return res;
 }
 
 static void
-gradientCrap(Span2D<Pixel> sp)
+drawTriangle(Span<math::V3> spPoints, u32 color)
 {
+    using namespace adt::math;
+
+    auto& win = *app::g_pWindow;
+    Span2D sp = win.getSurfaceBuffer();
+
+    V2 pointA = projectPoint(spPoints[0]);
+    V2 pointB = projectPoint(spPoints[1]);
+    V2 pointC = projectPoint(spPoints[2]);
+
+    V2 edge0 = pointB - pointA;
+    V2 edge1 = pointC - pointB;
+    V2 edge2 = pointA - pointC;
+
+    for (ssize y = 0; y < sp.getHeight(); ++y)
+    {
+        for (ssize x = 0; x < sp.getWidth(); ++x)
+        {
+            V2 pixPoint = V2{static_cast<f32>(x), static_cast<f32>(y)} + V2{0.5f, 0.5f};
+
+            V2 pixEdge0 = pixPoint - pointA; 
+            V2 pixEdge1 = pixPoint - pointB; 
+            V2 pixEdge2 = pixPoint - pointC; 
+
+            {
+                /*LOG("{:.5}, {:.5}, {:.5}\n", math::V2Cross(pixEdge0, edge0), math::V2Cross(pixEdge1, edge1), math::V2Cross(pixEdge2, edge2));*/
+            }
+
+            /* inside triangle */
+            if (math::V2Cross(pixEdge0, edge0) >= 0.0f &&
+                math::V2Cross(pixEdge1, edge1) >= 0.0f &&
+                math::V2Cross(pixEdge2, edge2) >= 0.0f
+            )
+            {
+                sp(x, y).data = color;
+            }
+        }
+    }
+}
+
+static void
+gradientTest()
+{
+    auto& win = *app::g_pWindow;
+    Span2D sp = win.getSurfaceBuffer();
+
     static int frame = 0;
 
     for (ssize y = 0; y < sp.getHeight(); ++y)
@@ -45,36 +95,44 @@ gradientCrap(Span2D<Pixel> sp)
 }
 
 void
-toBuffer(Span2D<Pixel> sp)
+toBuffer()
 {
     using namespace adt::math;
     namespace f = frame;
 
+    auto& win = *app::g_pWindow;
+    Span2D sp = win.getSurfaceBuffer();
+
+    /* clear */
     utils::set(sp.data(), 0, sp.getWidth() * sp.getHeight());
 
-    for (ssize i = 0; i < 10; ++i)
-    {
-        f32 depth = std::pow(2, i + 1);
+    u32 aColors[] {
+        0xffff0000,
+        0xff00ff00,
+        0xff0000ff,
+    };
 
-        V3 points[] {
-            {-1.0f, -1.0f, depth},
-            {1.0f, -1.0f, depth},
-            {0.0f, 1.0f, depth},
+    for (ssize triangleIdx = 10; triangleIdx >= 0; --triangleIdx)
+    {
+        f32 depth = std::pow(2, triangleIdx + 1);
+
+        V3 aPoints[] {
+            {-1.0f, -0.5f, depth},
+            {0.0f, 0.5f, depth},
+            {1.0f, -0.5f, depth},
         };
 
-        for (auto& point : points)
+        for (auto& point : aPoints)
         {
-            V3 transformedPos = point + V3{std::cosf(f::g_gt*f::g_dt*4), std::sinf(f::g_gt*f::g_dt*4), 0.0f};
-            V2 pixelPos = projectPoint(transformedPos);
-
-            if (pixelPos.x >= 0 && pixelPos.x < sp.getWidth() &&
-                pixelPos.y >= 0 && pixelPos.y < sp.getHeight()
-            )
-            {
-                sp(pixelPos.x, pixelPos.y).data = 0xff00ff00;
-            }
+            point += V3{
+                std::cosf(f::g_gt),
+                std::sinf(f::g_gt), 0.0f
+            };
         }
+
+        drawTriangle(aPoints, aColors[triangleIdx % utils::size(aColors)]);
     }
+
 }
 
 } /* namespace draw */

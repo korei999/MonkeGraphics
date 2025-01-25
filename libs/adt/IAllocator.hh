@@ -25,7 +25,7 @@ constexpr ssize SIZE_8G = SIZE_1G * 8;
 
 struct IAllocator
 {
-    template<typename T, typename ...ARGS>
+    template<typename T, typename ...ARGS> requires(std::is_constructible_v<T, ARGS...>)
     [[nodiscard]] constexpr T*
     alloc(ARGS&&... args)
     {

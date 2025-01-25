@@ -55,7 +55,7 @@ refresh(void*)
         accumulator -= g_dt;
     }
 
-    draw::toBuffer(sp);
+    draw::toBuffer();
     fpsCounter();
 }
 

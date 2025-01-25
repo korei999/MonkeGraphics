@@ -250,7 +250,7 @@ Client::global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, 
     }
     else if (sInterface ==  wl_shm_interface.name)
     {
-        m_pShm = static_cast<wl_shm*>(wl_registry_bind(pRegistry, name, &wl_shm_interface, 2));
+        m_pShm = static_cast<wl_shm*>(wl_registry_bind(pRegistry, name, &wl_shm_interface, 1));
     }
     else if (sInterface == xdg_wm_base_interface.name)
     {
@@ -319,6 +319,7 @@ Client::xdgToplevelConfigure(xdg_toplevel* pXdgToplevel, int32_t width, int32_t 
 void
 Client::xdgToplevelClose(struct xdg_toplevel* pToplevel)
 {
+    LOG_WARN("xdgToplevelClose()\n");
     m_bRunning = false;
 }
 
@@ -375,6 +376,7 @@ void
 Client::outputDone(wl_output* pOutput)
 {
     LOG("outputDone()\n");
+    m_vOutputs.push(m_pAlloc, pOutput);
 }
 
 void

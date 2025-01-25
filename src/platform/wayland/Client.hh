@@ -2,6 +2,8 @@
 
 #include "IWindow.hh"
 
+#include "adt/Vec.hh"
+
 #include "wayland-protocols/xdg-shell.h"
 #include "wayland-protocols/viewporter.h"
 
@@ -14,7 +16,9 @@ struct Client final : public IWindow
     wl_registry* m_pRegistry {};
     wl_compositor* m_pCompositor {};
     wl_surface* m_pSurface {};
+
     wl_output* m_pOutput {};
+    adt::VecBase<wl_output*> m_vOutputs {};
 
     wl_shm* m_pShm {};
     wl_shm_pool* m_pShmPool {};
@@ -40,7 +44,7 @@ struct Client final : public IWindow
     /* */
 
     Client() = default;
-    Client(const char* sName) : IWindow(sName) {}
+    Client(adt::IAllocator* pAlloc, const char* sName) : IWindow(pAlloc, sName) {}
 
     /* */
 
