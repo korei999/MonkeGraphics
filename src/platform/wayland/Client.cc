@@ -308,7 +308,7 @@ Client::xdgWmBasePing(xdg_wm_base* pXdgWmBase, uint32_t serial)
 }
 
 void
-Client::xdgSurfaceConfigure(struct xdg_surface* pXdgSurface, uint32_t serial)
+Client::xdgSurfaceConfigure(xdg_surface* pXdgSurface, uint32_t serial)
 {
     xdg_surface_ack_configure(pXdgSurface, serial);
 
@@ -327,14 +327,11 @@ Client::xdgToplevelConfigure(xdg_toplevel* pXdgToplevel, int32_t width, int32_t 
         m_winHeight = height;
 
         wp_viewport_set_destination(m_pViewport, width, height);
-        /*LOG("xdgTopLevelConfigure() width: {}, height: {}\n", width, height);*/
-        /*m_newWidth = width;*/
-        /*m_newHeight = height;*/
     }
 }
 
 void
-Client::xdgToplevelClose(struct xdg_toplevel* pToplevel)
+Client::xdgToplevelClose(xdg_toplevel* pToplevel)
 {
     LOG_WARN("xdgToplevelClose()\n");
     m_bRunning = false;

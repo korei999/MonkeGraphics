@@ -49,6 +49,11 @@ drawTriangle(Span<math::V3> spPoints, math::V3* pColors)
     int minY = utils::min(utils::min(static_cast<int>(pointA.y),             static_cast<int>(pointB.y)),             static_cast<int>(pointC.y));
     int maxY = utils::max(utils::max(static_cast<int>(std::round(pointA.y)), static_cast<int>(std::round(pointB.y))), static_cast<int>(std::round(pointC.y)));
 
+    minX = utils::clamp(minX, 0, static_cast<int>(sp.getWidth() - 1));
+    maxX = utils::clamp(maxX, 0, static_cast<int>(sp.getWidth() - 1));
+    minY = utils::clamp(minY, 0, static_cast<int>(sp.getHeight() - 1));
+    maxY = utils::clamp(maxY, 0, static_cast<int>(sp.getHeight() - 1));
+
     V2 edge0 = pointB - pointA;
     V2 edge1 = pointC - pointB;
     V2 edge2 = pointA - pointC;
@@ -87,7 +92,7 @@ drawTriangle(Span<math::V3> spPoints, math::V3* pColors)
                 V4 cv4; cv4.xyz = finalCol; cv4.w = 255.0f;
                 u32 col = colors::V4ToARGB(cv4);
 
-                sp(x, y).data = col;
+                sp(x, sp.getHeight() - 1 - y).data = col;
             }
         }
     }
