@@ -35,7 +35,7 @@ struct IWindow
 
     /* */
 
-    virtual void start() = 0;
+    virtual void start(int width, int height) = 0;
     virtual adt::Span2D<draw::Pixel> getSurfaceBuffer() = 0;
     virtual void disableRelativeMode() = 0;
     virtual void enableRelativeMode() = 0;

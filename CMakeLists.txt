@@ -105,7 +105,6 @@ if (CMAKE_BUILD_TYPE MATCHES "Asan")
         else()
             add_link_options(-fsanitize=undefined -fsanitize=address)
         endif()
-
     endif()
 endif()
 

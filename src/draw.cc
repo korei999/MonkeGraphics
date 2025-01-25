@@ -42,6 +42,10 @@ drawTriangle(Span<math::V3> spPoints, u32 color)
     V2 edge1 = pointC - pointB;
     V2 edge2 = pointA - pointC;
 
+    bool bTopLeft0 = (edge0.x >= 0.0f && edge0.y > 0.0f) || (edge0.x > 0.0f && edge0.y == 0.0f);
+    bool bTopLeft1 = (edge1.x >= 0.0f && edge1.y > 0.0f) || (edge1.x > 0.0f && edge1.y == 0.0f);
+    bool bTopLeft2 = (edge2.x >= 0.0f && edge2.y > 0.0f) || (edge2.x > 0.0f && edge2.y == 0.0f);
+
     for (ssize y = 0; y < sp.getHeight(); ++y)
     {
         for (ssize x = 0; x < sp.getWidth(); ++x)
@@ -52,14 +56,14 @@ drawTriangle(Span<math::V3> spPoints, u32 color)
             V2 pixEdge1 = pixPoint - pointB; 
             V2 pixEdge2 = pixPoint - pointC; 
 
-            {
-                /*LOG("{:.5}, {:.5}, {:.5}\n", math::V2Cross(pixEdge0, edge0), math::V2Cross(pixEdge1, edge1), math::V2Cross(pixEdge2, edge2));*/
-            }
+            f32 crossLen0 = V2Cross(pixEdge0, edge0);
+            f32 crossLen1 = V2Cross(pixEdge1, edge1);
+            f32 crossLen2 = V2Cross(pixEdge2, edge2);
 
             /* inside triangle */
-            if (math::V2Cross(pixEdge0, edge0) >= 0.0f &&
-                math::V2Cross(pixEdge1, edge1) >= 0.0f &&
-                math::V2Cross(pixEdge2, edge2) >= 0.0f
+            if ((crossLen0 > 0.0f || (bTopLeft0 && crossLen0 == 0.0f)) &&
+                (crossLen1 > 0.0f || (bTopLeft1 && crossLen1 == 0.0f)) &&
+                (crossLen2 > 0.0f || (bTopLeft2 && crossLen2 == 0.0f))
             )
             {
                 sp(x, y).data = color;
@@ -112,6 +116,18 @@ toBuffer()
         0xff0000ff,
     };
 
+    V3 aPoints0[] {
+        {-1.0f, -1.0f, 1.0f},
+        {-1.0f,  1.0f, 1.0f},
+        { 1.0f,  1.0f, 1.0f},
+    };
+
+    V3 aPoints1[] {
+        { 1.0f,  1.0f, 1.0f},
+        { 1.0f, -1.0f, 1.0f},
+        {-1.0f, -1.0f, 1.0f},
+    };
+
     for (ssize triangleIdx = 10; triangleIdx >= 0; --triangleIdx)
     {
         f32 depth = std::pow(2, triangleIdx + 1);
@@ -125,14 +141,14 @@ toBuffer()
         for (auto& point : aPoints)
         {
             point += V3{
-                std::cosf(f::g_gt),
-                std::sinf(f::g_gt), 0.0f
+                std::cosf(f::g_gt * f::g_dt * 2),
+                std::sinf(f::g_gt * f::g_dt * 2),
+                0.0f
             };
         }
 
         drawTriangle(aPoints, aColors[triangleIdx % utils::size(aColors)]);
     }
-
 }
 
 } /* namespace draw */

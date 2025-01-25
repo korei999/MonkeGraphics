@@ -23,6 +23,7 @@ struct Client final : public IWindow
     wl_shm* m_pShm {};
     wl_shm_pool* m_pShmPool {};
     adt::u8* m_pPoolData {};
+    adt::ssize m_poolSize {};
     wl_buffer* m_pBuffer {};
 
     wl_seat* m_pSeat {};
@@ -48,7 +49,7 @@ struct Client final : public IWindow
 
     /* */
 
-    virtual void start() override;
+    virtual void start(int width, int height) override;
     virtual adt::Span2D<draw::Pixel> getSurfaceBuffer() override;
     virtual void disableRelativeMode() override;
     virtual void enableRelativeMode() override;

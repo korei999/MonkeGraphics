@@ -70,12 +70,12 @@ static const wl_output_listener s_outputListener {
 };
 
 void
-Client::start()
+Client::start(int width, int height)
 {
     LOG_GOOD("starting wayland client...\n");
 
-    m_width = 640;
-    m_height = 480;
+    m_width = width;
+    m_height = height;
 
     m_pDisplay = wl_display_connect(nullptr);
     if (!m_pDisplay)
@@ -120,10 +120,11 @@ Client::start()
     wl_shm_add_listener(m_pShm, &s_shmListener, this);
 
     const int stride = m_width * 4;
-    const int shmPoolSize = m_height * stride * 2;
+    const int shmPoolSize = m_height * stride;
 
     int fd = shm::allocFile(shmPoolSize);
     m_pPoolData = static_cast<u8*>(mmap(nullptr, shmPoolSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
+    m_poolSize = shmPoolSize;
     if (!m_pPoolData)
         throw RuntimeException("mmap() failed");
 
@@ -221,7 +222,23 @@ void
 Client::destroy()
 {
     if (m_pRegistry) wl_registry_destroy(m_pRegistry);
+    if (m_pCompositor) wl_compositor_destroy(m_pCompositor);
+    if (m_pSurface) wl_surface_destroy(m_pSurface);
+    if (m_pOutput) wl_output_destroy(m_pOutput);
+    if (m_pShm) wl_shm_destroy(m_pShm);
+    if (m_pShmPool) wl_shm_pool_destroy(m_pShmPool);
+    if (m_pBuffer) wl_buffer_destroy(m_pBuffer);
+    if (m_pSeat) wl_seat_destroy(m_pSeat);
+    if (m_pKeyboard) wl_keyboard_destroy(m_pKeyboard);
+    if (m_pPointer) wl_pointer_destroy(m_pPointer);
+    if (m_pXdgWmBase) xdg_wm_base_destroy(m_pXdgWmBase);
+    if (m_pXdgSurface) xdg_surface_destroy(m_pXdgSurface);
+    if (m_pXdgToplevel) xdg_toplevel_destroy(m_pXdgToplevel);
+    if (m_pCallBack) wl_callback_destroy(m_pCallBack);
+    if (m_pViewporter) wp_viewporter_destroy(m_pViewporter);
+    if (m_pViewport) wp_viewport_destroy(m_pViewport);
     if (m_pDisplay) wl_display_disconnect(m_pDisplay);
+    if (m_pPoolData) munmap(m_pPoolData, m_poolSize);
 
     *this = {};
 }
