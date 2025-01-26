@@ -97,6 +97,15 @@ union M4
     f32 d[16];
     f32 e[4][4];
     V4 v[4];
+
+    operator M3() const
+    {
+        return {
+            e[0][0], e[0][1], e[0][2],
+            e[1][0], e[1][1], e[1][2],
+            e[2][0], e[2][1], e[2][2]
+        };
+    };
 };
 
 union Qt
@@ -106,14 +115,38 @@ union Qt
     struct { f32 x, y, z, w; };
 };
 
-inline M3
-M4ToM3(const M4& s)
+constexpr V4
+V4From(const V4& v)
 {
-    auto& e = s.e;
+    return v;
+}
+
+constexpr V4
+V4From(const V3& xyz, f32 w)
+{
+    V4 res; res.xyz = xyz; res.w = w;
+    return res;
+}
+
+constexpr V4
+V4From(const V2& xy, const V2& zw)
+{
+    V4 res; res.xy = xy; res.zw = zw;
+    return res;
+}
+
+constexpr V4
+V4From(f32 x, const V3& yzw)
+{
+    V4 res; res.x = x; res.y = yzw.x; res.z = yzw.y; res.w = yzw.z;
+    return res;
+}
+
+constexpr V4
+V4From(f32 x, f32 y, f32 z, f32 w)
+{
     return {
-        e[0][0], e[0][1], e[0][2],
-        e[1][0], e[1][1], e[1][2],
-        e[2][0], e[2][1], e[2][2]
+        x, y, z, w
     };
 }
 
@@ -636,7 +669,7 @@ operator*(const M4& l, const M4& r)
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
             for (int k = 0; k < 4; k++)
-                m.e[j][i] += l.e[k][i] * r.e[j][k];
+                m.e[i][j] += l.e[i][k] * r.e[k][j];
 
     return m;
 }
@@ -646,9 +679,9 @@ operator*(const M4& l, const V4& r)
 {
     V4 res {};
 
-    for (int j = 0; j < 4; j++)
-        for (int i = 0; i < 4; i++)
-            res.e[j] += l.e[j][i] * r.e[i];
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            res.e[i] += l.e[i][j] * r.e[j];
 
     return res;
 }
@@ -791,17 +824,21 @@ V3Dist(const V3& l, const V3& r)
     return sqrtf(sq(r.x - l.x) + sq(r.y - l.y) + sq(r.z - l.z));
 }
 
+constexpr M4
+M4TranslationFrom(const V3& tv)
+{
+    return {
+        1, 0, 0, tv.x,
+        0, 1, 0, tv.y,
+        0, 0, 1, tv.z,
+        0, 0, 0, 1
+    };
+}
+
 inline M4
 M4Translate(const M4& m, const V3& tv)
 {
-    M4 tm {
-        1,    0,    0,    0,
-        0,    1,    0,    0,
-        0,    0,    1,    0,
-        tv.x, tv.y, tv.z, 1
-    };
-
-    return m * tm;
+    return m * M4TranslationFrom(tv);
 }
 
 inline M3
@@ -816,17 +853,38 @@ M3Scale(const M3& m, const f32 s)
     return m * sm;
 }
 
-inline M4
-M4Scale(const M4& m, const f32 s)
+constexpr M4
+M4ScaleFrom(const f32 s)
 {
-    M4 sm {
+    return {
         s, 0, 0, 0,
         0, s, 0, 0,
         0, 0, s, 0,
         0, 0, 0, 1
     };
+}
 
-    return m * sm;
+constexpr M4
+M4ScaleFrom(const V3& v)
+{
+    return {
+        v.x, 0,   0,   0,
+        0,   v.y, 0,   0,
+        0,   0,   v.z, 0,
+        0,   0,   0,   1
+    };
+}
+
+constexpr M4
+M4ScaleFrom(f32 x, f32 y, f32 z)
+{
+    return M4ScaleFrom({x, y, z});
+}
+
+inline M4
+M4Scale(const M4& m, const f32 s)
+{
+    return m * M4ScaleFrom(s);
 }
 
 inline M3
@@ -844,14 +902,7 @@ M3Scale(const M3& m, const V2& s)
 inline M4
 M4Scale(const M4& m, const V3& s)
 {
-    M4 sm {
-        s.x, 0,   0,   0,
-        0,   s.y, 0,   0,
-        0,   0,   s.z, 0,
-        0,   0,   0,   1
-    };
-
-    return m * sm;
+    return m * M4ScaleFrom(s);
 }
 
 inline M4
@@ -864,8 +915,8 @@ M4Pers(const f32 fov, const f32 asp, const f32 n, const f32 f)
     return M4 {
         n / r, 0,     0,                  0,
         0,     n / t, 0,                  0,
-        0,     0,    -(f + n) / (f - n), -1,
-        0,     0,    -(2*f*n) / (f - n),  0
+        0,     0,    -(f + n) / (f - n), -(2*f*n) / (f - n),
+        0,     0,    -1,                  0
     };
 }
 
@@ -873,10 +924,10 @@ inline M4
 M4Ortho(const f32 l, const f32 r, const f32 b, const f32 t, const f32 n, const f32 f)
 {
     return M4 {
-        2/(r-l),       0,            0,           0,
-        0,             2/(t-b),      0,           0,
-        0,             0,           -2/(f-n),     0,
-        -(r+l)/(r-l), -(t+b)/(t-b), -(f+n)/(f-n), 1
+        2/(r-l), 0,        0,       -(r+l)/(r-l),
+        0,       2/(t-b),  0,       -(t+b)/(t-b),
+        0,       0,       -2/(f-n), -(f+n)/(f-n),
+        0,       0,        0,        1
     };
 }
 
@@ -930,39 +981,39 @@ M4Rot(const M4& m, const f32 th, const V3& ax)
 }
 
 inline M4
-M4RotX(const M4& m, const f32 angle)
+M4RotX(const M4& m, const f32 th)
 {
     M4 axisX {
-        1, 0,                0,               0,
-        0, std::cos(angle),  std::sin(angle), 0,
-        0, -std::sin(angle), std::cos(angle), 0,
-        0, 0,                0,               1
+        1, 0,             0,            0,
+        0, std::cos(th), -std::sin(th), 0,
+        0, std::sin(th),  std::cos(th), 0,
+        0, 0,             0,            1
     };
 
     return m * axisX;
 }
 
 inline M4
-M4RotY(const M4& m, const f32 angle)
+M4RotY(const M4& m, const f32 th)
 {
     M4 axisY {
-        std::cos(angle), 0, -std::sin(angle), 0,
-        0,               1, 0,                0,
-        std::sin(angle), 0, std::cos(angle),  0,
-        0,               0, 0,                1
+        std::cos(th), 0, -std::sin(th),  0,
+        0,            1,  0,             0,
+        std::sin(th), 0,  std::cos(th),  0,
+        0,            0,  0,             1
     };
 
     return m * axisY;
 }
 
 inline M4
-M4RotZ(const M4& m, const f32 angle)
+M4RotZ(const M4& m, const f32 th)
 {
     M4 axisZ {
-        std::cos(angle),  std::sin(angle), 0, 0,
-        -std::sin(angle), std::cos(angle), 0, 0,
-        0,                0,               1, 0,
-        0,                0,               0, 1
+        std::cos(th), -std::sin(th), 0, 0,
+        std::sin(th),  std::cos(th), 0, 0,
+        0,             0,            1, 0,
+        0,             0,            0, 1
     };
 
     return m * axisZ;

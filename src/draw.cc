@@ -2,8 +2,8 @@
 
 #include "draw.hh"
 #include "app.hh"
-#include "frame.hh"
 #include "colors.hh"
+#include "frame.hh"
 
 #include "adt/math.hh"
 
@@ -32,7 +32,7 @@ projectPoint(math::V3 pos)
 }
 
 static void
-drawTriangle(Span<math::V3> spPoints, math::V3* pColors)
+drawTriangle(Span<math::V3> spPoints, math::V3* pColors, const math::M4& trm)
 {
     using namespace adt::math;
 
@@ -40,9 +40,13 @@ drawTriangle(Span<math::V3> spPoints, math::V3* pColors)
     Span2D sp = win.surfaceBuffer();
     Span2D spDepth = win.depthBuffer();
 
-    V2 pointA = projectPoint(spPoints[0]);
-    V2 pointB = projectPoint(spPoints[1]);
-    V2 pointC = projectPoint(spPoints[2]);
+    V3 trPoint0 = (trm * V4From(spPoints[0], 1.0f)).xyz;
+    V3 trPoint1 = (trm * V4From(spPoints[1], 1.0f)).xyz;
+    V3 trPoint2 = (trm * V4From(spPoints[2], 1.0f)).xyz;
+
+    V2 pointA = projectPoint(trPoint0);
+    V2 pointB = projectPoint(trPoint1);
+    V2 pointC = projectPoint(trPoint2);
 
     int minX = utils::min(utils::min(static_cast<int>(pointA.x),             static_cast<int>(pointB.x)),             static_cast<int>(pointC.x));
     int maxX = utils::max(utils::max(static_cast<int>(std::round(pointA.x)), static_cast<int>(std::round(pointB.x))), static_cast<int>(std::round(pointC.x)));
@@ -90,7 +94,7 @@ drawTriangle(Span<math::V3> spPoints, math::V3* pColors)
                 f32 t1 = -crossLen2 / barycentricDiv;
                 f32 t2 = -crossLen0 / barycentricDiv;
 
-                f32 depth = 1.0f / (t0 * (1.0f / spPoints[0].z) + t1 * (1.0f / spPoints[1].z) + t2 * (1.0f / spPoints[2].z));
+                f32 depth = 1.0f / (t0 * (1.0f / trPoint0.z) + t1 * (1.0f / trPoint1.z) + t2 * (1.0f / trPoint2.z));
                 if (depth < spDepth(x, invY))
                 {
                     V3 finalCol = (t0 * pColors[0] + t1 * pColors[1] + t2 * pColors[2]);
@@ -144,21 +148,21 @@ toBuffer()
     win.clearDepthBuffer();
 
     V3 aPositions0[] {
-        { 0.0f,  0.5f, 1.0f},
-        { 0.5f, -0.5f, 1.0f},
-        {-0.5f, -0.5f, 1.0f},
+        { 0.0f,  0.5f, 0.0f},
+        { 0.5f, -0.5f, 0.0f},
+        {-0.5f, -0.5f, 0.0f},
     };
 
     V3 aPositions1[] {
-        { 0.0f,  0.5f, 1.0f},
-        { 0.5f, -0.5f, 1.2f},
-        {-0.5f, -0.5f, 0.8f},
+        { 0.0f,  0.5f, 0.0f},
+        { 0.5f, -0.5f, 0.2f},
+        {-0.5f, -0.5f, -0.2f},
     };
 
     V3 aPositions2[] {
-        { 0.0f, -0.5f, 0.6f},
-        {-1.5f,  0.5f, 3.0f},
-        { 1.5f,  0.5f, 3.0f},
+        { 0.0f, -0.5f, -0.4f},
+        {-1.5f,  0.5f, 2.0f},
+        { 1.5f,  0.5f, 2.0f},
     };
 
     V3 aColors0[] {
@@ -173,31 +177,15 @@ toBuffer()
         {1.0f, 0.0f, 1.0f},
     };
 
-    drawTriangle(aPositions1, aColors1);
-    drawTriangle(aPositions0, aColors0);
-    drawTriangle(aPositions2, aColors1);
+    // auto off = std::sinf(f::g_time * 0.002) * 0.5f + 1.0f;
+    // M4 tr = M4GetTranslation({0, 0, 1.0f + off})
+    //     * M4GetScale(off + 0.2f, 1, off + 0.2f);
 
-    // for (ssize triangleIdx = 0; triangleIdx < 10; ++triangleIdx)
-    // {
-    //     f32 depth = std::pow(2, triangleIdx + 1);
+    M4 tr = M4TranslationFrom({0, 0, 1}) * M4RotZ(M4Iden(), f::g_time * 0.002);
 
-    //     V3 aPoints[] {
-    //         {-1.0f, -0.5f, depth},
-    //         {0.0f, 0.5f, depth},
-    //         {1.0f, -0.5f, depth},
-    //     };
-
-    //     for (auto& point : aPoints)
-    //     {
-    //         point += V3{
-    //             std::cosf(f::g_gt * f::g_dt * 2),
-    //             std::sinf(f::g_gt * f::g_dt * 2),
-    //             0.0f
-    //         };
-    //     }
-
-    //     drawTriangle(aPoints, aColors0);
-    // }
+    drawTriangle(aPositions1, aColors1, tr);
+    drawTriangle(aPositions0, aColors0, tr);
+    drawTriangle(aPositions2, aColors1, tr);
 }
 
 } /* namespace draw */
