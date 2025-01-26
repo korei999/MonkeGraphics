@@ -7,22 +7,42 @@ namespace platform::wayland
 {
 
 void
-Client::keyboardKeymap(wl_keyboard* pKeyboard, uint32_t format, int32_t fd, uint32_t size)
+Client::keyboardKeymap(
+    [[maybe_unused]] wl_keyboard* pKeyboard,
+    [[maybe_unused]] uint32_t format,
+    [[maybe_unused]] int32_t fd,
+    [[maybe_unused]] uint32_t size
+)
 {
 }
 
 void
-Client::keyboardEnter(wl_keyboard* pKeyboard, uint32_t serial, wl_surface* pSurface, wl_array* pKeys)
+Client::keyboardEnter(
+    [[maybe_unused]] wl_keyboard* pKeyboard,
+    [[maybe_unused]] uint32_t serial,
+    [[maybe_unused]] wl_surface* pSurface,
+    [[maybe_unused]] wl_array* pKeys
+)
 {
 }
 
 void
-Client::keyboardLeave(wl_keyboard* pKeyboard, uint32_t serial, wl_surface* pSurface)
+Client::keyboardLeave(
+    [[maybe_unused]] wl_keyboard* pKeyboard,
+    [[maybe_unused]] uint32_t serial,
+    [[maybe_unused]] wl_surface* pSurface
+)
 {
 }
 
 void
-Client::keyboardKey(wl_keyboard* pKeyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state)
+Client::keyboardKey(
+    [[maybe_unused]] wl_keyboard* pKeyboard,
+    [[maybe_unused]] uint32_t serial,
+    [[maybe_unused]] uint32_t time,
+    [[maybe_unused]] uint32_t key,
+    [[maybe_unused]] uint32_t state
+)
 {
     if (key == KEY_Q)
     {
@@ -36,76 +56,124 @@ Client::keyboardKey(wl_keyboard* pKeyboard, uint32_t serial, uint32_t time, uint
 
 void
 Client::keyboardModifiers(
-    wl_keyboard* pKeyboard,
-    uint32_t serial,
-    uint32_t modsDepressed,
-    uint32_t modsLatched,
-    uint32_t modsLocked,
-    uint32_t group
+    [[maybe_unused]] wl_keyboard* pKeyboard,
+    [[maybe_unused]] uint32_t serial,
+    [[maybe_unused]] uint32_t modsDepressed,
+    [[maybe_unused]] uint32_t modsLatched,
+    [[maybe_unused]] uint32_t modsLocked,
+    [[maybe_unused]] uint32_t group
 )
 {
 }
 
 void
-Client::keyboardRepeatInfo(wl_keyboard* pKeyboard, int32_t rate, int32_t delay)
+Client::keyboardRepeatInfo(
+    [[maybe_unused]] wl_keyboard* pKeyboard,
+    [[maybe_unused]] int32_t rate,
+    [[maybe_unused]] int32_t delay
+)
 {
 }
 
 void
 Client::pointerEnter(
-    wl_pointer* pPointer, uint32_t serial, wl_surface* pSurface, wl_fixed_t surfaceX,
-    wl_fixed_t surfaceY
+    [[maybe_unused]] wl_pointer* pPointer,
+    [[maybe_unused]] uint32_t serial,
+    [[maybe_unused]] wl_surface* pSurface,
+    [[maybe_unused]] wl_fixed_t surfaceX,
+    [[maybe_unused]] wl_fixed_t surfaceY
 )
 {
 }
 
 void
-Client::pointerLeave(wl_pointer* pPointer, uint32_t serial, wl_surface* pSurface)
+Client::pointerLeave(
+    [[maybe_unused]] wl_pointer* pPointer,
+    [[maybe_unused]] uint32_t serial,
+    [[maybe_unused]] wl_surface* pSurface
+)
 {
 }
 
 void
-Client::pointerMotion(wl_pointer* pPointer, uint32_t time, wl_fixed_t surfaceX, wl_fixed_t surfaceY)
+Client::pointerMotion(
+    [[maybe_unused]] wl_pointer* pPointer,
+    [[maybe_unused]] uint32_t time,
+    [[maybe_unused]] wl_fixed_t surfaceX,
+    [[maybe_unused]] wl_fixed_t surfaceY
+)
 {
 }
 
 void
-Client::pointerButton(wl_pointer* pPointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state)
+Client::pointerButton(
+    [[maybe_unused]] wl_pointer* pPointer,
+    [[maybe_unused]] uint32_t serial,
+    [[maybe_unused]] uint32_t time,
+    [[maybe_unused]] uint32_t button,
+    [[maybe_unused]] uint32_t state
+)
 {
 }
 
 void
-Client::pointerAxis(wl_pointer* pPointer, uint32_t time, uint32_t axis, wl_fixed_t value)
+Client::pointerAxis(
+    [[maybe_unused]] wl_pointer* pPointer,
+    [[maybe_unused]] uint32_t time,
+    [[maybe_unused]] uint32_t axis,
+    [[maybe_unused]] wl_fixed_t value
+)
 {
 }
 
 void
-Client::pointerFrame(wl_pointer* pPointer)
+Client::pointerFrame(
+    [[maybe_unused]] wl_pointer* pPointer
+)
 {
 }
 
 void
-Client::pointerAxisSource(wl_pointer* pPointer, uint32_t axisSource)
+Client::pointerAxisSource(
+    [[maybe_unused]] wl_pointer* pPointer,
+    [[maybe_unused]] uint32_t axisSource
+)
 {
 }
 
 void
-Client::pointerAxisStop(wl_pointer* pPointer, uint32_t time, uint32_t axis)
+Client::pointerAxisStop(
+    [[maybe_unused]] wl_pointer* pPointer,
+    [[maybe_unused]] uint32_t time,
+    [[maybe_unused]] uint32_t axis
+)
 {
 }
 
 void
-Client::pointerAxisDiscrete(wl_pointer* pPointer, uint32_t axis, int32_t discrete)
+Client::pointerAxisDiscrete(
+    [[maybe_unused]] wl_pointer* pPointer,
+    [[maybe_unused]] uint32_t axis,
+    [[maybe_unused]] int32_t discrete
+)
 {
 }
 
 void
-Client::pointerAxisValue120(wl_pointer* pPointer, uint32_t axis, int32_t value120)
+Client::pointerAxisValue120(
+    [[maybe_unused]] wl_pointer* pPointer,
+    [[maybe_unused]] uint32_t axis,
+    [[maybe_unused]] int32_t value120
+)
 {
 }
 
 void
-Client::pointerAxisRelativeDirection(wl_pointer* pPointer, uint32_t axis, uint32_t direction)
+Client::pointerAxisRelativeDirection(
+    [[maybe_unused]] wl_pointer* pPointer,
+    [[maybe_unused]] uint32_t axis,
+    [[maybe_unused]] uint32_t direction
+)
 {
 }
 

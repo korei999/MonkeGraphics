@@ -265,42 +265,41 @@ Client::global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, 
 
     if (sInterface == wl_compositor_interface.name)
     {
-        m_pCompositor = static_cast<wl_compositor*>(wl_registry_bind(pRegistry, name, &wl_compositor_interface, 4));
+        m_pCompositor = static_cast<wl_compositor*>(wl_registry_bind(pRegistry, name, &wl_compositor_interface, version));
     }
     else if (sInterface ==  wl_shm_interface.name)
     {
-        m_pShm = static_cast<wl_shm*>(wl_registry_bind(pRegistry, name, &wl_shm_interface, 1));
+        m_pShm = static_cast<wl_shm*>(wl_registry_bind(pRegistry, name, &wl_shm_interface, version));
     }
     else if (sInterface == xdg_wm_base_interface.name)
     {
-        m_pXdgWmBase = static_cast<xdg_wm_base*>(wl_registry_bind(pRegistry, name, &xdg_wm_base_interface, 1));
+        m_pXdgWmBase = static_cast<xdg_wm_base*>(wl_registry_bind(pRegistry, name, &xdg_wm_base_interface, version));
         xdg_wm_base_add_listener(m_pXdgWmBase, &s_xdgWmBaseListener, this);
     }
     else if (sInterface == wl_seat_interface.name)
     {
-        m_pSeat = static_cast<wl_seat*>(wl_registry_bind(pRegistry, name, &wl_seat_interface, 9));
+        m_pSeat = static_cast<wl_seat*>(wl_registry_bind(pRegistry, name, &wl_seat_interface, version));
         wl_seat_add_listener(m_pSeat, &s_seatListener, this);
     }
     else if (sInterface == wl_output_interface.name)
     {
-        m_pOutput = static_cast<wl_output*>(wl_registry_bind(pRegistry, name, &wl_output_interface, 4));
+        m_pOutput = static_cast<wl_output*>(wl_registry_bind(pRegistry, name, &wl_output_interface, version));
         wl_output_add_listener(m_pOutput, &s_outputListener, this);
     }
     else if (sInterface == wp_viewporter_interface.name)
     {
-        m_pViewporter = static_cast<wp_viewporter*>(wl_registry_bind(pRegistry, name, &wp_viewporter_interface, 1));
+        m_pViewporter = static_cast<wp_viewporter*>(wl_registry_bind(pRegistry, name, &wp_viewporter_interface, version));
     }
 }
 
 void
-Client::globalRemove(wl_registry* pRegistry, uint32_t name)
+Client::globalRemove(wl_registry*, uint32_t)
 {
 }
 
 void
-Client::shmFormat(wl_shm* pShm, uint32_t format)
+Client::shmFormat(wl_shm*, uint32_t)
 {
-    LOG("shmFormat: {}\n", format);
 }
 
 void
@@ -333,19 +332,25 @@ Client::xdgToplevelConfigure(xdg_toplevel* pXdgToplevel, int32_t width, int32_t 
 }
 
 void
-Client::xdgToplevelClose(xdg_toplevel* pToplevel)
+Client::xdgToplevelClose(xdg_toplevel*)
 {
     LOG_WARN("xdgToplevelClose()\n");
     m_bRunning = false;
 }
 
 void
-Client::xdgToplevelConfigureBounds(xdg_toplevel* pToplevel, int32_t width, int32_t height)
+Client::xdgToplevelConfigureBounds(
+    [[maybe_unused]] xdg_toplevel*,
+    [[maybe_unused]] int32_t width,
+    [[maybe_unused]] int32_t height)
 {
 }
 
 void
-Client::xdgToplevelWmCapabilities(xdg_toplevel* pToplevel, wl_array* pCapabilities)
+Client::xdgToplevelWmCapabilities(
+    [[maybe_unused]] xdg_toplevel*,
+    [[maybe_unused]] wl_array* pCapabilities
+)
 {
 }
 
@@ -365,22 +370,38 @@ Client::seatCapabilities(wl_seat* pWlSeat, uint32_t capabilities)
 }
 
 void
-Client::seatName(wl_seat* pWlSeat, const char* ntsName)
+Client::seatName(
+    [[maybe_unused]] wl_seat* pWlSeat,
+    [[maybe_unused]] const char* ntsName
+)
 {
     LOG("seatName: '{}'\n", ntsName);
 }
 
 void
 Client::outputGeometry(
-    wl_output* pOutput, int32_t x, int32_t y, int32_t physicalWidth, int32_t physicalHeight,
-    int32_t subpixel, const char* ntsMake, const char* ntsModel, int32_t transform
+    [[maybe_unused]] wl_output* pOutput,
+    [[maybe_unused]] int32_t x,
+    [[maybe_unused]] int32_t y,
+    [[maybe_unused]] int32_t physicalWidth,
+    [[maybe_unused]] int32_t physicalHeight,
+    [[maybe_unused]] int32_t subpixel,
+    [[maybe_unused]] const char* ntsMake,
+    [[maybe_unused]] const char* ntsModel,
+    [[maybe_unused]] int32_t transform
 )
 {
     LOG("outputGeometry() physicalWidth: {}, physicalHeight: {}\n", physicalHeight, physicalHeight);
 }
 
 void
-Client::outputMode(wl_output* pOutput, uint32_t flags, int32_t width, int32_t height, int32_t refresh)
+Client::outputMode(
+    [[maybe_unused]] wl_output* pOutput,
+    [[maybe_unused]] uint32_t flags,
+    [[maybe_unused]] int32_t width,
+    [[maybe_unused]] int32_t height,
+    [[maybe_unused]] int32_t refresh
+)
 {
     LOG("outputMode() width: {}, height: {}, refresh: {}\n", width, height, refresh);
 
@@ -396,26 +417,38 @@ Client::outputDone(wl_output* pOutput)
 }
 
 void
-Client::outputScale(wl_output* pOutput, int32_t factor)
+Client::outputScale(
+    [[maybe_unused]] wl_output* pOutput,
+    [[maybe_unused]] int32_t factor
+)
 {
     LOG("outputScale(): {}\n", factor);
     wl_surface_set_buffer_scale(m_pSurface, factor);
 }
 
 void
-Client::outputName(wl_output* pOutput, const char* ntsName)
+Client::outputName(
+    [[maybe_unused]] wl_output* pOutput,
+    [[maybe_unused]] const char* ntsName
+)
 {
     LOG("outputName(): '{}'\n", ntsName);
 }
 
 void
-Client::outputDescription(wl_output* pOutput, const char* ntsDescription)
+Client::outputDescription(
+    [[maybe_unused]] wl_output* pOutput,
+    [[maybe_unused]] const char* ntsDescription
+)
 {
     LOG("outputDescription(): '{}'\n", ntsDescription);
 }
 
 void
-Client::callbackDone(wl_callback* pCallback, uint32_t callbackData)
+Client::callbackDone(
+    [[maybe_unused]] wl_callback* pCallback,
+    [[maybe_unused]] uint32_t callbackData
+)
 {
     wl_callback_destroy(pCallback);
     m_pCallBack = nullptr;

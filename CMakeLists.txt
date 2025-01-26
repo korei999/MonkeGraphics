@@ -113,7 +113,8 @@ message(STATUS "CMAKE_BUILD_TYPE: '${CMAKE_BUILD_TYPE}'")
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_options(/wd4146 /wd4200 /wd4312 /utf-8)
 else()
-    add_compile_options(-Wall -Wextra -fms-extensions -Wno-missing-braces)
+    add_compile_options(-Wall -Wextra -Wshadow -fms-extensions)
+    add_compile_options(-Wno-missing-braces)
 endif()
 
 if (CMAKE_BUILD_TYPE MATCHES "Debug")
@@ -123,14 +124,18 @@ if (CMAKE_BUILD_TYPE MATCHES "Debug")
     if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         add_compile_options(/wd4267 /wd4101 /wd4200 /wd4244)
     else()
-        add_compile_options(-Wmissing-field-initializers -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-unused-but-set-variable)
+        add_compile_options(
+            -Wmissing-field-initializers
+            -Wno-unused-parameter
+            -Wno-unused-variable
+            -Wno-unused-function
+            -Wno-unused-but-set-variable
+        )
     endif()
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-class-memaccess -Wno-cast-function-type")
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    add_compile_options(-Wno-cast-function-type-mismatch)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-class-memaccess")
 endif()
 
 message(STATUS "CMAKE_SYSTEM_NAME: '${CMAKE_SYSTEM_NAME}'")

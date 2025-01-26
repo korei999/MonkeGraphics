@@ -961,7 +961,7 @@ m4LookAt(const V3& R, const V3& U, const V3& D, const V3& P)
 }
 
 inline M4
-M4Rot(const M4& m, const f32 th, const V3& ax)
+M4RotFrom(const f32 th, const V3& ax)
 {
     const f32 c = std::cos(th);
     const f32 s = std::sin(th);
@@ -970,53 +970,69 @@ M4Rot(const M4& m, const f32 th, const V3& ax)
     const f32 y = ax.y;
     const f32 z = ax.z;
 
-    M4 r {
+    return {
         ((1 - c)*sq(x)) + c, ((1 - c)*x*y) - s*z, ((1 - c)*x*z) + s*y, 0,
         ((1 - c)*x*y) + s*z, ((1 - c)*sq(y)) + c, ((1 - c)*y*z) - s*x, 0,
         ((1 - c)*x*z) - s*y, ((1 - c)*y*z) + s*x, ((1 - c)*sq(z)) + c, 0,
         0,                   0,                   0,                   1
     };
-
-    return m * r;
 }
 
 inline M4
-M4RotX(const M4& m, const f32 th)
+M4Rot(const M4& m, const f32 th, const V3& ax)
 {
-    M4 axisX {
+    return m * M4RotFrom(th, ax);
+}
+
+inline M4
+M4RotXFrom(const f32 th)
+{
+    return {
         1, 0,             0,            0,
         0, std::cos(th), -std::sin(th), 0,
         0, std::sin(th),  std::cos(th), 0,
         0, 0,             0,            1
     };
-
-    return m * axisX;
 }
 
 inline M4
-M4RotY(const M4& m, const f32 th)
+M4RotX(const M4& m, const f32 th)
 {
-    M4 axisY {
+    return m * M4RotXFrom(th);
+}
+
+inline M4
+M4RotYFrom(const f32 th)
+{
+    return {
         std::cos(th), 0, -std::sin(th),  0,
         0,            1,  0,             0,
         std::sin(th), 0,  std::cos(th),  0,
         0,            0,  0,             1
     };
-
-    return m * axisY;
 }
 
 inline M4
-M4RotZ(const M4& m, const f32 th)
+M4RotY(const M4& m, const f32 th)
 {
-    M4 axisZ {
+    return m * M4RotYFrom(th);
+}
+
+inline M4
+M4RotZFrom(const f32 th)
+{
+    return {
         std::cos(th), -std::sin(th), 0, 0,
         std::sin(th),  std::cos(th), 0, 0,
         0,             0,            1, 0,
         0,             0,            0, 1
     };
+}
 
-    return m * axisZ;
+inline M4
+M4RotZ(const M4& m, const f32 th)
+{
+    return m * M4RotZFrom(th);
 }
 
 inline M4

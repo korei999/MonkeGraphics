@@ -1,6 +1,7 @@
 /* Rasterization goes here */
 
 #include "draw.hh"
+#include "adt/logs.hh"
 #include "app.hh"
 #include "colors.hh"
 #include "frame.hh"
@@ -11,11 +12,6 @@ using namespace adt;
 
 namespace draw
 {
-
-struct Vertex
-{
-    math::V3 pos {};
-};
 
 [[nodiscard]] inline math::V2
 projectPoint(math::V3 pos)
@@ -32,7 +28,11 @@ projectPoint(math::V3 pos)
 }
 
 static void
-drawTriangle(Span<math::V3> spPoints, math::V3* pColors, const math::M4& trm)
+drawTriangle(
+    math::V3 pPoints[3],
+    math::V3 pColors[3],
+    const math::M4& trm,
+    bool bVerticalFlip = true)
 {
     using namespace adt::math;
 
@@ -40,9 +40,9 @@ drawTriangle(Span<math::V3> spPoints, math::V3* pColors, const math::M4& trm)
     Span2D sp = win.surfaceBuffer();
     Span2D spDepth = win.depthBuffer();
 
-    V3 trPoint0 = (trm * V4From(spPoints[0], 1.0f)).xyz;
-    V3 trPoint1 = (trm * V4From(spPoints[1], 1.0f)).xyz;
-    V3 trPoint2 = (trm * V4From(spPoints[2], 1.0f)).xyz;
+    V3 trPoint0 = (trm * V4From(pPoints[0], 1.0f)).xyz;
+    V3 trPoint1 = (trm * V4From(pPoints[1], 1.0f)).xyz;
+    V3 trPoint2 = (trm * V4From(pPoints[2], 1.0f)).xyz;
 
     V2 pointA = projectPoint(trPoint0);
     V2 pointB = projectPoint(trPoint1);
@@ -88,7 +88,7 @@ drawTriangle(Span<math::V3> spPoints, math::V3* pColors, const math::M4& trm)
                 (crossLen2 > 0.0f || (bTopLeft2 && crossLen2 == 0.0f))
             )
             {
-                ssize invY = sp.getHeight() - 1 - y;
+                ssize invY = bVerticalFlip ? sp.getHeight() - 1 - y : y;
 
                 f32 t0 = -crossLen1 / barycentricDiv;
                 f32 t1 = -crossLen2 / barycentricDiv;
@@ -109,7 +109,7 @@ drawTriangle(Span<math::V3> spPoints, math::V3* pColors, const math::M4& trm)
 }
 
 [[maybe_unused]] static void
-gradientTest()
+helloGradientTest()
 {
     auto& win = *app::g_pWindow;
     Span2D sp = win.surfaceBuffer();
@@ -134,11 +134,10 @@ gradientTest()
     ++frame;
 }
 
-void
-toBuffer()
+[[maybe_unused]] static void
+helloCubeTest()
 {
     using namespace adt::math;
-    namespace f = frame;
 
     auto& win = *app::g_pWindow;
     Span2D sp = win.surfaceBuffer();
@@ -147,45 +146,65 @@ toBuffer()
     win.clearBuffer();
     win.clearDepthBuffer();
 
-    V3 aPositions0[] {
-        { 0.0f,  0.5f, 0.0f},
-        { 0.5f, -0.5f, 0.0f},
-        {-0.5f, -0.5f, 0.0f},
+    V3 aCubeVerts[] {
+        /* front face */
+        {-0.5f,  0.5f, -0.5f}, /* tl */
+        { 0.5f, -0.5f, -0.5f}, /* br */
+        {-0.5f, -0.5f, -0.5f}, /* bl */
+        { 0.5f,  0.5f, -0.5f}, /* tr */
+        /* */
+
+        /* back face */
+        {-0.5f,  0.5f, 0.5f}, /* tl */
+        { 0.5f, -0.5f, 0.5f}, /* br */
+        {-0.5f, -0.5f, 0.5f}, /* bl */
+        { 0.5f,  0.5f, 0.5f}, /* tr */
+        /* */
     };
 
-    V3 aPositions1[] {
-        { 0.0f,  0.5f, 0.0f},
-        { 0.5f, -0.5f, 0.2f},
-        {-0.5f, -0.5f, -0.2f},
+    V3 aVertColors[] {
+        {1, 0, 0},
+        {0, 1, 0},
+        {0, 0, 1},
+        {1, 1, 0},
     };
 
-    V3 aPositions2[] {
-        { 0.0f, -0.5f, -0.4f},
-        {-1.5f,  0.5f, 2.0f},
-        { 1.5f,  0.5f, 2.0f},
+    int aIndexBuff[][3] {
+        {0, 1, 2},
+        {0, 3, 1},
+
+        {4, 6, 5},
+        {5, 7, 4},
+
+        {0, 2, 4},
+        {2, 6, 4},
+
+        {3, 7, 5},
+        {3, 5, 1},
+
+        {0, 4, 3},
+        {3, 4, 7},
+
+        {2, 1, 6},
+        {1, 5, 6},
     };
 
-    V3 aColors0[] {
-        {1.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-    };
+    for (const auto& [f0, f1, f2] : aIndexBuff)
+    {
+        V3 aTriangle[] { aCubeVerts[f0], aCubeVerts[f1], aCubeVerts[f2] };
+        V3 aColors[] { aVertColors[f0 % 4], aVertColors[f1 % 4], aVertColors[f2 % 4] };
 
-    V3 aColors1[] {
-        {1.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 1.0f},
-        {1.0f, 0.0f, 1.0f},
-    };
+        M4 tr = M4TranslationFrom({0, 0, 2.5f});
+        tr *= M4RotFrom(frame::g_time*0.002, V3Norm({0.8f, 0.6f, 0.7f}));
 
-    // auto off = std::sinf(f::g_time * 0.002) * 0.5f + 1.0f;
-    // M4 tr = M4GetTranslation({0, 0, 1.0f + off})
-    //     * M4GetScale(off + 0.2f, 1, off + 0.2f);
+        drawTriangle(aTriangle, aColors, tr);
+    }
+}
 
-    M4 tr = M4TranslationFrom({0, 0, 1}) * M4RotZ(M4Iden(), f::g_time * 0.002);
-
-    drawTriangle(aPositions1, aColors1, tr);
-    drawTriangle(aPositions0, aColors0, tr);
-    drawTriangle(aPositions2, aColors1, tr);
+void
+toBuffer()
+{
+    helloCubeTest();
 }
 
 } /* namespace draw */
