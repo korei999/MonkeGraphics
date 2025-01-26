@@ -1,7 +1,6 @@
 /* Rasterization goes here */
 
 #include "draw.hh"
-#include "adt/logs.hh"
 #include "app.hh"
 #include "colors.hh"
 #include "frame.hh"
@@ -32,7 +31,8 @@ drawTriangle(
     math::V3 pPoints[3],
     math::V3 pColors[3],
     const math::M4& trm,
-    bool bVerticalFlip = true)
+    bool bVerticalFlip = true
+)
 {
     using namespace adt::math;
 
@@ -48,6 +48,13 @@ drawTriangle(
     V2 pointB = projectPoint(trPoint1);
     V2 pointC = projectPoint(trPoint2);
 
+    V2 edge0 = pointB - pointA;
+    V2 edge1 = pointC - pointB;
+    V2 edge2 = pointA - pointC;
+
+    if (V2Cross(edge0, pointC - pointA) > 0)
+        return;
+
     int minX = utils::min(utils::min(static_cast<int>(pointA.x),             static_cast<int>(pointB.x)),             static_cast<int>(pointC.x));
     int maxX = utils::max(utils::max(static_cast<int>(std::round(pointA.x)), static_cast<int>(std::round(pointB.x))), static_cast<int>(std::round(pointC.x)));
     int minY = utils::min(utils::min(static_cast<int>(pointA.y),             static_cast<int>(pointB.y)),             static_cast<int>(pointC.y));
@@ -57,10 +64,6 @@ drawTriangle(
     maxX = utils::clamp(maxX, 0, static_cast<int>(sp.getWidth() - 1));
     minY = utils::clamp(minY, 0, static_cast<int>(sp.getHeight() - 1));
     maxY = utils::clamp(maxY, 0, static_cast<int>(sp.getHeight() - 1));
-
-    V2 edge0 = pointB - pointA;
-    V2 edge1 = pointC - pointB;
-    V2 edge2 = pointA - pointC;
 
     bool bTopLeft0 = (edge0.y > 0.0f) || (edge0.x > 0.0f && edge0.y == 0.0f);
     bool bTopLeft1 = (edge1.y > 0.0f) || (edge1.x > 0.0f && edge1.y == 0.0f);
