@@ -1,5 +1,6 @@
 #pragma once
 
+#include "adt/defer.hh"
 #include "frame.hh"
 
 #include "adt/Arr.hh"
@@ -9,36 +10,63 @@ namespace control
 {
 
 constexpr int MAX_KEYBINDS = 128;
-constexpr int MAX_KEY_VALUE = 255;
+constexpr int MAX_KEY_VALUE = 500;
 constexpr adt::f64 SPEED = 4.0;
+
+constexpr adt::math::V3 CAMERA_FRONT {0, 0, 1};
+constexpr adt::math::V3 CAMERA_RIGHT {1, 0, 0};
+constexpr adt::math::V3 CAMERA_UP {0, 1, 0};
 
 struct Camera
 {
-    constexpr static const adt::math::V3 front {0, 0, 1};
-    constexpr static const adt::math::V3 right {1, 0, 0};
-    constexpr static const adt::math::V3 up {0, 1, 0};
+    adt::math::M4 m_trm {};
+    adt::math::M4 m_view {};
 
-    adt::math::V3 pos {};
-    adt::math::V3 lastMove {};
-    adt::math::M4 trm {};
+    adt::math::V3 m_front {0, 0, 1};
+    adt::math::V3 m_right {1, 0, 0};
 
-    adt::math::M4 updateTRM()
+    adt::math::V3 m_pos {};
+    adt::math::V3 m_lastMove {};
+
+    adt::f32 m_yaw = -90.0f;
+    adt::f32 m_pitch {};
+    adt::f32 m_roll {};
+
+    /* */
+
+    adt::math::M4&
+    updateView()
     {
-        adt::f32 len = adt::math::V3Length(lastMove);
+        return m_view = adt::math::M4LookAt(m_pos, m_pos + m_front, CAMERA_UP);
+    }
+
+    void
+    updateTRM()
+    {
+        defer( m_lastMove = {} );
+
+        adt::f32 len = adt::math::V3Length(m_lastMove);
         if (len > 0)
         {
-            auto m = adt::math::M4TranslationFrom(
-                -(pos += (adt::math::V3Norm(lastMove, len)*frame::g_dt*SPEED))
+            m_trm = adt::math::M4TranslationFrom(
+                -(m_pos += (adt::math::V3Norm(m_lastMove, len)*frame::g_dt*SPEED))
             );
 
-            lastMove = {};
-            return m;
+            return;
         }
 
-        auto m = adt::math::M4TranslationFrom(-pos);
-        lastMove = {};
-        return m;
+        m_trm = adt::math::M4TranslationFrom(-m_pos);
     }
+};
+
+/* mouse buttons are in the `g_aPressed` as `BTN_*` */
+struct Mouse
+{
+    adt::math::V2 abs {};
+    adt::math::V2 prevAbs {};
+
+    adt::math::V2 rel {};
+    adt::math::V2 prevRel {};
 };
 
 enum REPEAT_KEY : adt::u8 { ONCE, REPEAT };
@@ -46,11 +74,13 @@ enum REPEAT_KEY : adt::u8 { ONCE, REPEAT };
 struct Keybind
 {
     REPEAT_KEY eRepeat;
-    adt::u8 key;
+    adt::u32 key;
     void (*pfn)();
 };
 
 extern Camera g_camera;
+extern Mouse g_mouse;
+extern bool g_aPrevPressed[MAX_KEY_VALUE];
 extern bool g_aPressed[MAX_KEY_VALUE];
 extern adt::Arr<Keybind, MAX_KEYBINDS> g_aKeybinds;
 extern adt::Arr<Keybind, MAX_KEYBINDS> g_aModbinds; /* exec after g_aKeybinds */

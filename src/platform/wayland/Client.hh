@@ -4,6 +4,7 @@
 
 #include "wayland-protocols/xdg-shell.h"
 #include "wayland-protocols/viewporter.h"
+#include "wayland-protocols/relative-pointer-unstable-v1.h"
 
 namespace platform::wayland
 {
@@ -27,6 +28,9 @@ struct Client final : public IWindow
     wl_seat* m_pSeat {};
     wl_keyboard* m_pKeyboard {};
     wl_pointer* m_pPointer {};
+
+    zwp_relative_pointer_manager_v1* m_pRelPointerMgr {};
+    zwp_relative_pointer_v1* m_pRelPointer {};
 
     xdg_wm_base* m_pXdgWmBase {};
     xdg_surface* m_pXdgSurface {};
@@ -119,6 +123,8 @@ struct Client final : public IWindow
     void pointerAxisDiscrete(wl_pointer* pPointer, uint32_t axis, int32_t discrete);
     void pointerAxisValue120(wl_pointer* pPointer, uint32_t axis, int32_t value120);
     void pointerAxisRelativeDirection(wl_pointer* pPointer, uint32_t axis, uint32_t direction);
+
+    void relativePointerMotion(zwp_relative_pointer_v1* pRelPointerV1, uint32_t utimeHi, uint32_t utimeLo, wl_fixed_t dx, wl_fixed_t dy, wl_fixed_t dxUnaccel, wl_fixed_t dyUnaccel);
     /* */
 
     void callbackDone(wl_callback* pCallback, uint32_t callbackData);

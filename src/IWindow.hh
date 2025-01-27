@@ -26,6 +26,12 @@ struct IWindow
     int m_swapInterval {};
     adt::f64 m_hideCursorTimeoutMS {};
 
+    adt::f32 m_pointerSurfaceX {};
+    adt::f32 m_pointerSurfaceY {};
+
+    adt::f32 m_relMotionX {};
+    adt::f32 m_relMotionY {};
+
     void (*m_pfnDrawCB)(void*) {};
     void* m_pDrawArg {};
 

@@ -69,6 +69,10 @@ static const wl_output_listener s_outputListener {
     .description = reinterpret_cast<decltype(wl_output_listener::description)>(methodPointer(&Client::outputDescription)),
 };
 
+static const zwp_relative_pointer_v1_listener s_relativePointerListener {
+    .relative_motion = reinterpret_cast<decltype(zwp_relative_pointer_v1_listener::relative_motion)>(methodPointer(&Client::relativePointerMotion))
+};
+
 void
 Client::start(int width, int height)
 {
@@ -137,6 +141,12 @@ Client::start(int width, int height)
     m_pBuffer = wl_shm_pool_create_buffer(m_pShmPool, 0, m_width, m_height, stride, WL_SHM_FORMAT_XRGB8888);
     if (!m_pBuffer)
         throw RuntimeException("wl_shm_pool_create_buffer() failed");
+
+    m_pRelPointer = zwp_relative_pointer_manager_v1_get_relative_pointer(m_pRelPointerMgr, m_pPointer);
+    if (!m_pRelPointer)
+        throw RuntimeException("zwp_relative_pointer_manager_v1_get_relative_pointer() failed");
+
+    zwp_relative_pointer_v1_add_listener(m_pRelPointer, &s_relativePointerListener, this);
 }
 
 Span2D<draw::Pixel>
@@ -148,16 +158,21 @@ Client::surfaceBuffer()
 void
 Client::disableRelativeMode()
 {
+    m_bPointerRelativeMode = false;
 }
 
 void
 Client::enableRelativeMode()
 {
+    m_bPointerRelativeMode = true;
 }
 
 void
 Client::togglePointerRelativeMode()
 {
+    m_bPointerRelativeMode ? disableRelativeMode() : enableRelativeMode();
+
+    LOG("relative mode: {}\n", m_bPointerRelativeMode);
 }
 
 void
@@ -167,12 +182,12 @@ Client::toggleFullscreen()
 }
 
 void
-Client::hideCursor(bool bHide)
+Client::hideCursor([[maybe_unused]] bool bHide)
 {
 }
 
 void
-Client::setCursorImage(String cursorType)
+Client::setCursorImage([[maybe_unused]] String cursorType)
 {
 }
 
@@ -191,7 +206,7 @@ Client::unsetFullscreen()
 }
 
 void
-Client::setSwapInterval(int interval)
+Client::setSwapInterval([[maybe_unused]] int interval)
 {
 }
 
@@ -233,6 +248,8 @@ Client::destroy()
     if (m_pSeat) wl_seat_destroy(m_pSeat);
     if (m_pKeyboard) wl_keyboard_destroy(m_pKeyboard);
     if (m_pPointer) wl_pointer_destroy(m_pPointer);
+    if (m_pRelPointerMgr) zwp_relative_pointer_manager_v1_destroy(m_pRelPointerMgr);
+    if (m_pRelPointer) zwp_relative_pointer_v1_destroy(m_pRelPointer);
     if (m_pXdgWmBase) xdg_wm_base_destroy(m_pXdgWmBase);
     if (m_pXdgSurface) xdg_surface_destroy(m_pXdgSurface);
     if (m_pXdgToplevel) xdg_toplevel_destroy(m_pXdgToplevel);
@@ -290,6 +307,12 @@ Client::global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, 
     {
         m_pViewporter = static_cast<wp_viewporter*>(wl_registry_bind(pRegistry, name, &wp_viewporter_interface, version));
     }
+    else if (sInterface == zwp_relative_pointer_manager_v1_interface.name)
+    {
+        m_pRelPointerMgr = static_cast<zwp_relative_pointer_manager_v1*>(wl_registry_bind(pRegistry, name, &zwp_relative_pointer_manager_v1_interface, version));
+        if (!m_pRelPointerMgr)
+            throw RuntimeException("failed to bind `zwp_relative_pointer_manager_v1_interface`");
+    }
 }
 
 void
@@ -320,7 +343,12 @@ Client::xdgSurfaceConfigure(xdg_surface* pXdgSurface, uint32_t serial)
 }
 
 void
-Client::xdgToplevelConfigure(xdg_toplevel* pXdgToplevel, int32_t width, int32_t height, wl_array* pStates)
+Client::xdgToplevelConfigure(
+    [[maybe_unused]] xdg_toplevel* pXdgToplevel,
+    [[maybe_unused]] int32_t width,
+    [[maybe_unused]] int32_t height,
+    [[maybe_unused]] wl_array* pStates
+)
 {
     if (width > 0 && height > 0)
     {

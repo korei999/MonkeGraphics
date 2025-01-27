@@ -1050,6 +1050,12 @@ M4RotZ(const M4& m, const f32 th)
 }
 
 inline M4
+M4RotFrom(const f32 x, const f32 y, const f32 z)
+{
+    return M4RotZFrom(z) * M4RotYFrom(y) * M4RotXFrom(x);
+}
+
+inline M4
 M4LookAt(const V3& eyeV, const V3& centerV, const V3& upV)
 {
     V3 camDir = V3Norm(eyeV - centerV);

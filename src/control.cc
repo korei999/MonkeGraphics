@@ -1,9 +1,10 @@
 #include "control.hh"
 
+#include "adt/logs.hh"
 #include "keys.hh"
 #include "app.hh"
 
-#include "adt/logs.hh"
+#include "adt/defer.hh"
 
 using namespace adt;
 
@@ -12,18 +13,23 @@ namespace control
 
 static void toggleFullscreen() { app::window().toggleFullscreen(); }
 static void quit() { app::window().m_bRunning = false; }
-static void cameraForward() { g_camera.lastMove += Camera::front; }
-static void cameraBack() { g_camera.lastMove -= Camera::front; }
-static void cameraRight() { g_camera.lastMove += Camera::right; }
-static void cameraLeft() { g_camera.lastMove -= Camera::right; }
-static void cameraUp() { g_camera.lastMove += Camera::up; }
-static void cameraDown() { g_camera.lastMove -= Camera::up; }
+static void toggleRelativePointer() { app::window().togglePointerRelativeMode(); }
 
-Camera g_camera {.pos {0, 0, -3}, .lastMove {}};
+static void cameraForward() { g_camera.m_lastMove += CAMERA_FRONT; }
+static void cameraBack() { g_camera.m_lastMove -= CAMERA_FRONT; }
+static void cameraRight() { g_camera.m_lastMove += CAMERA_RIGHT; }
+static void cameraLeft() { g_camera.m_lastMove -= CAMERA_RIGHT; }
+static void cameraUp() { g_camera.m_lastMove += CAMERA_UP; }
+static void cameraDown() { g_camera.m_lastMove -= CAMERA_UP; }
+
+Camera g_camera {.m_pos {0, 0, -3}, .m_lastMove {}};
+Mouse g_mouse {};
+bool g_aPrevPressed[MAX_KEY_VALUE] {};
 bool g_aPressed[MAX_KEY_VALUE] {};
 
 Arr<Keybind, MAX_KEYBINDS> g_aKeybinds {
     {ONCE, KEY_F, toggleFullscreen},
+    {ONCE, KEY_R, toggleRelativePointer},
     {ONCE, KEY_Q, quit},
     {ONCE, KEY_ESC, quit},
     {REPEAT, KEY_W, cameraForward},
@@ -44,11 +50,6 @@ procKeybinds(Arr<bool, MAX_KEYBINDS>* paMap, const Arr<Keybind, MAX_KEYBINDS>& a
     for (auto& com : aCommands)
     {
         ssize idx = &com - &aCommands[0];
-        if (idx >= paMap->getSize())
-        {
-            LOG_BAD("command array size is bigger than {}, skipping the rest\n", paMap->getSize());
-            return;
-        }
 
         if (g_aPressed[com.key])
         {
@@ -72,9 +73,26 @@ procKeybinds(Arr<bool, MAX_KEYBINDS>* paMap, const Arr<Keybind, MAX_KEYBINDS>& a
     }
 }
 
+static void
+procMouse()
+{
+    using namespace adt::math;
+
+    const auto& win = app::window();
+
+    g_mouse.abs.x = win.m_pointerSurfaceX / static_cast<f32>(win.m_winWidth);
+    g_mouse.abs.y = win.m_pointerSurfaceY / static_cast<f32>(win.m_winHeight);
+
+    g_camera.updateTRM();
+}
+
 void
 procKeys()
 {
+    using namespace adt::math;
+
+    defer( utils::copy(g_aPrevPressed, g_aPressed, utils::size(g_aPrevPressed)) );
+
     {
         static Arr<bool, MAX_KEYBINDS> aPressedKeysOnceMap(MAX_KEYBINDS);
         procKeybinds(&aPressedKeysOnceMap, g_aKeybinds);
@@ -85,7 +103,7 @@ procKeys()
         procKeybinds(&aPressedKeysOnceMap, g_aModbinds);
     }
 
-    g_camera.trm = g_camera.updateTRM();
+    procMouse();
 }
 
 } /* namespace control */

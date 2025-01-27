@@ -1,5 +1,6 @@
 #include "Client.hh"
 
+#include "app.hh"
 #include "control.hh"
 
 using namespace adt;
@@ -98,6 +99,12 @@ Client::pointerMotion(
     [[maybe_unused]] wl_fixed_t surfaceY
 )
 {
+    auto& win = app::window();
+    if (!win.m_bPointerRelativeMode)
+    {
+        win.m_pointerSurfaceX = static_cast<f32>(wl_fixed_to_double(surfaceX));
+        win.m_pointerSurfaceY = static_cast<f32>(win.m_winHeight) - static_cast<f32>(wl_fixed_to_double(surfaceY));
+    }
 }
 
 void
@@ -109,6 +116,8 @@ Client::pointerButton(
     [[maybe_unused]] uint32_t state
 )
 {
+    if (button < utils::size(control::g_aPressed))
+        control::g_aPressed[button] = state;
 }
 
 void
@@ -170,6 +179,24 @@ Client::pointerAxisRelativeDirection(
     [[maybe_unused]] uint32_t direction
 )
 {
+}
+
+void
+Client::relativePointerMotion(
+    [[maybe_unused]] zwp_relative_pointer_v1* pRelPointerV1,
+    [[maybe_unused]] uint32_t utimeHi,
+    [[maybe_unused]] uint32_t utimeLo,
+    [[maybe_unused]] wl_fixed_t dx,
+    [[maybe_unused]] wl_fixed_t dy,
+    [[maybe_unused]] wl_fixed_t dxUnaccel,
+    [[maybe_unused]] wl_fixed_t dyUnaccel
+)
+{
+    if (m_bPointerRelativeMode)
+    {
+        m_relMotionX = static_cast<f32>(wl_fixed_to_double(dxUnaccel));
+        m_relMotionY = static_cast<f32>(wl_fixed_to_double(dyUnaccel));
+    }
 }
 
 } /* namespace platform::wayland */

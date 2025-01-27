@@ -3,6 +3,8 @@
 #include "adt/types.hh"
 #include "adt/enum.hh"
 
+#include <linux/input-event-codes.h>
+
 /* wayland mod codes */
 enum class MOD_STATE : adt::u8
 {
@@ -216,3 +218,13 @@ ADT_ENUM_BITWISE_OPERATORS(MOD_STATE);
 #define KEY_F22 192
 #define KEY_F23 193
 #define KEY_F24 194
+
+#define BTN_MOUSE 0x110
+#define BTN_LEFT 0x110
+#define BTN_RIGHT 0x111
+#define BTN_MIDDLE 0x112
+#define BTN_SIDE 0x113
+#define BTN_EXTRA 0x114
+#define BTN_FORWARD 0x115
+#define BTN_BACK 0x116
+#define BTN_TASK 0x117

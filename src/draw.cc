@@ -1,12 +1,14 @@
 /* Rasterization goes here */
 
-#include "draw.hh"
+#include "adt/logs.hh"
+#include "adt/math.hh"
+
 #include "app.hh"
 #include "colors.hh"
 #include "control.hh"
+#include "draw.hh"
 #include "frame.hh"
-
-#include "adt/math.hh"
+#include "keys.hh"
 
 using namespace adt;
 
@@ -20,6 +22,7 @@ projectPoint(math::V3 pos)
     auto& win = *app::g_pWindow;
     Span2D sp = win.surfaceBuffer();
 
+    /* 90deg fov */
     V2 res = pos.xy / pos.z;
     res = 0.5f * (res + V2{1.0f, 1.0f});
     res *= V2{static_cast<f32>(sp.getWidth()), static_cast<f32>(sp.getHeight())};
@@ -193,18 +196,18 @@ helloCubeTest()
         {1, 5, 6},
     };
 
-    M4 camTR = control::g_camera.trm;
+    auto& camera = control::g_camera;
+
+    M4 tr = M4Iden();
+    tr *= camera.m_trm;
+    /*tr *= camera.m_view;*/
+    tr *= M4TranslationFrom({0, 0, 2.5f});
+    tr *= M4RotFrom(frame::g_time*0.002, V3Norm({0.8f, 0.6f, 0.7f}));
+
     for (const auto& [f0, f1, f2] : aIndexBuff)
     {
         V3 aTriangle[] { aCubeVerts[f0], aCubeVerts[f1], aCubeVerts[f2] };
         V3 aColors[] { aVertColors[f0 % 4], aVertColors[f1 % 4], aVertColors[f2 % 4] };
-
-        M4 tr = M4Iden();
-        tr *= camTR;
-
-        /*tr *= M4TranslationFrom({0, 0, 2.5f});*/
-
-        /*tr *= M4RotFrom(frame::g_time*0.002, V3Norm({0.8f, 0.6f, 0.7f}));*/
 
         drawTriangle(aTriangle, aColors, tr);
     }
