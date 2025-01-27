@@ -193,13 +193,14 @@ helloCubeTest()
         {1, 5, 6},
     };
 
+    M4 camTR = control::g_camera.trm;
     for (const auto& [f0, f1, f2] : aIndexBuff)
     {
         V3 aTriangle[] { aCubeVerts[f0], aCubeVerts[f1], aCubeVerts[f2] };
         V3 aColors[] { aVertColors[f0 % 4], aVertColors[f1 % 4], aVertColors[f2 % 4] };
 
         M4 tr = M4Iden();
-        tr *= control::g_camera.getTRM();
+        tr *= camTR;
 
         /*tr *= M4TranslationFrom({0, 0, 2.5f});*/
 

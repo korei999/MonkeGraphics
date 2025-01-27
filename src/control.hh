@@ -10,7 +10,7 @@ namespace control
 
 constexpr int MAX_KEYBINDS = 128;
 constexpr int MAX_KEY_VALUE = 255;
-constexpr adt::f64 SPEED = 0.5;
+constexpr adt::f64 SPEED = 4.0;
 
 struct Camera
 {
@@ -20,18 +20,24 @@ struct Camera
 
     adt::math::V3 pos {};
     adt::math::V3 lastMove {};
+    adt::math::M4 trm {};
 
-    adt::math::M4 getTRM()
+    adt::math::M4 updateTRM()
     {
         adt::f32 len = adt::math::V3Length(lastMove);
         if (len > 0)
         {
-            return adt::math::M4TranslationFrom(
+            auto m = adt::math::M4TranslationFrom(
                 -(pos += (adt::math::V3Norm(lastMove, len)*frame::g_dt*SPEED))
             );
+
+            lastMove = {};
+            return m;
         }
 
-        return adt::math::M4TranslationFrom(-pos);
+        auto m = adt::math::M4TranslationFrom(-pos);
+        lastMove = {};
+        return m;
     }
 };
 
