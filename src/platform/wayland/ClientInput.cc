@@ -1,7 +1,8 @@
 #include "Client.hh"
 
-#include "adt/logs.hh"
-#include "keys.hh"
+#include "control.hh"
+
+using namespace adt;
 
 namespace platform::wayland
 {
@@ -44,14 +45,8 @@ Client::keyboardKey(
     [[maybe_unused]] uint32_t state
 )
 {
-    if (key == KEY_Q)
-    {
-        m_bRunning = false;
-    }
-    else if (key == KEY_F && state == WL_KEYBOARD_KEY_STATE_PRESSED)
-    {
-        toggleFullscreen();
-    }
+    if (key < utils::size(control::g_aPressed))
+        control::g_aPressed[key] = state;
 }
 
 void

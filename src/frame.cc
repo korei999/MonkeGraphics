@@ -1,9 +1,11 @@
 #include "frame.hh"
 
+#include "app.hh"
+#include "control.hh"
+#include "draw.hh"
+
 #include "adt/logs.hh"
 #include "adt/utils.hh"
-#include "app.hh"
-#include "draw.hh"
 
 using namespace adt;
 
@@ -47,6 +49,8 @@ refresh(void*)
         frameTime = 0.25;
 
     accumulator += frameTime;
+
+    control::procKeys();
 
     while (accumulator >= g_dt)
     {

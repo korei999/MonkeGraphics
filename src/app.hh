@@ -10,6 +10,8 @@ enum class WINDOW_TYPE : adt::u8 { WAYLAND };
 extern WINDOW_TYPE g_eWindowType;
 extern IWindow* g_pWindow;
 
+inline IWindow& window() { return *g_pWindow; }
+
 /* create window based on `g_eWindowType` */
 IWindow* allocWindow(adt::IAllocator* pAlloc, const char* ntsName);
 

@@ -131,10 +131,10 @@ Thread::detach()
 inline THREAD_STATUS
 Thread::pthreadJoin()
 {
-    THREAD_STATUS pRet {};
-    pthread_join(m_thread, (void**)&pRet);
+    u64 ret {};
+    pthread_join(m_thread, (void**)&ret);
 
-    return pRet;
+    return static_cast<THREAD_STATUS>(ret);
 }
 
 inline THREAD_STATUS

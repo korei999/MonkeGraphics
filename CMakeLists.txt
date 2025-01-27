@@ -147,6 +147,7 @@ add_executable(
     src/app.cc
     src/frame.cc
     src/draw.cc
+    src/control.cc
 )
 
 target_sources(

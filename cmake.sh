@@ -33,7 +33,7 @@ default()
 {
     _clean
 
-    if cmake -S . -B build/ -DCMAKE_BUILD_TYPE=RelWithDebInfo "$@"
+    if cmake -G "Ninja" -S . -B build/ -DCMAKE_BUILD_TYPE=RelWithDebInfo "$@"
     then
         cmake --build build/ -j -v
     fi
@@ -91,6 +91,7 @@ run()
         echo ""
         # ASAN_OPTIONS=detect_leaks=1 LSAN_OPTIONS=suppressions=leaks.txt ./build/$BIN "$@" # 2> /tmp/$BIN-dbg.txt
         # ASAN_OPTIONS=halt_on_error=0 ./build/$BIN "$@" # 2> /tmp/$BIN-dbg.txt
+        # PIPEWIRE_DEBUG=3 ./build/$BIN "$@" 2> /tmp/$BIN-dbg.txt
         # ./build/$BIN "$@" 2> /tmp/$BIN-dbg.txt
         UBSAN_OPTIONS=print_stacktrace=1 LSAN_OPTIONS=suppressions=leaks.txt ./build/$BIN "$@" 2> /tmp/$BIN-dbg.txt
     fi
