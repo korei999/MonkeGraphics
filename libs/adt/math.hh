@@ -261,6 +261,14 @@ operator-(const V3& l, const V3& r)
 }
 
 inline V3
+operator-(const V3& v)
+{
+    return {
+        -v.x, -v.y, -v.z
+    };
+}
+
+inline V3
 operator*(const V3& v, f32 s)
 {
     return {
@@ -758,10 +766,16 @@ V2Norm(const V2& s)
 }
 
 inline V3
+V3Norm(const V3& s, const f32 len)
+{
+    return V3 {s.x / len, s.y / len, s.z / len};
+}
+
+inline V3
 V3Norm(const V3& s)
 {
     f32 len = V3Length(s);
-    return V3 {s.x / len, s.y / len, s.z / len};
+    return V3Norm(s, len);
 }
 
 inline V4

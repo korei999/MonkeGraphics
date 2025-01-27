@@ -1,5 +1,6 @@
 #include "control.hh"
 
+#include "frame.hh"
 #include "keys.hh"
 #include "app.hh"
 
@@ -12,13 +13,26 @@ namespace control
 
 static void toggleFullscreen() { app::window().toggleFullscreen(); }
 static void quit() { app::window().m_bRunning = false; }
+static void cameraForward() { g_camera.lastMove += Camera::front*frame::g_dt*SPEED; }
+static void cameraBack() { g_camera.lastMove -= Camera::front*frame::g_dt*SPEED; }
+static void cameraRight() { g_camera.lastMove += Camera::right*frame::g_dt*SPEED; }
+static void cameraLeft() { g_camera.lastMove -= Camera::right*frame::g_dt*SPEED; }
+static void cameraUp() { g_camera.lastMove += Camera::up*frame::g_dt*SPEED; }
+static void cameraDown() { g_camera.lastMove -= Camera::up*frame::g_dt*SPEED; }
 
-bool g_aPressed[MAX_KEYS] {};
+Camera g_camera {.pos {0, 0, -3}, .lastMove {}};
+bool g_aPressed[MAX_KEY_VALUE] {};
 
 Arr<Keybind, MAX_KEYBINDS> g_aKeybinds {
     {ONCE, KEY_F, toggleFullscreen},
     {ONCE, KEY_Q, quit},
     {ONCE, KEY_ESC, quit},
+    {REPEAT, KEY_W, cameraForward},
+    {REPEAT, KEY_S, cameraBack},
+    {REPEAT, KEY_A, cameraLeft},
+    {REPEAT, KEY_D, cameraRight},
+    {REPEAT, KEY_SPACE, cameraUp},
+    {REPEAT, KEY_LEFTCTRL, cameraDown},
 };
 
 Arr<Keybind, MAX_KEYBINDS> g_aModbinds {
@@ -62,6 +76,8 @@ procKeybinds(Arr<bool, MAX_KEYBINDS>* paMap, const Arr<Keybind, MAX_KEYBINDS>& a
 void
 procKeys()
 {
+    g_camera.lastMove = {};
+
     {
         static Arr<bool, MAX_KEYBINDS> aPressedKeysOnceMap(MAX_KEYBINDS);
         procKeybinds(&aPressedKeysOnceMap, g_aKeybinds);

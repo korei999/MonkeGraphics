@@ -3,6 +3,7 @@
 #include "draw.hh"
 #include "app.hh"
 #include "colors.hh"
+#include "control.hh"
 #include "frame.hh"
 
 #include "adt/math.hh"
@@ -197,8 +198,12 @@ helloCubeTest()
         V3 aTriangle[] { aCubeVerts[f0], aCubeVerts[f1], aCubeVerts[f2] };
         V3 aColors[] { aVertColors[f0 % 4], aVertColors[f1 % 4], aVertColors[f2 % 4] };
 
-        M4 tr = M4TranslationFrom({0, 0, 2.5f});
-        tr *= M4RotFrom(frame::g_time*0.002, V3Norm({0.8f, 0.6f, 0.7f}));
+        M4 tr = M4Iden();
+        tr *= control::g_camera.getTRM();
+
+        /*tr *= M4TranslationFrom({0, 0, 2.5f});*/
+
+        /*tr *= M4RotFrom(frame::g_time*0.002, V3Norm({0.8f, 0.6f, 0.7f}));*/
 
         drawTriangle(aTriangle, aColors, tr);
     }
