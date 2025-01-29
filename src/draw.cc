@@ -1,6 +1,5 @@
 /* Rasterization goes here */
 
-#include "adt/logs.hh"
 #include "adt/math.hh"
 
 #include "app.hh"
@@ -8,14 +7,13 @@
 #include "control.hh"
 #include "draw.hh"
 #include "frame.hh"
-#include "keys.hh"
 
 using namespace adt;
 
 namespace draw
 {
 
-[[nodiscard]] inline math::V2
+inline math::V2
 projectPoint(math::V3 pos)
 {
     using namespace adt::math;
@@ -25,6 +23,19 @@ projectPoint(math::V3 pos)
     /* 90deg fov */
     V2 res = pos.xy / pos.z;
     res = 0.5f * (res + V2{1.0f, 1.0f});
+    res *= V2{static_cast<f32>(sp.getWidth()), static_cast<f32>(sp.getHeight())};
+
+    return res;
+}
+
+static math::V2
+ndcToPix(math::V2 ndcPos)
+{
+    using namespace adt::math;
+    auto& win = *app::g_pWindow;
+    const Span2D sp = win.surfaceBuffer();
+
+    V2 res = 0.5f * (ndcPos + V2{1.0f, 1.0f});
     res *= V2{static_cast<f32>(sp.getWidth()), static_cast<f32>(sp.getHeight())};
 
     return res;
@@ -44,13 +55,17 @@ drawTriangle(
     Span2D sp = win.surfaceBuffer();
     Span2D spDepth = win.depthBuffer();
 
-    V3 trPoint0 = (trm * V4From(pPoints[0], 1.0f)).xyz;
-    V3 trPoint1 = (trm * V4From(pPoints[1], 1.0f)).xyz;
-    V3 trPoint2 = (trm * V4From(pPoints[2], 1.0f)).xyz;
+    V4 trPoint0 = (trm * V4From(pPoints[0], 1.0f));
+    V4 trPoint1 = (trm * V4From(pPoints[1], 1.0f));
+    V4 trPoint2 = (trm * V4From(pPoints[2], 1.0f));
 
-    V2 pointA = projectPoint(trPoint0);
-    V2 pointB = projectPoint(trPoint1);
-    V2 pointC = projectPoint(trPoint2);
+    trPoint0.xyz /= trPoint0.w;
+    trPoint1.xyz /= trPoint1.w;
+    trPoint2.xyz /= trPoint2.w;
+
+    V2 pointA = ndcToPix(trPoint0.xy);
+    V2 pointB = ndcToPix(trPoint1.xy);
+    V2 pointC = ndcToPix(trPoint2.xy);
 
     V2 edge0 = pointB - pointA;
     V2 edge1 = pointC - pointB;
@@ -101,8 +116,8 @@ drawTriangle(
                 f32 t1 = -crossLen2 / barycentricDiv;
                 f32 t2 = -crossLen0 / barycentricDiv;
 
-                f32 depth = 1.0f / (t0 * (1.0f / trPoint0.z) + t1 * (1.0f / trPoint1.z) + t2 * (1.0f / trPoint2.z));
-                if (depth < spDepth(x, invY))
+                f32 depth = t0 * trPoint0.z + t1 * trPoint1.z + t2 * trPoint2.z;
+                if (depth >= 0.0f && depth <= 1.0f && depth < spDepth(x, invY))
                 {
                     V3 finalCol = (t0 * pColors[0] + t1 * pColors[1] + t2 * pColors[2]);
                     V4 cv4; cv4.xyz = finalCol; cv4.w = 255.0f;
@@ -197,11 +212,13 @@ helloCubeTest()
     };
 
     auto& camera = control::g_camera;
+    f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
 
-    M4 tr = M4Iden();
-    tr *= camera.m_trm;
-    tr *= M4TranslationFrom({0, 0, 2.5f});
-    tr *= M4RotFrom(frame::g_time*0.002, V3Norm({0.8f, 0.6f, 0.7f}));
+    M4 tr = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 500.0f) *
+        camera.m_trm *
+        M4TranslationFrom(0.0f, 0.0f, 2.5f) *
+        M4RotFrom(frame::g_time*0.002, V3Norm({1.0f, 1.0f, 1.0f})) *
+        M4ScaleFrom(1.0f);
 
     for (const auto& [f0, f1, f2] : aIndexBuff)
     {

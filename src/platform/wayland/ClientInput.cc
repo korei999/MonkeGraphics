@@ -35,6 +35,7 @@ Client::keyboardLeave(
     [[maybe_unused]] wl_surface* pSurface
 )
 {
+    memset(control::g_aPressed, 0, sizeof(control::g_aPressed));
 }
 
 void

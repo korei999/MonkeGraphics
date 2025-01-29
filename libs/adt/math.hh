@@ -669,29 +669,28 @@ operator*=(M3& l, const M3& r)
     return l = l * r;
 }
 
+inline V4
+operator*(const M4& l, const V4& r)
+{
+    return l.v[0] * r.x + l.v[1] * r.y + l.v[2] * r.z + l.v[3] * r.w;
+}
+
 inline M4
 operator*(const M4& l, const M4& r)
 {
     M4 m {};
 
-    for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 4; j++)
-            for (int k = 0; k < 4; k++)
-                m.e[i][j] += l.e[i][k] * r.e[k][j];
+    // for (int i = 0; i < 4; i++)
+    //     for (int j = 0; j < 4; j++)
+    //         for (int k = 0; k < 4; k++)
+    //             m.e[i][j] += l.e[i][k] * r.e[k][j];
+
+    m.v[0] = l * r.v[0];
+    m.v[1] = l * r.v[1];
+    m.v[2] = l * r.v[2];
+    m.v[3] = l * r.v[3];
 
     return m;
-}
-
-inline V4
-operator*(const M4& l, const V4& r)
-{
-    V4 res {};
-
-    for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 4; j++)
-            res.e[i] += l.e[i][j] * r.e[j];
-
-    return res;
 }
 
 inline M4&
@@ -842,11 +841,17 @@ constexpr M4
 M4TranslationFrom(const V3& tv)
 {
     return {
-        1, 0, 0, tv.x,
-        0, 1, 0, tv.y,
-        0, 0, 1, tv.z,
-        0, 0, 0, 1
+        1,    0,    0,    0,
+        0,    1,    0,    0,
+        0,    0,    1,    0,
+        tv.x, tv.y, tv.z, 1
     };
+}
+
+constexpr M4
+M4TranslationFrom(const f32 x, const f32 y, const f32 z)
+{
+    return M4TranslationFrom(V3{x, y, z});
 }
 
 inline M4
@@ -922,16 +927,14 @@ M4Scale(const M4& m, const V3& s)
 inline M4
 M4Pers(const f32 fov, const f32 asp, const f32 n, const f32 f)
 {
-    /* b(back), l(left) are not needed if viewing volume is symmetric */
-    f32 t = n * std::tan(fov * 0.5f);
-    f32 r = t * asp;
+    M4 res {};
+    res.v[0].x = 1.0f / (asp * std::tan(fov * 0.5f));
+    res.v[1].y = 1.0f / (std::tan(fov * 0.5f));
+    res.v[2].z = -f / (n - f);
+    res.v[3].z = n * f / (n - f);
+    res.v[2].w = 1.0f;
 
-    return M4 {
-        n / r, 0,     0,                  0,
-        0,     n / t, 0,                  0,
-        0,     0,    -(f + n) / (f - n), -(2*f*n) / (f - n),
-        0,     0,    -1,                  0
-    };
+    return res;
 }
 
 inline M4
@@ -962,7 +965,7 @@ V3Cross(const V3& l, const V3& r)
 }
 
 inline M4
-m4LookAt(const V3& R, const V3& U, const V3& D, const V3& P)
+M4LookAt(const V3& R, const V3& U, const V3& D, const V3& P)
 {
     M4 m0 {
         R.x,  U.x,  D.x,  0,
@@ -1002,10 +1005,10 @@ inline M4
 M4RotXFrom(const f32 th)
 {
     return {
-        1, 0,             0,            0,
-        0, std::cos(th), -std::sin(th), 0,
-        0, std::sin(th),  std::cos(th), 0,
-        0, 0,             0,            1
+        1,  0,            0,            0,
+        0,  std::cos(th), std::sin(th), 0,
+        0, -std::sin(th), std::cos(th), 0,
+        0,  0,            0,            1
     };
 }
 
@@ -1019,9 +1022,9 @@ inline M4
 M4RotYFrom(const f32 th)
 {
     return {
-        std::cos(th), 0, -std::sin(th),  0,
+        std::cos(th), 0,  std::sin(th),  0,
         0,            1,  0,             0,
-        std::sin(th), 0,  std::cos(th),  0,
+       -std::sin(th), 0,  std::cos(th),  0,
         0,            0,  0,             1
     };
 }
@@ -1036,8 +1039,8 @@ inline M4
 M4RotZFrom(const f32 th)
 {
     return {
-        std::cos(th), -std::sin(th), 0, 0,
-        std::sin(th),  std::cos(th), 0, 0,
+        std::cos(th),  std::sin(th), 0, 0,
+       -std::sin(th),  std::cos(th), 0, 0,
         0,             0,            1, 0,
         0,             0,            0, 1
     };
@@ -1062,7 +1065,7 @@ M4LookAt(const V3& eyeV, const V3& centerV, const V3& upV)
     V3 camRight = V3Norm(V3Cross(upV, camDir));
     V3 camUp = V3Cross(camDir, camRight);
 
-    return m4LookAt(camRight, camUp, camDir, eyeV);
+    return M4LookAt(camRight, camUp, camDir, eyeV);
 }
 
 inline Qt

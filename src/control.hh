@@ -11,7 +11,7 @@ namespace control
 
 constexpr int MAX_KEYBINDS = 128;
 constexpr int MAX_KEY_VALUE = 500;
-constexpr adt::f64 SPEED = 4.0;
+constexpr adt::f32 SPEED = 4.0f;
 
 constexpr adt::math::V3 CAMERA_FRONT {0, 0, 1};
 constexpr adt::math::V3 CAMERA_RIGHT {1, 0, 0};
@@ -34,14 +34,8 @@ struct Camera
 
     /* */
 
-    adt::math::M4&
-    updateView()
-    {
-        return m_view = adt::math::M4LookAt(m_pos, m_pos + m_front, CAMERA_UP);
-    }
-
     [[nodiscard]] adt::math::M4
-    getMoveTRM()
+    procMoveTRM()
     {
         defer( m_lastMove = {} );
 

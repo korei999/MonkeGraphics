@@ -118,7 +118,7 @@ procMouse()
     viewTrm.v[1].z = lookAt.y;
     viewTrm.v[2].z = lookAt.z;
 
-    g_camera.m_trm = viewTrm * g_camera.getMoveTRM();
+    g_camera.m_trm = viewTrm * g_camera.procMoveTRM();
 }
 
 void
