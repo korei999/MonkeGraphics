@@ -70,8 +70,8 @@ start()
     win.m_bRunning = true;
     g_time = utils::timeNowMS();
 
-    win.regDrawCB(refresh, {});
-    win.draw(); /* draw once to get events */
+    win.regUpdateCB(refresh, {});
+    win.update(); /* get events */
 
     while (win.m_bRunning)
     {

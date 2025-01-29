@@ -200,7 +200,6 @@ helloCubeTest()
 
     M4 tr = M4Iden();
     tr *= camera.m_trm;
-    /*tr *= camera.m_view;*/
     tr *= M4TranslationFrom({0, 0, 2.5f});
     tr *= M4RotFrom(frame::g_time*0.002, V3Norm({0.8f, 0.6f, 0.7f}));
 

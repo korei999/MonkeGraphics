@@ -68,14 +68,14 @@ struct IWindow
     void clearDepthBuffer() { for (auto& e : m_vDepthBuffer) e = std::numeric_limits<adt::f32>::max(); }
 
     void
-    regDrawCB(void (*pfn)(void*), void* pArg)
+    regUpdateCB(void (*pfn)(void*), void* pArg)
     {
         m_pfnDrawCB = pfn;
         m_pDrawArg = pArg;
     }
 
     void
-    draw()
+    update()
     {
         ADT_ASSERT(m_pfnDrawCB, " ");
         m_pfnDrawCB(m_pDrawArg);

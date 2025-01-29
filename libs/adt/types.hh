@@ -114,7 +114,7 @@ assertionFailed(const char* cnd, const char* msg, const char* file, int line, co
             {                                                                                                          \
                 char aMsgBuff[128] {};                                                                                 \
                 snprintf(aMsgBuff, sizeof(aMsgBuff) - 1, __VA_ARGS__);                                                 \
-                adt::assertionFailed(#CND, aMsgBuff, ADT_LOGS_FILE, __LINE__, __FUNCTION__);                                \
+                adt::assertionFailed(#CND, aMsgBuff, ADT_LOGS_FILE, __LINE__, __FUNCTION__);                           \
             }                                                                                                          \
         } while (0)
 #else

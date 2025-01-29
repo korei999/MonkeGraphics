@@ -22,13 +22,13 @@ struct Camera
     adt::math::M4 m_trm {};
     adt::math::M4 m_view {};
 
-    adt::math::V3 m_front {0, 0, 1};
-    adt::math::V3 m_right {1, 0, 0};
+    adt::math::V3 m_front {};
+    adt::math::V3 m_right {};
 
     adt::math::V3 m_pos {};
     adt::math::V3 m_lastMove {};
 
-    adt::f32 m_yaw = -90.0f;
+    adt::f32 m_yaw {};
     adt::f32 m_pitch {};
     adt::f32 m_roll {};
 
@@ -40,22 +40,20 @@ struct Camera
         return m_view = adt::math::M4LookAt(m_pos, m_pos + m_front, CAMERA_UP);
     }
 
-    void
-    updateTRM()
+    [[nodiscard]] adt::math::M4
+    getMoveTRM()
     {
         defer( m_lastMove = {} );
 
         adt::f32 len = adt::math::V3Length(m_lastMove);
         if (len > 0)
         {
-            m_trm = adt::math::M4TranslationFrom(
+            return adt::math::M4TranslationFrom(
                 -(m_pos += (adt::math::V3Norm(m_lastMove, len)*frame::g_dt*SPEED))
             );
-
-            return;
         }
 
-        m_trm = adt::math::M4TranslationFrom(-m_pos);
+        return adt::math::M4TranslationFrom(-m_pos);
     }
 };
 

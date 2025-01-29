@@ -923,7 +923,7 @@ inline M4
 M4Pers(const f32 fov, const f32 asp, const f32 n, const f32 f)
 {
     /* b(back), l(left) are not needed if viewing volume is symmetric */
-    f32 t = n * std::tan(fov / 2);
+    f32 t = n * std::tan(fov * 0.5f);
     f32 r = t * asp;
 
     return M4 {

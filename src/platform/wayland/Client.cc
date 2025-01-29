@@ -479,8 +479,7 @@ Client::callbackDone(
 )
 {
     wl_callback_destroy(pCallback);
-    m_pCallBack = nullptr;
-    draw();
+    update();
 }
 
 } /* namespace platform::wayland */
