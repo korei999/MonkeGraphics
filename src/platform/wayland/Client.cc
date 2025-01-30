@@ -100,7 +100,11 @@ Client::start(int width, int height)
     m_pViewport = wp_viewporter_get_viewport(m_pViewporter, m_pSurface);
     if (!m_pViewport)
         throw RuntimeException("wp_viewporter_get_viewport() failed");
-    wp_viewport_set_source(m_pViewport, wl_fixed_from_int(0), wl_fixed_from_int(0), wl_fixed_from_int(m_width), wl_fixed_from_int(m_height));
+
+    wp_viewport_set_source(m_pViewport,
+        wl_fixed_from_int(0), wl_fixed_from_int(0),
+        wl_fixed_from_int(m_width), wl_fixed_from_int(m_height)
+    );
 
     m_pXdgSurface = xdg_wm_base_get_xdg_surface(m_pXdgWmBase, m_pSurface);
     if (!m_pXdgSurface)
@@ -147,6 +151,8 @@ Client::start(int width, int height)
         throw RuntimeException("zwp_relative_pointer_manager_v1_get_relative_pointer() failed");
 
     zwp_relative_pointer_v1_add_listener(m_pRelPointer, &s_relativePointerListener, this);
+
+    wl_display_roundtrip(m_pDisplay);
 }
 
 Span2D<draw::Pixel>

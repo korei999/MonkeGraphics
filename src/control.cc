@@ -21,7 +21,7 @@ static void cameraLeft() { g_camera.m_lastMove -= g_camera.m_right; }
 static void cameraUp() { g_camera.m_lastMove += CAMERA_UP; }
 static void cameraDown() { g_camera.m_lastMove -= CAMERA_UP; }
 
-Camera g_camera {.m_pos {0, 0, -3}, .m_lastMove {}, .m_sens = 0.05f};
+Camera g_camera {.m_pos {0, 0, -3}, .m_lastMove {}, .m_sens = 0.05f, .m_speed = 4.0f};
 Mouse g_mouse {};
 bool g_aPrevPressed[MAX_KEY_VALUE] {};
 bool g_aPressed[MAX_KEY_VALUE] {};
@@ -79,52 +79,34 @@ procMouse()
 
     const auto& win = app::window();
 
-    // g_mouse.abs.x = win.m_pointerSurfaceX / static_cast<f32>(win.m_winWidth);
-    // g_mouse.abs.y = win.m_pointerSurfaceY / static_cast<f32>(win.m_winHeight);
-
     g_mouse.rel.x = win.m_relMotionX;
     g_mouse.rel.y = win.m_relMotionY;
 
-    // if (g_aPressed[BTN_LEFT])
-    {
-        // if (!g_aPrevPressed[BTN_LEFT])
-        // {
-        //     g_mouse.prevAbs = g_mouse.abs;
-        // }
+    V2 delta = (g_mouse.rel - g_mouse.prevRel) * g_camera.m_sens;
+    g_mouse.prevRel = g_mouse.rel;
 
-        V2 delta = (g_mouse.rel - g_mouse.prevRel) * g_camera.m_sens;
-        g_mouse.prevRel = g_mouse.rel;
+    g_camera.m_yaw -= delta.x;
+    g_camera.m_pitch += delta.y;
 
-        g_camera.m_yaw -= delta.x;
-        g_camera.m_pitch += delta.y;
+    if (g_camera.m_pitch > 89.9f)
+        g_camera.m_pitch = 89.9f;
+    if (g_camera.m_pitch < -89.9f)
+        g_camera.m_pitch = -89.9f;
 
-        if (g_camera.m_pitch > 89.9f)
-            g_camera.m_pitch = 89.9f;
-        if (g_camera.m_pitch < -89.9f)
-            g_camera.m_pitch = -89.9f;
-    }
+    const M4 yawTrm = M4RotFrom(0, toRad(g_camera.m_yaw), 0);
+    const M4 pitchTrm = M4RotFrom(toRad(g_camera.m_pitch), 0, 0);
+    const M4 axisTrm = yawTrm * pitchTrm;
 
-    M4 yawTrm = M4RotFrom(0, toRad(g_camera.m_yaw), 0);
-    M4 pitchTrm = M4RotFrom(toRad(g_camera.m_pitch), 0, 0);
-    M4 axisTrm = yawTrm * pitchTrm;
+    const V3 right = V3Norm((axisTrm * V4From(CAMERA_RIGHT, 0)).xyz);
+    const V3 up = V3Norm((axisTrm * V4From(CAMERA_UP, 0)).xyz);
+    const V3 lookAt = V3Norm((axisTrm * V4From(CAMERA_FRONT, 0)).xyz);
 
-
-    V3 right = V3Norm((axisTrm * V4From(CAMERA_RIGHT, 0)).xyz);
-    V3 up = V3Norm((axisTrm * V4From(CAMERA_UP, 0)).xyz);
-    V3 lookAt = V3Norm((axisTrm * V4From(CAMERA_FRONT, 0)).xyz);
-
-    M4 viewTrm = M4Iden();
-    viewTrm.v[0].x = right.x;
-    viewTrm.v[1].x = right.y;
-    viewTrm.v[2].x = right.z;
-
-    viewTrm.v[0].y = up.x;
-    viewTrm.v[1].y = up.y;
-    viewTrm.v[2].y = up.z;
-
-    viewTrm.v[0].z = lookAt.x;
-    viewTrm.v[1].z = lookAt.y;
-    viewTrm.v[2].z = lookAt.z;
+    const M4 viewTrm {
+        right.x, up.x, lookAt.x, 0,
+        right.y, up.y, lookAt.y, 0,
+        right.z, up.z, lookAt.z, 0,
+        0,       0,    0,        1,
+    };
 
     g_camera.m_front = lookAt;
     g_camera.m_right = right;
@@ -135,8 +117,6 @@ procMouse()
 void
 procInput()
 {
-    using namespace adt::math;
-
     ADT_ASSERT(sizeof(g_aPrevPressed) == sizeof(g_aPressed),
         "must be same size: %llu, %llu",
         static_cast<u64>(sizeof(g_aPrevPressed)), static_cast<u64>(sizeof(g_aPressed))

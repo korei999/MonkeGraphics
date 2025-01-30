@@ -15,18 +15,28 @@ namespace draw
 {
 
 static Span2D<Pixel>
-checkerBoardTexture()
+allocCheckerBoardTexture()
 {
-    const auto& win = *app::g_pWindow;
     OsAllocator al;
 
-    Pixel* pData = (Pixel*)al.malloc(win.m_width * win.m_height, sizeof(*pData));
-    Span2D sp(pData, win.m_width, win.m_height);
+    const int width = 8;
+    const int height = 8;
+
+    static Pixel aPixels[width * height] {};
+
+    Span2D sp(aPixels, width, height);
     for (int y = 0; y < sp.getHeight(); ++y)
     {
         for (int x = 0; x < sp.getWidth(); ++x)
         {
             u32 colorChannel = 255 * ((x + (y % 2)) % 2);
+            Pixel p {
+                static_cast<u8>(colorChannel),
+                static_cast<u8>(colorChannel),
+                static_cast<u8>(colorChannel),
+                255
+            };
+            sp(x, y) = p;
         }
     }
 
@@ -47,10 +57,11 @@ ndcToPix(math::V2 ndcPos)
 
 ADT_NO_UB static void
 drawTriangle(
-    math::V3 pPoints[3],
-    math::V3 pColors[3],
+    const math::V3 pPoints[3],
+    const math::V2 pUVs[3],
+    const Span2D<Pixel> spTexture,
     const math::M4& trm,
-    bool bVerticalFlip = true
+    const bool bVerticalFlip = true
 )
 {
     using namespace adt::math;
@@ -123,14 +134,24 @@ drawTriangle(
                 f32 depth = t0 * trPoint0.z + t1 * trPoint1.z + t2 * trPoint2.z;
                 if (depth >= 0.0f && depth <= 1.0f && depth < spDepth(x, invY))
                 {
-                    // V2 uv = t0 * pUV[0] + t1 * pUV[1] + t2 * pUV[2];
-                    // int texelX = std::floor(uv.x * tex.width - 1);
-                    // int texelY = std::floor(uv.y * tex.height - 1);
+                    f32 invDepthW = t0 * (1.0f/trPoint0.w) + t1 * (1.0f/trPoint1.w) + t2 * (1.0f/trPoint2.w);
 
-                    V3 finalCol = (t0 * pColors[0] + t1 * pColors[1] + t2 * pColors[2]);
-                    V4 cv4; cv4.xyz = finalCol; cv4.w = 255.0f;
+                    V2 uv = t0 * (pUVs[0]/trPoint0.w) + t1 * (pUVs[1]/trPoint1.w) + t2 * (pUVs[2]/trPoint2.w);
+                    uv /= invDepthW;
+                    int texelX = std::floor(uv.x * (spTexture.getWidth() - 1));
+                    int texelY = std::floor(uv.y * (spTexture.getHeight() - 1));
 
-                    sp(x, invY).data = colors::V4ToARGB(cv4);
+                    if (texelX >= 0 && texelX < spTexture.getWidth() &&
+                        texelY >= 0 && texelY < spTexture.getHeight()
+                    )
+                    {
+                        sp(x, invY) = spTexture(texelX, texelY);
+                    }
+                    else
+                    {
+                        sp(x, invY).data = 0xffff00ff;
+                    }
+
                     spDepth(x, invY) = depth;
                 }
             }
@@ -177,46 +198,55 @@ helloCubeTest()
     win.clearDepthBuffer();
 
     V3 aCubeVerts[] {
-        /* front face */
-        {-0.5f,  0.5f, -0.5f}, /* tl */
-        { 0.5f, -0.5f, -0.5f}, /* br */
-        {-0.5f, -0.5f, -0.5f}, /* bl */
-        { 0.5f,  0.5f, -0.5f}, /* tr */
-        /* */
+        /* Front Face */
+        {-0.5f, -0.5f, -0.5f},
+        {-0.5f, 0.5f, -0.5f},
+        {0.5f, 0.5f, -0.5f},
+        {0.5f, -0.5f, -0.5f},
 
-        /* back face */
-        {-0.5f,  0.5f, 0.5f}, /* tl */
-        { 0.5f, -0.5f, 0.5f}, /* br */
-        {-0.5f, -0.5f, 0.5f}, /* bl */
-        { 0.5f,  0.5f, 0.5f}, /* tr */
-        /* */
+        /* Back Face */
+        {-0.5f, -0.5f, 0.5f},
+        {-0.5f, 0.5f, 0.5f},
+        {0.5f, 0.5f, 0.5f},
+        {0.5f, -0.5f, 0.5f},
     };
 
-    V3 aVertColors[] {
-        {1, 0, 0},
-        {0, 1, 0},
-        {0, 0, 1},
-        {1, 1, 0},
+    V2 aCubeUVs[] {
+        {0, 0},
+        {1, 0},
+        {1, 1},
+        {0, 1},
+
+        {0, 0},
+        {1, 0},
+        {1, 1},
+        {0, 1},
     };
 
-    int aIndexBuff[][3] {
+    int aIndices[][3] {
+        /* Front Face */
         {0, 1, 2},
-        {0, 3, 1},
+        {2, 3, 0},
 
-        {4, 6, 5},
-        {5, 7, 4},
+        /* Back Face */
+        {6, 5, 4},
+        {4, 7, 6},
 
-        {0, 2, 4},
-        {2, 6, 4},
+        /* Left face */
+        {4, 5, 1},
+        {1, 0, 4},
 
-        {3, 7, 5},
-        {3, 5, 1},
+        /* Right face */
+        {3, 2, 6},
+        {6, 7, 3},
 
-        {0, 4, 3},
-        {3, 4, 7},
-
-        {2, 1, 6},
+        /* Top face */
         {1, 5, 6},
+        {6, 2, 1},
+
+        /* Bottom face */
+        {4, 0, 3},
+        {3, 7, 4},
     };
 
     auto& camera = control::g_camera;
@@ -227,15 +257,17 @@ helloCubeTest()
     M4 tr = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 500.0f) *
         camera.m_trm *
         M4TranslationFrom(0.0f, 0.0f, 2.5f) *
-        M4RotFrom(step, step, step) *
+        // M4RotFrom(step, step, step) *
         M4ScaleFrom(1.0f);
 
-    for (const auto& [f0, f1, f2] : aIndexBuff)
+    static const Span2D<Pixel> spTexture = allocCheckerBoardTexture();
+
+    for (const auto& [f0, f1, f2] : aIndices)
     {
         V3 aTriangle[] { aCubeVerts[f0], aCubeVerts[f1], aCubeVerts[f2] };
-        V3 aColors[] { aVertColors[f0 % 4], aVertColors[f1 % 4], aVertColors[f2 % 4] };
+        V2 aUVs[] {aCubeUVs[f0], aCubeUVs[f1], aCubeUVs[f2]};
 
-        drawTriangle(aTriangle, aColors, tr);
+        drawTriangle(aTriangle, aUVs, spTexture, tr);
     }
 }
 
