@@ -5,6 +5,7 @@
 #include "wayland-protocols/xdg-shell.h"
 #include "wayland-protocols/viewporter.h"
 #include "wayland-protocols/relative-pointer-unstable-v1.h"
+#include "wayland-protocols/pointer-constraints-unstable-v1.h"
 
 namespace platform::wayland
 {
@@ -16,7 +17,6 @@ struct Client final : public IWindow
     wl_compositor* m_pCompositor {};
     wl_surface* m_pSurface {};
 
-    wl_output* m_pOutput {};
     adt::VecBase<wl_output*> m_vOutputs {};
 
     wl_shm* m_pShm {};
@@ -28,9 +28,14 @@ struct Client final : public IWindow
     wl_seat* m_pSeat {};
     wl_keyboard* m_pKeyboard {};
     wl_pointer* m_pPointer {};
+    adt::u32 m_lastPointerEnterSerial {};
 
     zwp_relative_pointer_manager_v1* m_pRelPointerMgr {};
     zwp_relative_pointer_v1* m_pRelPointer {};
+
+    zwp_pointer_constraints_v1* m_pPointerConstraints {};
+    zwp_locked_pointer_v1* m_pLockedPointer {};
+    bool m_bRestoreLockedPointer {};
 
     xdg_wm_base* m_pXdgWmBase {};
     xdg_surface* m_pXdgSurface {};

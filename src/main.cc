@@ -44,6 +44,6 @@ main(int argc, char** argv)
     }
     catch (IException& ex)
     {
-        ex.logErrorMsg(stdout);
+        ex.printErrorMsg(stdout);
     }
 }

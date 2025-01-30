@@ -14,14 +14,14 @@ static void toggleFullscreen() { app::window().toggleFullscreen(); }
 static void quit() { app::window().m_bRunning = false; }
 static void toggleRelativePointer() { app::window().togglePointerRelativeMode(); }
 
-static void cameraForward() { g_camera.m_lastMove += CAMERA_FRONT; }
-static void cameraBack() { g_camera.m_lastMove -= CAMERA_FRONT; }
-static void cameraRight() { g_camera.m_lastMove += CAMERA_RIGHT; }
-static void cameraLeft() { g_camera.m_lastMove -= CAMERA_RIGHT; }
+static void cameraForward() { g_camera.m_lastMove += g_camera.getForwardVecNoY(); }
+static void cameraBack() { g_camera.m_lastMove -= g_camera.getForwardVecNoY(); }
+static void cameraRight() { g_camera.m_lastMove += g_camera.m_right; }
+static void cameraLeft() { g_camera.m_lastMove -= g_camera.m_right; }
 static void cameraUp() { g_camera.m_lastMove += CAMERA_UP; }
 static void cameraDown() { g_camera.m_lastMove -= CAMERA_UP; }
 
-Camera g_camera {.m_pos {0, 0, -3}, .m_lastMove {}};
+Camera g_camera {.m_pos {0, 0, -3}, .m_lastMove {}, .m_sens = 0.05f};
 Mouse g_mouse {};
 bool g_aPrevPressed[MAX_KEY_VALUE] {};
 bool g_aPressed[MAX_KEY_VALUE] {};
@@ -79,31 +79,39 @@ procMouse()
 
     const auto& win = app::window();
 
-    g_mouse.abs.x = win.m_pointerSurfaceX / static_cast<f32>(win.m_winWidth);
-    g_mouse.abs.y = win.m_pointerSurfaceY / static_cast<f32>(win.m_winHeight);
+    // g_mouse.abs.x = win.m_pointerSurfaceX / static_cast<f32>(win.m_winWidth);
+    // g_mouse.abs.y = win.m_pointerSurfaceY / static_cast<f32>(win.m_winHeight);
 
-    if (g_aPressed[BTN_LEFT])
+    g_mouse.rel.x = win.m_relMotionX;
+    g_mouse.rel.y = win.m_relMotionY;
+
+    // if (g_aPressed[BTN_LEFT])
     {
-        if (!g_aPrevPressed[BTN_LEFT])
-        {
-            g_mouse.prevAbs = g_mouse.abs;
-        }
+        // if (!g_aPrevPressed[BTN_LEFT])
+        // {
+        //     g_mouse.prevAbs = g_mouse.abs;
+        // }
 
-        V2 delta = g_mouse.abs - g_mouse.prevAbs;
+        V2 delta = (g_mouse.rel - g_mouse.prevRel) * g_camera.m_sens;
+        g_mouse.prevRel = g_mouse.rel;
 
+        g_camera.m_yaw -= delta.x;
         g_camera.m_pitch += delta.y;
-        g_camera.m_yaw += delta.x;
 
-        g_mouse.prevAbs = g_mouse.abs;
+        if (g_camera.m_pitch > 89.9f)
+            g_camera.m_pitch = 89.9f;
+        if (g_camera.m_pitch < -89.9f)
+            g_camera.m_pitch = -89.9f;
     }
 
-    M4 yawTrm = M4RotFrom(0, g_camera.m_yaw, 0);
-    M4 pitchTrm = M4RotFrom(g_camera.m_pitch, 0, 0);
+    M4 yawTrm = M4RotFrom(0, toRad(g_camera.m_yaw), 0);
+    M4 pitchTrm = M4RotFrom(toRad(g_camera.m_pitch), 0, 0);
     M4 axisTrm = yawTrm * pitchTrm;
 
-    V3 right = V3Norm((axisTrm * V4{1, 0, 0, 0}).xyz);
-    V3 up = V3Norm((axisTrm * V4{0, 1, 0, 0}).xyz);
-    V3 lookAt = V3Norm((axisTrm * V4{0, 0, 1, 0}).xyz);
+
+    V3 right = V3Norm((axisTrm * V4From(CAMERA_RIGHT, 0)).xyz);
+    V3 up = V3Norm((axisTrm * V4From(CAMERA_UP, 0)).xyz);
+    V3 lookAt = V3Norm((axisTrm * V4From(CAMERA_FRONT, 0)).xyz);
 
     M4 viewTrm = M4Iden();
     viewTrm.v[0].x = right.x;
@@ -118,11 +126,14 @@ procMouse()
     viewTrm.v[1].z = lookAt.y;
     viewTrm.v[2].z = lookAt.z;
 
+    g_camera.m_front = lookAt;
+    g_camera.m_right = right;
+
     g_camera.m_trm = viewTrm * g_camera.procMoveTRM();
 }
 
 void
-procKeys()
+procInput()
 {
     using namespace adt::math;
 

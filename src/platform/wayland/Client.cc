@@ -78,8 +78,8 @@ Client::start(int width, int height)
 {
     LOG_GOOD("starting wayland client...\n");
 
-    m_width = width;
-    m_height = height;
+    m_winWidth = m_width = width;
+    m_winHeight = m_height = height;
 
     m_pDisplay = wl_display_connect(nullptr);
     if (!m_pDisplay)
@@ -159,12 +159,22 @@ void
 Client::disableRelativeMode()
 {
     m_bPointerRelativeMode = false;
+
+    zwp_locked_pointer_v1_destroy(m_pLockedPointer);
+    m_pLockedPointer = nullptr;
 }
 
 void
 Client::enableRelativeMode()
 {
     m_bPointerRelativeMode = true;
+
+    hideCursor(true);
+
+    m_pLockedPointer = zwp_pointer_constraints_v1_lock_pointer(
+        m_pPointerConstraints, m_pSurface, m_pPointer, {},
+        ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_ONESHOT
+    );
 }
 
 void
@@ -184,6 +194,9 @@ Client::toggleFullscreen()
 void
 Client::hideCursor([[maybe_unused]] bool bHide)
 {
+    /* BUG: doesn't hide sometimes */
+    LOG("hideCursor(): serial: {}\n", m_lastPointerEnterSerial);
+    wl_pointer_set_cursor(m_pPointer, m_lastPointerEnterSerial, {}, 0, 0);
 }
 
 void
@@ -194,7 +207,7 @@ Client::setCursorImage([[maybe_unused]] String cursorType)
 void
 Client::setFullscreen()
 {
-    xdg_toplevel_set_fullscreen(m_pXdgToplevel, m_pOutput);
+    xdg_toplevel_set_fullscreen(m_pXdgToplevel, m_vOutputs.first());
     m_bFullscreen = true;
 }
 
@@ -241,7 +254,7 @@ Client::destroy()
     if (m_pRegistry) wl_registry_destroy(m_pRegistry);
     if (m_pCompositor) wl_compositor_destroy(m_pCompositor);
     if (m_pSurface) wl_surface_destroy(m_pSurface);
-    if (m_pOutput) wl_output_destroy(m_pOutput);
+    for (auto& output : m_vOutputs) wl_output_destroy(output);
     if (m_pShm) wl_shm_destroy(m_pShm);
     if (m_pShmPool) wl_shm_pool_destroy(m_pShmPool);
     if (m_pBuffer) wl_buffer_destroy(m_pBuffer);
@@ -250,6 +263,8 @@ Client::destroy()
     if (m_pPointer) wl_pointer_destroy(m_pPointer);
     if (m_pRelPointerMgr) zwp_relative_pointer_manager_v1_destroy(m_pRelPointerMgr);
     if (m_pRelPointer) zwp_relative_pointer_v1_destroy(m_pRelPointer);
+    if (m_pLockedPointer) disableRelativeMode();
+    if (m_pPointerConstraints) zwp_pointer_constraints_v1_destroy(m_pPointerConstraints);
     if (m_pXdgWmBase) xdg_wm_base_destroy(m_pXdgWmBase);
     if (m_pXdgSurface) xdg_surface_destroy(m_pXdgSurface);
     if (m_pXdgToplevel) xdg_toplevel_destroy(m_pXdgToplevel);
@@ -300,8 +315,10 @@ Client::global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, 
     }
     else if (sInterface == wl_output_interface.name)
     {
-        m_pOutput = static_cast<wl_output*>(wl_registry_bind(pRegistry, name, &wl_output_interface, version));
-        wl_output_add_listener(m_pOutput, &s_outputListener, this);
+        m_vOutputs.push(m_pAlloc,
+            static_cast<wl_output*>(wl_registry_bind(pRegistry, name, &wl_output_interface, version))
+        );
+        wl_output_add_listener(m_vOutputs.last(), &s_outputListener, this);
     }
     else if (sInterface == wp_viewporter_interface.name)
     {
@@ -312,6 +329,12 @@ Client::global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, 
         m_pRelPointerMgr = static_cast<zwp_relative_pointer_manager_v1*>(wl_registry_bind(pRegistry, name, &zwp_relative_pointer_manager_v1_interface, version));
         if (!m_pRelPointerMgr)
             throw RuntimeException("failed to bind `zwp_relative_pointer_manager_v1_interface`");
+    }
+    else if (sInterface == zwp_pointer_constraints_v1_interface.name)
+    {
+        m_pPointerConstraints = static_cast<zwp_pointer_constraints_v1*>(wl_registry_bind(pRegistry, name, &zwp_pointer_constraints_v1_interface, version));
+        if (!m_pPointerConstraints)
+            throw RuntimeException("failed to bind `zwp_pointer_constraints_v1_interface`");
     }
 }
 
@@ -419,7 +442,8 @@ Client::outputGeometry(
     [[maybe_unused]] int32_t transform
 )
 {
-    LOG("outputGeometry() physicalWidth: {}, physicalHeight: {}\n", physicalHeight, physicalHeight);
+    LOG("outputGeometry(): physicalWidth: {}, physicalHeight: {}, x: {}, y: {}, subpixel: {}, make: '{}', model: '{}', transform: {}\n",
+        physicalHeight, physicalHeight, x, y, subpixel, ntsMake, ntsModel, transform);
 }
 
 void
@@ -441,7 +465,6 @@ void
 Client::outputDone(wl_output* pOutput)
 {
     LOG("outputDone()\n");
-    m_vOutputs.push(m_pAlloc, pOutput);
 }
 
 void
@@ -460,7 +483,15 @@ Client::outputName(
     [[maybe_unused]] const char* ntsName
 )
 {
-    LOG("outputName(): '{}'\n", ntsName);
+    ssize idx = utils::search(m_vOutputs,
+        [&](const wl_output* p) {
+            if (pOutput == p)
+                return true;
+            else return false;
+        }
+    );
+
+    LOG_NOTIFY("outputName() #{}: '{}'\n", idx, ntsName);
 }
 
 void

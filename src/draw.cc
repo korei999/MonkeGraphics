@@ -1,5 +1,6 @@
 /* Rasterization goes here */
 
+#include "adt/OsAllocator.hh"
 #include "adt/math.hh"
 
 #include "app.hh"
@@ -13,35 +14,38 @@ using namespace adt;
 namespace draw
 {
 
-inline math::V2
-projectPoint(math::V3 pos)
+static Span2D<Pixel>
+checkerBoardTexture()
 {
-    using namespace adt::math;
-    auto& win = *app::g_pWindow;
-    Span2D sp = win.surfaceBuffer();
+    const auto& win = *app::g_pWindow;
+    OsAllocator al;
 
-    /* 90deg fov */
-    V2 res = pos.xy / pos.z;
-    res = 0.5f * (res + V2{1.0f, 1.0f});
-    res *= V2{static_cast<f32>(sp.getWidth()), static_cast<f32>(sp.getHeight())};
+    Pixel* pData = (Pixel*)al.malloc(win.m_width * win.m_height, sizeof(*pData));
+    Span2D sp(pData, win.m_width, win.m_height);
+    for (int y = 0; y < sp.getHeight(); ++y)
+    {
+        for (int x = 0; x < sp.getWidth(); ++x)
+        {
+            u32 colorChannel = 255 * ((x + (y % 2)) % 2);
+        }
+    }
 
-    return res;
+    return sp;
 }
 
 static math::V2
 ndcToPix(math::V2 ndcPos)
 {
     using namespace adt::math;
-    auto& win = *app::g_pWindow;
-    const Span2D sp = win.surfaceBuffer();
+    const auto& win = *app::g_pWindow;
 
     V2 res = 0.5f * (ndcPos + V2{1.0f, 1.0f});
-    res *= V2{static_cast<f32>(sp.getWidth()), static_cast<f32>(sp.getHeight())};
+    res *= V2{static_cast<f32>(win.m_width), static_cast<f32>(win.m_height)};
 
     return res;
 }
 
-static void
+ADT_NO_UB static void
 drawTriangle(
     math::V3 pPoints[3],
     math::V3 pColors[3],
@@ -119,10 +123,14 @@ drawTriangle(
                 f32 depth = t0 * trPoint0.z + t1 * trPoint1.z + t2 * trPoint2.z;
                 if (depth >= 0.0f && depth <= 1.0f && depth < spDepth(x, invY))
                 {
+                    // V2 uv = t0 * pUV[0] + t1 * pUV[1] + t2 * pUV[2];
+                    // int texelX = std::floor(uv.x * tex.width - 1);
+                    // int texelY = std::floor(uv.y * tex.height - 1);
+
                     V3 finalCol = (t0 * pColors[0] + t1 * pColors[1] + t2 * pColors[2]);
                     V4 cv4; cv4.xyz = finalCol; cv4.w = 255.0f;
 
-                    sp(x, invY).data = colors::V4ToARGB(cv4);;
+                    sp(x, invY).data = colors::V4ToARGB(cv4);
                     spDepth(x, invY) = depth;
                 }
             }
@@ -214,10 +222,12 @@ helloCubeTest()
     auto& camera = control::g_camera;
     f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
 
+    f32 step = frame::g_time*0.0015;
+
     M4 tr = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 500.0f) *
         camera.m_trm *
         M4TranslationFrom(0.0f, 0.0f, 2.5f) *
-        M4RotFrom(frame::g_time*0.002, V3Norm({1.0f, 1.0f, 1.0f})) *
+        M4RotFrom(step, step, step) *
         M4ScaleFrom(1.0f);
 
     for (const auto& [f0, f1, f2] : aIndexBuff)

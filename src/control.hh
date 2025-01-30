@@ -32,6 +32,8 @@ struct Camera
     adt::f32 m_pitch {};
     adt::f32 m_roll {};
 
+    adt::f32 m_sens {};
+
     /* */
 
     [[nodiscard]] adt::math::M4
@@ -48,6 +50,12 @@ struct Camera
         }
 
         return adt::math::M4TranslationFrom(-m_pos);
+    }
+
+    adt::math::V3
+    getForwardVecNoY() const
+    {
+        return {m_front.x, 0.0f, m_front.z};
     }
 };
 
@@ -77,6 +85,6 @@ extern bool g_aPressed[MAX_KEY_VALUE];
 extern adt::Arr<Keybind, MAX_KEYBINDS> g_aKeybinds;
 extern adt::Arr<Keybind, MAX_KEYBINDS> g_aModbinds; /* exec after g_aKeybinds */
 
-void procKeys();
+void procInput();
 
 } /* namespace control */

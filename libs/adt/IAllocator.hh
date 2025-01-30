@@ -82,7 +82,7 @@ struct AllocException : public IException
     /* */
 
     virtual void
-    logErrorMsg(FILE* fp) override
+    printErrorMsg(FILE* fp) override
     {
         char aBuff[128] {};
         snprintf(aBuff, sizeof(aBuff) - 1, "AllocException: '%s', errno: '%s'\n", m_ntsMsg, strerror(errno));

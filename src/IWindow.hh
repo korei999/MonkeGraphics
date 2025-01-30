@@ -32,7 +32,7 @@ struct IWindow
     adt::f32 m_relMotionX {};
     adt::f32 m_relMotionY {};
 
-    void (*m_pfnDrawCB)(void*) {};
+    void (*m_pfnUpdateCB)(void*) {};
     void* m_pDrawArg {};
 
     /* */
@@ -70,15 +70,15 @@ struct IWindow
     void
     regUpdateCB(void (*pfn)(void*), void* pArg)
     {
-        m_pfnDrawCB = pfn;
+        m_pfnUpdateCB = pfn;
         m_pDrawArg = pArg;
     }
 
     void
     update()
     {
-        ADT_ASSERT(m_pfnDrawCB, " ");
-        m_pfnDrawCB(m_pDrawArg);
+        ADT_ASSERT(m_pfnUpdateCB, "no regUpdateCB()");
+        m_pfnUpdateCB(m_pDrawArg);
         scheduleFrame();
     }
 };

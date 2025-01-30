@@ -525,7 +525,8 @@ String::contains(const String r) const
     for (ssize i = 0; i < m_size - r.m_size + 1; ++i)
     {
         const String sSub {const_cast<char*>(&(*this)[i]), r.m_size};
-        if (sSub == r) return true;
+        if (sSub == r)
+            return true;
     }
 
     return false;

@@ -285,4 +285,17 @@ swapBytes(u64 x)
            ((x & 0x00000000000000ffllu) << 7 * 8);
 }
 
+template<template<typename> typename CON_T, typename T, typename LAMBDA>
+[[nodiscard]] inline ssize
+search(const CON_T<T>& c, LAMBDA f)
+{
+    for (const auto& el : c)
+    {
+        if (f(el))
+            return c.idx(&el);
+    }
+
+    return NPOS;
+}
+
 } /* namespace adt::utils */

@@ -50,7 +50,7 @@ refresh(void*)
 
     accumulator += frameTime;
 
-    control::procKeys();
+    control::procInput();
 
     while (accumulator >= g_dt)
     {
@@ -71,6 +71,9 @@ start()
     g_time = utils::timeNowMS();
 
     win.regUpdateCB(refresh, {});
+
+    win.setFullscreen();
+    win.enableRelativeMode();
     win.update(); /* get events */
 
     while (win.m_bRunning)

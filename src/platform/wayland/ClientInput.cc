@@ -3,6 +3,8 @@
 #include "app.hh"
 #include "control.hh"
 
+#include "adt/logs.hh"
+
 using namespace adt;
 
 namespace platform::wayland
@@ -26,6 +28,11 @@ Client::keyboardEnter(
     [[maybe_unused]] wl_array* pKeys
 )
 {
+    if (m_bRestoreLockedPointer)
+    {
+        m_bRestoreLockedPointer = false;
+        enableRelativeMode();
+    }
 }
 
 void
@@ -36,6 +43,12 @@ Client::keyboardLeave(
 )
 {
     memset(control::g_aPressed, 0, sizeof(control::g_aPressed));
+
+    if (m_bPointerRelativeMode)
+    {
+        m_bRestoreLockedPointer = true;
+        disableRelativeMode();
+    }
 }
 
 void
@@ -81,6 +94,12 @@ Client::pointerEnter(
     [[maybe_unused]] wl_fixed_t surfaceY
 )
 {
+    LOG("pointerEnter(): serial: {}\n", serial);
+    m_lastPointerEnterSerial = serial;
+    if (m_bPointerRelativeMode)
+    {
+        hideCursor(true);
+    }
 }
 
 void
@@ -195,8 +214,8 @@ Client::relativePointerMotion(
 {
     if (m_bPointerRelativeMode)
     {
-        m_relMotionX = static_cast<f32>(wl_fixed_to_double(dxUnaccel));
-        m_relMotionY = static_cast<f32>(wl_fixed_to_double(dyUnaccel));
+        m_relMotionX += static_cast<f32>(wl_fixed_to_double(dxUnaccel));
+        m_relMotionY += static_cast<f32>(wl_fixed_to_double(dyUnaccel));
     }
 }
 

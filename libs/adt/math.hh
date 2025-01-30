@@ -115,6 +115,24 @@ union Qt
     struct { f32 x, y, z, w; };
 };
 
+constexpr V3
+V3From(V2 xy, f32 z)
+{
+    return {xy.x, xy.y, z};
+}
+
+constexpr V3
+V3From(f32 x, V2 yz)
+{
+    return {x, yz.x, yz.y};
+}
+
+constexpr V3
+V3From(f32 x, f32 y, f32 z)
+{
+    return {x, y, z};
+}
+
 constexpr V4
 V4From(const V4& v)
 {
@@ -940,11 +958,11 @@ M4Pers(const f32 fov, const f32 asp, const f32 n, const f32 f)
 inline M4
 M4Ortho(const f32 l, const f32 r, const f32 b, const f32 t, const f32 n, const f32 f)
 {
-    return M4 {
-        2/(r-l), 0,        0,       -(r+l)/(r-l),
-        0,       2/(t-b),  0,       -(t+b)/(t-b),
-        0,       0,       -2/(f-n), -(f+n)/(f-n),
-        0,       0,        0,        1
+    return {
+        2/(r-l),       0,            0,           0,
+        0,             2/(t-b),      0,           0,
+        0,             0,           -2/(f-n),     0,
+        -(r+l)/(r-l), -(t+b)/(t-b), -(f+n)/(f-n), 1
     };
 }
 
@@ -957,7 +975,7 @@ V2Cross(const V2& l, const V2& r)
 inline V3
 V3Cross(const V3& l, const V3& r)
 {
-    return V3 {
+    return {
         (l.y * r.z) - (r.y * l.z),
         (l.z * r.x) - (r.z * l.x),
         (l.x * r.y) - (r.x * l.y)
