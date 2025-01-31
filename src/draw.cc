@@ -2,9 +2,10 @@
 
 #include "adt/OsAllocator.hh"
 #include "adt/math.hh"
+#include "adt/ScratchBuffer.hh"
 
 #include "app.hh"
-#include "colors.hh"
+#include "clip.hh"
 #include "control.hh"
 #include "draw.hh"
 #include "frame.hh"
@@ -13,6 +14,9 @@ using namespace adt;
 
 namespace draw
 {
+
+u8 aScratchMem[SIZE_8K] {};
+ScratchBuffer s_scratch {aScratchMem};
 
 static Span2D<Pixel>
 allocCheckerBoardTexture()
@@ -57,10 +61,8 @@ ndcToPix(math::V2 ndcPos)
 
 ADT_NO_UB static void
 drawTriangle(
-    const math::V3 pPoints[3],
-    const math::V2 pUVs[3],
+    clip::Vertex vertex0, clip::Vertex vertex1, clip::Vertex vertex2,
     const Span2D<Pixel> spTexture,
-    const math::M4& trm,
     const bool bVerticalFlip = true
 )
 {
@@ -70,46 +72,57 @@ drawTriangle(
     Span2D sp = win.surfaceBuffer();
     Span2D spDepth = win.depthBuffer();
 
-    V4 trPoint0 = (trm * V4From(pPoints[0], 1.0f));
-    V4 trPoint1 = (trm * V4From(pPoints[1], 1.0f));
-    V4 trPoint2 = (trm * V4From(pPoints[2], 1.0f));
+    vertex0.pos.xyz /= vertex0.pos.w;
+    vertex1.pos.xyz /= vertex1.pos.w;
+    vertex2.pos.xyz /= vertex2.pos.w;
 
-    trPoint0.xyz /= trPoint0.w;
-    trPoint1.xyz /= trPoint1.w;
-    trPoint2.xyz /= trPoint2.w;
+    V2 pointA = ndcToPix(vertex0.pos.xy);
+    V2 pointB = ndcToPix(vertex1.pos.xy);
+    V2 pointC = ndcToPix(vertex2.pos.xy);
 
-    V2 pointA = ndcToPix(trPoint0.xy);
-    V2 pointB = ndcToPix(trPoint1.xy);
-    V2 pointC = ndcToPix(trPoint2.xy);
+    int minX = utils::min(
+        utils::min(static_cast<int>(pointA.x), static_cast<int>(pointB.x)),
+        static_cast<int>(pointC.x)
+    );
+    int maxX = utils::max(
+        utils::max(static_cast<int>(std::round(pointA.x)), static_cast<int>(std::round(pointB.x))),
+        static_cast<int>(std::round(pointC.x))
+    );
+    int minY = utils::min(
+        utils::min(static_cast<int>(pointA.y), static_cast<int>(pointB.y)),
+        static_cast<int>(pointC.y)
+    );
+    int maxY = utils::max(
+        utils::max(static_cast<int>(std::round(pointA.y)), static_cast<int>(std::round(pointB.y))),
+        static_cast<int>(std::round(pointC.y))
+    );
+
+    // minX = utils::clamp(minX, 0, static_cast<int>(sp.getWidth() - 1));
+    // maxX = utils::clamp(maxX, 0, static_cast<int>(sp.getWidth() - 1));
+    // minY = utils::clamp(minY, 0, static_cast<int>(sp.getHeight() - 1));
+    // maxY = utils::clamp(maxY, 0, static_cast<int>(sp.getHeight() - 1));
 
     V2 edge0 = pointB - pointA;
     V2 edge1 = pointC - pointB;
     V2 edge2 = pointA - pointC;
 
-    if (V2Cross(edge0, pointC - pointA) > 0)
-        return;
+    // if (V2Cross(edge0, pointC - pointA) > 0)
+    //     return;
 
-    int minX = utils::min(utils::min(static_cast<int>(pointA.x),             static_cast<int>(pointB.x)),             static_cast<int>(pointC.x));
-    int maxX = utils::max(utils::max(static_cast<int>(std::round(pointA.x)), static_cast<int>(std::round(pointB.x))), static_cast<int>(std::round(pointC.x)));
-    int minY = utils::min(utils::min(static_cast<int>(pointA.y),             static_cast<int>(pointB.y)),             static_cast<int>(pointC.y));
-    int maxY = utils::max(utils::max(static_cast<int>(std::round(pointA.y)), static_cast<int>(std::round(pointB.y))), static_cast<int>(std::round(pointC.y)));
-
-    minX = utils::clamp(minX, 0, static_cast<int>(sp.getWidth() - 1));
-    maxX = utils::clamp(maxX, 0, static_cast<int>(sp.getWidth() - 1));
-    minY = utils::clamp(minY, 0, static_cast<int>(sp.getHeight() - 1));
-    maxY = utils::clamp(maxY, 0, static_cast<int>(sp.getHeight() - 1));
-
-    bool bTopLeft0 = (edge0.y > 0.0f) || (edge0.x > 0.0f && edge0.y == 0.0f);
-    bool bTopLeft1 = (edge1.y > 0.0f) || (edge1.x > 0.0f && edge1.y == 0.0f);
-    bool bTopLeft2 = (edge2.y > 0.0f) || (edge2.x > 0.0f && edge2.y == 0.0f);
+    bool bTopLeft0 = (edge0.x >= 0.0f && edge0.y > 0.0f) || (edge0.x > 0.0f && edge0.y == 0.0f);
+    bool bTopLeft1 = (edge1.x >= 0.0f && edge1.y > 0.0f) || (edge1.x > 0.0f && edge1.y == 0.0f);
+    bool bTopLeft2 = (edge2.x >= 0.0f && edge2.y > 0.0f) || (edge2.x > 0.0f && edge2.y == 0.0f);
 
     f32 barycentricDiv = V2Cross(pointB - pointA, pointC - pointA);
 
-    for (ssize y = minY; y <= maxY; ++y)
+    for (int y = minY; y <= maxY; ++y)
     {
-        for (ssize x = minX; x <= maxX; ++x)
+        for (int x = minX; x <= maxX; ++x)
         {
-            V2 pixPoint = V2{static_cast<f32>(x), static_cast<f32>(y)} + V2{0.5f, 0.5f};
+            V2 pixPoint = V2{
+                static_cast<f32>(x),
+                static_cast<f32>(y)
+            } + V2{0.5f, 0.5f};
 
             V2 pixEdge0 = pixPoint - pointA; 
             V2 pixEdge1 = pixPoint - pointB; 
@@ -131,12 +144,12 @@ drawTriangle(
                 f32 t1 = -crossLen2 / barycentricDiv;
                 f32 t2 = -crossLen0 / barycentricDiv;
 
-                f32 depth = t0 * trPoint0.z + t1 * trPoint1.z + t2 * trPoint2.z;
+                f32 depth = t0 * vertex0.pos.z + t1 * vertex1.pos.z + t2 * vertex2.pos.z;
                 if (depth >= 0.0f && depth <= 1.0f && depth < spDepth(x, invY))
                 {
-                    f32 invDepthW = t0 * (1.0f/trPoint0.w) + t1 * (1.0f/trPoint1.w) + t2 * (1.0f/trPoint2.w);
+                    f32 invDepthW = t0 * (1.0f/vertex0.pos.w) + t1 * (1.0f/vertex1.pos.w) + t2 * (1.0f/vertex2.pos.w);
 
-                    V2 uv = t0 * (pUVs[0]/trPoint0.w) + t1 * (pUVs[1]/trPoint1.w) + t2 * (pUVs[2]/trPoint2.w);
+                    V2 uv = t0 * (vertex0.uv/vertex0.pos.w) + t1 * (vertex1.uv/vertex1.pos.w) + t2 * (vertex2.uv/vertex2.pos.w);
                     uv /= invDepthW;
                     int texelX = std::floor(uv.x * (spTexture.getWidth() - 1));
                     int texelY = std::floor(uv.y * (spTexture.getHeight() - 1));
@@ -156,6 +169,40 @@ drawTriangle(
                 }
             }
         }
+    }
+}
+
+ADT_NO_UB static void
+drawTriangle(
+    const math::V4 p0, const math::V4 p1, const math::V4 p2,
+    const math::V2 uv0, const math::V2 uv1, const math::V2 uv2,
+    const Span2D<Pixel> spTexture,
+    const bool bVerticalFlip = true
+)
+{
+    clip::Result ping {};
+    ping.nTriangles = 1;
+    ping.aVertices[0] = {p0, uv0};
+    ping.aVertices[1] = {p1, uv1};
+    ping.aVertices[2] = {p2, uv2};
+
+    clip::Result pong {};
+
+    clip::polygonToAxis(&ping, &pong, clip::AXIS::LEFT);
+    clip::polygonToAxis(&pong, &ping, clip::AXIS::RIGHT);
+    clip::polygonToAxis(&ping, &pong, clip::AXIS::TOP);
+    clip::polygonToAxis(&pong, &ping, clip::AXIS::BOTTOM);
+    clip::polygonToAxis(&ping, &pong, clip::AXIS::NEAR);
+    clip::polygonToAxis(&pong, &ping, clip::AXIS::FAR);
+    clip::polygonToAxis(&ping, &pong, clip::AXIS::W);
+
+    for (int triangleIdx = 0; triangleIdx < pong.nTriangles; ++triangleIdx)
+    {
+        auto v0 = pong.aVertices[3*triangleIdx + 0];
+        auto v1 = pong.aVertices[3*triangleIdx + 1];
+        auto v2 = pong.aVertices[3*triangleIdx + 2];
+
+        drawTriangle(v0, v1, v2, spTexture);
     }
 }
 
@@ -254,20 +301,29 @@ helloCubeTest()
 
     f32 step = frame::g_time*0.0015;
 
-    M4 tr = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 500.0f) *
+    M4 tr = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
         camera.m_trm *
-        M4TranslationFrom(0.0f, 0.0f, 2.5f) *
-        // M4RotFrom(step, step, step) *
+        M4TranslationFrom(0.0f, 0.0f, 2.0f) *
+        M4RotFrom(0, 0, 0) *
         M4ScaleFrom(1.0f);
 
     static const Span2D<Pixel> spTexture = allocCheckerBoardTexture();
 
-    for (const auto& [f0, f1, f2] : aIndices)
-    {
-        V3 aTriangle[] { aCubeVerts[f0], aCubeVerts[f1], aCubeVerts[f2] };
-        V2 aUVs[] {aCubeUVs[f0], aCubeUVs[f1], aCubeUVs[f2]};
+    Span spTransformedVertices = s_scratch.nextMem<V4>(utils::size(aCubeVerts));
 
-        drawTriangle(aTriangle, aUVs, spTexture, tr);
+    for (int vertexIdx = 0; vertexIdx < spTransformedVertices.getSize(); ++vertexIdx)
+        spTransformedVertices[vertexIdx] = tr * V4From(aCubeVerts[vertexIdx], 1.0f);
+
+
+    int i = 0;
+    for (const auto [f0, f1, f2] : aIndices)
+    {
+        drawTriangle(
+            spTransformedVertices[f0], spTransformedVertices[f1], spTransformedVertices[f2],
+            aCubeUVs[f0], aCubeUVs[f1], aCubeUVs[f2],
+            spTexture
+        );
+        ++i;
     }
 }
 

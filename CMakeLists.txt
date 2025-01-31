@@ -148,6 +148,7 @@ add_executable(
     src/frame.cc
     src/draw.cc
     src/control.cc
+    src/clip.cc
 )
 
 target_sources(

@@ -380,6 +380,12 @@ operator*(const V4& l, f32 r)
 }
 
 inline V4
+operator*(f32 l, const V4& r)
+{
+    return r * l;
+}
+
+inline V4
 operator/(const V4& l, f32 r)
 {
     return {
@@ -388,6 +394,12 @@ operator/(const V4& l, f32 r)
         .z = l.z / r,
         .w = l.w / r
     };
+}
+
+inline V4
+operator/(f32 l, const V4& r)
+{
+    return r * l;
 }
 
 inline V4&

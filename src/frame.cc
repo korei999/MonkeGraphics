@@ -72,7 +72,7 @@ start()
 
     win.regUpdateCB(refresh, {});
 
-    win.setFullscreen();
+    // win.setFullscreen();
     win.enableRelativeMode();
     win.update(); /* get events */
 
