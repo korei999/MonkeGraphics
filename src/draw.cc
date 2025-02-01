@@ -116,6 +116,7 @@ drawTriangle(
     const bool bTopLeft2 = (edge2.y > 0.0f) || (edge2.x > 0.0f && edge2.y == 0.0f);
 
     const f32 barycentricDiv = V2Cross(pointB - pointA, pointC - pointA);
+    const f32 barycentricDivInv = 1.0f / barycentricDiv;
 
     vertex0.uv *= vertex0.pos.w;
     vertex1.uv *= vertex1.pos.w;
@@ -149,12 +150,13 @@ drawTriangle(
             {
                 const ssize invY = sp.getHeight() - 1 - y;
 
-                const f32 t0 = -fEdge1 / barycentricDiv;
-                const f32 t1 = -fEdge2 / barycentricDiv;
-                const f32 t2 = -fEdge0 / barycentricDiv;
+                const f32 t0 = -fEdge1 * barycentricDivInv;
+                const f32 t1 = -fEdge2 * barycentricDivInv;
+                const f32 t2 = -fEdge0 * barycentricDivInv;
 
-                f32 depth = t0*vertex0.pos.z + t1*vertex1.pos.z + t2*vertex2.pos.z;
-                if (depth >= 0.0f && depth <= 1.0f && depth < spDepth(x, invY))
+                const f32 depth = t0*vertex0.pos.z + t1*vertex1.pos.z + t2*vertex2.pos.z;
+                ADT_ASSERT(depth >= 0.0f, "depth: %g", depth);
+                if (depth <= 1.0f && depth < spDepth(x, invY))
                 {
                     const f32 invDepthW = t0*vertex0.pos.w + t1*vertex1.pos.w + t2*vertex2.pos.w;
                     const V2 uv = (t0*vertex0.uv + t1*vertex1.uv + t2*vertex2.uv) / invDepthW;
@@ -340,11 +342,11 @@ helloCubeTest()
 void
 toBuffer()
 {
-    f32 t0 = utils::timeNowMS();
+    f64 t0 = utils::timeNowMS();
 
     helloCubeTest();
 
-    f32 t1 = utils::timeNowMS();
+    f64 t1 = utils::timeNowMS();
     CERR("helloCubeTest(): in {:.5} ms\n", t1 - t0);
 }
 
