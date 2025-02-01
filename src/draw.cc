@@ -1,6 +1,6 @@
 /* Rasterization goes here */
 
-#include "adt/OsAllocator.hh"
+#include "adt/logs.hh"
 #include "adt/math.hh"
 #include "adt/ScratchBuffer.hh"
 
@@ -21,8 +21,6 @@ ScratchBuffer s_scratch {aScratchMem};
 static Span2D<Pixel>
 allocCheckerBoardTexture()
 {
-    OsAllocator al;
-
     const int width = 8;
     const int height = 8;
 
@@ -62,8 +60,7 @@ ndcToPix(math::V2 ndcPos)
 ADT_NO_UB static void
 drawTriangle(
     clip::Vertex vertex0, clip::Vertex vertex1, clip::Vertex vertex2,
-    const Span2D<Pixel> spTexture,
-    const bool bVerticalFlip = true
+    const Span2D<Pixel> spTexture
 )
 {
     using namespace adt::math;
@@ -72,27 +69,39 @@ drawTriangle(
     Span2D sp = win.surfaceBuffer();
     Span2D spDepth = win.depthBuffer();
 
-    vertex0.pos.xyz /= vertex0.pos.w;
-    vertex1.pos.xyz /= vertex1.pos.w;
-    vertex2.pos.xyz /= vertex2.pos.w;
+    vertex0.pos.w = 1.0f / vertex0.pos.w;
+    vertex1.pos.w = 1.0f / vertex1.pos.w;
+    vertex2.pos.w = 1.0f / vertex2.pos.w;
 
-    V2 pointA = ndcToPix(vertex0.pos.xy);
-    V2 pointB = ndcToPix(vertex1.pos.xy);
-    V2 pointC = ndcToPix(vertex2.pos.xy);
+    vertex0.pos.xyz *= vertex0.pos.w;
+    vertex1.pos.xyz *= vertex1.pos.w;
+    vertex2.pos.xyz *= vertex2.pos.w;
 
-    int minX = utils::min(
+    const V2 pointA = ndcToPix(vertex0.pos.xy);
+    const V2 pointB = ndcToPix(vertex1.pos.xy);
+    const V2 pointC = ndcToPix(vertex2.pos.xy);
+
+    const V2 edge0 = pointB - pointA;
+    const V2 edge1 = pointC - pointB;
+    const V2 edge2 = pointA - pointC;
+
+    /* discard backfaces early */
+    if (V2Cross(edge0, pointC - pointA) > 0)
+        return;
+
+    const int minX = utils::min(
         utils::min(static_cast<int>(pointA.x), static_cast<int>(pointB.x)),
         static_cast<int>(pointC.x)
     );
-    int maxX = utils::max(
+    const int maxX = utils::max(
         utils::max(static_cast<int>(std::round(pointA.x)), static_cast<int>(std::round(pointB.x))),
         static_cast<int>(std::round(pointC.x))
     );
-    int minY = utils::min(
+    const int minY = utils::min(
         utils::min(static_cast<int>(pointA.y), static_cast<int>(pointB.y)),
         static_cast<int>(pointC.y)
     );
-    int maxY = utils::max(
+    const int maxY = utils::max(
         utils::max(static_cast<int>(std::round(pointA.y)), static_cast<int>(std::round(pointB.y))),
         static_cast<int>(std::round(pointC.y))
     );
@@ -102,35 +111,32 @@ drawTriangle(
     // minY = utils::clamp(minY, 0, static_cast<int>(sp.getHeight() - 1));
     // maxY = utils::clamp(maxY, 0, static_cast<int>(sp.getHeight() - 1));
 
-    V2 edge0 = pointB - pointA;
-    V2 edge1 = pointC - pointB;
-    V2 edge2 = pointA - pointC;
+    const bool bTopLeft0 = (edge0.y > 0.0f) || (edge0.x > 0.0f && edge0.y == 0.0f);
+    const bool bTopLeft1 = (edge1.y > 0.0f) || (edge1.x > 0.0f && edge1.y == 0.0f);
+    const bool bTopLeft2 = (edge2.y > 0.0f) || (edge2.x > 0.0f && edge2.y == 0.0f);
 
-    // if (V2Cross(edge0, pointC - pointA) > 0)
-    //     return;
+    const f32 barycentricDiv = V2Cross(pointB - pointA, pointC - pointA);
 
-    bool bTopLeft0 = (edge0.x >= 0.0f && edge0.y > 0.0f) || (edge0.x > 0.0f && edge0.y == 0.0f);
-    bool bTopLeft1 = (edge1.x >= 0.0f && edge1.y > 0.0f) || (edge1.x > 0.0f && edge1.y == 0.0f);
-    bool bTopLeft2 = (edge2.x >= 0.0f && edge2.y > 0.0f) || (edge2.x > 0.0f && edge2.y == 0.0f);
-
-    f32 barycentricDiv = V2Cross(pointB - pointA, pointC - pointA);
+    vertex0.uv *= vertex0.pos.w;
+    vertex1.uv *= vertex1.pos.w;
+    vertex2.uv *= vertex2.pos.w;
 
     for (int y = minY; y <= maxY; ++y)
     {
         for (int x = minX; x <= maxX; ++x)
         {
-            V2 pixPoint = V2{
+            const V2 pixPoint = V2{
                 static_cast<f32>(x),
                 static_cast<f32>(y)
             } + V2{0.5f, 0.5f};
 
-            V2 pixEdge0 = pixPoint - pointA; 
-            V2 pixEdge1 = pixPoint - pointB; 
-            V2 pixEdge2 = pixPoint - pointC; 
+            const V2 pixEdge0 = pixPoint - pointA; 
+            const V2 pixEdge1 = pixPoint - pointB; 
+            const V2 pixEdge2 = pixPoint - pointC; 
 
-            f32 crossLen0 = V2Cross(pixEdge0, edge0);
-            f32 crossLen1 = V2Cross(pixEdge1, edge1);
-            f32 crossLen2 = V2Cross(pixEdge2, edge2);
+            const f32 crossLen0 = V2Cross(pixEdge0, edge0);
+            const f32 crossLen1 = V2Cross(pixEdge1, edge1);
+            const f32 crossLen2 = V2Cross(pixEdge2, edge2);
 
             /* inside triangle */
             if ((crossLen0 > 0.0f || (bTopLeft0 && crossLen0 == 0.0f)) &&
@@ -138,21 +144,20 @@ drawTriangle(
                 (crossLen2 > 0.0f || (bTopLeft2 && crossLen2 == 0.0f))
             )
             {
-                ssize invY = bVerticalFlip ? sp.getHeight() - 1 - y : y;
+                const ssize invY = sp.getHeight() - 1 - y;
 
-                f32 t0 = -crossLen1 / barycentricDiv;
-                f32 t1 = -crossLen2 / barycentricDiv;
-                f32 t2 = -crossLen0 / barycentricDiv;
+                const f32 t0 = -crossLen1 / barycentricDiv;
+                const f32 t1 = -crossLen2 / barycentricDiv;
+                const f32 t2 = -crossLen0 / barycentricDiv;
 
-                f32 depth = t0 * vertex0.pos.z + t1 * vertex1.pos.z + t2 * vertex2.pos.z;
+                f32 depth = t0*vertex0.pos.z + t1*vertex1.pos.z + t2*vertex2.pos.z;
                 if (depth >= 0.0f && depth <= 1.0f && depth < spDepth(x, invY))
                 {
-                    f32 invDepthW = t0 * (1.0f/vertex0.pos.w) + t1 * (1.0f/vertex1.pos.w) + t2 * (1.0f/vertex2.pos.w);
+                    const f32 invDepthW = t0*vertex0.pos.w + t1*vertex1.pos.w + t2*vertex2.pos.w;
+                    const V2 uv = (t0*vertex0.uv + t1*vertex1.uv + t2*vertex2.uv) / invDepthW;
 
-                    V2 uv = t0 * (vertex0.uv/vertex0.pos.w) + t1 * (vertex1.uv/vertex1.pos.w) + t2 * (vertex2.uv/vertex2.pos.w);
-                    uv /= invDepthW;
-                    int texelX = std::floor(uv.x * (spTexture.getWidth() - 1));
-                    int texelY = std::floor(uv.y * (spTexture.getHeight() - 1));
+                    const int texelX = static_cast<int>(uv.x * (spTexture.getWidth() - 1));
+                    const int texelY = static_cast<int>(uv.y * (spTexture.getHeight() - 1));
 
                     if (texelX >= 0 && texelX < spTexture.getWidth() &&
                         texelY >= 0 && texelY < spTexture.getHeight()
@@ -176,8 +181,7 @@ ADT_NO_UB static void
 drawTriangle(
     const math::V4 p0, const math::V4 p1, const math::V4 p2,
     const math::V2 uv0, const math::V2 uv1, const math::V2 uv2,
-    const Span2D<Pixel> spTexture,
-    const bool bVerticalFlip = true
+    const Span2D<Pixel> spTexture
 )
 {
     clip::Result ping {};
@@ -238,7 +242,6 @@ helloCubeTest()
     using namespace adt::math;
 
     auto& win = *app::g_pWindow;
-    Span2D sp = win.surfaceBuffer();
 
     /* clear */
     win.clearBuffer();
@@ -299,12 +302,12 @@ helloCubeTest()
     auto& camera = control::g_camera;
     f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
 
-    f32 step = frame::g_time*0.0015;
+    f32 step = frame::g_time*0.0010;
 
     M4 tr = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
         camera.m_trm *
-        M4TranslationFrom(0.0f, 0.0f, 2.0f) *
-        M4RotFrom(0, 0, 0) *
+        M4TranslationFrom(0.0f, 0.0f, -1.0f) *
+        M4RotFrom(step, step, step) *
         M4ScaleFrom(1.0f);
 
     static const Span2D<Pixel> spTexture = allocCheckerBoardTexture();
@@ -315,7 +318,6 @@ helloCubeTest()
         spTransformedVertices[vertexIdx] = tr * V4From(aCubeVerts[vertexIdx], 1.0f);
 
 
-    int i = 0;
     for (const auto [f0, f1, f2] : aIndices)
     {
         drawTriangle(
@@ -323,14 +325,18 @@ helloCubeTest()
             aCubeUVs[f0], aCubeUVs[f1], aCubeUVs[f2],
             spTexture
         );
-        ++i;
     }
 }
 
 void
 toBuffer()
 {
+    f32 t0 = utils::timeNowMS();
+
     helloCubeTest();
+
+    f32 t1 = utils::timeNowMS();
+    CERR("helloCubeTest(): in {:.5} ms\n", t1 - t0);
 }
 
 } /* namespace draw */

@@ -180,7 +180,7 @@ polygonToAxis(const Result* pInput, Result* pOutput, const AXIS eAxis)
                     if (!bTriangleAdded && currVertexI == 3)
                     {
                         bTriangleAdded = true;
-                        currTriangleI += 1;
+                        ++currTriangleI;
                         currVertexI = 0;
                         pOutput->aVertices[3*currTriangleI + currVertexI++] = pOutput->aVertices[3*(currTriangleI - 1) + 0];
                         pOutput->aVertices[3*currTriangleI + currVertexI++] = pOutput->aVertices[3*(currTriangleI - 1) + 2];
@@ -192,7 +192,7 @@ polygonToAxis(const Result* pInput, Result* pOutput, const AXIS eAxis)
                     if (!bTriangleAdded && currVertexI == 3)
                     {
                         bTriangleAdded = true;
-                        currTriangleI += 1;
+                        ++currTriangleI;
                         currVertexI = 0;
                         pOutput->aVertices[3*currTriangleI + currVertexI++] = pOutput->aVertices[3*(currTriangleI - 1) + 0];
                         pOutput->aVertices[3*currTriangleI + currVertexI++] = pOutput->aVertices[3*(currTriangleI - 1) + 2];

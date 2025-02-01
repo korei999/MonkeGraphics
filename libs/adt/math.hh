@@ -64,7 +64,7 @@ union V2
 union V3
 {
     f32 e[3];
-    struct { V2 xy; f32 __v2pad; };
+    struct { V2 xy; f32 _v2pad; };
     struct { f32 x, y, z; };
     struct { f32 r, g, b; };
 };
@@ -72,7 +72,7 @@ union V3
 union V4
 {
     f32 e[4];
-    struct { V3 xyz; f32 __v3pad; };
+    struct { V3 xyz; f32 _v3pad; };
     struct { V2 xy; V2 zw; };
     struct { f32 x, y, z, w; };
     struct { f32 r, g, b, a; };
