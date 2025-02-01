@@ -3,6 +3,7 @@
 #include "adt/String.hh"
 #include "adt/Span2D.hh"
 #include "adt/Vec.hh"
+#include "adt/simd.hh"
 
 #include "draw.hh"
 
@@ -65,7 +66,15 @@ struct IWindow
 
     adt::Span2D<adt::f32> depthBuffer() { return {m_vDepthBuffer.data(), m_width, m_height}; }
     void clearBuffer() { adt::utils::set(surfaceBuffer().data(), 0, surfaceBuffer().getHeight() * surfaceBuffer().getWidth()); }
-    void clearDepthBuffer() { for (auto& e : m_vDepthBuffer) e = std::numeric_limits<adt::f32>::max(); }
+
+    void
+    clearDepthBuffer()
+    {
+        adt::simd::fillF32(
+            {m_vDepthBuffer.data(), m_vDepthBuffer.getSize()},
+            std::numeric_limits<adt::f32>::max()
+        );
+    }
 
     void
     regUpdateCB(void (*pfn)(void*), void* pArg)
