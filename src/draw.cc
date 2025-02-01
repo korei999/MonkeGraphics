@@ -89,27 +89,27 @@ drawTriangle(
     if (V2Cross(edge0, pointC - pointA) > 0)
         return;
 
-    const int minX = utils::min(
+    int minX = utils::min(
         utils::min(static_cast<int>(pointA.x), static_cast<int>(pointB.x)),
         static_cast<int>(pointC.x)
     );
-    const int maxX = utils::max(
+    int maxX = utils::max(
         utils::max(static_cast<int>(std::round(pointA.x)), static_cast<int>(std::round(pointB.x))),
         static_cast<int>(std::round(pointC.x))
     );
-    const int minY = utils::min(
+    int minY = utils::min(
         utils::min(static_cast<int>(pointA.y), static_cast<int>(pointB.y)),
         static_cast<int>(pointC.y)
     );
-    const int maxY = utils::max(
+    int maxY = utils::max(
         utils::max(static_cast<int>(std::round(pointA.y)), static_cast<int>(std::round(pointB.y))),
         static_cast<int>(std::round(pointC.y))
     );
 
-    // minX = utils::clamp(minX, 0, static_cast<int>(sp.getWidth() - 1));
-    // maxX = utils::clamp(maxX, 0, static_cast<int>(sp.getWidth() - 1));
-    // minY = utils::clamp(minY, 0, static_cast<int>(sp.getHeight() - 1));
-    // maxY = utils::clamp(maxY, 0, static_cast<int>(sp.getHeight() - 1));
+    minX = utils::clamp(minX, 0, static_cast<int>(sp.getWidth() - 1));
+    maxX = utils::clamp(maxX, 0, static_cast<int>(sp.getWidth() - 1));
+    minY = utils::clamp(minY, 0, static_cast<int>(sp.getHeight() - 1));
+    maxY = utils::clamp(maxY, 0, static_cast<int>(sp.getHeight() - 1));
 
     const bool bTopLeft0 = (edge0.y > 0.0f) || (edge0.x > 0.0f && edge0.y == 0.0f);
     const bool bTopLeft1 = (edge1.y > 0.0f) || (edge1.x > 0.0f && edge1.y == 0.0f);
@@ -121,34 +121,37 @@ drawTriangle(
     vertex1.uv *= vertex1.pos.w;
     vertex2.uv *= vertex2.pos.w;
 
+    f32 edge0DiffX = edge0.y;
+    f32 edge1DiffX = edge1.y;
+    f32 edge2DiffX = edge2.y;
+
+    f32 edge0DiffY = -edge0.x;
+    f32 edge1DiffY = -edge1.x;
+    f32 edge2DiffY = -edge2.x;
+
+    f32 edge0RowY = V2Cross(V2{static_cast<f32>(minX), static_cast<f32>(minY)} - pointA, edge0);
+    f32 edge1RowY = V2Cross(V2{static_cast<f32>(minX), static_cast<f32>(minY)} - pointB, edge1);
+    f32 edge2RowY = V2Cross(V2{static_cast<f32>(minX), static_cast<f32>(minY)} - pointC, edge2);
+
     for (int y = minY; y <= maxY; ++y)
     {
+        f32 fEdge0 = edge0RowY;
+        f32 fEdge1 = edge1RowY;
+        f32 fEdge2 = edge2RowY;
+
         for (int x = minX; x <= maxX; ++x)
         {
-            const V2 pixPoint = V2{
-                static_cast<f32>(x),
-                static_cast<f32>(y)
-            } + V2{0.5f, 0.5f};
-
-            const V2 pixEdge0 = pixPoint - pointA; 
-            const V2 pixEdge1 = pixPoint - pointB; 
-            const V2 pixEdge2 = pixPoint - pointC; 
-
-            const f32 crossLen0 = V2Cross(pixEdge0, edge0);
-            const f32 crossLen1 = V2Cross(pixEdge1, edge1);
-            const f32 crossLen2 = V2Cross(pixEdge2, edge2);
-
             /* inside triangle */
-            if ((crossLen0 > 0.0f || (bTopLeft0 && crossLen0 == 0.0f)) &&
-                (crossLen1 > 0.0f || (bTopLeft1 && crossLen1 == 0.0f)) &&
-                (crossLen2 > 0.0f || (bTopLeft2 && crossLen2 == 0.0f))
+            if ((fEdge0 > 0.0f || (bTopLeft0 && fEdge0 == 0.0f)) &&
+                (fEdge1 > 0.0f || (bTopLeft1 && fEdge1 == 0.0f)) &&
+                (fEdge2 > 0.0f || (bTopLeft2 && fEdge2 == 0.0f))
             )
             {
                 const ssize invY = sp.getHeight() - 1 - y;
 
-                const f32 t0 = -crossLen1 / barycentricDiv;
-                const f32 t1 = -crossLen2 / barycentricDiv;
-                const f32 t2 = -crossLen0 / barycentricDiv;
+                const f32 t0 = -fEdge1 / barycentricDiv;
+                const f32 t1 = -fEdge2 / barycentricDiv;
+                const f32 t2 = -fEdge0 / barycentricDiv;
 
                 f32 depth = t0*vertex0.pos.z + t1*vertex1.pos.z + t2*vertex2.pos.z;
                 if (depth >= 0.0f && depth <= 1.0f && depth < spDepth(x, invY))
@@ -173,7 +176,13 @@ drawTriangle(
                     spDepth(x, invY) = depth;
                 }
             }
+            fEdge0 += edge0DiffX;
+            fEdge1 += edge1DiffX;
+            fEdge2 += edge2DiffX;
         }
+        edge0RowY += edge0DiffY;
+        edge1RowY += edge1DiffY;
+        edge2RowY += edge2DiffY;
     }
 }
 
