@@ -97,9 +97,9 @@ procMouse()
     const M4 pitchTrm = M4RotFrom(toRad(g_camera.m_pitch), 0, 0);
     const M4 axisTrm = yawTrm * pitchTrm;
 
-    const V3 right = V3Norm((axisTrm * V4From(CAMERA_RIGHT, 0)).xyz);
-    const V3 up = V3Norm((axisTrm * V4From(CAMERA_UP, 0)).xyz);
-    const V3 lookAt = V3Norm((axisTrm * V4From(CAMERA_FRONT, 0)).xyz);
+    const V3 right = V3Norm((axisTrm * V4From(CAMERA_RIGHT, 0.0f)).xyz);
+    const V3 up = V3Norm((axisTrm * V4From(CAMERA_UP, 0.0f)).xyz);
+    const V3 lookAt = V3Norm((axisTrm * V4From(CAMERA_FRONT, 0.0f)).xyz);
 
     const M4 viewTrm {
         right.x, up.x, lookAt.x, 0,
@@ -110,7 +110,6 @@ procMouse()
 
     g_camera.m_front = lookAt;
     g_camera.m_right = right;
-
     g_camera.m_trm = viewTrm * g_camera.procMoveTRM();
 }
 

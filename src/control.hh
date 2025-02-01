@@ -12,9 +12,9 @@ namespace control
 constexpr int MAX_KEYBINDS = 128;
 constexpr int MAX_KEY_VALUE = 500;
 
-constexpr adt::math::V3 CAMERA_FRONT {0, 0, 1};
-constexpr adt::math::V3 CAMERA_RIGHT {1, 0, 0};
-constexpr adt::math::V3 CAMERA_UP {0, 1, 0};
+constexpr adt::math::V3 CAMERA_FRONT {0.0f, 0.0f, 1.0f};
+constexpr adt::math::V3 CAMERA_RIGHT {1.0f, 0.0f, 0.0f};
+constexpr adt::math::V3 CAMERA_UP {0.0f, 1.0f, 0.0f};
 
 struct Camera
 {

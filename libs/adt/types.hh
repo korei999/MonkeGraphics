@@ -14,16 +14,16 @@ namespace adt
 
 #ifdef ADT_STD_TYPES
 
-using s8 = int8_t;
+using i8 = int8_t;
 using u8 = uint8_t;
-using s16 = int16_t;
+using i16 = int16_t;
 using u16 = uint16_t;
-using s32 = int32_t;
+using i32 = int32_t;
 using u32 = uint32_t;
-using s64 = int64_t;
+using i64 = int64_t;
 using u64 = uint64_t;
 using pdiff = ptrdiff_t;
-using ssize = s64;
+using ssize = i64;
 using usize = size_t;
 
 constexpr ssize NPOS = -1L;
@@ -34,13 +34,13 @@ constexpr u64 NPOS64 = std::numeric_limits<u64>::max();
 
 #else
 
-using s8 = signed char;
+using i8 = signed char;
 using u8 = unsigned char;
-using s16 = signed short;
+using i16 = signed short;
 using u16 = unsigned short;
-using s32 = signed int;
+using i32 = signed int;
 using u32 = unsigned int;
-using s64 = signed long long;
+using i64 = signed long long;
 using u64 = unsigned long long;
 using pdiff = long long;
 using ssize = long long;

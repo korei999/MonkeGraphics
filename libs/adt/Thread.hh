@@ -24,7 +24,7 @@ constexpr ssize THREAD_WAIT_INFINITE = 0xffffffff;
 
 #ifdef ADT_USE_PTHREAD
 
-using THREAD_STATUS = s32;
+using THREAD_STATUS = i32;
 
 #elif defined ADT_USE_WIN32THREAD
 

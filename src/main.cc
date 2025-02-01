@@ -14,7 +14,7 @@ parseArgs(int argc, char** argv)
     {
         String sArg = argv[i];
 
-        if (sArg.endsWith("--"))
+        if (sArg.beginsWith("--"))
         {
             // add args...
         }
@@ -37,7 +37,7 @@ main(int argc, char** argv)
         const char* ntsName = "MonkeGraphics";
 
         app::g_pWindow = app::allocWindow(&allocator, ntsName);
-        app::g_pWindow->start(1920, 1080);
+        app::g_pWindow->start(600, 600);
         defer( app::g_pWindow->destroy() );
 
         frame::start();

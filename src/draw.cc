@@ -39,6 +39,8 @@ allocCheckerBoardTexture()
                 255
             };
             sp(x, y) = p;
+
+            // sp(x, y).data = -1;
         }
     }
 
@@ -130,29 +132,30 @@ drawTriangle(
     f32 edge1DiffY = -edge1.x;
     f32 edge2DiffY = -edge2.x;
 
-    f32 edge0RowY = V2Cross(V2{static_cast<f32>(minX), static_cast<f32>(minY)} - pointA, edge0);
-    f32 edge1RowY = V2Cross(V2{static_cast<f32>(minX), static_cast<f32>(minY)} - pointB, edge1);
-    f32 edge2RowY = V2Cross(V2{static_cast<f32>(minX), static_cast<f32>(minY)} - pointC, edge2);
+    V2 startPos = V2From(minX, minY) + V2{0.5f, 0.5f};
+    f32 edge0RowY = V2Cross(startPos - pointA, edge0);
+    f32 edge1RowY = V2Cross(startPos - pointB, edge1);
+    f32 edge2RowY = V2Cross(startPos - pointC, edge2);
 
     for (int y = minY; y <= maxY; ++y)
     {
-        f32 fEdge0 = edge0RowY;
-        f32 fEdge1 = edge1RowY;
-        f32 fEdge2 = edge2RowY;
+        f32 edge0RowX = edge0RowY;
+        f32 edge1RowX = edge1RowY;
+        f32 edge2RowX = edge2RowY;
 
         for (int x = minX; x <= maxX; ++x)
         {
             /* inside triangle */
-            if ((fEdge0 > 0.0f || (bTopLeft0 && fEdge0 == 0.0f)) &&
-                (fEdge1 > 0.0f || (bTopLeft1 && fEdge1 == 0.0f)) &&
-                (fEdge2 > 0.0f || (bTopLeft2 && fEdge2 == 0.0f))
+            if ((edge0RowX > 0.0f || (bTopLeft0 && edge0RowX == 0.0f)) &&
+                (edge1RowX > 0.0f || (bTopLeft1 && edge1RowX == 0.0f)) &&
+                (edge2RowX > 0.0f || (bTopLeft2 && edge2RowX == 0.0f))
             )
             {
                 const ssize invY = sp.getHeight() - 1 - y;
 
-                const f32 t0 = -fEdge1 * barycentricDivInv;
-                const f32 t1 = -fEdge2 * barycentricDivInv;
-                const f32 t2 = -fEdge0 * barycentricDivInv;
+                const f32 t0 = -edge1RowX * barycentricDivInv;
+                const f32 t1 = -edge2RowX * barycentricDivInv;
+                const f32 t2 = -edge0RowX * barycentricDivInv;
 
                 const f32 depth = t0*vertex0.pos.z + t1*vertex1.pos.z + t2*vertex2.pos.z;
                 ADT_ASSERT(depth >= 0.0f, "depth: %g", depth);
@@ -178,9 +181,141 @@ drawTriangle(
                     spDepth(x, invY) = depth;
                 }
             }
-            fEdge0 += edge0DiffX;
-            fEdge1 += edge1DiffX;
-            fEdge2 += edge2DiffX;
+            edge0RowX += edge0DiffX;
+            edge1RowX += edge1DiffX;
+            edge2RowX += edge2DiffX;
+        }
+        edge0RowY += edge0DiffY;
+        edge1RowY += edge1DiffY;
+        edge2RowY += edge2DiffY;
+    }
+}
+
+ADT_NO_UB static void
+drawTriangle2(
+    clip::Vertex vertex0, clip::Vertex vertex1, clip::Vertex vertex2,
+    const Span2D<Pixel> spTexture
+)
+{
+    using namespace adt::math;
+
+    auto& win = *app::g_pWindow;
+    Span2D sp = win.surfaceBuffer();
+    Span2D spDepth = win.depthBuffer();
+
+    vertex0.pos.w = 1.0f / vertex0.pos.w;
+    vertex1.pos.w = 1.0f / vertex1.pos.w;
+    vertex2.pos.w = 1.0f / vertex2.pos.w;
+
+    vertex0.pos.xyz *= vertex0.pos.w;
+    vertex1.pos.xyz *= vertex1.pos.w;
+    vertex2.pos.xyz *= vertex2.pos.w;
+
+    vertex0.uv *= vertex0.pos.w;
+    vertex1.uv *= vertex1.pos.w;
+    vertex2.uv *= vertex2.pos.w;
+
+    const V2 fPointA = ndcToPix(vertex0.pos.xy);
+    const V2 fPointB = ndcToPix(vertex1.pos.xy);
+    const V2 fPointC = ndcToPix(vertex2.pos.xy);
+
+    int minX = utils::min(
+        utils::min(static_cast<int>(fPointA.x), static_cast<int>(fPointB.x)),
+        static_cast<int>(fPointC.x)
+    );
+    int maxX = utils::max(
+        utils::max(static_cast<int>(std::round(fPointA.x)), static_cast<int>(std::round(fPointB.x))),
+        static_cast<int>(std::round(fPointC.x))
+    );
+    int minY = utils::min(
+        utils::min(static_cast<int>(fPointA.y), static_cast<int>(fPointB.y)),
+        static_cast<int>(fPointC.y)
+    );
+    int maxY = utils::max(
+        utils::max(static_cast<int>(std::round(fPointA.y)), static_cast<int>(std::round(fPointB.y))),
+        static_cast<int>(std::round(fPointC.y))
+    );
+
+    const IV2 pointA = IV2_F24_8(fPointA);
+    const IV2 pointB = IV2_F24_8(fPointB);
+    const IV2 pointC = IV2_F24_8(fPointC);
+
+    const IV2 edge0 = pointB - pointA;
+    const IV2 edge1 = pointC - pointB;
+    const IV2 edge2 = pointA - pointC;
+
+    /* discard backfaces early */
+    if (IV2Cross(edge0, pointC - pointA) > 0)
+        return;
+
+    const bool bTopLeft0 = (edge0.y > 0) || (edge0.x > 0 && edge0.y == 0);
+    const bool bTopLeft1 = (edge1.y > 0) || (edge1.x > 0 && edge1.y == 0);
+    const bool bTopLeft2 = (edge2.y > 0) || (edge2.x > 0 && edge2.y == 0);
+
+    const f32 barycentricDiv = static_cast<f32>(IV2Cross(pointB - pointA, pointC - pointA)) / 256.0f;
+    const f32 barycentricDivInv = 1.0f / barycentricDiv;
+
+    const i32 edge0DiffX = edge0.y;
+    const i32 edge1DiffX = edge1.y;
+    const i32 edge2DiffX = edge2.y;
+
+    const i32 edge0DiffY = -edge0.x;
+    const i32 edge1DiffY = -edge1.x;
+    const i32 edge2DiffY = -edge2.x;
+
+    IV2 startPos = IV2_F24_8(V2From(minX, minY) + V2{0.5f, 0.5f});
+    const i64 edge0RowY64 = IV2Cross(startPos - pointA, edge0);
+    const i64 edge1RowY64 = IV2Cross(startPos - pointB, edge1);
+    const i64 edge2RowY64 = IV2Cross(startPos - pointC, edge2);
+
+    i32 edge0RowY = static_cast<i32>((edge0RowY64 + math::sign(edge0RowY64)*128) / 256) - (bTopLeft0 ? 0 : -1);
+    i32 edge1RowY = static_cast<i32>((edge1RowY64 + math::sign(edge1RowY64)*128) / 256) - (bTopLeft1 ? 0 : -1);
+    i32 edge2RowY = static_cast<i32>((edge2RowY64 + math::sign(edge2RowY64)*128) / 256) - (bTopLeft2 ? 0 : -1);
+
+    for (int y = minY; y <= maxY; ++y)
+    {
+        i32 edge0RowX = edge0RowY;
+        i32 edge1RowX = edge1RowY;
+        i32 edge2RowX = edge2RowY;
+
+        for (int x = minX; x <= maxX; ++x)
+        {
+            /* inside triangle */
+            if (edge0RowX >= 0 && edge1RowX >= 0 && edge2RowX >= 0)
+            {
+                const ssize invY = sp.getHeight() - 1 - y;
+
+                const f32 t0 = -static_cast<f32>(edge1RowX) * barycentricDivInv;
+                const f32 t1 = -static_cast<f32>(edge2RowX) * barycentricDivInv;
+                const f32 t2 = -static_cast<f32>(edge0RowX) * barycentricDivInv;
+
+                const f32 depth = t0*vertex0.pos.z + t1*vertex1.pos.z + t2*vertex2.pos.z;
+                ADT_ASSERT(depth >= 0.0f, "depth: %g", depth);
+                if (depth <= 1.0f && depth < spDepth(x, invY))
+                {
+                    const f32 invDepthW = t0*vertex0.pos.w + t1*vertex1.pos.w + t2*vertex2.pos.w;
+                    const V2 uv = (t0*vertex0.uv + t1*vertex1.uv + t2*vertex2.uv) / invDepthW;
+
+                    const int texelX = static_cast<int>(std::floor(uv.x * (spTexture.getWidth() - 1)));
+                    const int texelY = static_cast<int>(std::floor(uv.y * (spTexture.getHeight() - 1)));
+
+                    if (texelX >= 0 && texelX < spTexture.getWidth() &&
+                        texelY >= 0 && texelY < spTexture.getHeight()
+                    )
+                    {
+                        sp(x, invY) = spTexture(texelX, texelY);
+                    }
+                    else
+                    {
+                        sp(x, invY).data = 0xffff00ff;
+                    }
+
+                    spDepth(x, invY) = depth;
+                }
+            }
+            edge0RowX += edge0DiffX;
+            edge1RowX += edge1DiffX;
+            edge2RowX += edge2DiffX;
         }
         edge0RowY += edge0DiffY;
         edge1RowY += edge1DiffY;
@@ -217,7 +352,7 @@ drawTriangle(
         auto v1 = pong.aVertices[3*triangleIdx + 1];
         auto v2 = pong.aVertices[3*triangleIdx + 2];
 
-        drawTriangle(v0, v1, v2, spTexture);
+        drawTriangle2(v0, v1, v2, spTexture);
     }
 }
 
@@ -313,12 +448,12 @@ helloCubeTest()
     auto& camera = control::g_camera;
     f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
 
-    f32 step = frame::g_time*0.0010;
+    const f32 step = frame::g_time*0.0010;
 
     M4 tr = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
         camera.m_trm *
         M4TranslationFrom(0.0f, 0.0f, -1.0f) *
-        M4RotFrom(step, step, step) *
+        M4RotFrom(0, 0, step) *
         M4ScaleFrom(1.0f);
 
     static const Span2D<Pixel> spTexture = allocCheckerBoardTexture();

@@ -35,7 +35,7 @@ union Val
 {
     adt::null n;
     adt::String s;
-    adt::s64 l;
+    adt::i64 l;
     adt::f64 d;
     adt::VecBase<Object> a;
     adt::VecBase<Object> o;
@@ -176,7 +176,7 @@ getArray(Object* obj)
     return obj->tagVal.val.a;
 }
 
-[[nodiscard]] inline adt::s64
+[[nodiscard]] inline adt::i64
 getLong(Object* obj)
 {
     assert(obj->tagVal.eTag == TAG::LONG);
@@ -223,7 +223,7 @@ makeArray(adt::IAllocator* pAlloc, adt::String key)
 }
 
 [[nodiscard]] inline Object
-makeNumber(adt::String key, adt::s64 l)
+makeNumber(adt::String key, adt::i64 l)
 {
     return {
         .sKey = key,

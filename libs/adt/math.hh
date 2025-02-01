@@ -23,43 +23,84 @@ namespace adt::math
 {
 
 constexpr f64 PI64 = 3.14159265358979323846;
-constexpr f32 PI32 = f32(PI64);
+constexpr f32 PI32 = static_cast<f32>(PI64);
 constexpr f64 EPS64 = std::numeric_limits<f64>::epsilon();
 constexpr f32 EPS32 = std::numeric_limits<f32>::epsilon();
 
-constexpr f64 toDeg(f64 x) { return x * 180.0 / PI64; }
-constexpr f64 toRad(f64 x) { return x * PI64 / 180.0; }
-constexpr f32 toDeg(f32 x) { return x * 180.0f / PI32; }
-constexpr f32 toRad(f32 x) { return x * PI32 / 180.0f; }
+constexpr inline f64 toDeg(f64 x) { return x * 180.0 / PI64; }
+constexpr inline f64 toRad(f64 x) { return x * PI64 / 180.0; }
+constexpr inline f32 toDeg(f32 x) { return x * 180.0f / PI32; }
+constexpr inline f32 toRad(f32 x) { return x * PI32 / 180.0f; }
 
-constexpr f64 toRad(long x) { return toRad(f64(x)); }
-constexpr f64 toDeg(long x) { return toDeg(f64(x)); }
-constexpr f32 toRad(int x) { return toRad(f32(x)); }
-constexpr f32 toDeg(int x) { return toDeg(f32(x)); }
+constexpr inline f64 toRad(i64 x) { return toRad(static_cast<f64>(x)); }
+constexpr inline f64 toDeg(i64 x) { return toDeg(static_cast<f64>(x)); }
+constexpr inline f32 toRad(i32 x) { return toRad(static_cast<f32>(x)); }
+constexpr inline f32 toDeg(i32 x) { return toDeg(static_cast<f32>(x)); }
 
-/* epsilon float comparison */
+template<typename T>
+constexpr inline bool
+eq(const T l, const T r)
+{
+    return l == r;
+}
+
+template<>
 inline bool
-eq(f64 l, f64 r)
+eq(const f64 l, const f64 r)
 {
     return std::abs(l - r) <= EPS64*(std::abs(l) + std::abs(r) + 1.0);
 }
 
-/* epsilon float comparison */
+template<>
 inline bool
-eq(f32 l, f32 r)
+eq(const f32 l, const f32 r)
 {
     return std::abs(l - r) <= EPS32*(std::abs(l) + std::abs(r) + 1.0f);
 }
 
-constexpr auto sq(const auto& x) { return x * x; }
-constexpr auto cube(const auto& x) { return x*x*x; }
+constexpr inline auto sq(const auto& x) { return x * x; }
+constexpr inline auto cube(const auto& x) { return x*x*x; }
+
+constexpr inline i64
+sign(i64 x)
+{
+    return (x > 0) - (x < 0);
+}
+
+union IV2;
 
 union V2
 {
     f32 e[2];
     struct { f32 x, y; };
     struct { f32 u, v; };
+
+    constexpr explicit operator IV2() const;
 };
+
+union IV2
+{
+    int e[2];
+    struct { int x, y; };
+    struct { int u, v; };
+
+    constexpr explicit operator V2() const
+    {
+        return {
+            static_cast<f32>(x),
+            static_cast<f32>(y),
+        };
+    }
+};
+
+constexpr inline 
+V2::operator IV2() const
+{
+    return {
+        static_cast<int>(x),
+        static_cast<int>(y),
+    };
+}
 
 union V3
 {
@@ -69,6 +110,16 @@ union V3
     struct { f32 r, g, b; };
 };
 
+union IV3
+{
+    int e[3];
+    struct { IV2 xy; int _v2pad; };
+    struct { int x, y, z; };
+    struct { int r, g, b; };
+};
+
+union IV4;
+
 union V4
 {
     f32 e[4];
@@ -76,7 +127,39 @@ union V4
     struct { V2 xy; V2 zw; };
     struct { f32 x, y, z, w; };
     struct { f32 r, g, b, a; };
+
+    constexpr explicit operator IV4() const;
 };
+
+union IV4
+{
+    int e[4];
+    struct { IV3 xyz; int _v3pad; };
+    struct { IV2 xy; IV2 zw; };
+    struct { int x, y, z, w; };
+    struct { int r, g, b, a; };
+
+    constexpr explicit operator V4() const
+    {
+        return {
+            static_cast<f32>(x),
+            static_cast<f32>(y),
+            static_cast<f32>(z),
+            static_cast<f32>(w),
+        };
+    }
+};
+
+constexpr inline
+V4::operator IV4() const
+{
+    return {
+        static_cast<int>(x),
+        static_cast<int>(y),
+        static_cast<int>(z),
+        static_cast<int>(w),
+    };
+}
 
 union M2
 {
@@ -98,7 +181,7 @@ union M4
     f32 e[4][4];
     V4 v[4];
 
-    operator M3() const
+    constexpr explicit operator M3() const
     {
         return {
             e[0][0], e[0][1], e[0][2],
@@ -114,6 +197,12 @@ union Qt
     f32 e[4];
     struct { f32 x, y, z, w; };
 };
+
+constexpr V2
+V2From(const f32 x, const f32 y)
+{
+    return {x, y};
+}
 
 constexpr V3
 V3From(V2 xy, f32 z)
@@ -168,6 +257,15 @@ V4From(f32 x, f32 y, f32 z, f32 w)
     };
 }
 
+inline IV2
+IV2_F24_8(const V2 v)
+{
+    return {
+        .x = static_cast<i32>(std::round(v.x * 256.0f)),
+        .y = static_cast<i32>(std::round(v.y * 256.0f)),
+    };
+}
+
 inline V2
 operator-(const V2& s)
 {
@@ -185,6 +283,15 @@ operator+(const V2& l, const V2& r)
 
 inline V2
 operator-(const V2& l, const V2& r)
+{
+    return {
+        .x = l.x - r.x,
+        .y = l.y - r.y
+    };
+}
+
+inline IV2
+operator-(const IV2& l, const IV2& r)
 {
     return {
         .x = l.x - r.x,
@@ -680,15 +787,26 @@ M3Normal(const M3& m)
     return M3Transpose(M3Inv(m));
 }
 
+inline V3
+operator*(const M3& l, const V3& r)
+{
+    return l.v[0] * r.x + l.v[1] * r.y + l.v[2] * r.z;
+}
+
+inline V4
+operator*(const M4& l, const V4& r)
+{
+    return l.v[0] * r.x + l.v[1] * r.y + l.v[2] * r.z + l.v[3] * r.w;
+}
+
 inline M3
 operator*(const M3& l, const M3& r)
 {
     M3 m {};
 
-    for (int i = 0; i < 3; ++i)
-        for (int j = 0; j < 3; ++j)
-            for (int k = 0; k < 3; ++k)
-                m.e[j][i] += l.e[k][i] * r.e[j][k];
+    m.v[0] = l * r.v[0];
+    m.v[1] = l * r.v[1];
+    m.v[2] = l * r.v[2];
 
     return m;
 }
@@ -699,21 +817,10 @@ operator*=(M3& l, const M3& r)
     return l = l * r;
 }
 
-inline V4
-operator*(const M4& l, const V4& r)
-{
-    return l.v[0] * r.x + l.v[1] * r.y + l.v[2] * r.z + l.v[3] * r.w;
-}
-
 inline M4
 operator*(const M4& l, const M4& r)
 {
     M4 m {};
-
-    // for (int i = 0; i < 4; i++)
-    //     for (int j = 0; j < 4; j++)
-    //         for (int k = 0; k < 4; k++)
-    //             m.e[i][j] += l.e[i][k] * r.e[k][j];
 
     m.v[0] = l * r.v[0];
     m.v[1] = l * r.v[1];
@@ -982,6 +1089,12 @@ inline f32
 V2Cross(const V2& l, const V2& r)
 {
     return l.x * r.y - l.y * r.x;
+}
+
+inline i64
+IV2Cross(const IV2& l, const IV2& r)
+{
+    return i64(l.x) * i64(r.y) - i64(l.y) * i64(r.x);
 }
 
 inline V3

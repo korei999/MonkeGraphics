@@ -468,7 +468,7 @@ Client::outputMode(
 }
 
 void
-Client::outputDone(wl_output* pOutput)
+Client::outputDone(wl_output*)
 {
     LOG("outputDone()\n");
 }
@@ -489,7 +489,7 @@ Client::outputName(
     [[maybe_unused]] const char* ntsName
 )
 {
-    ssize idx = utils::search(m_vOutputs,
+    [[maybe_unused]] ssize idx = utils::search(m_vOutputs,
         [&](const wl_output* p) {
             if (pOutput == p)
                 return true;

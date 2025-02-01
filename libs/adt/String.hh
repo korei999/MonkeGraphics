@@ -26,7 +26,7 @@ struct String;
 [[nodiscard]] inline bool operator==(const String& l, const String& r);
 [[nodiscard]] inline bool operator==(const String& l, const char* r);
 [[nodiscard]] inline bool operator!=(const String& l, const String& r);
-[[nodiscard]] inline s64 operator-(const String& l, const String& r);
+[[nodiscard]] inline i64 operator-(const String& l, const String& r);
 
 /* StringAlloc() inserts '\0' char */
 [[nodiscard]] inline String StringAlloc(IAllocator* p, const char* str, ssize size);
@@ -393,13 +393,13 @@ operator!=(const String& l, const String& r)
     return !(l == r);
 }
 
-inline s64
+inline i64
 operator-(const String& l, const String& r)
 {
     if (l.m_size < r.m_size) return -1;
     else if (l.m_size > r.m_size) return 1;
 
-    s64 sum = 0;
+    i64 sum = 0;
     for (ssize i = 0; i < l.m_size; i++)
         sum += (l[i] - r[i]);
 
