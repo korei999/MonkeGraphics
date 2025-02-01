@@ -236,6 +236,11 @@ drawTriangle2(
         static_cast<int>(std::round(fPointC.y))
     );
 
+    minX = utils::clamp(minX, 0, static_cast<int>(sp.getWidth() - 1));
+    maxX = utils::clamp(maxX, 0, static_cast<int>(sp.getWidth() - 1));
+    minY = utils::clamp(minY, 0, static_cast<int>(sp.getHeight() - 1));
+    maxY = utils::clamp(maxY, 0, static_cast<int>(sp.getHeight() - 1));
+
     const IV2 pointA = IV2_F24_8(fPointA);
     const IV2 pointB = IV2_F24_8(fPointB);
     const IV2 pointC = IV2_F24_8(fPointC);
