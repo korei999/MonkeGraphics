@@ -7,7 +7,6 @@
 
 #include "draw.hh"
 
-/* Platform abstracted application/window interface */
 struct IWindow
 {
     adt::IAllocator* m_pAlloc {};
@@ -16,6 +15,10 @@ struct IWindow
 
     int m_width {};
     int m_height {};
+    int m_stride {};
+    int m_realWidth {};
+    int m_realHeight {};
+
     int m_winWidth {};
     int m_winHeight {};
 
@@ -64,13 +67,20 @@ struct IWindow
 
     /* */
 
-    adt::Span2D<adt::f32> depthBuffer() { return {m_vDepthBuffer.data(), m_width, m_height}; }
-    void clearBuffer() { adt::utils::set(surfaceBuffer().data(), 0, surfaceBuffer().getHeight() * surfaceBuffer().getWidth()); }
+    adt::Span2D<adt::f32> depthBuffer() { return {m_vDepthBuffer.data(), m_width, m_height, m_stride}; }
+
+    void clearBuffer()
+    {
+        adt::utils::set(
+            surfaceBuffer().data(), 0, 
+            surfaceBuffer().getHeight() * surfaceBuffer().getStride()
+        );
+    }
 
     void
     clearDepthBuffer()
     {
-        adt::simd::fillF32(
+        adt::simd::f32Fill(
             {m_vDepthBuffer.data(), m_vDepthBuffer.getSize()},
             std::numeric_limits<adt::f32>::max()
         );

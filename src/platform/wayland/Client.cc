@@ -80,6 +80,7 @@ Client::start(int width, int height)
 
     m_winWidth = m_width = width;
     m_winHeight = m_height = height;
+    m_stride = m_width + 3;
 
     m_pDisplay = wl_display_connect(nullptr);
     if (!m_pDisplay)
@@ -127,7 +128,7 @@ Client::start(int width, int height)
 
     wl_shm_add_listener(m_pShm, &s_shmListener, this);
 
-    const int stride = m_width * 4;
+    const int stride = m_stride * 4;
     const int shmPoolSize = m_height * stride;
 
     int fd = shm::allocFile(shmPoolSize);
@@ -158,7 +159,7 @@ Client::start(int width, int height)
 Span2D<draw::Pixel>
 Client::surfaceBuffer()
 {
-    return {reinterpret_cast<draw::Pixel*>(m_pPoolData), m_width, m_height};
+    return {reinterpret_cast<draw::Pixel*>(m_pPoolData), m_width, m_height, m_stride};
 }
 
 void

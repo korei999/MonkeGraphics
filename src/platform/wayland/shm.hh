@@ -40,9 +40,7 @@ createFile(void)
             return fd;
         }
     }
-
-    while (retries > 0 && errno == EEXIST)
-        ;
+    while (retries > 0 && errno == EEXIST);
 
     return -1;
 }

@@ -9,6 +9,7 @@ union Pixel
 {
     struct { adt::u8 b, g, r, a; };
     adt::u32 data;
+    adt::i32 iData;
 };
 
 void toBuffer();
