@@ -386,7 +386,7 @@ toBuffer()
     helloCubeTest();
 
     f64 t1 = utils::timeNowMS();
-    /*CERR("helloCubeTest(): in {:.5} ms\n", t1 - t0);*/
+    CERR("helloCubeTest(): in {:.5} ms\n", t1 - t0);
 }
 
 } /* namespace draw */
