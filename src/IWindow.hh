@@ -67,9 +67,16 @@ struct IWindow
 
     /* */
 
-    adt::Span2D<adt::f32> depthBuffer() { return {m_vDepthBuffer.data(), m_width, m_height, m_stride}; }
+    adt::Span2D<adt::f32>
+    depthBuffer()
+    {
+        return {
+            m_vDepthBuffer.data(), m_width, m_height, m_stride
+        };
+    }
 
-    void clearBuffer()
+    void
+    clearBuffer()
     {
         adt::utils::set(
             surfaceBuffer().data(), 0, 

@@ -1,5 +1,6 @@
 /* Rasterization goes here */
 
+#include "adt/OsAllocator.hh"
 #include "adt/logs.hh"
 #include "adt/math.hh"
 #include "adt/ScratchBuffer.hh"
@@ -317,10 +318,10 @@ helloCubeTest()
         {1, 1},
         {0, 1},
 
-        {1, 0},
         {0, 0},
-        {0, 1},
+        {1, 0},
         {1, 1},
+        {0, 1},
     };
 
     int aIndices[][3] {
@@ -378,6 +379,9 @@ helloCubeTest()
     }
 }
 
+static Vec<f32> s_vCollect(OsAllocatorGet(), 1000);
+static f64 s_lastCollectionUpdate {};
+
 void
 toBuffer()
 {
@@ -386,7 +390,16 @@ toBuffer()
     helloCubeTest();
 
     f64 t1 = utils::timeNowMS();
-    CERR("helloCubeTest(): in {:.5} ms\n", t1 - t0);
+    s_vCollect.push(t1 - t0);
+
+    if (t1 > s_lastCollectionUpdate + 1000.0)
+    {
+        f64 avg = 0;
+        for (auto ft : s_vCollect) avg += ft;
+        CERR("avg frame time: {} ms\n", avg / s_vCollect.getSize());
+        s_vCollect.setSize(0);
+        s_lastCollectionUpdate = t1;
+    }
 }
 
 } /* namespace draw */
