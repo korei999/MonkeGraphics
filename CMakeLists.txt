@@ -28,7 +28,7 @@ endif()
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftime-trace")
 
 option(OPT_SSE4_2 "" ON)
-option(OPT_AVX2 "" ON)
+option(OPT_AVX2 "" OFF)
 option(OPT_MARCH_NATIVE "" OFF)
 
 include_directories(BEFORE "libs")

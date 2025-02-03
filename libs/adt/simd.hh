@@ -387,7 +387,7 @@ f32Fill(Span<f32> src, const f32 x)
 
 /* 128 bit end */
 
-/* 256 bit */
+#if defined ADT_AVX2
 
 struct f32x8;
 
@@ -743,6 +743,6 @@ max(const i32x8 l, const i32x8 r)
     return _mm256_max_epi32(l.pack, r.pack);
 }
 
-/* 256 bit end */
+#endif /* ADT_AVX2 */
 
 } /* namespace adt::simd */

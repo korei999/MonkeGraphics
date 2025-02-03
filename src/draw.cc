@@ -228,6 +228,8 @@ drawTriangleSSE(
     }
 }
 
+#ifdef ADT_AVX2
+
 ADT_NO_UB static void
 drawTriangleAVX2(
     clip::Vertex vertex0, clip::Vertex vertex1, clip::Vertex vertex2,
@@ -396,6 +398,8 @@ drawTriangleAVX2(
     }
 }
 
+#endif
+
 ADT_NO_UB static void
 drawTriangle(
     const math::V4 p0, const math::V4 p1, const math::V4 p2,
@@ -425,7 +429,11 @@ drawTriangle(
         auto v1 = pong.aVertices[3*triangleIdx + 1];
         auto v2 = pong.aVertices[3*triangleIdx + 2];
 
+#ifdef ADT_AVX2
         drawTriangleAVX2(v0, v1, v2, spTexture);
+#else
+        drawTriangleSSE(v0, v1, v2, spTexture);
+#endif /* ADT_AVX2 */
     }
 }
 
