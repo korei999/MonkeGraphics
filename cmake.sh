@@ -117,6 +117,16 @@ releaseMINGW()
     fi
 }
 
+debugO1()
+{
+    _clean
+
+    if cmake -G "Ninja" -S . -B build/ -DCMAKE_BUILD_TYPE=DebugO1 -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" "$@"
+    then
+        cmake --build build/ -j -v
+    fi
+}
+
 _install()
 {
     cmake --install build/
@@ -143,11 +153,12 @@ case "$1" in
     asan) asan "${@:2}" ;;
     releaseCLANG) releaseCLANG "${@:2}";;
     release) release "${@:2}";;
-    install) _install ;;
-    uninstall) _uninstall ;;
-    debugMingw) debugMINGW ;;
-    releaseMingw) releaseMINGW ;;
-    clean) _clean ;;
-    test) _test ;;
-    *) build ;;
+    install) _install "${@:2}" ;;
+    uninstall) _uninstall "${@:2}" ;;
+    debugMingw) debugMINGW "${@:2}" ;;
+    releaseMingw) releaseMINGW "${@:2}" ;;
+    debugO1) debugO1 "${@:2}" ;;
+    clean) _clean "${@:2}" ;;
+    test) _test "${@:2}" ;;
+    *) build "${@:2}" ;;
 esac

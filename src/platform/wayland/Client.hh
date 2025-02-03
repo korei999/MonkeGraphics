@@ -76,6 +76,8 @@ struct Client final : public IWindow
 
     /* */
 
+    void updateSurface();
+
     void global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, uint32_t version);
     void globalRemove(wl_registry* pRegistry, uint32_t name);
 

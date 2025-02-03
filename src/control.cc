@@ -18,8 +18,8 @@ static void cameraForward() { g_camera.m_lastMove += g_camera.getForwardVecNoY()
 static void cameraBack() { g_camera.m_lastMove -= g_camera.getForwardVecNoY(); }
 static void cameraRight() { g_camera.m_lastMove += g_camera.m_right; }
 static void cameraLeft() { g_camera.m_lastMove -= g_camera.m_right; }
-static void cameraUp() { g_camera.m_lastMove -= CAMERA_UP; }
-static void cameraDown() { g_camera.m_lastMove += CAMERA_UP; }
+static void cameraUp() { g_camera.m_lastMove += CAMERA_UP; }
+static void cameraDown() { g_camera.m_lastMove -= CAMERA_UP; }
 
 Camera g_camera {.m_pos {0, 0, -3}, .m_lastMove {}, .m_sens = 0.05f, .m_speed = 4.0f};
 Mouse g_mouse {};
@@ -86,7 +86,7 @@ procMouse()
     g_mouse.prevRel = g_mouse.rel;
 
     g_camera.m_yaw -= delta.x;
-    g_camera.m_pitch -= delta.y;
+    g_camera.m_pitch += delta.y;
 
     if (g_camera.m_pitch > 89.9f)
         g_camera.m_pitch = 89.9f;

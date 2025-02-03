@@ -166,9 +166,9 @@ drawTriangleSSE(
 
         for (int x = minX; x <= maxX; x += 4)
         {
-            int pixelI = y*sp.getStride() + x;
-            i32* pColor = (i32*)&sp.data()[pixelI];
-            f32* pDepth = &spDepth.data()[pixelI];
+            const int invY = sp.getHeight() - 1 - y;
+            i32* pColor = &sp(x, invY).iData;
+            f32* pDepth = &spDepth(x, invY);
             simd::i32x4 pixelColors = simd::i32x4Load(pColor);
             simd::f32x4 pixelDepths = simd::f32x4Load(pDepth);
 
@@ -336,9 +336,9 @@ drawTriangleAVX2(
 
         for (int x = minX; x <= maxX; x += 8)
         {
-            int pixelI = y*sp.getStride() + x;
-            i32* pColor = (i32*)&sp.data()[pixelI];
-            f32* pDepth = &spDepth.data()[pixelI];
+            const int invY = sp.getHeight() - 1 - y;
+            i32* pColor = reinterpret_cast<i32*>(&sp(x, invY));
+            f32* pDepth = &spDepth(x, invY);
             simd::i32x8 pixelColors = simd::i32x8Load(pColor);
             simd::f32x8 pixelDepths = simd::f32x8Load(pDepth);
 
@@ -377,7 +377,7 @@ drawTriangleAVX2(
                     simd::i32x8 trueCase = simd::i32x8Gather((i32*)spTexture.data(), texelOffsets);
                     simd::i32x8 falseCase = 0xff00ff00;
 
-                    texelColor = (trueCase & texelMask) + simd::andNot(texelMask, falseCase);
+                    texelColor = (texelMask & trueCase) + simd::andNot(texelMask, falseCase);
                 }
 
                 simd::i32x8 finalMaskI32 = edgeMask & depthMask;

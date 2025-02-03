@@ -97,6 +97,10 @@ if (OPT_AVX2)
     endif()
 endif()
 
+if (CMAKE_BUILD_TYPE MATCHES "DebugO1")
+    add_compile_options(-O1 -g3)
+endif()
+
 if (CMAKE_BUILD_TYPE MATCHES "Asan")
     set(CMAKE_BUILD_TYPE "Debug")
 
@@ -192,7 +196,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     set(POINTER_CONSTRAINTS "${WAYLAND_PROTOCOLS_DIR}/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml")
     set(RELATIVE_POINTER "${WAYLAND_PROTOCOLS_DIR}/unstable/relative-pointer/relative-pointer-unstable-v1.xml")
     set(VIEWPORTER "${WAYLAND_PROTOCOLS_DIR}/stable/viewporter/viewporter.xml")
-    # set(TEARING "${WAYLAND_PROTOCOLS_DIR}/staging/tearing-control/tearing-control-v1.xml")
+    set(TEARING "${WAYLAND_PROTOCOLS_DIR}/staging/tearing-control/tearing-control-v1.xml")
 
     message(STATUS "WLP: '${WLP}'")
     message(STATUS "WLPD: '${WLPD}'")

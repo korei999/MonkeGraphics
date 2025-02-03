@@ -201,7 +201,6 @@ Client::toggleFullscreen()
 void
 Client::hideCursor([[maybe_unused]] bool bHide)
 {
-    /* BUG: doesn't hide sometimes */
     LOG("hideCursor(): serial: {}\n", m_lastPointerEnterSerial);
     wl_pointer_set_cursor(m_pPointer, m_lastPointerEnterSerial, {}, 0, 0);
 }
@@ -238,9 +237,6 @@ Client::toggleVSync()
 void
 Client::swapBuffers()
 {
-    wl_surface_attach(m_pSurface, m_pBuffer, 0, 0);
-    wl_surface_damage(m_pSurface, 0, 0, m_winWidth, m_winHeight);
-    wl_surface_commit(m_pSurface);
 }
 
 void
@@ -292,7 +288,15 @@ Client::scheduleFrame()
         .done = reinterpret_cast<decltype(wl_callback_listener::done)>(methodPointer(&Client::callbackDone)),
     };
     wl_callback_add_listener(m_pCallBack, &s_callbackListener, this);
-    swapBuffers();
+    updateSurface();
+}
+
+void
+Client::updateSurface()
+{
+    wl_surface_attach(m_pSurface, m_pBuffer, 0, 0);
+    wl_surface_damage(m_pSurface, 0, 0, m_winWidth, m_winHeight);
+    wl_surface_commit(m_pSurface);
 }
 
 void
@@ -300,7 +304,7 @@ Client::global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, 
 {
     LOG("interface: '{}', version: {}, name: {}\n", ntsInterface, version, name);
 
-    auto sInterface = String(ntsInterface);
+    String sInterface = String(ntsInterface);
 
     if (sInterface == wl_compositor_interface.name)
     {
