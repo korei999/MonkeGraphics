@@ -5,7 +5,7 @@ using namespace adt;
 namespace adt::print
 {
 
-static ssize
+[[maybe_unused]] static ssize
 formatToContext(Context ctx, FormatArgs, const clip::AXIS e)
 {
     ctx.fmt = "{}";

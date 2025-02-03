@@ -36,9 +36,6 @@ fpsCounter()
 static void
 refresh(void*)
 {
-    auto& win = *app::g_pWindow;
-    Span2D sp = win.surfaceBuffer();
-
     static f64 accumulator = 0.0;
 
     f64 newTime = utils::timeNowMS();

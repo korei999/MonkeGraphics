@@ -3,7 +3,7 @@
 #include "adt/String.hh"
 #include "adt/Span2D.hh"
 #include "adt/Vec.hh"
-#include "adt/simd.hh"
+#include "adt/simd.hh" /* IWYU pragma: keep */
 
 #include "draw.hh"
 

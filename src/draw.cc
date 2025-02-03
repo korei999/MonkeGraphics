@@ -60,8 +60,8 @@ ndcToPix(math::V2 ndcPos)
     return res;
 }
 
-ADT_NO_UB static void
-drawTriangle(
+[[maybe_unused]] ADT_NO_UB static void
+drawTriangleSSE(
     clip::Vertex vertex0, clip::Vertex vertex1, clip::Vertex vertex2,
     const Span2D<Pixel> spTexture
 )
@@ -229,6 +229,174 @@ drawTriangle(
 }
 
 ADT_NO_UB static void
+drawTriangleAVX2(
+    clip::Vertex vertex0, clip::Vertex vertex1, clip::Vertex vertex2,
+    const Span2D<Pixel> spTexture
+)
+{
+    using namespace adt::math;
+
+    auto& win = *app::g_pWindow;
+    Span2D sp = win.surfaceBuffer();
+    Span2D spDepth = win.depthBuffer();
+
+    vertex0.pos.w = 1.0f / vertex0.pos.w;
+    vertex1.pos.w = 1.0f / vertex1.pos.w;
+    vertex2.pos.w = 1.0f / vertex2.pos.w;
+
+    vertex0.pos.xyz *= vertex0.pos.w;
+    vertex1.pos.xyz *= vertex1.pos.w;
+    vertex2.pos.xyz *= vertex2.pos.w;
+
+    vertex0.uv *= vertex0.pos.w;
+    vertex1.uv *= vertex1.pos.w;
+    vertex2.uv *= vertex2.pos.w;
+
+    const V2 fPointA = ndcToPix(vertex0.pos.xy);
+    const V2 fPointB = ndcToPix(vertex1.pos.xy);
+    const V2 fPointC = ndcToPix(vertex2.pos.xy);
+
+    int minX = utils::min(
+        utils::min(static_cast<int>(fPointA.x), static_cast<int>(fPointB.x)),
+        static_cast<int>(fPointC.x)
+    );
+    int maxX = utils::max(
+        utils::max(static_cast<int>(std::round(fPointA.x)), static_cast<int>(std::round(fPointB.x))),
+        static_cast<int>(std::round(fPointC.x))
+    );
+    int minY = utils::min(
+        utils::min(static_cast<int>(fPointA.y), static_cast<int>(fPointB.y)),
+        static_cast<int>(fPointC.y)
+    );
+    int maxY = utils::max(
+        utils::max(static_cast<int>(std::round(fPointA.y)), static_cast<int>(std::round(fPointB.y))),
+        static_cast<int>(std::round(fPointC.y))
+    );
+
+    minX = utils::clamp(minX, 0, static_cast<int>(sp.getWidth() - 1));
+    maxX = utils::clamp(maxX, 0, static_cast<int>(sp.getWidth() - 1));
+    minY = utils::clamp(minY, 0, static_cast<int>(sp.getHeight() - 1));
+    maxY = utils::clamp(maxY, 0, static_cast<int>(sp.getHeight() - 1));
+
+    const IV2 pointA = IV2_F24_8(fPointA);
+    const IV2 pointB = IV2_F24_8(fPointB);
+    const IV2 pointC = IV2_F24_8(fPointC);
+
+    const IV2 edge0 = pointB - pointA;
+    const IV2 edge1 = pointC - pointB;
+    const IV2 edge2 = pointA - pointC;
+
+    /* discard backfaces early */
+    if (IV2Cross(edge0, pointC - pointA) > 0)
+        return;
+
+    const bool bTopLeft0 = (edge0.y > 0) || (edge0.x > 0 && edge0.y == 0);
+    const bool bTopLeft1 = (edge1.y > 0) || (edge1.x > 0 && edge1.y == 0);
+    const bool bTopLeft2 = (edge2.y > 0) || (edge2.x > 0 && edge2.y == 0);
+
+    const simd::f32x8 barycentricDiv = 256.0f / static_cast<f32>(IV2Cross(pointB - pointA, pointC - pointA));
+
+    simd::i32x8 edge0DiffX = edge0.y;
+    simd::i32x8 edge1DiffX = edge1.y;
+    simd::i32x8 edge2DiffX = edge2.y;
+
+    const simd::i32x8 edge0DiffY = -edge0.x;
+    const simd::i32x8 edge1DiffY = -edge1.x;
+    const simd::i32x8 edge2DiffY = -edge2.x;
+
+    simd::i32x8 edge0RowY {};
+    simd::i32x8 edge1RowY {};
+    simd::i32x8 edge2RowY {};
+    {
+        IV2 startPos = IV2_F24_8(V2From(minX, minY) + V2{0.5f, 0.5f});
+        i64 edge0RowY64 = IV2Cross(startPos - pointA, edge0);
+        i64 edge1RowY64 = IV2Cross(startPos - pointB, edge1);
+        i64 edge2RowY64 = IV2Cross(startPos - pointC, edge2);
+
+        i32 edge0RowY32 = i32((edge0RowY64 + math::sign(edge0RowY64)*128) / 256) - (bTopLeft0 ? 0 : -1);
+        i32 edge1RowY32 = i32((edge1RowY64 + math::sign(edge1RowY64)*128) / 256) - (bTopLeft1 ? 0 : -1);
+        i32 edge2RowY32 = i32((edge2RowY64 + math::sign(edge2RowY64)*128) / 256) - (bTopLeft2 ? 0 : -1);
+
+        edge0RowY = simd::i32x8(edge0RowY32) + simd::i32x8(0, 1, 2, 3, 4, 5, 6, 7) * edge0DiffX;
+        edge1RowY = simd::i32x8(edge1RowY32) + simd::i32x8(0, 1, 2, 3, 4, 5, 6, 7) * edge1DiffX;
+        edge2RowY = simd::i32x8(edge2RowY32) + simd::i32x8(0, 1, 2, 3, 4, 5, 6, 7) * edge2DiffX;
+    }
+
+    edge0DiffX *= 8;
+    edge1DiffX *= 8;
+    edge2DiffX *= 8;
+
+    for (int y = minY; y <= maxY; ++y)
+    {
+        simd::i32x8 edge0RowX = edge0RowY;
+        simd::i32x8 edge1RowX = edge1RowY;
+        simd::i32x8 edge2RowX = edge2RowY;
+
+        for (int x = minX; x <= maxX; x += 8)
+        {
+            int pixelI = y*sp.getStride() + x;
+            i32* pColor = (i32*)&sp.data()[pixelI];
+            f32* pDepth = &spDepth.data()[pixelI];
+            simd::i32x8 pixelColors = simd::i32x8Load(pColor);
+            simd::f32x8 pixelDepths = simd::f32x8Load(pDepth);
+
+            simd::i32x8 edgeMask = (edge0RowX | edge1RowX | edge2RowX) >= 0;
+
+            if (simd::moveMask8(edgeMask) != 0)
+            {
+                simd::f32x8 t0 = -simd::f32x8(edge1RowX) * barycentricDiv;
+                simd::f32x8 t1 = -simd::f32x8(edge2RowX) * barycentricDiv;
+                simd::f32x8 t2 = -simd::f32x8(edge0RowX) * barycentricDiv;
+
+                simd::f32x8 depthZ = t0*vertex0.pos.z + t1*vertex1.pos.z + t2*vertex2.pos.z;
+                simd::i32x8 depthMask = simd::i32x8Reinterpret(depthZ < pixelDepths);
+
+                simd::f32x8 oneOverW = t0*vertex0.pos.w + t1*vertex1.pos.w + t2*vertex2.pos.w;
+
+                simd::V2x8 uv = t0*vertex0.uv + t1*vertex1.uv + t2*vertex2.uv;
+                uv /= oneOverW;
+
+                simd::i32x8 texelColor = 0;
+
+                /* nearest neighbor filtering */
+                {
+                    simd::i32x8 texelX = simd::i32x8(simd::floor(uv.x * (spTexture.getWidth() - 1)));
+                    simd::i32x8 texelY = simd::i32x8(simd::floor(uv.y * (spTexture.getHeight() - 1)));
+
+                    simd::i32x8 texelMask = (
+                        (texelX >= 0) & (texelX < spTexture.getWidth()) &
+                        (texelY >= 0) & (texelY < spTexture.getHeight())
+                    );
+
+                    texelX = simd::max(simd::min(texelX, spTexture.getWidth() - 1), 0);
+                    texelY = simd::max(simd::min(texelY, spTexture.getHeight() - 1), 0);
+                    simd::i32x8 texelOffsets = texelY * spTexture.getWidth() + texelX;
+
+                    simd::i32x8 trueCase = simd::i32x8Gather((i32*)spTexture.data(), texelOffsets);
+                    simd::i32x8 falseCase = 0xff00ff00;
+
+                    texelColor = (trueCase & texelMask) + simd::andNot(texelMask, falseCase);
+                }
+
+                simd::i32x8 finalMaskI32 = edgeMask & depthMask;
+                simd::f32x8 finalMaskF32 = simd::f32x8Reinterpret(finalMaskI32);
+                simd::i32x8 outputColors = (texelColor & finalMaskI32) + simd::andNot(finalMaskI32, pixelColors);
+                simd::f32x8 outputDepth = (depthZ & finalMaskF32) + simd::andNot(finalMaskF32, pixelDepths);
+
+                simd::i32x8Store(pColor, outputColors);
+                simd::f32x8Store(pDepth, outputDepth);
+            }
+            edge0RowX += edge0DiffX;
+            edge1RowX += edge1DiffX;
+            edge2RowX += edge2DiffX;
+        }
+        edge0RowY += edge0DiffY;
+        edge1RowY += edge1DiffY;
+        edge2RowY += edge2DiffY;
+    }
+}
+
+ADT_NO_UB static void
 drawTriangle(
     const math::V4 p0, const math::V4 p1, const math::V4 p2,
     const math::V2 uv0, const math::V2 uv1, const math::V2 uv2,
@@ -257,7 +425,7 @@ drawTriangle(
         auto v1 = pong.aVertices[3*triangleIdx + 1];
         auto v2 = pong.aVertices[3*triangleIdx + 2];
 
-        drawTriangle(v0, v1, v2, spTexture);
+        drawTriangleAVX2(v0, v1, v2, spTexture);
     }
 }
 

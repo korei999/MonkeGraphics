@@ -80,7 +80,7 @@ Client::start(int width, int height)
 
     m_winWidth = m_width = width;
     m_winHeight = m_height = height;
-    m_stride = m_width + 3;
+    m_stride = m_width + 7;
 
     m_pDisplay = wl_display_connect(nullptr);
     if (!m_pDisplay)
