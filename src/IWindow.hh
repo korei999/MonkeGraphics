@@ -3,9 +3,9 @@
 #include "adt/String.hh"
 #include "adt/Span2D.hh"
 #include "adt/Vec.hh"
-#include "adt/simd.hh" /* IWYU pragma: keep */
+#include "adt/simd.hh"
 
-#include "draw.hh"
+#include "Image.hh"
 
 struct IWindow
 {
@@ -48,7 +48,7 @@ struct IWindow
     /* */
 
     virtual void start(int width, int height) = 0;
-    virtual adt::Span2D<draw::Pixel> surfaceBuffer() = 0;
+    virtual adt::Span2D<ImagePixelARGB> surfaceBuffer() = 0;
     virtual void disableRelativeMode() = 0;
     virtual void enableRelativeMode() = 0;
     virtual void togglePointerRelativeMode() = 0;

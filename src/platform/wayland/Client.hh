@@ -57,7 +57,7 @@ struct Client final : public IWindow
     /* */
 
     virtual void start(int width, int height) override;
-    virtual adt::Span2D<draw::Pixel> surfaceBuffer() override;
+    virtual adt::Span2D<ImagePixelARGB> surfaceBuffer() override;
     virtual void disableRelativeMode() override;
     virtual void enableRelativeMode() override;
     virtual void togglePointerRelativeMode() override;

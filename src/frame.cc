@@ -3,6 +3,7 @@
 #include "app.hh"
 #include "control.hh"
 #include "draw.hh"
+#include "game.hh"
 
 #include "adt/logs.hh"
 #include "adt/utils.hh"
@@ -36,7 +37,7 @@ fpsCounter()
 static void
 refresh(void*)
 {
-    static f64 accumulator = 0.0;
+    static f64 s_accumulator = 0.0;
 
     f64 newTime = utils::timeNowMS();
     f64 frameTime = newTime - g_time;
@@ -45,15 +46,15 @@ refresh(void*)
     if (frameTime > 0.25)
         frameTime = 0.25;
 
-    accumulator += frameTime;
+    s_accumulator += frameTime;
 
     control::procInput();
 
-    while (accumulator >= g_dt)
+    while (s_accumulator >= g_dt)
     {
         /*game::updateState(&arena);*/
         g_gt += g_dt;
-        accumulator -= g_dt;
+        s_accumulator -= g_dt;
     }
 
     draw::toBuffer();
@@ -66,6 +67,8 @@ start()
     auto& win = *app::g_pWindow;
     win.m_bRunning = true;
     g_time = utils::timeNowMS();
+
+    game::loadAssets();
 
     win.regUpdateCB(refresh, {});
 

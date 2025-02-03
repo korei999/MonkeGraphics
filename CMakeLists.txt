@@ -99,6 +99,7 @@ endif()
 
 if (CMAKE_BUILD_TYPE MATCHES "DebugO1")
     add_compile_options(-O1 -g3)
+    set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
 if (CMAKE_BUILD_TYPE MATCHES "Asan")
@@ -160,14 +161,14 @@ add_executable(
     src/draw.cc
     src/control.cc
     src/clip.cc
-)
+    src/game.cc
+    src/Image.cc
+    src/asset.cc
 
-target_sources(
-    ${CMAKE_PROJECT_NAME}
-    PRIVATE
+    src/json/Parser.cc
+    src/json/Lexer.cc
 
-    libs/json/Lexer.cc
-    libs/json/Parser.cc
+    src/gltf/gltf.cc
 )
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")

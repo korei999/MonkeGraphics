@@ -80,7 +80,7 @@ Client::start(int width, int height)
 
     m_winWidth = m_width = width;
     m_winHeight = m_height = height;
-    m_stride = m_width + 7;
+    m_stride = m_width + 7; /* NOTE: simd padding */
 
     m_pDisplay = wl_display_connect(nullptr);
     if (!m_pDisplay)
@@ -156,10 +156,10 @@ Client::start(int width, int height)
     wl_display_roundtrip(m_pDisplay);
 }
 
-Span2D<draw::Pixel>
+Span2D<ImagePixelARGB>
 Client::surfaceBuffer()
 {
-    return {reinterpret_cast<draw::Pixel*>(m_pPoolData), m_width, m_height, m_stride};
+    return {reinterpret_cast<ImagePixelARGB*>(m_pPoolData), m_width, m_height, m_stride};
 }
 
 void

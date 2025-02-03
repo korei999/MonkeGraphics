@@ -38,21 +38,21 @@ struct IAllocator
     [[nodiscard]] constexpr T*
     mallocV(ssize mCount)
     {
-        return malloc(mCount, sizeof(T));
+        return reinterpret_cast<T*>(malloc(mCount, sizeof(T)));
     }
 
     template<typename T>
     [[nodiscard]] constexpr T*
     zallocV(ssize mCount)
     {
-        return zalloc(mCount, sizeof(T));
+        return reinterpret_cast<T*>(zalloc(mCount, sizeof(T)));
     }
 
     template<typename T>
     [[nodiscard]] constexpr T*
     reallocV(T* ptr, ssize oldCount, ssize newCount)
     {
-        return realloc(ptr, oldCount, newCount, sizeof(T));
+        return reinterpret_cast<T*>(realloc(ptr, oldCount, newCount, sizeof(T)));
     }
 
     [[nodiscard]] virtual constexpr void* malloc(usize mCount, usize mSize) noexcept(false) = 0;

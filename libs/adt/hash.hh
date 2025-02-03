@@ -36,7 +36,7 @@ struct xxh64
         return finalize((len >= 32 ? h32bytes(p, len, seed) : seed + PRIME5) + len, p + (len & ~0x1F), len & 0x1F);
     }
 
-  private:
+private:
     static constexpr u64 PRIME1 = 11400714785074694791ULL;
     static constexpr u64 PRIME2 = 14029467366897019727ULL;
     static constexpr u64 PRIME3 = 1609587929392839161ULL;

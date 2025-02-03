@@ -6,6 +6,7 @@
 #include "adt/ScratchBuffer.hh"
 
 #include "app.hh"
+#include "asset.hh"
 #include "clip.hh"
 #include "control.hh"
 #include "draw.hh"
@@ -19,13 +20,13 @@ namespace draw
 u8 aScratchMem[SIZE_8K] {};
 ScratchBuffer s_scratch {aScratchMem};
 
-static Span2D<Pixel>
+static Span2D<ImagePixelARGB>
 allocCheckerBoardTexture()
 {
     const int width = 8;
     const int height = 8;
 
-    static Pixel aPixels[width * height] {};
+    static ImagePixelARGB aPixels[width * height] {};
 
     Span2D sp(aPixels, width, height, width);
     for (int y = 0; y < sp.getHeight(); ++y)
@@ -33,7 +34,7 @@ allocCheckerBoardTexture()
         for (int x = 0; x < sp.getWidth(); ++x)
         {
             u32 colorChannel = 255 * ((x + (y % 2)) % 2);
-            Pixel p {
+            ImagePixelARGB p {
                 static_cast<u8>(colorChannel),
                 static_cast<u8>(colorChannel),
                 static_cast<u8>(colorChannel),
@@ -63,7 +64,7 @@ ndcToPix(math::V2 ndcPos)
 [[maybe_unused]] ADT_NO_UB static void
 drawTriangleSSE(
     clip::Vertex vertex0, clip::Vertex vertex1, clip::Vertex vertex2,
-    const Span2D<Pixel> spTexture
+    const Span2D<ImagePixelARGB> spTexture
 )
 {
     using namespace adt::math;
@@ -233,7 +234,7 @@ drawTriangleSSE(
 ADT_NO_UB static void
 drawTriangleAVX2(
     clip::Vertex vertex0, clip::Vertex vertex1, clip::Vertex vertex2,
-    const Span2D<Pixel> spTexture
+    const Span2D<ImagePixelARGB> spTexture
 )
 {
     using namespace adt::math;
@@ -404,7 +405,7 @@ ADT_NO_UB static void
 drawTriangle(
     const math::V4 p0, const math::V4 p1, const math::V4 p2,
     const math::V2 uv0, const math::V2 uv1, const math::V2 uv2,
-    const Span2D<Pixel> spTexture
+    const Span2D<ImagePixelARGB> spTexture
 )
 {
     clip::Result ping {};
@@ -449,7 +450,7 @@ helloGradientTest()
     {
         for (ssize x = 0; x < sp.getWidth(); ++x)
         {
-            Pixel pix {
+            ImagePixelARGB pix {
                 .b = static_cast<u8>(x),
                 .g = static_cast<u8>(x + frame),
                 .r = static_cast<u8>(y - frame),
@@ -474,56 +475,66 @@ helloCubeTest()
     win.clearBuffer();
     win.clearDepthBuffer();
 
-    V3 aCubeVerts[] {
-        /* Front Face */
-        {-0.5f, -0.5f, -0.5f},
-        {-0.5f, 0.5f, -0.5f},
-        {0.5f, 0.5f, -0.5f},
-        {0.5f, -0.5f, -0.5f},
+    /* chatgpt made this... */
 
+    V3 aCubeVerts[] = {
+        /* Front Face */
+        {-0.5f, -0.5f, -0.5f}, { -0.5f, 0.5f, -0.5f }, { 0.5f, 0.5f, -0.5f }, { 0.5f, -0.5f, -0.5f },
+    
         /* Back Face */
-        {-0.5f, -0.5f, 0.5f},
-        {-0.5f, 0.5f, 0.5f},
-        {0.5f, 0.5f, 0.5f},
-        {0.5f, -0.5f, 0.5f},
+        { 0.5f, -0.5f,  0.5f }, { 0.5f,  0.5f,  0.5f }, { -0.5f,  0.5f,  0.5f }, { -0.5f, -0.5f,  0.5f },
+    
+        /* Left Face */
+        { -0.5f, -0.5f,  0.5f }, { -0.5f,  0.5f,  0.5f }, { -0.5f,  0.5f, -0.5f }, { -0.5f, -0.5f, -0.5f },
+    
+        /* Right Face */
+        { 0.5f, -0.5f, -0.5f }, { 0.5f, 0.5f, -0.5f }, { 0.5f, 0.5f,  0.5f }, { 0.5f, -0.5f,  0.5f },
+    
+        /* Top Face */
+        { -0.5f, 0.5f, -0.5f }, { -0.5f, 0.5f,  0.5f }, { 0.5f, 0.5f,  0.5f }, { 0.5f, 0.5f, -0.5f },
+    
+        /* Bottom Face */
+        { -0.5f, -0.5f,  0.5f }, { -0.5f, -0.5f, -0.5f }, { 0.5f, -0.5f, -0.5f }, { 0.5f, -0.5f,  0.5f },
     };
 
-    V2 aCubeUVs[] {
-        {0, 0},
-        {1, 0},
-        {1, 1},
-        {0, 1},
-
-        {0, 0},
-        {1, 0},
-        {1, 1},
-        {0, 1},
+    V2 aCubeUVs[] = {
+        /* Front Face */
+        {0, 1}, {1, 1}, {1, 0}, {0, 0},
+    
+        /* Back Face */
+        {1, 1}, {0, 1}, {0, 0}, {1, 0},
+    
+        /* Left Face */
+        {1, 1}, {1, 0}, {0, 0}, {0, 1},
+    
+        /* Right Face */
+        {0, 1}, {0, 0}, {1, 0}, {1, 1},
+    
+        /* Top Face */
+        {0, 0}, {0, 1}, {1, 1}, {1, 0},
+    
+        /* Bottom Face */
+        {0, 1}, {0, 0}, {1, 0}, {1, 1},
     };
 
-    int aIndices[][3] {
+    int aIndices[][3] = {
         /* Front Face */
-        {0, 1, 2},
-        {2, 3, 0},
-
+        {0, 1, 2}, {2, 3, 0},
+    
         /* Back Face */
-        {6, 5, 4},
-        {4, 7, 6},
-
-        /* Left face */
-        {4, 5, 1},
-        {1, 0, 4},
-
-        /* Right face */
-        {3, 2, 6},
-        {6, 7, 3},
-
-        /* Top face */
-        {1, 5, 6},
-        {6, 2, 1},
-
-        /* Bottom face */
-        {4, 0, 3},
-        {3, 7, 4},
+        {4, 5, 6}, {6, 7, 4},
+    
+        /* Left Face */
+        {8, 9, 10}, {10, 11, 8},
+    
+        /* Right Face */
+        {12, 13, 14}, {14, 15, 12},
+    
+        /* Top Face */
+        {16, 17, 18}, {18, 19, 16},
+    
+        /* Bottom Face */
+        {20, 21, 22}, {22, 23, 20},
     };
 
     auto& camera = control::g_camera;
@@ -537,30 +548,32 @@ helloCubeTest()
         M4RotFrom(0, 0, step) *
         M4ScaleFrom(1.0f);
 
-    static const Span2D<Pixel> spTexture = allocCheckerBoardTexture();
+    // static const Span2D<ImagePixelARGB> spTexture = allocCheckerBoardTexture();
+
+    auto fBoxTex = asset::search("assets/box3.bmp");
+    const Span2D<ImagePixelARGB> spTex(fBoxTex->uData.img.getSpanARGB());
 
     Span spTransformedVertices = s_scratch.nextMem<V4>(utils::size(aCubeVerts));
 
     for (int vertexIdx = 0; vertexIdx < spTransformedVertices.getSize(); ++vertexIdx)
         spTransformedVertices[vertexIdx] = tr * V4From(aCubeVerts[vertexIdx], 1.0f);
 
-
     for (const auto [f0, f1, f2] : aIndices)
     {
         drawTriangle(
             spTransformedVertices[f0], spTransformedVertices[f1], spTransformedVertices[f2],
             aCubeUVs[f0], aCubeUVs[f1], aCubeUVs[f2],
-            spTexture
+            spTex
         );
     }
 }
 
-static Vec<f32> s_vCollect(OsAllocatorGet(), 1000);
-static f64 s_lastCollectionUpdate {};
-
 void
 toBuffer()
 {
+    static Vec<f32> s_vCollect(OsAllocatorGet(), 1000);
+    static f64 s_lastCollectionUpdate {};
+
     f64 t0 = utils::timeNowMS();
 
     helloCubeTest();
