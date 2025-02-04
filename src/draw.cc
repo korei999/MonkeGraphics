@@ -514,9 +514,9 @@ helloGLTF()
             {
                 auto& imgIdx = model.m_aTextures[baseTextureIdx].source;
                 auto& uri = model.m_aImages[imgIdx].uri;
-                char aBuff[512] {};
-                ssize n = print::toSpan(aBuff, "assets/{}", uri);
-                Image* pImg = asset::searchImage({aBuff, n});
+                Span spBuff = s_scratch.nextMemZero<char>(uri.getSize() + 50);
+                ssize n = print::toSpan(spBuff, "assets/{}", uri);
+                Image* pImg = asset::searchImage({spBuff.data(), n});
                 if (pImg)
                     spImage = pImg->getSpanARGB();
             }
@@ -578,13 +578,13 @@ toBuffer()
 {
     auto& win = app::window();
 
-    static Vec<f32> s_vCollect(OsAllocatorGet(), 1000);
+    static Vec<f64> s_vCollect(OsAllocatorGet(), 1000);
     static f64 s_lastCollectionUpdate {};
 
     f64 t0 = utils::timeNowMS();
 
     /* clear */
-    win.clearBuffer();
+    win.clearColorBuffer({0.2f, 0.2f, 0.2f, 1.0f});
     win.clearDepthBuffer();
 
     helloGLTF();
@@ -595,8 +595,8 @@ toBuffer()
     if (t1 > s_lastCollectionUpdate + 1000.0)
     {
         f64 avg = 0;
-        for (auto ft : s_vCollect) avg += ft;
-        CERR("avg frame time: {} ms\n", avg / s_vCollect.getSize());
+        for (f64 ft : s_vCollect) avg += ft;
+        CERR("avg frame time: {} ms, nSamples: {}\n", avg / s_vCollect.getSize(), s_vCollect.getSize());
         s_vCollect.setSize(0);
         s_lastCollectionUpdate = t1;
     }

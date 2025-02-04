@@ -5,6 +5,7 @@
 #include "adt/Vec.hh"
 #include "adt/simd.hh"
 
+#include "colors.hh"
 #include "Image.hh"
 
 struct IWindow
@@ -76,18 +77,21 @@ struct IWindow
     }
 
     void
-    clearBuffer()
+    clearColorBuffer(adt::math::V4 color)
     {
-        adt::utils::set(
-            surfaceBuffer().data(), 0, 
-            surfaceBuffer().getHeight() * surfaceBuffer().getStride()
+        adt::simd::i32Fillx4(
+            adt::Span<adt::i32>{
+                (adt::i32*)surfaceBuffer().data(),
+                surfaceBuffer().getStride() * surfaceBuffer().getHeight()
+            },
+            colors::V4ToARGB(color)
         );
     }
 
     void
     clearDepthBuffer()
     {
-        adt::simd::f32Fill(
+        adt::simd::f32Fillx4(
             {m_vDepthBuffer.data(), m_vDepthBuffer.getSize()},
             std::numeric_limits<adt::f32>::max()
         );

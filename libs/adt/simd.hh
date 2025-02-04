@@ -66,6 +66,10 @@ struct f32x4
 
     f32x4(const f32 x) : pack(_mm_set1_ps(x)) {}
 
+    f32x4(f32 x, f32 y, f32 z, f32 w) : pack(_mm_set_ps(w, z, y, x)) {}
+
+    f32x4(const math::V4 v) : pack(_mm_set_ps(v.w, v.z, v.y, v.x)) {}
+
     /* */
 
     explicit operator __m128() const { return pack; }
@@ -373,7 +377,20 @@ max(const i32x4 l, const i32x4 r)
 }
 
 inline void
-f32Fill(Span<f32> src, const f32 x)
+i32Fillx4(Span<i32> src, const i32 x)
+{
+    const i32 pack = x;
+
+    ssize i = 0;
+    for (; i + 3 < src.getSize(); i += 4)
+        i32x4Store(&src[i], pack);
+
+    for (; i < src.getSize(); ++i)
+        src[i] = x;
+}
+
+inline void
+f32Fillx4(Span<f32> src, const f32 x)
 {
     f32x4 pack = x;
 
@@ -741,6 +758,32 @@ inline i32x8
 max(const i32x8 l, const i32x8 r)
 {
     return _mm256_max_epi32(l.pack, r.pack);
+}
+
+inline void
+i32Fillx8(Span<i32> src, const i32 x)
+{
+    const i32 pack = x;
+
+    ssize i = 0;
+    for (; i + 3 < src.getSize(); i += 4)
+        i32x8Store(&src[i], pack);
+
+    for (; i < src.getSize(); ++i)
+        src[i] = x;
+}
+
+inline void
+f32Fillx8(Span<f32> src, const f32 x)
+{
+    f32x8 pack = x;
+
+    ssize i = 0;
+    for (; i + 3 < src.getSize(); i += 4)
+        f32x8Store(&src[i], pack);
+
+    for (; i < src.getSize(); ++i)
+        src[i] = x;
 }
 
 #endif /* ADT_AVX2 */
