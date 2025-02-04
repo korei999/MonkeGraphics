@@ -11,6 +11,8 @@ namespace game
 static const String s_asAssetPaths[] {
     "assets/box3.bmp",
     "assets/cube.gltf",
+    "assets/Duck.gltf",
+    "assets/DuckCM.bmp",
 };
 
 void

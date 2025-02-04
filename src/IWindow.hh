@@ -71,7 +71,7 @@ struct IWindow
     depthBuffer()
     {
         return {
-            m_vDepthBuffer.data(), m_width, m_height, m_stride
+            m_vDepthBuffer.data(), m_width, m_height, m_width
         };
     }
 
