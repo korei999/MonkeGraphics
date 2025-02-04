@@ -82,14 +82,14 @@ struct AllocException : public IException
     /* */
 
     virtual void
-    printErrorMsg(FILE* fp) override
+    printErrorMsg(FILE* fp) const override
     {
         char aBuff[128] {};
         snprintf(aBuff, sizeof(aBuff) - 1, "AllocException: '%s', errno: '%s'\n", m_ntsMsg, strerror(errno));
         fputs(aBuff, fp);
     }
 
-    virtual const char* getMsg() override { return m_ntsMsg; }
+    virtual const char* getMsg() const override { return m_ntsMsg; }
 };
 
 } /* namespace adt */

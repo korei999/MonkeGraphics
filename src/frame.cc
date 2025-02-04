@@ -77,9 +77,7 @@ start()
     win.update(); /* get events */
 
     while (win.m_bRunning)
-    {
         win.procEvents();
-    }
 }
 
 } /* namespace frame */

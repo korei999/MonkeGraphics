@@ -37,7 +37,7 @@ main(int argc, char** argv)
         const char* ntsName = "MonkeGraphics";
 
         app::g_pWindow = app::allocWindow(&allocator, ntsName);
-        app::g_pWindow->start(640, 480);
+        app::g_pWindow->start(1280, 720);
         defer( app::g_pWindow->destroy() );
 
         frame::start();

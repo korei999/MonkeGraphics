@@ -576,7 +576,7 @@ helloGLTF()
     const auto& texBox3 = *asset::searchImage("assets/DuckCM.bmp");
     const auto& camera = control::g_camera;
     const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
-    const f32 step = frame::g_time*0.0010;
+    const f32 step = static_cast<f32>(frame::g_time*0.0010);
 
     M4 tr = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
         camera.m_trm *
