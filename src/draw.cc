@@ -469,11 +469,7 @@ helloCubeTest()
 {
     using namespace adt::math;
 
-    auto& win = *app::g_pWindow;
-
-    /* clear */
-    win.clearBuffer();
-    win.clearDepthBuffer();
+    auto& win = app::window();
 
     /* chatgpt made this... */
 
@@ -548,12 +544,12 @@ helloCubeTest()
         M4RotFrom(0, 0, step) *
         M4ScaleFrom(1.0f);
 
-    // static const Span2D<ImagePixelARGB> spTexture = allocCheckerBoardTexture();
+    /*static const Span2D<ImagePixelARGB> spTexture = allocCheckerBoardTexture();*/
 
-    auto fBoxTex = asset::search("assets/box3.bmp");
-    const Span2D<ImagePixelARGB> spTex(fBoxTex->uData.img.getSpanARGB());
+    auto pBoxImg = asset::searchImage("assets/box3.bmp");
+    const Span2D<ImagePixelARGB> spTex(pBoxImg->getSpanARGB());
 
-    Span spTransformedVertices = s_scratch.nextMem<V4>(utils::size(aCubeVerts));
+    Span<V4> spTransformedVertices = s_scratch.nextMem<V4>(utils::size(aCubeVerts));
 
     for (int vertexIdx = 0; vertexIdx < spTransformedVertices.getSize(); ++vertexIdx)
         spTransformedVertices[vertexIdx] = tr * V4From(aCubeVerts[vertexIdx], 1.0f);
@@ -568,15 +564,117 @@ helloCubeTest()
     }
 }
 
+static void
+helloGLTF()
+{
+    using namespace adt::math;
+
+    const auto& win = *app::g_pWindow;
+
+    const auto* pCube = asset::searchModel("assets/cube.gltf");
+
+    const auto* pTex = asset::searchImage("assets/box3.bmp");
+
+    const auto& camera = control::g_camera;
+    const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
+
+    const f32 step = frame::g_time*0.0010;
+
+    M4 tr = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
+        camera.m_trm *
+        M4TranslationFrom(0.0f, 0.0f, -1.0f) *
+        M4RotFrom(0, 0, step) *
+        M4ScaleFrom(0.5f);
+
+    for (const auto& node : pCube->m_aNodes)
+    {
+        auto& mesh = pCube->m_aMeshes[node.mesh];
+        for (auto& primitive : mesh.aPrimitives)
+        {
+            /* TODO: can be NPOS32 */
+            ADT_ASSERT(primitive.indices != static_cast<i32>(NPOS32), " ");
+            auto& accIndices = pCube->m_aAccessors[primitive.indices];
+            auto& viewIndicies = pCube->m_aBufferViews[accIndices.bufferView];
+            auto& buffInd = pCube->m_aBuffers[viewIndicies.buffer];
+
+            auto& accUV = pCube->m_aAccessors[primitive.attributes.TEXCOORD_0];
+            auto& viewUV = pCube->m_aBufferViews[accUV.bufferView];
+            auto& buffUV = pCube->m_aBuffers[viewUV.buffer];
+
+            auto& accPos = pCube->m_aAccessors[primitive.attributes.POSITION];
+            auto& viewPos = pCube->m_aBufferViews[accPos.bufferView];
+            auto& buffPos = pCube->m_aBuffers[viewPos.buffer];
+
+            /* TODO: support every possible component type */
+
+            struct Idx3 { u16 x, y, z; };
+
+            ADT_ASSERT(accIndices.componentType == gltf::COMPONENT_TYPE::UNSIGNED_SHORT, " ");
+            const Span<Idx3> spIndicies {
+                (Idx3*)&buffInd.bin[accIndices.byteOffset + viewIndicies.byteOffset],
+                accIndices.count / 3
+            };
+
+            ADT_ASSERT(accUV.type == gltf::ACCESSOR_TYPE::VEC2, " ");
+            const Span<V2> spUVs {
+                (V2*)&buffUV.bin[accUV.byteOffset + viewUV.byteOffset],
+                accUV.count
+            };
+
+            ADT_ASSERT(accPos.type == gltf::ACCESSOR_TYPE::VEC3, " ");
+            const Span<V3> spPos {
+                (V3*)&buffPos.bin[accPos.byteOffset + viewPos.byteOffset],
+                accPos.count
+            };
+
+            ADT_ASSERT(accUV.count == accPos.count, " ");
+
+            switch (primitive.mode)
+            {
+                default: break;
+
+                case gltf::PRIMITIVES::TRIANGLES:
+                {
+                    if (accIndices.count < 3)
+                    {
+                        LOG_WARN("accIndices.count: {}\n", accIndices.count);
+                        return;
+                    }
+
+                    for (auto [i0, i1, i2] : spIndicies)
+                    {
+                        V3 aPos[3] {spPos[i0], spPos[i1], spPos[i2]};
+                        V2 aUVs[3] {spUVs[i0], spUVs[i1], spUVs[i2]};
+
+                         drawTriangle(
+                             tr * V4From(aPos[0], 1.0f), tr * V4From(aPos[1], 1.0f), tr* V4From(aPos[2], 1.0f),
+                             aUVs[0], aUVs[1], aUVs[1],
+                             pTex->getSpanARGB()
+                         );
+                    }
+                }
+                break;
+            }
+        }
+    }
+}
+
 void
 toBuffer()
 {
+    auto& win = app::window();
+
     static Vec<f32> s_vCollect(OsAllocatorGet(), 1000);
     static f64 s_lastCollectionUpdate {};
 
     f64 t0 = utils::timeNowMS();
 
-    helloCubeTest();
+    /* clear */
+    win.clearBuffer();
+    win.clearDepthBuffer();
+
+    helloGLTF();
+    /*helloCubeTest();*/
 
     f64 t1 = utils::timeNowMS();
     s_vCollect.push(t1 - t0);

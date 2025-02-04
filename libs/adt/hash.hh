@@ -154,7 +154,8 @@ template<ssize N>
 constexpr usize
 func(const char (&aChars)[N])
 {
-    return xxh64::hash(aChars, N, 0);
+    /* WARN: string literals include '\0', which completely changes the hash */
+    return xxh64::hash(aChars, N - 1, 0);
 }
 
 template<typename T>
