@@ -183,7 +183,7 @@ drawTriangleSSE(
                 simd::f32x4 t1 = -simd::f32x4(edge2RowX) * barycentricDiv;
                 simd::f32x4 t2 = -simd::f32x4(edge0RowX) * barycentricDiv;
 
-                simd::f32x4 depthZ = t0*vertex0.pos.z + t1*vertex1.pos.z + t2*vertex2.pos.z;
+                simd::f32x4 depthZ = vertex0.pos.z + t1*(vertex1.pos.z - vertex0.pos.z) + t2*(vertex2.pos.z - vertex0.pos.z);
                 simd::i32x4 depthMask = simd::i32x4Reinterpret(depthZ < pixelDepths);
 
                 simd::f32x4 oneOverW = t0*vertex0.pos.w + t1*vertex1.pos.w + t2*vertex2.pos.w;
@@ -353,7 +353,7 @@ drawTriangleAVX2(
                 simd::f32x8 t1 = -simd::f32x8(edge2RowX) * barycentricDiv;
                 simd::f32x8 t2 = -simd::f32x8(edge0RowX) * barycentricDiv;
 
-                simd::f32x8 depthZ = t0*vertex0.pos.z + t1*vertex1.pos.z + t2*vertex2.pos.z;
+                simd::f32x8 depthZ = vertex0.pos.z + t1*(vertex1.pos.z - vertex0.pos.z) + t2*(vertex2.pos.z - vertex0.pos.z);
                 simd::i32x8 depthMask = simd::i32x8Reinterpret(depthZ < pixelDepths);
 
                 simd::f32x8 oneOverW = t0*vertex0.pos.w + t1*vertex1.pos.w + t2*vertex2.pos.w;
