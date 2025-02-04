@@ -278,11 +278,11 @@ Model::procScenes()
         {
             auto& a = json::getArray(pNodes);
             for (auto& el : a)
-                m_aScenes.push(m_pAlloc, {(u32)json::getLong(&el)});
+                m_vScenes.push(m_pAlloc, {(u32)json::getLong(&el)});
         }
         else
         {
-            m_aScenes.push(m_pAlloc, {0});
+            m_vScenes.push(m_pAlloc, {0});
             break;
         }
     }
@@ -320,7 +320,7 @@ Model::procBuffers()
             }
         }
 
-        m_aBuffers.push(m_pAlloc, {
+        m_vBuffers.push(m_pAlloc, {
             .byteLength = (u32)(json::getLong(pByteLength)),
             .uri = svUri,
             .bin = aBin
@@ -345,7 +345,7 @@ Model::procBufferViews()
         auto pByteStride = json::searchObject(obj, "byteStride");
         auto pTarget = json::searchObject(obj, "target");
 
-        m_aBufferViews.push(m_pAlloc, {
+        m_vBufferViews.push(m_pAlloc, {
             .buffer = (u32)(json::getLong(pBuffer)),
             .byteOffset = pByteOffset ? (u32)(json::getLong(pByteOffset)) : 0,
             .byteLength = (u32)(json::getLong(pByteLength)),
@@ -377,7 +377,7 @@ Model::procAccessors()
  
         enum ACCESSOR_TYPE type = stringToAccessorType(json::getString(pType));
  
-        m_aAccessors.push(m_pAlloc, {
+        m_vAccessors.push(m_pAlloc, {
             .bufferView = pBufferView ? (u32)(json::getLong(pBufferView)) : 0,
             .byteOffset = pByteOffset ? (u32)(json::getLong(pByteOffset)) : 0,
             .componentType = (COMPONENT_TYPE)(json::getLong(pComponentType)),
@@ -434,7 +434,7 @@ Model::procMeshes()
             });
         }
  
-        m_aMeshes.push(m_pAlloc, {.aPrimitives = aPrimitives, .svName = name});
+        m_vMeshes.push(m_pAlloc, {.aPrimitives = aPrimitives, .svName = name});
     }
 }
 
@@ -452,7 +452,7 @@ Model::procTexures()
         auto pSource = json::searchObject(obj, "source");
         auto pSampler = json::searchObject(obj, "sampler");
 
-        m_aTextures.push(m_pAlloc, {
+        m_vTextures.push(m_pAlloc, {
             .source = pSource ? (i32)(json::getLong(pSource)) : -1,
             .sampler = pSampler ? (i32)(json::getLong(pSampler)) : -1
         });
@@ -501,7 +501,7 @@ Model::procMaterials()
             normTexInfo.index = json::getLong(pIndex);
         }
 
-        m_aMaterials.push(m_pAlloc, {
+        m_vMaterials.push(m_pAlloc, {
             .pbrMetallicRoughness {
                 .baseColorTexture = texInfo,
             },
@@ -524,7 +524,7 @@ Model::procImages()
         auto pUri = json::searchObject(obj, "uri");
         if (pUri)
         {
-            m_aImages.push(m_pAlloc, 
+            m_vImages.push(m_pAlloc,
                 {json::getString(pUri).clone(m_pAlloc)}
             );
         }
@@ -588,7 +588,7 @@ Model::procNodes()
             nNode.scale = ut.VEC3;
         }
 
-        m_aNodes.push(m_pAlloc, nNode);
+        m_vNodes.push(m_pAlloc, nNode);
     }
 }
 

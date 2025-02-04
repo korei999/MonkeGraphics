@@ -52,7 +52,7 @@ loadBMP(const String svPath, String sFile)
 static Opt<PoolHnd>
 loadGLTF(const String svPath, String sFile)
 {
-    Object nObj(sFile.getSize() * 1.33);
+    Object nObj(SIZE_1M);
 
     gltf::Model gltfModel(&nObj.m_arena);
     bool bSucces = gltfModel.read(svPath, sFile);
@@ -67,7 +67,7 @@ loadGLTF(const String svPath, String sFile)
 
     PoolHnd hnd = g_assets.push(nObj);
 
-    for (auto& image : gltfModel.m_aImages)
+    for (auto& image : gltfModel.m_vImages)
     {
         const ssize strSize = 20 + image.uri.getSize();
         char* aBuff = nObj.m_arena.zallocV<char>(strSize);

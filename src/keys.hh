@@ -5,14 +5,17 @@
 
 #include <linux/input-event-codes.h>
 
-/* wayland mod codes */
-enum class MOD_STATE : adt::u8
+#include <limits>
+
+/* wayland(xkb) codes */
+enum MOD_STATE : adt::u8
 {
     NONE = 0, 
     SHIFT = 1,
     CTRL = 1 << 2,
     ALT = 1 << 3,
-    SUPER = 1 << 6
+    SUPER = 1 << 6,
+    ALL = std::numeric_limits<std::underlying_type_t<MOD_STATE>>::max(),
 };
 ADT_ENUM_BITWISE_OPERATORS(MOD_STATE);
 

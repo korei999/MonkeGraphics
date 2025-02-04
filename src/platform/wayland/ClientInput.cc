@@ -74,6 +74,7 @@ Client::keyboardModifiers(
     [[maybe_unused]] uint32_t group
 )
 {
+    control::g_ePressedMods = static_cast<MOD_STATE>(modsDepressed);
 }
 
 void

@@ -766,7 +766,7 @@ i32Fillx8(Span<i32> src, const i32 x)
     const i32 pack = x;
 
     ssize i = 0;
-    for (; i + 3 < src.getSize(); i += 4)
+    for (; i + 7 < src.getSize(); i += 8)
         i32x8Store(&src[i], pack);
 
     for (; i < src.getSize(); ++i)
@@ -779,7 +779,7 @@ f32Fillx8(Span<f32> src, const f32 x)
     f32x8 pack = x;
 
     ssize i = 0;
-    for (; i + 3 < src.getSize(); i += 4)
+    for (; i + 7 < src.getSize(); i += 8)
         f32x8Store(&src[i], pack);
 
     for (; i < src.getSize(); ++i)

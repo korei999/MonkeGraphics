@@ -79,6 +79,16 @@ struct IWindow
     void
     clearColorBuffer(adt::math::V4 color)
     {
+#ifdef ADT_AVX2
+        adt::simd::i32Fillx8(
+            adt::Span<adt::i32>{
+                (adt::i32*)surfaceBuffer().data(),
+                surfaceBuffer().getStride() * surfaceBuffer().getHeight()
+            },
+            colors::V4ToARGB(color)
+        );
+#else
+
         adt::simd::i32Fillx4(
             adt::Span<adt::i32>{
                 (adt::i32*)surfaceBuffer().data(),
@@ -86,15 +96,23 @@ struct IWindow
             },
             colors::V4ToARGB(color)
         );
+#endif /* ADT_AVX2 */
     }
 
     void
     clearDepthBuffer()
     {
+#ifdef ADT_AVX2
+        adt::simd::f32Fillx8(
+            {m_vDepthBuffer.data(), m_vDepthBuffer.getSize()},
+            std::numeric_limits<adt::f32>::max()
+        );
+#else
         adt::simd::f32Fillx4(
             {m_vDepthBuffer.data(), m_vDepthBuffer.getSize()},
             std::numeric_limits<adt::f32>::max()
         );
+#endif /* ADT_AVX2 */
     }
 
     void

@@ -20,54 +20,68 @@ static void cameraRight() { g_camera.m_lastMove += g_camera.m_right; }
 static void cameraLeft() { g_camera.m_lastMove -= g_camera.m_right; }
 static void cameraUp() { g_camera.m_lastMove += CAMERA_UP; }
 static void cameraDown() { g_camera.m_lastMove -= CAMERA_UP; }
+static void cameraBoost() { g_camera.m_lastBoost += 1.0f; }
 
 Camera g_camera {.m_pos {0, 0, -3}, .m_lastMove {}, .m_sens = 0.05f, .m_speed = 4.0f};
 Mouse g_mouse {};
 bool g_aPrevPressed[MAX_KEY_VALUE] {};
 bool g_aPressed[MAX_KEY_VALUE] {};
+MOD_STATE g_ePressedMods {};
 
 Arr<Keybind, MAX_KEYBINDS> g_aKeybinds {
-    {ONCE, KEY_F, toggleFullscreen},
-    {ONCE, KEY_R, toggleRelativePointer},
-    {ONCE, KEY_Q, quit},
-    {ONCE, KEY_ESC, quit},
-    {REPEAT, KEY_W, cameraForward},
-    {REPEAT, KEY_S, cameraBack},
-    {REPEAT, KEY_A, cameraLeft},
-    {REPEAT, KEY_D, cameraRight},
-    {REPEAT, KEY_SPACE, cameraUp},
-    {REPEAT, KEY_LEFTCTRL, cameraDown},
+    {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_F,        toggleFullscreen     },
+    {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_R,        toggleRelativePointer},
+    {REPEAT::ONCE,       EXEC_ON::RELEASE, MOD_STATE::NONE,  KEY_Q,        quit                 },
+    {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_ESC,      quit                 },
+    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_W,        cameraForward        },
+    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::SHIFT, 0,            cameraBoost          },
+    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_S,        cameraBack           },
+    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_A,        cameraLeft           },
+    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_D,        cameraRight          },
+    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_SPACE,    cameraUp             },
+    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_LEFTCTRL, cameraDown           },
 };
 
-Arr<Keybind, MAX_KEYBINDS> g_aModbinds {
-};
-
-/* TODO: exec on press/release option */
 static void
-procKeybinds(Arr<bool, MAX_KEYBINDS>* paMap, const Arr<Keybind, MAX_KEYBINDS>& aCommands)
+procKeybinds(Arr<bool, MAX_KEYBINDS>* paPressOnceMap, const Arr<Keybind, MAX_KEYBINDS>& aCommands)
 {
     for (auto& com : aCommands)
     {
         ssize idx = &com - &aCommands[0];
 
-        if (g_aPressed[com.key])
+        bool bKey {};
+        bool bMod {};
+
+        if (com.eExecOn == EXEC_ON::PRESS)
         {
-            if (com.eRepeat == REPEAT_KEY::REPEAT)
+            bKey = com.key == 0 ? true : g_aPressed[com.key];
+            bMod = com.eMod == MOD_STATE::NONE ? true : com.eMod == g_ePressedMods;
+        }
+        else
+        {
+            bKey = g_aPrevPressed[com.key] && !g_aPressed[com.key];
+            /* NOTE: not using `ePrevMods` */
+            bMod = com.eMod == MOD_STATE::NONE ? true : com.eMod == g_ePressedMods;
+        }
+
+        if (bKey && bMod)
+        {
+            if (com.eRepeat == REPEAT::WHILE_DOWN)
             {
                 com.pfn();
             }
             else
             {
-                if (!(*paMap)[idx])
+                if (!(*paPressOnceMap)[idx])
                 {
-                    (*paMap)[idx] = true;
+                    (*paPressOnceMap)[idx] = true;
                     com.pfn();
                 }
             }
         }
         else
         {
-            (*paMap)[idx] = false;
+            (*paPressOnceMap)[idx] = false;
         }
     }
 }
@@ -123,15 +137,8 @@ procInput()
 
     defer( utils::copy(g_aPrevPressed, g_aPressed, utils::size(g_aPrevPressed)) );
 
-    {
-        static Arr<bool, MAX_KEYBINDS> aPressedKeysOnceMap(MAX_KEYBINDS);
-        procKeybinds(&aPressedKeysOnceMap, g_aKeybinds);
-    }
-
-    {
-        static Arr<bool, MAX_KEYBINDS> aPressedKeysOnceMap(MAX_KEYBINDS);
-        procKeybinds(&aPressedKeysOnceMap, g_aModbinds);
-    }
+    static Arr<bool, MAX_KEYBINDS> s_aPressedKeysOnceMap(MAX_KEYBINDS);
+    procKeybinds(&s_aPressedKeysOnceMap, g_aKeybinds);
 
     procMouse();
 }

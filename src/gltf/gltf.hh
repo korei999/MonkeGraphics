@@ -225,15 +225,15 @@ struct Model
     adt::String m_sGenerator {};
     adt::String m_sVersion {};
     adt::u32 m_defaultSceneIdx {};
-    adt::VecBase<Scene> m_aScenes {};
-    adt::VecBase<Buffer> m_aBuffers {};
-    adt::VecBase<BufferView> m_aBufferViews {};
-    adt::VecBase<Accessor> m_aAccessors {};
-    adt::VecBase<Mesh> m_aMeshes {};
-    adt::VecBase<Texture> m_aTextures {};
-    adt::VecBase<Material> m_aMaterials {};
-    adt::VecBase<Image> m_aImages {};
-    adt::VecBase<Node> m_aNodes {};
+    adt::VecBase<Scene> m_vScenes {};
+    adt::VecBase<Buffer> m_vBuffers {};
+    adt::VecBase<BufferView> m_vBufferViews {};
+    adt::VecBase<Accessor> m_vAccessors {};
+    adt::VecBase<Mesh> m_vMeshes {};
+    adt::VecBase<Texture> m_vTextures {};
+    adt::VecBase<Material> m_vMaterials {};
+    adt::VecBase<Image> m_vImages {};
+    adt::VecBase<Node> m_vNodes {};
 
     adt::String m_sPath {};
     adt::String m_sFile {};
@@ -243,15 +243,15 @@ struct Model
     Model() = default;
     Model(adt::IAllocator* p)
         : m_pAlloc(p),
-          m_aScenes(p),
-          m_aBuffers(p),
-          m_aBufferViews(p),
-          m_aAccessors(p),
-          m_aMeshes(p),
-          m_aTextures(p),
-          m_aMaterials(p),
-          m_aImages(p),
-          m_aNodes(p) {}
+          m_vScenes(p),
+          m_vBuffers(p),
+          m_vBufferViews(p),
+          m_vAccessors(p),
+          m_vMeshes(p),
+          m_vTextures(p),
+          m_vMaterials(p),
+          m_vImages(p),
+          m_vNodes(p) {}
 
     /* */
 

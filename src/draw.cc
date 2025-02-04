@@ -471,7 +471,7 @@ helloGLTF()
 {
     using namespace adt::math;
 
-    static Span2D<ImagePixelARGB> spDefaultTexture = allocDefaultTexture();
+    static Span2D<ImagePixelARGB> s_spDefaultTexture = allocDefaultTexture();
 
     const auto& win = app::window();
     const auto& model = *asset::searchModel("assets/Duck.gltf");
@@ -485,35 +485,35 @@ helloGLTF()
         M4RotFrom(0, step, 0) *
         M4ScaleFrom(0.01f);
 
-    for (const auto& node : model.m_aNodes)
+    for (const auto& node : model.m_vNodes)
     {
         if (node.mesh == NPOS)
             continue;
 
-        auto& mesh = model.m_aMeshes[node.mesh];
+        auto& mesh = model.m_vMeshes[node.mesh];
         for (auto& primitive : mesh.aPrimitives)
         {
             /* TODO: can be NPOS32 */
             ADT_ASSERT(primitive.indices != static_cast<i32>(NPOS32), " ");
-            auto& accIndices = model.m_aAccessors[primitive.indices];
-            auto& viewIndicies = model.m_aBufferViews[accIndices.bufferView];
-            auto& buffInd = model.m_aBuffers[viewIndicies.buffer];
+            auto& accIndices = model.m_vAccessors[primitive.indices];
+            auto& viewIndicies = model.m_vBufferViews[accIndices.bufferView];
+            auto& buffInd = model.m_vBuffers[viewIndicies.buffer];
 
-            auto& accUV = model.m_aAccessors[primitive.attributes.TEXCOORD_0];
-            auto& viewUV = model.m_aBufferViews[accUV.bufferView];
-            auto& buffUV = model.m_aBuffers[viewUV.buffer];
+            auto& accUV = model.m_vAccessors[primitive.attributes.TEXCOORD_0];
+            auto& viewUV = model.m_vBufferViews[accUV.bufferView];
+            auto& buffUV = model.m_vBuffers[viewUV.buffer];
 
-            auto& accPos = model.m_aAccessors[primitive.attributes.POSITION];
-            auto& viewPos = model.m_aBufferViews[accPos.bufferView];
-            auto& buffPos = model.m_aBuffers[viewPos.buffer];
+            auto& accPos = model.m_vAccessors[primitive.attributes.POSITION];
+            auto& viewPos = model.m_vBufferViews[accPos.bufferView];
+            auto& buffPos = model.m_vBuffers[viewPos.buffer];
 
-            Span2D<ImagePixelARGB> spImage = spDefaultTexture;
-            auto& mat = model.m_aMaterials[primitive.material];
+            Span2D<ImagePixelARGB> spImage = s_spDefaultTexture;
+            auto& mat = model.m_vMaterials[primitive.material];
             auto& baseTextureIdx = mat.pbrMetallicRoughness.baseColorTexture.index;
             if (baseTextureIdx != static_cast<i32>(NPOS))
             {
-                auto& imgIdx = model.m_aTextures[baseTextureIdx].source;
-                auto& uri = model.m_aImages[imgIdx].uri;
+                auto& imgIdx = model.m_vTextures[baseTextureIdx].source;
+                auto& uri = model.m_vImages[imgIdx].uri;
                 Span spBuff = s_scratch.nextMemZero<char>(uri.getSize() + 50);
                 ssize n = print::toSpan(spBuff, "assets/{}", uri);
                 Image* pImg = asset::searchImage({spBuff.data(), n});
@@ -584,7 +584,7 @@ toBuffer()
     f64 t0 = utils::timeNowMS();
 
     /* clear */
-    win.clearColorBuffer({0.2f, 0.2f, 0.2f, 1.0f});
+    win.clearColorBuffer({0.1f, 0.2f, 0.2f, 1.0f});
     win.clearDepthBuffer();
 
     helloGLTF();

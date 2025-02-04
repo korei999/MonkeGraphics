@@ -1,10 +1,11 @@
 #pragma once
 
 #include "adt/defer.hh"
-#include "frame.hh"
-
 #include "adt/Arr.hh"
 #include "adt/math.hh"
+
+#include "frame.hh"
+#include "keys.hh"
 
 namespace control
 {
@@ -33,19 +34,20 @@ struct Camera
 
     adt::f32 m_sens {};
     adt::f32 m_speed {};
+    adt::f32 m_lastBoost = 1.0f;
 
     /* */
 
     [[nodiscard]] adt::math::M4
     procMoveTRM()
     {
-        defer( m_lastMove = {} );
+        defer( m_lastMove = {}; m_lastBoost = 1.0f );
 
         adt::f32 len = adt::math::V3Length(m_lastMove);
         if (len > 0)
         {
             return adt::math::M4TranslationFrom(
-                -(m_pos += (adt::math::V3Norm(m_lastMove, len)*frame::g_dt*m_speed))
+                -(m_pos += (adt::math::V3Norm(m_lastMove * m_lastBoost, len)*frame::g_dt*m_speed))
             );
         }
 
@@ -69,21 +71,25 @@ struct Mouse
     adt::math::V2 prevRel {};
 };
 
-enum REPEAT_KEY : adt::u8 { ONCE, REPEAT };
+enum class REPEAT : adt::u8 { ONCE, WHILE_DOWN };
+enum class EXEC_ON : adt::u8 { PRESS, RELEASE };
 
 struct Keybind
 {
-    REPEAT_KEY eRepeat;
-    adt::u32 key;
-    void (*pfn)();
+    REPEAT eRepeat {};
+    EXEC_ON eExecOn {};
+    MOD_STATE eMod {};
+    adt::u32 key {};
+    void (*pfn)() {};
 };
 
 extern Camera g_camera;
 extern Mouse g_mouse;
 extern bool g_aPrevPressed[MAX_KEY_VALUE];
 extern bool g_aPressed[MAX_KEY_VALUE];
+extern MOD_STATE g_ePressedMods;
+
 extern adt::Arr<Keybind, MAX_KEYBINDS> g_aKeybinds;
-extern adt::Arr<Keybind, MAX_KEYBINDS> g_aModbinds; /* exec after g_aKeybinds */
 
 void procInput();
 
