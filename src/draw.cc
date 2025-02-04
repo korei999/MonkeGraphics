@@ -17,10 +17,12 @@ using namespace adt;
 namespace draw
 {
 
+struct Idx3 { u16 x, y, z; };
+
 u8 aScratchMem[SIZE_8K] {};
 ScratchBuffer s_scratch {aScratchMem};
 
-static Span2D<ImagePixelARGB>
+[[maybe_unused]] static Span2D<ImagePixelARGB>
 allocCheckerBoardTexture()
 {
     const int width = 8;
@@ -569,15 +571,11 @@ helloGLTF()
 {
     using namespace adt::math;
 
-    const auto& win = *app::g_pWindow;
-
-    const auto* pCube = asset::searchModel("assets/cube.gltf");
-
-    const auto* pTex = asset::searchImage("assets/box3.bmp");
-
+    const auto& win = app::window();
+    const auto& modCube = *asset::searchModel("assets/cube.gltf");
+    const auto& texBox3 = *asset::searchImage("assets/box3.bmp");
     const auto& camera = control::g_camera;
     const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
-
     const f32 step = frame::g_time*0.0010;
 
     M4 tr = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
@@ -586,28 +584,26 @@ helloGLTF()
         M4RotFrom(0, 0, step) *
         M4ScaleFrom(0.5f);
 
-    for (const auto& node : pCube->m_aNodes)
+    for (const auto& node : modCube.m_aNodes)
     {
-        auto& mesh = pCube->m_aMeshes[node.mesh];
+        auto& mesh = modCube.m_aMeshes[node.mesh];
         for (auto& primitive : mesh.aPrimitives)
         {
             /* TODO: can be NPOS32 */
             ADT_ASSERT(primitive.indices != static_cast<i32>(NPOS32), " ");
-            auto& accIndices = pCube->m_aAccessors[primitive.indices];
-            auto& viewIndicies = pCube->m_aBufferViews[accIndices.bufferView];
-            auto& buffInd = pCube->m_aBuffers[viewIndicies.buffer];
+            auto& accIndices = modCube.m_aAccessors[primitive.indices];
+            auto& viewIndicies = modCube.m_aBufferViews[accIndices.bufferView];
+            auto& buffInd = modCube.m_aBuffers[viewIndicies.buffer];
 
-            auto& accUV = pCube->m_aAccessors[primitive.attributes.TEXCOORD_0];
-            auto& viewUV = pCube->m_aBufferViews[accUV.bufferView];
-            auto& buffUV = pCube->m_aBuffers[viewUV.buffer];
+            auto& accUV = modCube.m_aAccessors[primitive.attributes.TEXCOORD_0];
+            auto& viewUV = modCube.m_aBufferViews[accUV.bufferView];
+            auto& buffUV = modCube.m_aBuffers[viewUV.buffer];
 
-            auto& accPos = pCube->m_aAccessors[primitive.attributes.POSITION];
-            auto& viewPos = pCube->m_aBufferViews[accPos.bufferView];
-            auto& buffPos = pCube->m_aBuffers[viewPos.buffer];
+            auto& accPos = modCube.m_aAccessors[primitive.attributes.POSITION];
+            auto& viewPos = modCube.m_aBufferViews[accPos.bufferView];
+            auto& buffPos = modCube.m_aBuffers[viewPos.buffer];
 
             /* TODO: support every possible component type */
-
-            struct Idx3 { u16 x, y, z; };
 
             ADT_ASSERT(accIndices.componentType == gltf::COMPONENT_TYPE::UNSIGNED_SHORT, " ");
             const Span<Idx3> spIndicies {
@@ -649,7 +645,7 @@ helloGLTF()
                          drawTriangle(
                              tr * V4From(aPos[0], 1.0f), tr * V4From(aPos[1], 1.0f), tr* V4From(aPos[2], 1.0f),
                              aUVs[0], aUVs[1], aUVs[1],
-                             pTex->getSpanARGB()
+                             texBox3.getSpanARGB()
                          );
                     }
                 }

@@ -10,7 +10,7 @@
 #include <climits>
 #include <cstdio>
 #include <cstdlib>
-#include <cuchar>
+#include <cuchar> /* IWYU pragma: keep */
 
 #include <type_traits>
 #include <atomic>

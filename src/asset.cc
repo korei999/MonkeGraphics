@@ -93,9 +93,12 @@ search(adt::String sKey, TYPE eType)
     if (f)
     {
         auto r = &g_assets[f.data().val];
-        ADT_ASSERT(r->m_eType == eType, "key: '%.*s': types don't match: %d and %d",
-            (int)sKey.getSize(), sKey.data(), (int)r->m_eType, (int)eType
-        );
+        if (r->m_eType != eType)
+        {
+            LOG_WARN("sKey: '{}', types don't match, got {}, asked for {}\n", sKey, (int)r->m_eType, (int)eType);
+            return nullptr;
+        }
+
         return r;
     }
     else

@@ -108,7 +108,7 @@ if (CMAKE_BUILD_TYPE MATCHES "Asan")
     if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         add_compile_options(-fsanitize=address)
     else()
-        add_compile_options(-O0 -g3 -fno-omit-frame-pointer -fsanitize=undefined -fsanitize=address)
+        add_compile_options(-O0 -g3 -fno-omit-frame-pointer -fsanitize=address -fsanitize=undefined)
 
         if (CMAKE_SYSTEM_NAME MATCHES "Windows")
             add_compile_options(-shared-libsan)
