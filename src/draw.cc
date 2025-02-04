@@ -172,21 +172,21 @@ drawTriangleSSE(
             const int invY = sp.getHeight() - 1 - y;
             i32* pColor = &sp(x, invY).iData;
             f32* pDepth = &spDepth(x, invY);
-            simd::i32x4 pixelColors = simd::i32x4Load(pColor);
-            simd::f32x4 pixelDepths = simd::f32x4Load(pDepth);
+            const simd::i32x4 pixelColors = simd::i32x4Load(pColor);
+            const simd::f32x4 pixelDepths = simd::f32x4Load(pDepth);
 
             simd::i32x4 edgeMask = (edge0RowX | edge1RowX | edge2RowX) >= 0;
 
             if (simd::moveMask8(edgeMask) != 0)
             {
-                simd::f32x4 t0 = -simd::f32x4(edge1RowX) * barycentricDiv;
-                simd::f32x4 t1 = -simd::f32x4(edge2RowX) * barycentricDiv;
-                simd::f32x4 t2 = -simd::f32x4(edge0RowX) * barycentricDiv;
+                const simd::f32x4 t0 = -simd::f32x4(edge1RowX) * barycentricDiv;
+                const simd::f32x4 t1 = -simd::f32x4(edge2RowX) * barycentricDiv;
+                const simd::f32x4 t2 = -simd::f32x4(edge0RowX) * barycentricDiv;
 
-                simd::f32x4 depthZ = vertex0.pos.z + t1*(vertex1.pos.z - vertex0.pos.z) + t2*(vertex2.pos.z - vertex0.pos.z);
-                simd::i32x4 depthMask = simd::i32x4Reinterpret(depthZ < pixelDepths);
+                const simd::f32x4 depthZ = vertex0.pos.z + t1*(vertex1.pos.z - vertex0.pos.z) + t2*(vertex2.pos.z - vertex0.pos.z);
+                const simd::i32x4 depthMask = simd::i32x4Reinterpret(depthZ < pixelDepths);
 
-                simd::f32x4 oneOverW = t0*vertex0.pos.w + t1*vertex1.pos.w + t2*vertex2.pos.w;
+                const simd::f32x4 oneOverW = t0*vertex0.pos.w + t1*vertex1.pos.w + t2*vertex2.pos.w;
 
                 simd::V2x4 uv = t0*vertex0.uv + t1*vertex1.uv + t2*vertex2.uv;
                 uv /= oneOverW;
@@ -198,7 +198,7 @@ drawTriangleSSE(
                     simd::i32x4 texelX = simd::i32x4(simd::floor(uv.x * (spTexture.getWidth() - 1)));
                     simd::i32x4 texelY = simd::i32x4(simd::floor(uv.y * (spTexture.getHeight() - 1)));
 
-                    simd::i32x4 texelMask = (
+                    const simd::i32x4 texelMask = (
                         (texelX >= 0) & (texelX < spTexture.getWidth()) &
                         (texelY >= 0) & (texelY < spTexture.getHeight())
                     );
@@ -207,16 +207,16 @@ drawTriangleSSE(
                     texelY = simd::max(simd::min(texelY, spTexture.getHeight() - 1), 0);
                     simd::i32x4 texelOffsets = texelY * spTexture.getWidth() + texelX;
 
-                    simd::i32x4 trueCase = simd::i32x4Gather((i32*)spTexture.data(), texelOffsets);
-                    simd::i32x4 falseCase = 0xff00ff00;
+                    const simd::i32x4 trueCase = simd::i32x4Gather((i32*)spTexture.data(), texelOffsets);
+                    const simd::i32x4 falseCase = 0xff00ff00;
 
                     texelColor = (trueCase & texelMask) + simd::andNot(texelMask, falseCase);
                 }
 
-                simd::i32x4 finalMaskI32 = edgeMask & depthMask;
-                simd::f32x4 finalMaskF32 = simd::f32x4Reinterpret(finalMaskI32);
-                simd::i32x4 outputColors = (texelColor & finalMaskI32) + simd::andNot(finalMaskI32, pixelColors);
-                simd::f32x4 outputDepth = (depthZ & finalMaskF32) + simd::andNot(finalMaskF32, pixelDepths);
+                const simd::i32x4 finalMaskI32 = edgeMask & depthMask;
+                const simd::f32x4 finalMaskF32 = simd::f32x4Reinterpret(finalMaskI32);
+                const simd::i32x4 outputColors = (texelColor & finalMaskI32) + simd::andNot(finalMaskI32, pixelColors);
+                const simd::f32x4 outputDepth = (depthZ & finalMaskF32) + simd::andNot(finalMaskF32, pixelDepths);
 
                 simd::i32x4Store(pColor, outputColors);
                 simd::f32x4Store(pDepth, outputDepth);
@@ -342,21 +342,21 @@ drawTriangleAVX2(
             const int invY = sp.getHeight() - 1 - y;
             i32* pColor = reinterpret_cast<i32*>(&sp(x, invY));
             f32* pDepth = &spDepth(x, invY);
-            simd::i32x8 pixelColors = simd::i32x8Load(pColor);
-            simd::f32x8 pixelDepths = simd::f32x8Load(pDepth);
+            const simd::i32x8 pixelColors = simd::i32x8Load(pColor);
+            const simd::f32x8 pixelDepths = simd::f32x8Load(pDepth);
 
-            simd::i32x8 edgeMask = (edge0RowX | edge1RowX | edge2RowX) >= 0;
+            const simd::i32x8 edgeMask = (edge0RowX | edge1RowX | edge2RowX) >= 0;
 
             if (simd::moveMask8(edgeMask) != 0)
             {
-                simd::f32x8 t0 = -simd::f32x8(edge1RowX) * barycentricDiv;
-                simd::f32x8 t1 = -simd::f32x8(edge2RowX) * barycentricDiv;
-                simd::f32x8 t2 = -simd::f32x8(edge0RowX) * barycentricDiv;
+                const simd::f32x8 t0 = -simd::f32x8(edge1RowX) * barycentricDiv;
+                const simd::f32x8 t1 = -simd::f32x8(edge2RowX) * barycentricDiv;
+                const simd::f32x8 t2 = -simd::f32x8(edge0RowX) * barycentricDiv;
 
-                simd::f32x8 depthZ = vertex0.pos.z + t1*(vertex1.pos.z - vertex0.pos.z) + t2*(vertex2.pos.z - vertex0.pos.z);
-                simd::i32x8 depthMask = simd::i32x8Reinterpret(depthZ < pixelDepths);
+                const simd::f32x8 depthZ = vertex0.pos.z + t1*(vertex1.pos.z - vertex0.pos.z) + t2*(vertex2.pos.z - vertex0.pos.z);
+                const simd::i32x8 depthMask = simd::i32x8Reinterpret(depthZ < pixelDepths);
 
-                simd::f32x8 oneOverW = t0*vertex0.pos.w + t1*vertex1.pos.w + t2*vertex2.pos.w;
+                const simd::f32x8 oneOverW = t0*vertex0.pos.w + t1*vertex1.pos.w + t2*vertex2.pos.w;
 
                 simd::V2x8 uv = t0*vertex0.uv + t1*vertex1.uv + t2*vertex2.uv;
                 uv /= oneOverW;
@@ -368,7 +368,7 @@ drawTriangleAVX2(
                     simd::i32x8 texelX = simd::i32x8(simd::floor(uv.x * (spTexture.getWidth() - 1)));
                     simd::i32x8 texelY = simd::i32x8(simd::floor(uv.y * (spTexture.getHeight() - 1)));
 
-                    simd::i32x8 texelMask = (
+                    const simd::i32x8 texelMask = (
                         (texelX >= 0) & (texelX < spTexture.getWidth()) &
                         (texelY >= 0) & (texelY < spTexture.getHeight())
                     );
@@ -377,16 +377,16 @@ drawTriangleAVX2(
                     texelY = simd::max(simd::min(texelY, spTexture.getHeight() - 1), 0);
                     simd::i32x8 texelOffsets = texelY * spTexture.getWidth() + texelX;
 
-                    simd::i32x8 trueCase = simd::i32x8Gather((i32*)spTexture.data(), texelOffsets);
-                    simd::i32x8 falseCase = 0xff00ff00;
+                    const simd::i32x8 trueCase = simd::i32x8Gather((i32*)spTexture.data(), texelOffsets);
+                    const simd::i32x8 falseCase = 0xff00ff00;
 
                     texelColor = (texelMask & trueCase) + simd::andNot(texelMask, falseCase);
                 }
 
-                simd::i32x8 finalMaskI32 = edgeMask & depthMask;
-                simd::f32x8 finalMaskF32 = simd::f32x8Reinterpret(finalMaskI32);
-                simd::i32x8 outputColors = (texelColor & finalMaskI32) + simd::andNot(finalMaskI32, pixelColors);
-                simd::f32x8 outputDepth = (depthZ & finalMaskF32) + simd::andNot(finalMaskF32, pixelDepths);
+                const simd::i32x8 finalMaskI32 = edgeMask & depthMask;
+                const simd::f32x8 finalMaskF32 = simd::f32x8Reinterpret(finalMaskI32);
+                const simd::i32x8 outputColors = (texelColor & finalMaskI32) + simd::andNot(finalMaskI32, pixelColors);
+                const simd::f32x8 outputDepth = (depthZ & finalMaskF32) + simd::andNot(finalMaskF32, pixelDepths);
 
                 simd::i32x8Store(pColor, outputColors);
                 simd::f32x8Store(pDepth, outputDepth);
@@ -581,7 +581,7 @@ helloGLTF()
     M4 tr = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
         camera.m_trm *
         M4TranslationFrom(0.0f, 0.0f, -1.0f) *
-        M4RotFrom(0, 0, 0) *
+        M4RotFrom(0, step, 0) *
         M4ScaleFrom(0.01f);
 
     for (const auto& node : model.m_aNodes)
