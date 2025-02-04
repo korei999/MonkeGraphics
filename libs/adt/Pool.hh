@@ -51,6 +51,7 @@ struct Pool
     [[nodiscard]] PoolHnd push(const T& value);
     template<typename ...ARGS> requires(std::is_constructible_v<T, ARGS...>) [[nodiscard]] PoolHnd emplace(ARGS&&... args);
     void giveBack(PoolHnd hnd);
+    void giveBack(T* hnd);
     ssize getCap() const { return CAP; }
     ssize getSize() const { return m_nOccupied; }
 
@@ -245,6 +246,13 @@ Pool<T, CAP>::giveBack(PoolHnd hnd)
         assert(!node.bDeleted && "[Pool]: returning already deleted node");
         node.bDeleted = true;
     }
+}
+
+template<typename T, ssize CAP>
+inline void
+Pool<T, CAP>::giveBack(T* hnd)
+{
+    giveBack(idx(hnd));
 }
 
 template<typename T, ssize CAP>

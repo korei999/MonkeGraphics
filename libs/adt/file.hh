@@ -31,7 +31,7 @@ load(IAllocator* pAlloc, String sPath)
     ret.m_size = size - 1;
     fread(ret.data(), 1, ret.getSize(), pf);
 
-    return {ret, true};
+    return ret;
 }
 
 [[nodiscard]]

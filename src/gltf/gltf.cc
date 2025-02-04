@@ -306,7 +306,7 @@ Model::procBuffers()
 
         if (pUri)
         {
-            svUri = json::getString(pUri);
+            svUri = json::getString(pUri).clone(m_pAlloc);
             auto sNewPath = file::replacePathEnding(m_pAlloc, m_sPath, svUri);
 
             rsBin = file::load(m_pAlloc, sNewPath);
@@ -403,7 +403,7 @@ Model::procMeshes()
  
         VecBase<Primitive> aPrimitives(m_pAlloc);
         auto pName = json::searchObject(obj, "name");
-        auto name = pName ? json::getString(pName) : "";
+        auto name = pName ? json::getString(pName).clone(m_pAlloc) : "";
  
         auto& aPrim = json::getArray(pPrimitives);
         for (auto& p : aPrim)
@@ -523,7 +523,11 @@ Model::procImages()
 
         auto pUri = json::searchObject(obj, "uri");
         if (pUri)
-            m_aImages.push(m_pAlloc, {json::getString(pUri)});
+        {
+            m_aImages.push(m_pAlloc, 
+                {json::getString(pUri).clone(m_pAlloc)}
+            );
+        }
     }
 }
 

@@ -46,12 +46,23 @@ struct MapResult
         return pData != nullptr;
     }
 
-    constexpr
-    const KeyVal<K, V>&
+    constexpr const KeyVal<K, V>&
     data() const
     {
         ADT_ASSERT(eStatus != MAP_RESULT_STATUS::NOT_FOUND, "not found");
         return *(KeyVal<K, V>*)pData;
+    }
+
+    constexpr const K&
+    key() const
+    {
+        return data().key;
+    }
+
+    constexpr const V&
+    value() const
+    {
+        return data().val;
     }
 };
 
@@ -273,9 +284,9 @@ template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline void
 MapBase<K, V, FN_HASH>::remove(const K& key)
 {
-    auto f = search(key);
-    ADT_ASSERT(f, "not found");
-    remove(idx(f));
+    auto found = search(key);
+    ADT_ASSERT(found, "not found");
+    remove(idx(found));
 }
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>

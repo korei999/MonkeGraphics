@@ -9,10 +9,8 @@ namespace game
 {
 
 static const String s_asAssetPaths[] {
-    "assets/box3.bmp",
     "assets/cube.gltf",
     "assets/Duck.gltf",
-    "assets/DuckCM.bmp",
 };
 
 void
@@ -21,7 +19,7 @@ loadAssets()
     for (const auto& sPath : s_asAssetPaths)
     {
         if (!asset::load(sPath))
-            LOG_WARN("failed to load: '{}'\n", sPath);
+            LOG_BAD("failed to load: '{}'\n", sPath);
     }
 }
 

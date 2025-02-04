@@ -1,6 +1,7 @@
 #include "frame.hh"
 
 #include "app.hh"
+#include "asset.hh"
 #include "control.hh"
 #include "draw.hh"
 #include "game.hh"
@@ -64,7 +65,7 @@ refresh(void*)
 void
 start()
 {
-    auto& win = *app::g_pWindow;
+    auto& win = app::window();
     win.m_bRunning = true;
     g_time = utils::timeNowMS();
 
@@ -78,6 +79,10 @@ start()
 
     while (win.m_bRunning)
         win.procEvents();
+
+    for (auto& asset : asset::g_assets)
+        asset.destroy();
+    asset::g_assets.destroy();
 }
 
 } /* namespace frame */

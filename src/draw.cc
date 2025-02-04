@@ -23,7 +23,7 @@ u8 aScratchMem[SIZE_8K] {};
 ScratchBuffer s_scratch {aScratchMem};
 
 [[maybe_unused]] static Span2D<ImagePixelARGB>
-allocCheckerBoardTexture()
+allocDefaultTexture()
 {
     const int width = 8;
     const int height = 8;
@@ -37,10 +37,10 @@ allocCheckerBoardTexture()
         {
             u32 colorChannel = 255 * ((x + (y % 2)) % 2);
             ImagePixelARGB p {
-                static_cast<u8>(colorChannel),
-                static_cast<u8>(colorChannel),
-                static_cast<u8>(colorChannel),
-                255
+                .b = static_cast<u8>(colorChannel),
+                .g = static_cast<u8>(colorChannel),
+                .r = static_cast<u8>(0),
+                .a = 255,
             };
             sp(x, y) = p;
 
@@ -466,114 +466,15 @@ helloGradientTest()
     ++frame;
 }
 
-[[maybe_unused]] static void
-helloCubeTest()
-{
-    using namespace adt::math;
-
-    auto& win = app::window();
-
-    /* chatgpt made this... */
-
-    V3 aCubeVerts[] = {
-        /* Front Face */
-        {-0.5f, -0.5f, -0.5f}, { -0.5f, 0.5f, -0.5f }, { 0.5f, 0.5f, -0.5f }, { 0.5f, -0.5f, -0.5f },
-    
-        /* Back Face */
-        { 0.5f, -0.5f,  0.5f }, { 0.5f,  0.5f,  0.5f }, { -0.5f,  0.5f,  0.5f }, { -0.5f, -0.5f,  0.5f },
-    
-        /* Left Face */
-        { -0.5f, -0.5f,  0.5f }, { -0.5f,  0.5f,  0.5f }, { -0.5f,  0.5f, -0.5f }, { -0.5f, -0.5f, -0.5f },
-    
-        /* Right Face */
-        { 0.5f, -0.5f, -0.5f }, { 0.5f, 0.5f, -0.5f }, { 0.5f, 0.5f,  0.5f }, { 0.5f, -0.5f,  0.5f },
-    
-        /* Top Face */
-        { -0.5f, 0.5f, -0.5f }, { -0.5f, 0.5f,  0.5f }, { 0.5f, 0.5f,  0.5f }, { 0.5f, 0.5f, -0.5f },
-    
-        /* Bottom Face */
-        { -0.5f, -0.5f,  0.5f }, { -0.5f, -0.5f, -0.5f }, { 0.5f, -0.5f, -0.5f }, { 0.5f, -0.5f,  0.5f },
-    };
-
-    V2 aCubeUVs[] = {
-        /* Front Face */
-        {0, 1}, {1, 1}, {1, 0}, {0, 0},
-    
-        /* Back Face */
-        {1, 1}, {0, 1}, {0, 0}, {1, 0},
-    
-        /* Left Face */
-        {1, 1}, {1, 0}, {0, 0}, {0, 1},
-    
-        /* Right Face */
-        {0, 1}, {0, 0}, {1, 0}, {1, 1},
-    
-        /* Top Face */
-        {0, 0}, {0, 1}, {1, 1}, {1, 0},
-    
-        /* Bottom Face */
-        {0, 1}, {0, 0}, {1, 0}, {1, 1},
-    };
-
-    int aIndices[][3] = {
-        /* Front Face */
-        {0, 1, 2}, {2, 3, 0},
-    
-        /* Back Face */
-        {4, 5, 6}, {6, 7, 4},
-    
-        /* Left Face */
-        {8, 9, 10}, {10, 11, 8},
-    
-        /* Right Face */
-        {12, 13, 14}, {14, 15, 12},
-    
-        /* Top Face */
-        {16, 17, 18}, {18, 19, 16},
-    
-        /* Bottom Face */
-        {20, 21, 22}, {22, 23, 20},
-    };
-
-    auto& camera = control::g_camera;
-    f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
-
-    const f32 step = frame::g_time*0.0010;
-
-    M4 tr = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
-        camera.m_trm *
-        M4TranslationFrom(0.0f, 0.0f, -1.0f) *
-        M4RotFrom(0, 0, step) *
-        M4ScaleFrom(1.0f);
-
-    /*static const Span2D<ImagePixelARGB> spTexture = allocCheckerBoardTexture();*/
-
-    auto pBoxImg = asset::searchImage("assets/box3.bmp");
-    const Span2D<ImagePixelARGB> spTex(pBoxImg->getSpanARGB());
-
-    Span<V4> spTransformedVertices = s_scratch.nextMem<V4>(utils::size(aCubeVerts));
-
-    for (int vertexIdx = 0; vertexIdx < spTransformedVertices.getSize(); ++vertexIdx)
-        spTransformedVertices[vertexIdx] = tr * V4From(aCubeVerts[vertexIdx], 1.0f);
-
-    for (const auto [f0, f1, f2] : aIndices)
-    {
-        drawTriangle(
-            spTransformedVertices[f0], spTransformedVertices[f1], spTransformedVertices[f2],
-            aCubeUVs[f0], aCubeUVs[f1], aCubeUVs[f2],
-            spTex
-        );
-    }
-}
-
 static void
 helloGLTF()
 {
     using namespace adt::math;
 
+    static Span2D<ImagePixelARGB> spDefaultTexture = allocDefaultTexture();
+
     const auto& win = app::window();
     const auto& model = *asset::searchModel("assets/Duck.gltf");
-    const auto& texBox3 = *asset::searchImage("assets/DuckCM.bmp");
     const auto& camera = control::g_camera;
     const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
     const f32 step = static_cast<f32>(frame::g_time*0.0010);
@@ -587,9 +488,7 @@ helloGLTF()
     for (const auto& node : model.m_aNodes)
     {
         if (node.mesh == NPOS)
-        {
             continue;
-        }
 
         auto& mesh = model.m_aMeshes[node.mesh];
         for (auto& primitive : mesh.aPrimitives)
@@ -607,6 +506,20 @@ helloGLTF()
             auto& accPos = model.m_aAccessors[primitive.attributes.POSITION];
             auto& viewPos = model.m_aBufferViews[accPos.bufferView];
             auto& buffPos = model.m_aBuffers[viewPos.buffer];
+
+            Span2D<ImagePixelARGB> spImage = spDefaultTexture;
+            auto& mat = model.m_aMaterials[primitive.material];
+            auto& baseTextureIdx = mat.pbrMetallicRoughness.baseColorTexture.index;
+            if (baseTextureIdx != static_cast<i32>(NPOS))
+            {
+                auto& imgIdx = model.m_aTextures[baseTextureIdx].source;
+                auto& uri = model.m_aImages[imgIdx].uri;
+                char aBuff[512] {};
+                ssize n = print::toSpan(aBuff, "assets/{}", uri);
+                Image* pImg = asset::searchImage({aBuff, n});
+                if (pImg)
+                    spImage = pImg->getSpanARGB();
+            }
 
             /* TODO: support every possible component type */
 
@@ -650,7 +563,7 @@ helloGLTF()
                         drawTriangle(
                             tr * V4From(aPos[0], 1.0f), tr * V4From(aPos[1], 1.0f), tr* V4From(aPos[2], 1.0f),
                             aUVs[0], aUVs[1], aUVs[1],
-                            texBox3.getSpanARGB()
+                            spImage
                         );
                     }
                 }
@@ -675,7 +588,6 @@ toBuffer()
     win.clearDepthBuffer();
 
     helloGLTF();
-    /*helloCubeTest();*/
 
     f64 t1 = utils::timeNowMS();
     s_vCollect.push(t1 - t0);

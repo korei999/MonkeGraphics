@@ -3,9 +3,12 @@
 #pragma once
 
 #include "adt/String.hh"
-#include "adt/logs.hh"
 
 #include "Image.hh"
+
+#ifdef DBG_BMP
+    #include "adt/logs.hh"
+#endif /* DBG_BMP */
 
 namespace bmp
 {
@@ -133,6 +136,7 @@ Reader::parse()
     using namespace adt;
 
     m_header = m_sBMP.reinterpret<Header>(0);
+#ifdef DBG_BMP
     LOG_NOTIFY("Header\n"
         "BM: '{}'\n"
         "size: {}\n"
@@ -140,8 +144,10 @@ Reader::parse()
         String((char*)&m_header.BM, 2),
         m_header.size, m_header.offset
     );
+#endif /* DBG_BMP */
 
     m_bmInfoHeader = m_sBMP.reinterpret<BITMAPINFOHEADER>(sizeof(Header));
+#ifdef DBG_BMP
     LOG_NOTIFY("BITMAPINFOHEADER\n"
         "size: {}\n"
         "width: {}\n"
@@ -160,12 +166,14 @@ Reader::parse()
         m_bmInfoHeader.imageSize, m_bmInfoHeader.hRes, m_bmInfoHeader.vRes,
         m_bmInfoHeader.nColors, m_bmInfoHeader.nColorsUsed
     );
+#endif /* DBG_BMP */
 
     return true;
 }
 
 };
 
+#ifdef DBG_BMP
 namespace adt::print
 {
 
@@ -189,3 +197,4 @@ formatToContext(Context ctx, FormatArgs fmtArgs, bmp::COMPRESSION_METHOD_ID eCom
 }
 
 } /* namespace adt::print */
+#endif /* DBG_BMP */

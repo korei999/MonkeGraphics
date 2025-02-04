@@ -14,12 +14,23 @@ namespace asset
 Pool<Object, 128> g_assets(INIT);
 static Map<String, PoolHnd> s_mapAssets(OsAllocatorGet(), g_assets.getCap());
 
-static bool
-loadBMP(const String sPath, String sFile)
+void
+Object::destroy()
+{
+    LOG_NOTIFY("destroy(): hnd: {}, mappedWith: '{}'\n", g_assets.idx(this), m_sMappedWith);
+
+    s_mapAssets.remove(m_sMappedWith);
+    m_arena.freeAll();
+    *this = {};
+    g_assets.giveBack(this);
+}
+
+static Opt<PoolHnd>
+loadBMP(const String svPath, String sFile)
 {
     bmp::Reader reader {};
     if (!reader.read(sFile))
-        return false;
+        return {};
 
     Object nObj(sFile.getSize() * 1.33);
 
@@ -34,68 +45,93 @@ loadBMP(const String sPath, String sFile)
     nObj.m_eType = TYPE::IMAGE;
 
     PoolHnd hnd = g_assets.push(nObj);
-    s_mapAssets.insert(sPath, hnd);
 
-    return true;
+    return hnd;
 }
 
-static bool
-loadGLTF(const String sPath, String sFile)
+static Opt<PoolHnd>
+loadGLTF(const String svPath, String sFile)
 {
     Object nObj(sFile.getSize() * 1.33);
 
     gltf::Model gltfModel(&nObj.m_arena);
-    bool bSucces = gltfModel.read(sPath, sFile);
+    bool bSucces = gltfModel.read(svPath, sFile);
     if (!bSucces)
-        return false;
+    {
+        nObj.destroy();
+        return {};
+    }
 
     nObj.m_uData.model = gltfModel;
     nObj.m_eType = TYPE::MODEL;
 
     PoolHnd hnd = g_assets.push(nObj);
-    s_mapAssets.insert(sPath, hnd);
 
-    return true;
+    for (auto& image : gltfModel.m_aImages)
+    {
+        const ssize strSize = 20 + image.uri.getSize();
+        char* aBuff = nObj.m_arena.zallocV<char>(strSize);
+        ssize n = print::toBuffer(aBuff, strSize - 1, "assets/{}", image.uri);
+        Opt<PoolHnd> oHnd = load({aBuff, n});
+    }
+
+    return hnd;
 }
 
-bool
-load(adt::String sPath)
+Opt<PoolHnd>
+load(adt::String svPath)
 {
-    if (s_mapAssets.search(sPath))
-        return true;
+    auto found = s_mapAssets.search(svPath);
+    if (found)
+    {
+        LOG_WARN("load(): '{}' is already loaded\n", svPath);
+        return found.value();
+    }
 
-    Opt<String> osFile = file::load(OsAllocatorGet(), sPath);
+    Opt<String> osFile = file::load(OsAllocatorGet(), svPath);
     if (!osFile)
-        return false;
+        return {};
 
     String sFile = osFile.value();
     defer( sFile.destroy(OsAllocatorGet()) );
 
-    if (sPath.endsWith(".bmp"))
+    Opt<PoolHnd> oRet {};
+
+    if (svPath.endsWith(".bmp"))
     {
-        return loadBMP(sPath, sFile);
+        oRet = loadBMP(svPath, sFile);
     }
-    else if (sPath.endsWith(".gltf"))
+    else if (svPath.endsWith(".gltf"))
     {
-        return loadGLTF(sPath, sFile);
+        oRet = loadGLTF(svPath, sFile);
+    }
+
+    if (oRet)
+    {
+        auto& obj = g_assets[oRet.value()];
+        obj.m_sMappedWith = svPath.clone(&obj.m_arena);
+        s_mapAssets.insert(obj.m_sMappedWith, oRet.value());
+        LOG_GOOD("load(): hnd: {}, type: '{}', mappedWith: '{}'\n", oRet.value(), obj.m_eType, obj.m_sMappedWith);
     }
     else
     {
-        return false;
+        LOG_BAD("load(): failed to load: '{}'\n", svPath);
     }
+
+    return oRet;
 }
 
 Object*
-search(adt::String sKey, TYPE eType)
+search(adt::String svKey, TYPE eType)
 {
-    auto f = s_mapAssets.search(sKey);
+    auto f = s_mapAssets.search(svKey);
 
     if (f)
     {
         auto r = &g_assets[f.data().val];
         if (r->m_eType != eType)
         {
-            LOG_WARN("sKey: '{}', types don't match, got {}, asked for {}\n", sKey, (int)r->m_eType, (int)eType);
+            LOG_WARN("sKey: '{}', types don't match, got {}, asked for {}\n", svKey, (int)r->m_eType, (int)eType);
             return nullptr;
         }
 
@@ -108,18 +144,18 @@ search(adt::String sKey, TYPE eType)
 }
 
 Image*
-searchImage(adt::String sKey)
+searchImage(adt::String svKey)
 {
-    auto* f = search(sKey, TYPE::IMAGE);
+    auto* f = search(svKey, TYPE::IMAGE);
     if (f)
         return &f->m_uData.img;
     else return nullptr;
 }
 
 gltf::Model*
-searchModel(adt::String sKey)
+searchModel(adt::String svKey)
 {
-    auto* f = search(sKey, TYPE::MODEL);
+    auto* f = search(svKey, TYPE::MODEL);
     if (f)
         return &f->m_uData.model;
     else return nullptr;
