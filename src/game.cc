@@ -23,4 +23,9 @@ loadAssets()
     }
 }
 
+void
+updateState(adt::Arena* pArena)
+{
+}
+
 } /* namespace game */

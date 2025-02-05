@@ -36,8 +36,10 @@ fpsCounter()
 }
 
 static void
-refresh(void*)
+refresh(void* pArg)
 {
+    Arena* pArena = static_cast<Arena*>(pArg);
+
     static f64 s_accumulator = 0.0;
 
     f64 newTime = utils::timeNowMS();
@@ -53,12 +55,12 @@ refresh(void*)
 
     while (s_accumulator >= g_dt)
     {
-        /*game::updateState(&arena);*/
+        game::updateState(pArena);
         g_gt += g_dt;
         s_accumulator -= g_dt;
     }
 
-    draw::toBuffer();
+    draw::toBuffer(pArena);
     fpsCounter();
 }
 
@@ -71,14 +73,22 @@ start()
 
     game::loadAssets();
 
-    win.regUpdateCB(refresh, {});
+    Arena frameArena(SIZE_8K);
+    defer( frameArena.freeAll() );
+
+    win.regUpdateCB(refresh, &frameArena);
 
     // win.setFullscreen();
     win.enableRelativeMode();
     win.update(); /* get events */
 
     while (win.m_bRunning)
+    {
         win.procEvents();
+
+        frameArena.shrinkToFirstBlock();
+        frameArena.reset();
+    }
 
     for (auto& asset : asset::g_assets)
         asset.destroy();

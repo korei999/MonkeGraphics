@@ -389,4 +389,59 @@ CndVar::broadcast()
 #endif
 }
 
+struct CallOnce
+{
+#ifdef ADT_USE_PTHREAD
+    pthread_once_t m_onceCtrl {};
+
+#elif defined ADT_USE_WIN32THREAD
+
+    INIT_ONCE m_onceCtrl {};
+
+#endif
+
+    /* */
+
+    CallOnce() = default;
+    CallOnce(INIT_FLAG);
+
+    /* */
+
+    int exec(void (*pfn)());
+};
+
+inline
+CallOnce::CallOnce(INIT_FLAG)
+{
+#ifdef ADT_USE_PTHREAD
+
+    m_onceCtrl = PTHREAD_ONCE_INIT;
+
+#elif defined ADT_USE_WIN32THREAD
+
+    InitOnceInitialize(&m_onceCtrl);
+
+#endif
+}
+
+inline int
+CallOnce::exec(void (*pfn)())
+{
+#ifdef ADT_USE_PTHREAD
+
+    return pthread_once(&m_onceCtrl, pfn);
+
+#elif defined ADT_USE_WIN32THREAD
+
+    auto stub = +[](PINIT_ONCE InitOnce, PVOID Parameter, PVOID *lpContext) -> BOOL
+    {
+        reinterpret_cast<void(*)()>(Parameter)();
+        return TRUE;
+    };
+
+    InitOnceExecuteOnce(&m_initOnce, stub, pfn, nullptr);
+
+#endif
+}
+
 } /* namespace adt */

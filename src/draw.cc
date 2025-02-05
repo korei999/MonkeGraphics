@@ -19,10 +19,13 @@ namespace draw
 
 struct Idx3 { u16 x, y, z; };
 
-u8 aScratchMem[SIZE_8K] {};
-ScratchBuffer s_scratch {aScratchMem};
+static u8 s_aScratchMem[SIZE_8K] {};
+static ScratchBuffer s_scratch {s_aScratchMem};
+static Span2D<ImagePixelARGB> s_spDefaultTexture;
 
-[[maybe_unused]] static Span2D<ImagePixelARGB>
+static CallOnce s_callOnceAllocDefaultTexture(INIT);
+
+Span2D<ImagePixelARGB>
 allocDefaultTexture()
 {
     const int width = 8;
@@ -467,11 +470,16 @@ helloGradientTest()
 }
 
 static void
-helloGLTF()
+drawGLTF(Arena* pArena, const gltf::Model& model)
 {
     using namespace adt::math;
 
-    static Span2D<ImagePixelARGB> s_spDefaultTexture = allocDefaultTexture();
+}
+
+static void
+helloGLTF()
+{
+    using namespace adt::math;
 
     const auto& win = app::window();
     const auto& model = *asset::searchModel("assets/Duck.gltf");
@@ -574,12 +582,16 @@ helloGLTF()
 }
 
 void
-toBuffer()
+toBuffer(Arena* pArena)
 {
     auto& win = app::window();
 
     static Vec<f64> s_vCollect(OsAllocatorGet(), 1000);
     static f64 s_lastCollectionUpdate {};
+
+    s_callOnceAllocDefaultTexture.exec(
+        +[] {s_spDefaultTexture = allocDefaultTexture();}
+    );
 
     f64 t0 = utils::timeNowMS();
 
