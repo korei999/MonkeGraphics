@@ -4,6 +4,7 @@
 #include "adt/logs.hh"
 #include "adt/math.hh"
 #include "adt/ScratchBuffer.hh"
+#include "adt/file.hh"
 
 #include "app.hh"
 #include "asset.hh"
@@ -17,7 +18,8 @@ using namespace adt;
 namespace draw
 {
 
-struct Idx3 { u16 x, y, z; };
+struct IdxU16x3 { u16 x, y, z; };
+struct IdxU32x3 { u32 x, y, z; };
 
 static u8 s_aScratchMem[SIZE_8K] {};
 static ScratchBuffer s_scratch {s_aScratchMem};
@@ -470,39 +472,29 @@ helloGradientTest()
 }
 
 static void
-drawGLTF(Arena* pArena, const gltf::Model& model)
+drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, math::M4 trm)
 {
     using namespace adt::math;
 
-}
+    /* NOTE: must be from the asset::g_objects, maybe pass Object* instead? */
+    const asset::Object* pObj = (asset::Object*)&model;
 
-static void
-helloGLTF()
-{
-    using namespace adt::math;
+    trm *= node.matrix;
 
-    const auto& win = app::window();
-    const auto& model = *asset::searchModel("assets/Duck.gltf");
-    const auto& camera = control::g_camera;
-    const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
-    const f32 step = static_cast<f32>(frame::g_time*0.0010);
-
-    M4 tr = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
-        camera.m_trm *
-        M4TranslationFrom(0.0f, 0.0f, -1.0f) *
-        M4RotFrom(0, step, 0) *
-        M4ScaleFrom(0.01f);
-
-    for (const auto& node : model.m_vNodes)
+    for (auto& children : node.children)
     {
-        if (node.mesh == NPOS)
-            continue;
+        auto& childNode = model.m_vNodes[children];
+        drawGLTFNode(pArena, model, childNode, trm);
+    }
 
+    if (node.mesh != NPOS)
+    {
         auto& mesh = model.m_vMeshes[node.mesh];
         for (auto& primitive : mesh.aPrimitives)
         {
-            /* TODO: can be NPOS32 */
+            /* TODO: can be NPOS */
             ADT_ASSERT(primitive.indices != static_cast<i32>(NPOS32), " ");
+
             auto& accIndices = model.m_vAccessors[primitive.indices];
             auto& viewIndicies = model.m_vBufferViews[accIndices.bufferView];
             auto& buffInd = model.m_vBuffers[viewIndicies.buffer];
@@ -522,20 +514,23 @@ helloGLTF()
             {
                 auto& imgIdx = model.m_vTextures[baseTextureIdx].source;
                 auto& uri = model.m_vImages[imgIdx].uri;
-                Span spBuff = s_scratch.nextMemZero<char>(uri.getSize() + 50);
-                ssize n = print::toSpan(spBuff, "assets/{}", uri);
-                Image* pImg = asset::searchImage({spBuff.data(), n});
+
+                String nPath = file::replacePathEnding(pArena, pObj->m_sMappedWith, uri);
+                Image* pImg = asset::searchImage(nPath);
+
                 if (pImg)
                     spImage = pImg->getSpanARGB();
             }
 
             /* TODO: support every possible component type */
 
-            ADT_ASSERT(accIndices.componentType == gltf::COMPONENT_TYPE::UNSIGNED_SHORT, " ");
-            const Span<Idx3> spIndicies {
-                (Idx3*)&buffInd.bin[accIndices.byteOffset + viewIndicies.byteOffset],
-                accIndices.count / 3
-            };
+            ADT_ASSERT(accIndices.componentType == gltf::COMPONENT_TYPE::UNSIGNED_SHORT ||
+                accIndices.componentType == gltf::COMPONENT_TYPE::UNSIGNED_INT,
+                "exp: %d or %d, got: %d",
+                (int)gltf::COMPONENT_TYPE::UNSIGNED_SHORT,
+                (int)gltf::COMPONENT_TYPE::UNSIGNED_INT,
+                (int)accIndices.componentType
+            );
 
             ADT_ASSERT(accUV.type == gltf::ACCESSOR_TYPE::VEC2, " ");
             const Span<V2> spUVs {
@@ -563,16 +558,51 @@ helloGLTF()
                         return;
                     }
 
-                    for (auto [i0, i1, i2] : spIndicies)
+                    switch (accIndices.componentType)
                     {
-                        V3 aPos[3] {spPos[i0], spPos[i1], spPos[i2]};
-                        V2 aUVs[3] {spUVs[i0], spUVs[i1], spUVs[i2]};
+                        default: break;
 
-                        drawTriangle(
-                            tr * V4From(aPos[0], 1.0f), tr * V4From(aPos[1], 1.0f), tr* V4From(aPos[2], 1.0f),
-                            aUVs[0], aUVs[1], aUVs[1],
-                            spImage
-                        );
+                        case gltf::COMPONENT_TYPE::UNSIGNED_SHORT:
+                        {
+                            const Span<IdxU16x3> spIndiciesU16 {
+                                (IdxU16x3*)&buffInd.bin[accIndices.byteOffset + viewIndicies.byteOffset],
+                                accIndices.count / 3
+                            };
+
+                            for (auto [i0, i1, i2] : spIndiciesU16)
+                            {
+                                V3 aPos[3] {spPos[i0], spPos[i1], spPos[i2]};
+                                V2 aUVs[3] {spUVs[i0], spUVs[i1], spUVs[i2]};
+
+                                drawTriangle(
+                                    trm * V4From(aPos[0], 1.0f), trm * V4From(aPos[1], 1.0f), trm* V4From(aPos[2], 1.0f),
+                                    aUVs[0], aUVs[1], aUVs[1],
+                                    spImage
+                                );
+                            }
+                        }
+                        break;
+
+                        case gltf::COMPONENT_TYPE::UNSIGNED_INT:
+                        {
+                            const Span<IdxU32x3> spIndiciesU32 {
+                                (IdxU32x3*)&buffInd.bin[accIndices.byteOffset + viewIndicies.byteOffset],
+                                accIndices.count / 3
+                            };
+
+                            for (auto [i0, i1, i2] : spIndiciesU32)
+                            {
+                                V3 aPos[3] {spPos[i0], spPos[i1], spPos[i2]};
+                                V2 aUVs[3] {spUVs[i0], spUVs[i1], spUVs[i2]};
+
+                                drawTriangle(
+                                    trm * V4From(aPos[0], 1.0f), trm * V4From(aPos[1], 1.0f), trm* V4From(aPos[2], 1.0f),
+                                    aUVs[0], aUVs[1], aUVs[1],
+                                    spImage
+                                );
+                            }
+                        }
+                        break;
                     }
                 }
                 break;
@@ -581,36 +611,88 @@ helloGLTF()
     }
 }
 
+static void
+drawGLTF(Arena* pArena, const gltf::Model& model, math::M4 trm)
+{
+    for (auto& scene : model.m_vScenes)
+    {
+        auto& node = model.m_vNodes[scene.nodeIdx];
+        drawGLTFNode(pArena, model, node, trm);
+    }
+}
+
+static void
+drawImgDBG(Image* pImg)
+{
+    auto& win = app::window();
+    auto sp = win.surfaceBuffer();
+    auto spImg = pImg->getSpanARGB();
+
+    const f32 xStep = static_cast<f32>(sp.getWidth()) / static_cast<f32>(pImg->m_width);
+    const f32 yStep = static_cast<f32>(sp.getHeight()) / static_cast<f32>(pImg->m_height);
+
+    for (int y = 0; y < pImg->m_height; ++y)
+    {
+        for (int x = 0; x < pImg->m_width; ++x)
+        {
+            const int invY = pImg->m_height - 1 - y;
+
+            sp(x * xStep, invY * yStep) = spImg(x, y);
+        }
+    }
+
+}
+
 void
 toBuffer(Arena* pArena)
 {
+    using namespace adt::math;
+
     auto& win = app::window();
 
-    static Vec<f64> s_vCollect(OsAllocatorGet(), 1000);
-    static f64 s_lastCollectionUpdate {};
+    static Vec<f64> s_vFrameTimes(OsAllocatorGet(), 1000);
+    static f64 s_lastAvgFrameTimeUpdate {};
+
+    const f64 t0 = utils::timeNowMS();
 
     s_callOnceAllocDefaultTexture.exec(
-        +[] {s_spDefaultTexture = allocDefaultTexture();}
+        +[] { s_spDefaultTexture = allocDefaultTexture(); }
     );
 
-    f64 t0 = utils::timeNowMS();
+    {
+        /* clear */
+        win.clearColorBuffer({0.1f, 0.2f, 0.2f, 1.0f});
+        win.clearDepthBuffer();
 
-    /* clear */
-    win.clearColorBuffer({0.1f, 0.2f, 0.2f, 1.0f});
-    win.clearDepthBuffer();
+        const auto& model = *asset::searchModel("assets/backpack/scene.gltf");
+        const auto& camera = control::g_camera;
+        const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
+        const f32 step = static_cast<f32>(frame::g_time*0.001);
 
-    helloGLTF();
+        M4 cameraTrm = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
+            camera.m_trm *
+            M4TranslationFrom(0.0f, 0.0f, -1.0f) *
+            M4RotFrom(0, 0, 0) *
+            M4ScaleFrom(0.006f);
 
-    f64 t1 = utils::timeNowMS();
-    s_vCollect.push(t1 - t0);
+        drawGLTF(pArena, model, cameraTrm);
 
-    if (t1 > s_lastCollectionUpdate + 1000.0)
+        const auto pImgBase = asset::searchImage("assets/backpack/textures/Scene_-_Root_baseColor.bmp");
+        /*const auto pImgNormal = asset::searchImage("assets/backpack/textures/Scene_-_Root_normal.bmp");*/
+        /*const auto pImgMetalic = asset::searchImage("assets/backpack/textures/Scene_-_Root_metallicRoughness.bmp");*/
+        /*drawImgDBG(pImgBase);*/
+    }
+
+    const f64 t1 = utils::timeNowMS();
+    s_vFrameTimes.push(t1 - t0);
+
+    if (t1 > s_lastAvgFrameTimeUpdate + 1000.0)
     {
         f64 avg = 0;
-        for (f64 ft : s_vCollect) avg += ft;
-        CERR("avg frame time: {} ms, nSamples: {}\n", avg / s_vCollect.getSize(), s_vCollect.getSize());
-        s_vCollect.setSize(0);
-        s_lastCollectionUpdate = t1;
+        for (f64 ft : s_vFrameTimes) avg += ft;
+        CERR("avg frame time: {} ms, nSamples: {}\n", avg / s_vFrameTimes.getSize(), s_vFrameTimes.getSize());
+        s_vFrameTimes.setSize(0);
+        s_lastAvgFrameTimeUpdate = t1;
     }
 }
 

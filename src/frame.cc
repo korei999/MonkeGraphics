@@ -90,9 +90,9 @@ start()
         frameArena.reset();
     }
 
-    for (auto& asset : asset::g_assets)
+    for (auto& asset : asset::g_objects)
         asset.destroy();
-    asset::g_assets.destroy();
+    asset::g_objects.destroy();
 }
 
 } /* namespace frame */

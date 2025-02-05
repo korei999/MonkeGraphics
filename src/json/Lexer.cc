@@ -156,7 +156,7 @@ Lexer::nextNumber()
         m_sJson[m_pos] == '.' ||
         m_sJson[m_pos] == '-' ||
         m_sJson[m_pos] == '+' ||
-        isdigit(m_sJson[m_pos]),
+        isxdigit(m_sJson[m_pos]),
         "'%.*s'", 1, &m_sJson[m_pos]
     );
 
@@ -165,7 +165,7 @@ Lexer::nextNumber()
 
     while (
         m_pos < m_sJson.getSize() &&
-        (isdigit(m_sJson[m_pos])  ||
+        (isxdigit(m_sJson[m_pos])  ||
             m_sJson[m_pos] == '.' ||
             m_sJson[m_pos] == '+' ||
             m_sJson[m_pos] == '-'

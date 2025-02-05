@@ -53,6 +53,7 @@ struct Thread
 
     Thread() = default;
     Thread(THREAD_STATUS (*pfn)(void*), void* pFnArg);
+    template<typename LAMBDA> Thread(LAMBDA l);
 
     /* */
 
@@ -93,6 +94,35 @@ Thread::Thread(THREAD_STATUS (*pfn)(void*), void* pFnArg)
 #elif defined ADT_USE_WIN32THREAD
 
     m_thread = CreateThread(nullptr, 0, pfn, pFnArg, 0, &m_id);
+
+#endif
+}
+
+template<typename LAMBDA>
+inline
+Thread::Thread(LAMBDA l)
+{
+#ifdef ADT_USE_PTHREAD
+
+    auto stub = +[](void* pArg) -> void*
+    {
+        auto& funct = *reinterpret_cast<LAMBDA*>(pArg);
+        funct();
+        return nullptr;
+    };
+
+    pthread_create(&m_thread, {}, stub, &l);
+
+#elif defined ADT_USE_WIN32THREAD
+
+    auto stub = +[](void* pArg) -> THREAD_STATUS
+    {
+        auto& funct = *reinterpret_cast<LABMDA*>(pArg);
+        funct();
+        return 0;
+    };
+
+    m_thread = CreateThread(nullptr, 0, stub, &l, 0, &m_id);
 
 #endif
 }
@@ -435,7 +465,8 @@ CallOnce::exec(void (*pfn)())
 
     auto stub = +[](PINIT_ONCE InitOnce, PVOID Parameter, PVOID *lpContext) -> BOOL
     {
-        reinterpret_cast<void(*)()>(Parameter)();
+        auto pfnStub = reinterpret_cast<void(*)()>(Parameter);
+        pfnStub();
         return TRUE;
     };
 

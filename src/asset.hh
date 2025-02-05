@@ -18,14 +18,15 @@ enum TYPE : adt::u8
 
 struct Object
 {
-    adt::Arena m_arena {};
-    adt::String m_sMappedWith {};
     union
     {
         Image img;
         gltf::Model model;
     } m_uData {};
     TYPE m_eType {};
+
+    adt::Arena m_arena {};
+    adt::String m_sMappedWith {};
 
     /* */
 
@@ -37,12 +38,12 @@ struct Object
     void destroy();
 };
 
-extern adt::Pool<Object, 128> g_assets;
-
 adt::Opt<adt::PoolHnd> load(adt::String svFilePath);
 [[nodiscard]] Object* search(adt::String svKey, TYPE eType); /* may be null */
 [[nodiscard]] Image* searchImage(adt::String svKey);
 [[nodiscard]] gltf::Model* searchModel(adt::String svKey);
+
+extern adt::Pool<Object, 128> g_objects;
 
 } /* namespace asset */
 

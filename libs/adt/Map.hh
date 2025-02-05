@@ -103,6 +103,8 @@ struct MapBase
 
     void remove(const K& key);
 
+    bool tryRemove(const K& key);
+
     MapResult<K, V> tryInsert(IAllocator* p, const K& key, const V& val);
 
     void destroy(IAllocator* p);
@@ -290,6 +292,22 @@ MapBase<K, V, FN_HASH>::remove(const K& key)
 }
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
+inline bool
+MapBase<K, V, FN_HASH>::tryRemove(const K& key)
+{
+    auto found = search(key);
+    if (found)
+    {
+        remove(idx(&found.data()));
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline MapResult<K, V>
 MapBase<K, V, FN_HASH>::tryInsert(IAllocator* p, const K& key, const V& val)
 {
@@ -469,6 +487,8 @@ struct Map
     void remove(ssize i) { base.remove(i); }
 
     void remove(const K& key) { base.remove(key); }
+
+    bool tryRemove(const K& key) { return base.tryRemove(key); }
 
     MapResult<K, V> tryInsert(const K& key, const V& val) { return base.tryInsert(m_pAlloc, key, val); }
 
