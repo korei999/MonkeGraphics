@@ -124,12 +124,15 @@ procMouse()
 
     g_camera.m_front = lookAt;
     g_camera.m_right = right;
-    g_camera.m_trm = viewTrm * g_camera.m_lastTrm;
+    g_camera.m_view = viewTrm;
 }
 
 void
 procInput()
 {
+    g_camera.m_lastMove = {};
+    g_camera.m_lastBoost = 1.0f;
+
     ADT_ASSERT(sizeof(g_aPrevPressed) == sizeof(g_aPressed),
         "must be same size: %llu, %llu",
         static_cast<u64>(sizeof(g_aPrevPressed)), static_cast<u64>(sizeof(g_aPressed))

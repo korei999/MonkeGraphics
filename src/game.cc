@@ -27,9 +27,11 @@ loadAssets()
 }
 
 void
-updateState(adt::Arena* pArena)
+updateState(adt::Arena*)
 {
-    control::g_camera.m_lastTrm = control::g_camera.procMoveTRM();
+    using namespace control;
+
+    g_camera.updatePos();
 }
 
 } /* namespace game */

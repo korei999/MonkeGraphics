@@ -6,7 +6,6 @@
 #include "draw.hh"
 #include "game.hh"
 
-#include "adt/logs.hh"
 #include "adt/utils.hh"
 
 using namespace adt;
@@ -16,24 +15,8 @@ namespace frame
 
 f64 g_time {};
 f64 g_frameTime {};
-f64 g_dt = FIXED_DELTA_TIME;
-f64 g_gt {};
-
-static void
-fpsCounter()
-{
-    static f64 s_lastFPSTime = g_time;
-    static int s_nFrames = 0;
-
-    ++s_nFrames;
-
-    if (g_time > s_lastFPSTime + 1000.0)
-    {
-        CERR("FPS: {}\n", s_nFrames);
-        s_lastFPSTime = g_time;
-        s_nFrames = 0;
-    }
-}
+constexpr f64 g_dt = FIXED_DELTA_TIME;
+f64 g_gameTime {};
 
 static void
 refresh(void* pArg)
@@ -42,12 +25,12 @@ refresh(void* pArg)
 
     static f64 s_accumulator = 0.0;
 
-    f64 newTime = utils::timeNowMS();
+    f64 newTime = utils::timeNowS();
     f64 frameTime = newTime - g_time;
     g_frameTime = frameTime;
     g_time = newTime;
-    if (frameTime > 0.25)
-        frameTime = 0.25;
+    /*if (frameTime > 0.25)*/
+    /*    frameTime = 0.25;*/
 
     s_accumulator += frameTime;
 
@@ -56,12 +39,11 @@ refresh(void* pArg)
     while (s_accumulator >= g_dt)
     {
         game::updateState(pArena);
-        g_gt += g_dt;
+        g_gameTime += g_dt;
         s_accumulator -= g_dt;
     }
 
     draw::toBuffer(pArena);
-    fpsCounter();
 }
 
 void
@@ -69,7 +51,7 @@ start()
 {
     auto& win = app::window();
     win.m_bRunning = true;
-    g_time = utils::timeNowMS();
+    g_time = utils::timeNowS();
 
     game::loadAssets();
 
@@ -81,6 +63,8 @@ start()
     // win.setFullscreen();
     win.enableRelativeMode();
     win.update(); /* get events */
+
+    g_time = utils::timeNowS();
 
     while (win.m_bRunning)
     {

@@ -124,6 +124,8 @@ message(STATUS "CMAKE_BUILD_TYPE: '${CMAKE_BUILD_TYPE}'")
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_options(/wd4146 /wd4200 /wd4312 /utf-8)
+
+    # add_compile_options(/openmp)
 else()
     add_compile_options(-Wall -Wextra -Wshadow -fms-extensions)
     add_compile_options(-Wno-missing-braces)

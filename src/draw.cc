@@ -11,14 +11,13 @@
 #include "clip.hh"
 #include "control.hh"
 #include "draw.hh"
-#include "frame.hh"
 
 using namespace adt;
 
 namespace draw
 {
 
-enum SAMPLER : u8 { NEAREST, BILINEAR };
+enum class SAMPLER : u8 { NEAREST, BILINEAR };
 
 struct IdxU16x3 { u16 x, y, z; };
 struct IdxU32x3 { u32 x, y, z; };
@@ -97,7 +96,8 @@ ndcToPix(math::V2 ndcPos)
 [[maybe_unused]] ADT_NO_UB static void
 drawTriangleSSE(
     clip::Vertex vertex0, clip::Vertex vertex1, clip::Vertex vertex2,
-    const Span2D<ImagePixelARGB> spTexture
+    const Span2D<ImagePixelARGB> spTexture,
+    const SAMPLER eSampler
 )
 {
     using namespace adt::math;
@@ -224,65 +224,70 @@ drawTriangleSSE(
 
                 simd::i32x4 texelColor {};
 
-                /* nearest neighbor filtering */
-                // {
-                //     simd::i32x4 texelX = simd::i32x4(simd::floor(uv.x * (spTexture.getWidth() - 1)));
-                //     simd::i32x4 texelY = simd::i32x4(simd::floor(uv.y * (spTexture.getHeight() - 1)));
-
-                //     const simd::i32x4 texelMask = (
-                //         (texelX >= 0) & (texelX < spTexture.getWidth()) &
-                //         (texelY >= 0) & (texelY < spTexture.getHeight())
-                //     );
-
-                //     texelX = simd::max(simd::min(texelX, spTexture.getWidth() - 1), 0);
-                //     texelY = simd::max(simd::min(texelY, spTexture.getHeight() - 1), 0);
-                //     simd::i32x4 texelOffsets = texelY * spTexture.getWidth() + texelX;
-
-                //     const simd::i32x4 trueCase = simd::i32x4Gather((i32*)spTexture.data(), texelOffsets);
-                //     const simd::i32x4 falseCase = 0xff00ff00;
-
-                //     texelColor = (trueCase & texelMask) + simd::andNot(texelMask, falseCase);
-                // }
-
-                /* bilinear */
+                switch (eSampler)
                 {
-                    simd::V2x4 texelV2 = uv *
-                        V2From(spTexture.getWidth(), spTexture.getHeight()) -
-                        V2{0.5f, 0.5f};
-
-                    simd::IV2x4 aTexelPos[4] {};
-                    aTexelPos[0] = simd::IV2x4(simd::floor(texelV2.x), simd::floor(texelV2.y));
-                    aTexelPos[1] = aTexelPos[0] + IV2{1, 0};
-                    aTexelPos[2] = aTexelPos[0] + IV2{0, 1};
-                    aTexelPos[3] = aTexelPos[0] + IV2{1, 1};
-
-                    simd::V3x4 aTexelColors[4] {};
-                    for (int texelI = 0; texelI < utils::size(aTexelPos); ++texelI)
+                    case SAMPLER::NEAREST:
                     {
-                        simd::IV2x4 currTexelPos = aTexelPos[texelI];
+                        simd::i32x4 texelX = simd::i32x4(simd::floor(uv.x * (spTexture.getWidth() - 1)));
+                        simd::i32x4 texelY = simd::i32x4(simd::floor(uv.y * (spTexture.getHeight() - 1)));
+
+                        const simd::i32x4 texelMask = (
+                            (texelX >= 0) & (texelX < spTexture.getWidth()) &
+                            (texelY >= 0) & (texelY < spTexture.getHeight())
+                        );
+
+                        texelX = simd::max(simd::min(texelX, spTexture.getWidth() - 1), 0);
+                        texelY = simd::max(simd::min(texelY, spTexture.getHeight() - 1), 0);
+                        simd::i32x4 texelOffsets = texelY * spTexture.getWidth() + texelX;
+
+                        const simd::i32x4 trueCase = simd::i32x4Gather((i32*)spTexture.data(), texelOffsets);
+                        const simd::i32x4 falseCase = 0xff00ff00;
+
+                        texelColor = (trueCase & texelMask) + simd::andNot(texelMask, falseCase);
+                    }
+                    break;
+
+                    case SAMPLER::BILINEAR:
+                    {
+                        simd::V2x4 texelV2 = uv *
+                            V2From(spTexture.getWidth(), spTexture.getHeight()) -
+                            V2{0.5f, 0.5f};
+
+                        simd::IV2x4 aTexelPos[4] {};
+                        aTexelPos[0] = simd::IV2x4(simd::floor(texelV2.x), simd::floor(texelV2.y));
+                        aTexelPos[1] = aTexelPos[0] + IV2{1, 0};
+                        aTexelPos[2] = aTexelPos[0] + IV2{0, 1};
+                        aTexelPos[3] = aTexelPos[0] + IV2{1, 1};
+
+                        simd::V3x4 aTexelColors[4] {};
+                        for (int texelI = 0; texelI < utils::size(aTexelPos); ++texelI)
                         {
-                            simd::V2x4 currTexelPosF = simd::V2x4(currTexelPos);
-                            simd::V2x4 factor = simd::floor(currTexelPosF / V2From(spTexture.getWidth(), spTexture.getHeight()));
-                            currTexelPosF = currTexelPosF - factor * V2From(spTexture.getWidth(), spTexture.getHeight());
-                            currTexelPos = simd::IV2x4(currTexelPosF);
+                            simd::IV2x4 currTexelPos = aTexelPos[texelI];
+                            {
+                                simd::V2x4 currTexelPosF = simd::V2x4(currTexelPos);
+                                simd::V2x4 factor = simd::floor(currTexelPosF / V2From(spTexture.getWidth(), spTexture.getHeight()));
+                                currTexelPosF = currTexelPosF - factor * V2From(spTexture.getWidth(), spTexture.getHeight());
+                                currTexelPos = simd::IV2x4(currTexelPosF);
+                            }
+
+                            simd::i32x4 texelOffsets = currTexelPos.y * spTexture.getWidth() + currTexelPos.x;
+                            simd::i32x4 loadMask = edgeMask & depthMask;
+                            texelOffsets = (texelOffsets & loadMask) + simd::andNot(loadMask, simd::i32x4(0));
+                            simd::i32x4 texelColorI32 = simd::i32x4Gather((i32*)spTexture.data(), texelOffsets);
+
+                            aTexelColors[texelI] = colorI32x4ToV3x4(texelColorI32);
                         }
 
-                        simd::i32x4 texelOffsets = currTexelPos.y * spTexture.getWidth() + currTexelPos.x;
-                        simd::i32x4 loadMask = edgeMask & depthMask;
-                        texelOffsets = (texelOffsets & loadMask) + simd::andNot(loadMask, simd::i32x4(0));
-                        simd::i32x4 texelColorI32 = simd::i32x4Gather((i32*)spTexture.data(), texelOffsets);
+                        simd::f32x4 s = texelV2.x - simd::floor(texelV2.x);
+                        simd::f32x4 k = texelV2.y - simd::floor(texelV2.y);
 
-                        aTexelColors[texelI] = colorI32x4ToV3x4(texelColorI32);
+                        simd::V3x4 interpolated0 = lerp(aTexelColors[0], aTexelColors[1], s);
+                        simd::V3x4 interpolated1 = lerp(aTexelColors[2], aTexelColors[3], s);
+                        simd::V3x4 finalColor = lerp(interpolated0, interpolated1, k);
+
+                        texelColor = colorV3x4ToI32x4(finalColor);
                     }
-
-                    simd::f32x4 s = texelV2.x - simd::floor(texelV2.x);
-                    simd::f32x4 k = texelV2.y - simd::floor(texelV2.y);
-
-                    simd::V3x4 interpolated0 = lerp(aTexelColors[0], aTexelColors[1], s);
-                    simd::V3x4 interpolated1 = lerp(aTexelColors[2], aTexelColors[3], s);
-                    simd::V3x4 finalColor = lerp(interpolated0, interpolated1, k);
-
-                    texelColor = colorV3x4ToI32x4(finalColor);
+                    break;
                 }
 
                 const simd::i32x4 finalMaskI32 = edgeMask & depthMask;
@@ -308,7 +313,8 @@ drawTriangleSSE(
 ADT_NO_UB static void
 drawTriangleAVX2(
     clip::Vertex vertex0, clip::Vertex vertex1, clip::Vertex vertex2,
-    const Span2D<ImagePixelARGB> spTexture
+    const Span2D<ImagePixelARGB> spTexture,
+    const SAMPLER eSampler
 )
 {
     using namespace adt::math;
@@ -435,24 +441,70 @@ drawTriangleAVX2(
 
                 simd::i32x8 texelColor = 0;
 
-                /* nearest neighbor filtering */
+                switch (eSampler)
                 {
-                    simd::i32x8 texelX = simd::i32x8(simd::floor(uv.x * (spTexture.getWidth() - 1)));
-                    simd::i32x8 texelY = simd::i32x8(simd::floor(uv.y * (spTexture.getHeight() - 1)));
+                    case SAMPLER::NEAREST:
+                    {
+                        simd::i32x8 texelX = simd::i32x8(simd::floor(uv.x * (spTexture.getWidth() - 1)));
+                        simd::i32x8 texelY = simd::i32x8(simd::floor(uv.y * (spTexture.getHeight() - 1)));
 
-                    const simd::i32x8 texelMask = (
-                        (texelX >= 0) & (texelX < spTexture.getWidth()) &
-                        (texelY >= 0) & (texelY < spTexture.getHeight())
-                    );
+                        const simd::i32x8 texelMask = (
+                            (texelX >= 0) & (texelX < spTexture.getWidth()) &
+                            (texelY >= 0) & (texelY < spTexture.getHeight())
+                        );
 
-                    texelX = simd::max(simd::min(texelX, spTexture.getWidth() - 1), 0);
-                    texelY = simd::max(simd::min(texelY, spTexture.getHeight() - 1), 0);
-                    simd::i32x8 texelOffsets = texelY * spTexture.getWidth() + texelX;
+                        texelX = simd::max(simd::min(texelX, spTexture.getWidth() - 1), 0);
+                        texelY = simd::max(simd::min(texelY, spTexture.getHeight() - 1), 0);
+                        simd::i32x8 texelOffsets = texelY * spTexture.getWidth() + texelX;
 
-                    const simd::i32x8 trueCase = simd::i32x8Gather((i32*)spTexture.data(), texelOffsets);
-                    const simd::i32x8 falseCase = 0xff00ff00;
+                        const simd::i32x8 trueCase = simd::i32x8Gather((i32*)spTexture.data(), texelOffsets);
+                        const simd::i32x8 falseCase = 0xff00ff00;
 
-                    texelColor = (texelMask & trueCase) + simd::andNot(texelMask, falseCase);
+                        texelColor = (trueCase & texelMask) + simd::andNot(texelMask, falseCase);
+                    }
+                    break;
+
+                    case SAMPLER::BILINEAR:
+                    {
+                        // simd::V2x4 texelV2 = uv *
+                        //     V2From(spTexture.getWidth(), spTexture.getHeight()) -
+                        //     V2{0.5f, 0.5f};
+
+                        // simd::IV2x4 aTexelPos[4] {};
+                        // aTexelPos[0] = simd::IV2x4(simd::floor(texelV2.x), simd::floor(texelV2.y));
+                        // aTexelPos[1] = aTexelPos[0] + IV2{1, 0};
+                        // aTexelPos[2] = aTexelPos[0] + IV2{0, 1};
+                        // aTexelPos[3] = aTexelPos[0] + IV2{1, 1};
+
+                        // simd::V3x4 aTexelColors[4] {};
+                        // for (int texelI = 0; texelI < utils::size(aTexelPos); ++texelI)
+                        // {
+                        //     simd::IV2x4 currTexelPos = aTexelPos[texelI];
+                        //     {
+                        //         simd::V2x4 currTexelPosF = simd::V2x4(currTexelPos);
+                        //         simd::V2x4 factor = simd::floor(currTexelPosF / V2From(spTexture.getWidth(), spTexture.getHeight()));
+                        //         currTexelPosF = currTexelPosF - factor * V2From(spTexture.getWidth(), spTexture.getHeight());
+                        //         currTexelPos = simd::IV2x4(currTexelPosF);
+                        //     }
+
+                        //     simd::i32x4 texelOffsets = currTexelPos.y * spTexture.getWidth() + currTexelPos.x;
+                        //     simd::i32x4 loadMask = edgeMask & depthMask;
+                        //     texelOffsets = (texelOffsets & loadMask) + simd::andNot(loadMask, simd::i32x4(0));
+                        //     simd::i32x4 texelColorI32 = simd::i32x4Gather((i32*)spTexture.data(), texelOffsets);
+
+                        //     aTexelColors[texelI] = colorI32x4ToV3x4(texelColorI32);
+                        // }
+
+                        // simd::f32x4 s = texelV2.x - simd::floor(texelV2.x);
+                        // simd::f32x4 k = texelV2.y - simd::floor(texelV2.y);
+
+                        // simd::V3x4 interpolated0 = lerp(aTexelColors[0], aTexelColors[1], s);
+                        // simd::V3x4 interpolated1 = lerp(aTexelColors[2], aTexelColors[3], s);
+                        // simd::V3x4 finalColor = lerp(interpolated0, interpolated1, k);
+
+                        // texelColor = colorV3x4ToI32x4(finalColor);
+                    }
+                    break;
                 }
 
                 const simd::i32x8 finalMaskI32 = edgeMask & depthMask;
@@ -505,9 +557,9 @@ drawTriangle(
         auto v2 = pong.aVertices[3*triangleIdx + 2];
 
 #ifdef ADT_AVX2
-        drawTriangleAVX2(v0, v1, v2, spTexture);
+        drawTriangleAVX2(v0, v1, v2, spTexture, SAMPLER::NEAREST);
 #else
-        drawTriangleSSE(v0, v1, v2, spTexture);
+        drawTriangleSSE(v0, v1, v2, spTexture, SAMPLER::BILINEAR);
 #endif /* ADT_AVX2 */
     }
 }
@@ -746,7 +798,7 @@ toBuffer(Arena* pArena)
         const auto& model = *asset::searchModel("assets/Sponza/Sponza.gltf");
         const auto& camera = control::g_camera;
         const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
-        const f32 step = static_cast<f32>(frame::g_time*0.001);
+        // const f32 step = static_cast<f32>(frame::g_time*0.001);
 
         M4 cameraTrm = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
             camera.m_trm *
@@ -764,7 +816,7 @@ toBuffer(Arena* pArena)
     {
         f64 avg = 0;
         for (f64 ft : s_vFrameTimes) avg += ft;
-        CERR("avg frame time: {} ms, nSamples: {}\n", avg / s_vFrameTimes.getSize(), s_vFrameTimes.getSize());
+        CERR("FPS: {} | avg frame time: {} ms\n", s_vFrameTimes.getSize(), avg / s_vFrameTimes.getSize());
         s_vFrameTimes.setSize(0);
         s_lastAvgFrameTimeUpdate = t1;
     }

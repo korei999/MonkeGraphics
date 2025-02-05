@@ -35,24 +35,21 @@ struct Camera
     adt::f32 m_sens {};
     adt::f32 m_speed {};
     adt::f32 m_lastBoost = 1.0f;
-    adt::math::M4 m_lastTrm {};
 
     /* */
 
-    [[nodiscard]] adt::math::M4
-    procMoveTRM()
+    void
+    updatePos()
     {
-        defer( m_lastMove = {}; m_lastBoost = 1.0f; m_lastTrm = {}; );
-
         adt::f32 len = adt::math::V3Length(m_lastMove);
         if (len > 0)
         {
-            return adt::math::M4TranslationFrom(
-                -(m_pos += (adt::math::V3Norm(m_lastMove * m_lastBoost, len)*frame::g_dt*m_speed))
+            m_trm = m_view * adt::math::M4TranslationFrom(
+                -(m_pos += (adt::math::V3Norm(m_lastMove, len)*(frame::g_dt)*m_speed*m_lastBoost))
             );
         }
 
-        return adt::math::M4TranslationFrom(-m_pos);
+        m_trm = m_view * adt::math::M4TranslationFrom(-m_pos);
     }
 
     adt::math::V3
