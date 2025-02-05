@@ -18,6 +18,8 @@ using namespace adt;
 namespace draw
 {
 
+enum SAMPLER : u8 { NEAREST, BILINEAR };
+
 struct IdxU16x3 { u16 x, y, z; };
 struct IdxU32x3 { u32 x, y, z; };
 
@@ -54,6 +56,30 @@ allocDefaultTexture()
     }
 
     return sp;
+}
+
+static simd::V3x4
+colorI32x4ToV3x4(simd::i32x4 color)
+{
+    simd::V3x4 res;
+    res.x = simd::f32x4((color >> 16) & 0xFF);
+    res.y = simd::f32x4((color >> 8) & 0xFF);
+    res.z = simd::f32x4((color >> 0) & 0xFF);
+    res = res / 255.0f;
+    return res;
+}
+
+static simd::i32x4
+colorV3x4ToI32x4(simd::V3x4 color)
+{
+    color *= 255.0f;
+    simd::i32x4 res = ((simd::i32x4(0xff) << 24) |
+        (simd::i32x4(color.x) << 16) |
+        (simd::i32x4(color.y) << 8) |
+        (simd::i32x4(color.z))
+    );
+
+    return res;
 }
 
 static math::V2
@@ -196,26 +222,67 @@ drawTriangleSSE(
                 simd::V2x4 uv = t0*vertex0.uv + t1*vertex1.uv + t2*vertex2.uv;
                 uv /= oneOverW;
 
-                simd::i32x4 texelColor = 0;
+                simd::i32x4 texelColor {};
 
                 /* nearest neighbor filtering */
+                // {
+                //     simd::i32x4 texelX = simd::i32x4(simd::floor(uv.x * (spTexture.getWidth() - 1)));
+                //     simd::i32x4 texelY = simd::i32x4(simd::floor(uv.y * (spTexture.getHeight() - 1)));
+
+                //     const simd::i32x4 texelMask = (
+                //         (texelX >= 0) & (texelX < spTexture.getWidth()) &
+                //         (texelY >= 0) & (texelY < spTexture.getHeight())
+                //     );
+
+                //     texelX = simd::max(simd::min(texelX, spTexture.getWidth() - 1), 0);
+                //     texelY = simd::max(simd::min(texelY, spTexture.getHeight() - 1), 0);
+                //     simd::i32x4 texelOffsets = texelY * spTexture.getWidth() + texelX;
+
+                //     const simd::i32x4 trueCase = simd::i32x4Gather((i32*)spTexture.data(), texelOffsets);
+                //     const simd::i32x4 falseCase = 0xff00ff00;
+
+                //     texelColor = (trueCase & texelMask) + simd::andNot(texelMask, falseCase);
+                // }
+
+                /* bilinear */
                 {
-                    simd::i32x4 texelX = simd::i32x4(simd::floor(uv.x * (spTexture.getWidth() - 1)));
-                    simd::i32x4 texelY = simd::i32x4(simd::floor(uv.y * (spTexture.getHeight() - 1)));
+                    simd::V2x4 texelV2 = uv *
+                        V2From(spTexture.getWidth(), spTexture.getHeight()) -
+                        V2{0.5f, 0.5f};
 
-                    const simd::i32x4 texelMask = (
-                        (texelX >= 0) & (texelX < spTexture.getWidth()) &
-                        (texelY >= 0) & (texelY < spTexture.getHeight())
-                    );
+                    simd::IV2x4 aTexelPos[4] {};
+                    aTexelPos[0] = simd::IV2x4(simd::floor(texelV2.x), simd::floor(texelV2.y));
+                    aTexelPos[1] = aTexelPos[0] + IV2{1, 0};
+                    aTexelPos[2] = aTexelPos[0] + IV2{0, 1};
+                    aTexelPos[3] = aTexelPos[0] + IV2{1, 1};
 
-                    texelX = simd::max(simd::min(texelX, spTexture.getWidth() - 1), 0);
-                    texelY = simd::max(simd::min(texelY, spTexture.getHeight() - 1), 0);
-                    simd::i32x4 texelOffsets = texelY * spTexture.getWidth() + texelX;
+                    simd::V3x4 aTexelColors[4] {};
+                    for (int texelI = 0; texelI < utils::size(aTexelPos); ++texelI)
+                    {
+                        simd::IV2x4 currTexelPos = aTexelPos[texelI];
+                        {
+                            simd::V2x4 currTexelPosF = simd::V2x4(currTexelPos);
+                            simd::V2x4 factor = simd::floor(currTexelPosF / V2From(spTexture.getWidth(), spTexture.getHeight()));
+                            currTexelPosF = currTexelPosF - factor * V2From(spTexture.getWidth(), spTexture.getHeight());
+                            currTexelPos = simd::IV2x4(currTexelPosF);
+                        }
 
-                    const simd::i32x4 trueCase = simd::i32x4Gather((i32*)spTexture.data(), texelOffsets);
-                    const simd::i32x4 falseCase = 0xff00ff00;
+                        simd::i32x4 texelOffsets = currTexelPos.y * spTexture.getWidth() + currTexelPos.x;
+                        simd::i32x4 loadMask = edgeMask & depthMask;
+                        texelOffsets = (texelOffsets & loadMask) + simd::andNot(loadMask, simd::i32x4(0));
+                        simd::i32x4 texelColorI32 = simd::i32x4Gather((i32*)spTexture.data(), texelOffsets);
 
-                    texelColor = (trueCase & texelMask) + simd::andNot(texelMask, falseCase);
+                        aTexelColors[texelI] = colorI32x4ToV3x4(texelColorI32);
+                    }
+
+                    simd::f32x4 s = texelV2.x - simd::floor(texelV2.x);
+                    simd::f32x4 k = texelV2.y - simd::floor(texelV2.y);
+
+                    simd::V3x4 interpolated0 = lerp(aTexelColors[0], aTexelColors[1], s);
+                    simd::V3x4 interpolated1 = lerp(aTexelColors[2], aTexelColors[3], s);
+                    simd::V3x4 finalColor = lerp(interpolated0, interpolated1, k);
+
+                    texelColor = colorV3x4ToI32x4(finalColor);
                 }
 
                 const simd::i32x4 finalMaskI32 = edgeMask & depthMask;
@@ -569,14 +636,20 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
                                 accIndices.count / 3
                             };
 
-                            for (auto [i0, i1, i2] : spIndiciesU16)
+                            //for (auto [i0, i1, i2] : spIndiciesU16)
+                            #pragma omp parallel for
+                            for (int i = 0; i < spIndiciesU16.getSize(); ++i)
                             {
+                                int i0 = spIndiciesU16[i].x;
+                                int i1 = spIndiciesU16[i].y;
+                                int i2 = spIndiciesU16[i].z;
+
                                 V3 aPos[3] {spPos[i0], spPos[i1], spPos[i2]};
                                 V2 aUVs[3] {spUVs[i0], spUVs[i1], spUVs[i2]};
 
                                 drawTriangle(
-                                    trm * V4From(aPos[0], 1.0f), trm * V4From(aPos[1], 1.0f), trm* V4From(aPos[2], 1.0f),
-                                    aUVs[0], aUVs[1], aUVs[1],
+                                    trm*V4From(aPos[0], 1.0f), trm * V4From(aPos[1], 1.0f), trm* V4From(aPos[2], 1.0f),
+                                    aUVs[0], aUVs[1], aUVs[2],
                                     spImage
                                 );
                             }
@@ -590,23 +663,29 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
                                 accIndices.count / 3
                             };
 
-                            for (auto [i0, i1, i2] : spIndiciesU32)
+                            // for (auto [i0, i1, i2] : spIndiciesU32)
+                            #pragma omp parallel for
+                            for (int i = 0; i < spIndiciesU32.getSize(); ++i)
                             {
+                                int i0 = spIndiciesU32[i].x;
+                                int i1 = spIndiciesU32[i].y;
+                                int i2 = spIndiciesU32[i].z;
+
                                 V3 aPos[3] {spPos[i0], spPos[i1], spPos[i2]};
                                 V2 aUVs[3] {spUVs[i0], spUVs[i1], spUVs[i2]};
 
                                 drawTriangle(
-                                    trm * V4From(aPos[0], 1.0f), trm * V4From(aPos[1], 1.0f), trm* V4From(aPos[2], 1.0f),
-                                    aUVs[0], aUVs[1], aUVs[1],
+                                    trm*V4From(aPos[0], 1.0f), trm*V4From(aPos[1], 1.0f), trm*V4From(aPos[2], 1.0f),
+                                    aUVs[0], aUVs[1], aUVs[2],
                                     spImage
                                 );
                             }
                         }
                         break;
-                    }
+                    } /* switch (accIndices.componentType) */
                 }
                 break;
-            }
+            } /* switch (primitive.mode) */
         }
     }
 }
@@ -628,16 +707,16 @@ drawImgDBG(Image* pImg)
     auto sp = win.surfaceBuffer();
     auto spImg = pImg->getSpanARGB();
 
-    const f32 xStep = static_cast<f32>(sp.getWidth()) / static_cast<f32>(pImg->m_width);
-    const f32 yStep = static_cast<f32>(sp.getHeight()) / static_cast<f32>(pImg->m_height);
+    const f32 xStep = static_cast<f32>(spImg.getWidth()) / static_cast<f32>(sp.getWidth());
+    const f32 yStep = static_cast<f32>(spImg.getHeight()) / static_cast<f32>(sp.getHeight());
 
-    for (int y = 0; y < pImg->m_height; ++y)
+    for (int y = 0; y < sp.getHeight(); ++y)
     {
-        for (int x = 0; x < pImg->m_width; ++x)
+        for (int x = 0; x < sp.getWidth(); ++x)
         {
-            const int invY = pImg->m_height - 1 - y;
+            const int invY = sp.getHeight() - 1 - y;
 
-            sp(x * xStep, invY * yStep) = spImg(x, y);
+            sp(x, y) = spImg(x * xStep, invY * yStep);
         }
     }
 
@@ -661,26 +740,21 @@ toBuffer(Arena* pArena)
 
     {
         /* clear */
-        win.clearColorBuffer({0.1f, 0.2f, 0.2f, 1.0f});
+        win.clearColorBuffer({0.0f, 0.4f, 0.6f, 1.0f});
         win.clearDepthBuffer();
 
-        const auto& model = *asset::searchModel("assets/backpack/scene.gltf");
+        const auto& model = *asset::searchModel("assets/Sponza/Sponza.gltf");
         const auto& camera = control::g_camera;
         const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
         const f32 step = static_cast<f32>(frame::g_time*0.001);
 
         M4 cameraTrm = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
             camera.m_trm *
-            M4TranslationFrom(0.0f, 0.0f, -1.0f) *
+            M4TranslationFrom(0.0f, -0.0f, -0.0f) *
             M4RotFrom(0, 0, 0) *
             M4ScaleFrom(0.006f);
 
         drawGLTF(pArena, model, cameraTrm);
-
-        const auto pImgBase = asset::searchImage("assets/backpack/textures/Scene_-_Root_baseColor.bmp");
-        /*const auto pImgNormal = asset::searchImage("assets/backpack/textures/Scene_-_Root_normal.bmp");*/
-        /*const auto pImgMetalic = asset::searchImage("assets/backpack/textures/Scene_-_Root_metallicRoughness.bmp");*/
-        /*drawImgDBG(pImgBase);*/
     }
 
     const f64 t1 = utils::timeNowMS();

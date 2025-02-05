@@ -66,7 +66,6 @@ loadGLTF(const String svPath, String sFile)
 
     for (auto& image : gltfModel.m_vImages)
     {
-        const ssize strSize = 20 + image.uri.getSize();
         String nPath = file::replacePathEnding(&nObj.m_arena, svPath, image.uri);
         load(nPath);
     }
@@ -107,7 +106,7 @@ load(adt::String svPath)
     {
         auto& obj = g_objects[oRetHnd.value()];
         obj.m_sMappedWith = svPath.clone(&obj.m_arena);
-        auto mapRes = s_mapStringToObjects.insert(obj.m_sMappedWith, oRetHnd.value());
+        [[maybe_unused]] auto mapRes = s_mapStringToObjects.insert(obj.m_sMappedWith, oRetHnd.value());
         LOG_GOOD("load(): hnd: {}, type: '{}', mappedWith: '{}', hash: {}\n",
             oRetHnd.value(), obj.m_eType, obj.m_sMappedWith, mapRes.hash
         );

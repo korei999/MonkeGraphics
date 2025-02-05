@@ -1298,9 +1298,8 @@ normalize(const V4& v)
     return V4Norm(v);
 }
 
-template<typename T>
-constexpr T
-lerp(const T& l, const T& r, const std::floating_point auto t)
+constexpr inline auto
+lerp(auto& l, auto& r, auto& t)
 {
     return l + (r - l)*t;
 }

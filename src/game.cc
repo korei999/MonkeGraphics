@@ -2,6 +2,7 @@
 
 #include "game.hh"
 #include "asset.hh"
+#include "control.hh"
 
 using namespace adt;
 
@@ -12,6 +13,7 @@ static const String s_asAssetPaths[] {
     "assets/cube.gltf",
     "assets/Duck.gltf",
     "assets/backpack/scene.gltf",
+    "assets/Sponza/Sponza.gltf",
 };
 
 void
@@ -27,6 +29,7 @@ loadAssets()
 void
 updateState(adt::Arena* pArena)
 {
+    control::g_camera.m_lastTrm = control::g_camera.procMoveTRM();
 }
 
 } /* namespace game */

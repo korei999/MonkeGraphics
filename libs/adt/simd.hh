@@ -33,11 +33,11 @@ struct i32x4
 
     i32x4() = default;
 
-    i32x4(const __m128i _pack) : pack(_pack) {}
+    i32x4(__m128i _pack) : pack(_pack) {}
 
-    i32x4(const i32 x) : pack(_mm_set1_epi32(x)) {}
+    i32x4(i32 x) : pack(_mm_set1_epi32(x)) {}
 
-    i32x4(const i32 x, const i32 y, const i32 z, const i32 w) : pack(_mm_set_epi32(w, z, y, x)) {}
+    i32x4(i32 x, i32 y, i32 z, i32 w) : pack(_mm_set_epi32(w, z, y, x)) {}
 
     /* */
 
@@ -47,8 +47,8 @@ struct i32x4
 
     /* */
 
-    i32* data() { return reinterpret_cast<i32*>(this); }
-    const i32* data() const { return (i32*)(this); }
+    i32* data() { return reinterpret_cast<i32*>(&pack); }
+    const i32* data() const { return (i32*)(&pack); }
 
     i32& operator[](int i)             { ADT_ASSERT(i >= 0 && i < 4, "out of range, should be (>= 0 && < 4)"); return data()[i]; }
     const i32& operator[](int i) const { ADT_ASSERT(i >= 0 && i < 4, "out of range, should be (>= 0 && < 4)"); return data()[i]; }
@@ -77,9 +77,16 @@ struct f32x4
     explicit operator i32x4() const { return _mm_cvtps_epi32(pack); }
 };
 
+struct IV2x4;
+
 struct V2x4
 {
     f32x4 x {}, y {};
+
+    /* */
+
+    V2x4() = default;
+    V2x4(IV2x4 a);
 
     /* */
 
@@ -96,6 +103,12 @@ struct IV2x4
 
     /* */
 
+    IV2x4() = default;
+    IV2x4(f32x4 l, f32x4 r) : x(l), y(r) {}
+    IV2x4(V2x4 a) : x(a.x), y(a.y) {}
+
+    /* */
+
     i32x4* data() { return reinterpret_cast<i32x4*>(this); }
     const i32x4* data() const { return (i32x4*)(this); }
 
@@ -103,11 +116,21 @@ struct IV2x4
     const i32x4& operator[](int i) const { ADT_ASSERT(i >= 0 && i < 2, "out of range"); return data()[i]; }
 };
 
-inline f32x4
-floor(const f32x4 x)
+struct V3x4
 {
-    return _mm_floor_ps(x.pack);
-}
+    f32x4 x {}, y {}, z {};
+
+    /* */
+
+    f32x4* data() { return reinterpret_cast<f32x4*>(this); }
+    const f32x4* data() const { return (f32x4*)(this); }
+
+    f32x4& operator[](int i)             { ADT_ASSERT(i >= 0 && i < 2, "out of range"); return data()[i]; }
+    const f32x4& operator[](int i) const { ADT_ASSERT(i >= 0 && i < 2, "out of range"); return data()[i]; }
+};
+
+inline
+V2x4::V2x4(IV2x4 a) : x(a.x), y(a.y) {}
 
 inline i32x4
 i32x4Reinterpret(const f32x4 x)
@@ -277,73 +300,153 @@ operator<(const i32x4 l, const i32x4 r)
     return _mm_cmplt_epi32(l.pack, r.pack);
 }
 
+inline i32x4
+operator>>(i32x4 a, i32 b)
+{
+    i32x4 res;
+    res.pack = _mm_srl_epi32(a.pack, _mm_set_epi32(0, 0, 0, b));
+    return res;
+}
+
+inline i32x4
+operator<<(i32x4 a, i32 b)
+{
+    i32x4 res;
+    res.pack = _mm_sll_epi32(a.pack, _mm_set_epi32(0, 0, 0, b));
+    return res;
+}
+
 inline V2x4
 operator+(const V2x4 l, const V2x4 r)
 {
-    return {
-        .x = l.x + r.x,
-        .y = l.y + r.y,
-    };
+    V2x4 res;
+    res.x = l.x + r.x;
+    res.y = l.y + r.y;
+    return res;
+}
+
+inline IV2x4
+operator+(IV2x4 l, math::IV2 r)
+{
+    IV2x4 res;
+    res.x = l.x + r.x;
+    res.y = l.y + r.y;
+    return res;
 }
 
 inline V2x4
 operator-(const V2x4 l, const V2x4 r)
 {
-    return {
-        .x = l.x - r.x,
-        .y = l.y - r.y,
-    };
+    V2x4 res;
+    res.x = l.x - r.x;
+    res.y = l.y - r.y;
+    return res;
 }
 
 inline V2x4
 operator-(const V2x4 l, const math::V2 r)
 {
-    return {
-        .x = l.x - r.x,
-        .y = l.y - r.y,
-    };
+    V2x4 res;
+    res.x = l.x - r.x;
+    res.y = l.y - r.y;
+    return res;
 }
 
 inline V2x4
 operator+(const V2x4 l, const math::V2 r)
 {
-    return {
-        .x = l.x + r.x,
-        .y = l.y + r.y,
-    };
+    V2x4 res;
+    res.x = l.x + r.x;
+    res.y = l.y + r.y;
+    return res;
 }
 
 inline V2x4
 operator*(const f32x4 l, math::V2 r)
 {
-    return {
-        .x = l * r.x,
-        .y = l * r.y,
-    };
+    V2x4 res;
+    res.x = l * r.x;
+    res.y = l * r.y;
+    return res;
 }
 
 inline V2x4
 operator*(const V2x4 l, math::V2 r)
 {
-    return {
-        .x = l.x * r.x,
-        .y = l.y * r.y,
-    };
+    V2x4 res;
+    res.x = l.x * r.x;
+    res.y = l.y * r.y;
+    return res;
 }
 
 inline V2x4
 operator/(const V2x4 l, const f32x4 r)
 {
-    return {
-        .x = l.x / r,
-        .y = l.y / r,
-    };
+    V2x4 res;
+    res.x = l.x / r;
+    res.y = l.y / r;
+    return res;
+}
+
+inline V2x4
+operator/(const V2x4 l, math::V2 r)
+{
+    V2x4 res;
+    res.x = l.x / r.x;
+    res.y = l.y / r.y;
+    return res;
 }
 
 inline V2x4&
 operator/=(V2x4& l, const f32x4 r)
 {
     return l = l / r;
+}
+
+inline V3x4
+operator+(V3x4 a, V3x4 b)
+{
+    V3x4 res;
+    res.x = a.x + b.x;
+    res.y = a.y + b.y;
+    res.z = a.z + b.z;
+    return res;
+}
+
+inline V3x4
+operator*(f32x4 a, V3x4 b)
+{
+    V3x4 res;
+    res.x = a* b.x;
+    res.y = a * b.y;
+    res.z = a * b.z;
+    return res;
+}
+
+inline V3x4
+operator*(V3x4 a, f32 b)
+{
+    V3x4 res;
+    res.x = a.x * b;
+    res.y = a.y * b;
+    res.z = a.z * b;
+    return res;
+}
+
+inline V3x4&
+operator*=(V3x4& a, f32 b)
+{
+    return a = a * b;
+}
+
+inline V3x4
+operator/(V3x4 a, f32 b)
+{
+    V3x4 res;
+    res.x = a.x / b;
+    res.y = a.y / b;
+    res.z = a.z / b;
+    return res;
 }
 
 inline i32x4
@@ -374,6 +477,28 @@ inline i32x4
 max(const i32x4 l, const i32x4 r)
 {
     return _mm_max_epi32(l.pack, r.pack);
+}
+
+inline f32x4
+floor(const f32x4 x)
+{
+    return _mm_floor_ps(x.pack);
+}
+
+inline V2x4
+floor(V2x4 a)
+{
+    V2x4 res;
+    res.x = floor(a.x);
+    res.y = floor(a.y);
+    return res;
+}
+
+inline V3x4
+lerp(V3x4 a, V3x4 b, f32x4 t)
+{
+    V3x4 Result = (1.0f - t) * a + t * b;
+    return Result;
 }
 
 inline void

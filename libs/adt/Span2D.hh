@@ -42,8 +42,8 @@ private:
     at(int x, int y) const
     {
         ADT_ASSERT(x >= 0 && x < m_width && y >= 0 && y < m_height,
-            "x: %d, y: %d, width: %d, height: %d",
-            x, y, m_width, m_height
+            "x: %d, y: %d, width: %d, height: %d, stride: %d",
+            x, y, m_width, m_height, m_stride
         );
 
         return m_pData[y*m_stride + x];

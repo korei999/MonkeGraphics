@@ -55,7 +55,7 @@ procKeybinds(Arr<bool, MAX_KEYBINDS>* paPressOnceMap, const Arr<Keybind, MAX_KEY
         if (com.eExecOn == EXEC_ON::PRESS)
         {
             bKey = com.key == 0 ? true : g_aPressed[com.key];
-            bMod = com.eMod == MOD_STATE::NONE ? true : com.eMod == g_ePressedMods;
+            bMod = com.eMod == MOD_STATE::NONE ? true : static_cast<bool>(com.eMod & g_ePressedMods);
         }
         else
         {
@@ -124,7 +124,7 @@ procMouse()
 
     g_camera.m_front = lookAt;
     g_camera.m_right = right;
-    g_camera.m_trm = viewTrm * g_camera.procMoveTRM();
+    g_camera.m_trm = viewTrm * g_camera.m_lastTrm;
 }
 
 void

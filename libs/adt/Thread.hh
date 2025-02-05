@@ -16,6 +16,55 @@
     #define ADT_USE_PTHREAD
 #endif
 
+#ifdef __linux__
+    #include <sys/sysinfo.h>
+
+    #define ADT_GET_NCORES() get_nprocs()
+#elif _WIN32
+    #define WIN32_LEAN_AND_MEAN 1
+    #include <windows.h>
+    #ifdef min
+        #undef min
+    #endif
+    #ifdef max
+        #undef max
+    #endif
+    #ifdef near
+        #undef near
+    #endif
+    #ifdef far
+        #undef far
+    #endif
+    #include <sysinfoapi.h>
+
+inline DWORD
+getLogicalCoresCountWIN32()
+{
+    SYSTEM_INFO info;
+    GetSystemInfo(&info);
+    return info.dwNumberOfProcessors;
+}
+
+    #define ADT_GET_NCORES() getLogicalCoresCountWIN32()
+#else
+    #define ADT_GET_NCORES() 4
+#endif
+
+inline int
+getNCores()
+{
+#ifdef __linux__
+    return get_nprocs();
+#elif _WIN32
+    SYSTEM_INFO info;
+    GetSystemInfo(&info);
+    return info.dwNumberOfProcessors;
+
+    return info.dwNumberOfProcessors;
+#endif
+    return 4;
+}
+
 namespace adt
 {
 
@@ -53,7 +102,7 @@ struct Thread
 
     Thread() = default;
     Thread(THREAD_STATUS (*pfn)(void*), void* pFnArg);
-    template<typename LAMBDA> Thread(LAMBDA l);
+    // template<typename LAMBDA> Thread(LAMBDA l);
 
     /* */
 
@@ -98,34 +147,34 @@ Thread::Thread(THREAD_STATUS (*pfn)(void*), void* pFnArg)
 #endif
 }
 
-template<typename LAMBDA>
-inline
-Thread::Thread(LAMBDA l)
-{
-#ifdef ADT_USE_PTHREAD
-
-    auto stub = +[](void* pArg) -> void*
-    {
-        auto& funct = *reinterpret_cast<LAMBDA*>(pArg);
-        funct();
-        return nullptr;
-    };
-
-    pthread_create(&m_thread, {}, stub, &l);
-
-#elif defined ADT_USE_WIN32THREAD
-
-    auto stub = +[](void* pArg) -> THREAD_STATUS
-    {
-        auto& funct = *reinterpret_cast<LABMDA*>(pArg);
-        funct();
-        return 0;
-    };
-
-    m_thread = CreateThread(nullptr, 0, stub, &l, 0, &m_id);
-
-#endif
-}
+// template<typename LAMBDA>
+// inline
+// Thread::Thread(LAMBDA l)
+// {
+// #ifdef ADT_USE_PTHREAD
+// 
+//     auto stub = +[](void* pArg) -> void*
+//     {
+//         auto& funct = *reinterpret_cast<LAMBDA*>(pArg);
+//         funct();
+//         return nullptr;
+//     };
+// 
+//     pthread_create(&m_thread, {}, stub, &l);
+// 
+// #elif defined ADT_USE_WIN32THREAD
+// 
+//     auto stub = +[](void* pArg) -> THREAD_STATUS
+//     {
+//         auto& funct = *reinterpret_cast<LABMDA*>(pArg);
+//         funct();
+//         return 0;
+//     };
+// 
+//     m_thread = CreateThread(nullptr, 0, stub, &l, 0, &m_id);
+// 
+// #endif
+// }
 
 #if defined __clang__
     #pragma clang diagnostic pop

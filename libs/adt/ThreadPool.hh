@@ -12,55 +12,6 @@
 namespace adt
 {
 
-#ifdef __linux__
-    #include <sys/sysinfo.h>
-
-    #define ADT_GET_NCORES() get_nprocs()
-#elif _WIN32
-    #define WIN32_LEAN_AND_MEAN 1
-    #include <windows.h>
-    #ifdef min
-        #undef min
-    #endif
-    #ifdef max
-        #undef max
-    #endif
-    #ifdef near
-        #undef near
-    #endif
-    #ifdef far
-        #undef far
-    #endif
-    #include <sysinfoapi.h>
-
-inline DWORD
-getLogicalCoresCountWIN32()
-{
-    SYSTEM_INFO info;
-    GetSystemInfo(&info);
-    return info.dwNumberOfProcessors;
-}
-
-    #define ADT_GET_NCORES() getLogicalCoresCountWIN32()
-#else
-    #define ADT_GET_NCORES() 4
-#endif
-
-inline int
-getNCores()
-{
-#ifdef __linux__
-    return get_nprocs();
-#elif _WIN32
-    SYSTEM_INFO info;
-    GetSystemInfo(&info);
-    return info.dwNumberOfProcessors;
-
-    return info.dwNumberOfProcessors;
-#endif
-    return 4;
-}
-
 enum class WAIT_FLAG : u8 { DONT_WAIT, WAIT };
 
 /* wait for individual task completion without ThreadPoolWait */
@@ -129,7 +80,7 @@ struct ThreadPool
     /* */
 
     ThreadPool() = default;
-    ThreadPool(IAllocator* pAlloc, u32 _nThreads = ADT_GET_NCORES());
+    ThreadPool(IAllocator* pAlloc, int _nThreads = ADT_GET_NCORES());
 
     /* */
 
@@ -138,6 +89,7 @@ struct ThreadPool
     bool busy();
     void submit(ThreadTask task);
     void submit(ThreadFn pfnTask, void* pArgs);
+    template<typename LAMBDA> void submit(LAMBDA l);
     /* Signal ThreadPoolLock after completion.
      * If `ThreadPoolLock::wait()` was never called for this `pTpLock`, the task will spinlock forever,
      * unless `pTpLock->bSignaled` is manually set to true; */
@@ -146,7 +98,7 @@ struct ThreadPool
 };
 
 inline
-ThreadPool::ThreadPool(IAllocator* _pAlloc, u32 _nThreads)
+ThreadPool::ThreadPool(IAllocator* _pAlloc, int _nThreads)
     : m_pAlloc(_pAlloc),
       m_qTasks(_pAlloc, _nThreads),
       m_aThreads(_pAlloc, _nThreads),
@@ -225,7 +177,7 @@ ThreadPool::busy()
     bool ret;
     {
         guard::Mtx lock(&m_mtxQ);
-        ret = !m_qTasks.empty() || m_nActiveTasks > 0;
+        ret = !m_qTasks.empty() || m_nActiveTasks.load(std::memory_order_acquire) > 0;
     }
 
     return ret;
@@ -248,6 +200,20 @@ ThreadPool::submit(ThreadFn pfnTask, void* pArgs)
     assert(m_bStarted && "[ThreadPool]: never called ThreadPoolStart()");
 
     submit({pfnTask, pArgs});
+}
+
+template<typename LAMBDA>
+inline void
+ThreadPool::submit(LAMBDA l)
+{
+    auto stub = +[](void* pArg) -> THREAD_STATUS
+    {
+        auto callable = *reinterpret_cast<LAMBDA*>(pArg);
+        callable();
+        return 0;
+    };
+
+    submit(stub, &l);
 }
 
 inline void
