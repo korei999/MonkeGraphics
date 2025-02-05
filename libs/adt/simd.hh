@@ -417,7 +417,7 @@ inline V3x4
 operator*(f32x4 a, V3x4 b)
 {
     V3x4 res;
-    res.x = a* b.x;
+    res.x = a * b.x;
     res.y = a * b.y;
     res.z = a * b.z;
     return res;
@@ -501,6 +501,30 @@ lerp(V3x4 a, V3x4 b, f32x4 t)
     return Result;
 }
 
+inline simd::V3x4
+colorI32x4ToV3x4(simd::i32x4 color)
+{
+    simd::V3x4 res;
+    res.x = simd::f32x4((color >> 16) & 0xFF);
+    res.y = simd::f32x4((color >> 8) & 0xFF);
+    res.z = simd::f32x4((color >> 0) & 0xFF);
+    res = res / 255.0f;
+    return res;
+}
+
+inline simd::i32x4
+colorV3x4ToI32x4(simd::V3x4 color)
+{
+    color *= 255.0f;
+    simd::i32x4 res = ((simd::i32x4(0xff) << 24) |
+        (simd::i32x4(color.x) << 16) |
+        (simd::i32x4(color.y) << 8) |
+        (simd::i32x4(color.z))
+    );
+
+    return res;
+}
+
 inline void
 i32Fillx4(Span<i32> src, const i32 x)
 {
@@ -582,11 +606,16 @@ struct f32x8
     explicit operator i32x8() const { return _mm256_cvtps_epi32(pack); }
 };
 
+struct IV2x8;
+
 struct V2x8
 {
     f32x8 x {}, y {};
 
     /* */
+
+    V2x8() = default;
+    V2x8(IV2x8);
 
     f32x8* data() { return reinterpret_cast<f32x8*>(this); }
     const f32x8* data() const { return (f32x8*)(this); }
@@ -601,6 +630,12 @@ struct IV2x8
 
     /* */
 
+    IV2x8() = default;
+    IV2x8(f32x8 a, f32x8 b) : x(a), y(b) {}
+    IV2x8(V2x8 a) : x(a.x), y(a.y) {}
+
+    /* */
+
     i32x8* data() { return reinterpret_cast<i32x8*>(this); }
     const i32x8* data() const { return (i32x8*)(this); }
 
@@ -608,11 +643,21 @@ struct IV2x8
     const i32x8& operator[](int i) const { ADT_ASSERT(i >= 0 && i < 2, "out of range"); return data()[i]; }
 };
 
-inline f32x8
-floor(const f32x8 x)
+struct V3x8
 {
-    return _mm256_floor_ps(x.pack);
-}
+    f32x8 x {}, y {}, z {};
+
+    /* */
+
+    f32x8* data() { return reinterpret_cast<f32x8*>(this); }
+    const f32x8* data() const { return (f32x8*)(this); }
+
+    f32x8& operator[](int i)             { ADT_ASSERT(i >= 0 && i < 2, "out of range"); return data()[i]; }
+    const f32x8& operator[](int i) const { ADT_ASSERT(i >= 0 && i < 2, "out of range"); return data()[i]; }
+};
+
+inline
+V2x8::V2x8(IV2x8 a) : x(a.x), y(a.y) {}
 
 inline i32x8
 i32x8Reinterpret(const f32x8 x)
@@ -786,73 +831,169 @@ operator<(const i32x8 l, const i32x8 r)
     return _mm256_cmpgt_epi32(r.pack, l.pack);
 }
 
+inline i32x8
+operator<<(i32x8 a, i32 b)
+{
+    i32x8 res;
+    res.pack = _mm256_sll_epi32(a.pack, _mm_set_epi32(0, 0, 0, b));
+    return res;
+}
+
+inline i32x8
+operator>>(i32x8 a, i32 b)
+{
+    i32x8 res;
+    res.pack = _mm256_srl_epi32(a.pack, _mm_set_epi32(0, 0, 0, b));
+    return res;
+}
+
 inline V2x8
 operator+(const V2x8 l, const V2x8 r)
 {
-    return {
-        .x = l.x + r.x,
-        .y = l.y + r.y,
-    };
+    V2x8 res;
+    res.x = l.x + r.x;
+    res.y = l.y + r.y;
+    return res;
 }
 
 inline V2x8
 operator-(const V2x8 l, const V2x8 r)
 {
-    return {
-        .x = l.x - r.x,
-        .y = l.y - r.y,
-    };
+    V2x8 res;
+    res.x = l.x - r.x;
+    res.y = l.y - r.y;
+    return res;
 }
 
 inline V2x8
 operator-(const V2x8 l, const math::V2 r)
 {
-    return {
-        .x = l.x - r.x,
-        .y = l.y - r.y,
-    };
+    V2x8 res;
+    res.x = l.x - r.x;
+    res.y = l.y - r.y;
+    return res;
 }
 
 inline V2x8
 operator+(const V2x8 l, const math::V2 r)
 {
-    return {
-        .x = l.x + r.x,
-        .y = l.y + r.y,
-    };
+    V2x8 res;
+    res.x = l.x + r.x;
+    res.y = l.y + r.y;
+    return res;
 }
 
 inline V2x8
 operator*(const f32x8 l, math::V2 r)
 {
-    return {
-        .x = l * r.x,
-        .y = l * r.y,
-    };
+    V2x8 res;
+    res.x = l * r.x;
+    res.y = l * r.y;
+    return res;
 }
 
 inline V2x8
 operator*(const V2x8 l, math::V2 r)
 {
-    return {
-        .x = l.x * r.x,
-        .y = l.y * r.y,
-    };
+    V2x8 res;
+    res.x = l.x * r.x;
+    res.y = l.y * r.y;
+    return res;
+}
+
+inline V2x8
+operator/(const V2x8 l, math::V2 r)
+{
+    V2x8 res;
+    res.x = l.x / r.x;
+    res.y = l.y / r.y;
+    return res;
 }
 
 inline V2x8
 operator/(const V2x8 l, const f32x8 r)
 {
-    return {
-        .x = l.x / r,
-        .y = l.y / r,
-    };
+    V2x8 res;
+    res.x = l.x / r;
+    res.y = l.y / r;
+    return res;
 }
 
 inline V2x8&
 operator/=(V2x8& l, const f32x8 r)
 {
     return l = l / r;
+}
+
+inline IV2x8
+operator+(IV2x8 l, math::IV2 r)
+{
+    IV2x8 res;
+    res.x = l.x + r.x;
+    res.y = l.y + r.y;
+    return res;
+}
+
+inline V3x8
+operator+(V3x8 a, V3x8 b)
+{
+    V3x8 res;
+    res.x = a.x + b.x;
+    res.y = a.y + b.y;
+    res.z = a.z + b.z;
+    return res;
+}
+
+inline V3x8
+operator-(V3x8 a, V3x8 b)
+{
+    V3x8 res;
+    res.x = a.x - b.x;
+    res.y = a.y - b.y;
+    res.z = a.z - b.z;
+    return res;
+}
+
+inline V3x8
+operator*(f32x8 a, V3x8 b)
+{
+    V3x8 res;
+    res.x = a * b.x;
+    res.y = a * b.y;
+    res.z = a * b.z;
+    return res;
+}
+
+inline V3x8
+operator*(V3x8 a, f32x8 b)
+{
+    return b * a;
+}
+
+inline V3x8
+operator*(V3x8 a, f32 b)
+{
+    V3x8 res;
+    res.x = a.x * b;
+    res.y = a.y * b;
+    res.z = a.z * b;
+    return res;
+}
+
+inline V3x8&
+operator*=(V3x8& a, f32 b)
+{
+    return a = a * b;
+}
+
+inline V3x8
+operator/(V3x8 a, f32 b)
+{
+    V3x8 res;
+    res.x = a.x / b;
+    res.y = a.y / b;
+    res.z = a.z / b;
+    return res;
 }
 
 inline i32x8
@@ -883,6 +1024,45 @@ inline i32x8
 max(const i32x8 l, const i32x8 r)
 {
     return _mm256_max_epi32(l.pack, r.pack);
+}
+
+inline f32x8
+floor(const f32x8 x)
+{
+    return _mm256_floor_ps(x.pack);
+}
+
+inline V2x8
+floor(V2x8 a)
+{
+    V2x8 res;
+    res.x = floor(a.x);
+    res.y = floor(a.y);
+    return res;
+}
+
+inline simd::V3x8
+colorI32x8ToV3x8(simd::i32x8 color)
+{
+    simd::V3x8 res;
+    res.x = simd::f32x8((color >> 16) & 0xFF);
+    res.y = simd::f32x8((color >> 8) & 0xFF);
+    res.z = simd::f32x8((color >> 0) & 0xFF);
+    res = res / 255.0f;
+    return res;
+}
+
+inline simd::i32x8
+colorV3x8ToI32x8(simd::V3x8 color)
+{
+    color *= 255.0f;
+    simd::i32x8 res = ((simd::i32x8(0xff) << 24) |
+        (simd::i32x8(color.x) << 16) |
+        (simd::i32x8(color.y) << 8) |
+        (simd::i32x8(color.z))
+    );
+
+    return res;
 }
 
 inline void

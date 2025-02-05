@@ -57,30 +57,6 @@ allocDefaultTexture()
     return sp;
 }
 
-static simd::V3x4
-colorI32x4ToV3x4(simd::i32x4 color)
-{
-    simd::V3x4 res;
-    res.x = simd::f32x4((color >> 16) & 0xFF);
-    res.y = simd::f32x4((color >> 8) & 0xFF);
-    res.z = simd::f32x4((color >> 0) & 0xFF);
-    res = res / 255.0f;
-    return res;
-}
-
-static simd::i32x4
-colorV3x4ToI32x4(simd::V3x4 color)
-{
-    color *= 255.0f;
-    simd::i32x4 res = ((simd::i32x4(0xff) << 24) |
-        (simd::i32x4(color.x) << 16) |
-        (simd::i32x4(color.y) << 8) |
-        (simd::i32x4(color.z))
-    );
-
-    return res;
-}
-
 static math::V2
 ndcToPix(math::V2 ndcPos)
 {
@@ -466,43 +442,43 @@ drawTriangleAVX2(
 
                     case SAMPLER::BILINEAR:
                     {
-                        // simd::V2x4 texelV2 = uv *
-                        //     V2From(spTexture.getWidth(), spTexture.getHeight()) -
-                        //     V2{0.5f, 0.5f};
+                        simd::V2x8 texelV2 = uv *
+                            V2From(spTexture.getWidth(), spTexture.getHeight()) -
+                            V2{0.5f, 0.5f};
 
-                        // simd::IV2x4 aTexelPos[4] {};
-                        // aTexelPos[0] = simd::IV2x4(simd::floor(texelV2.x), simd::floor(texelV2.y));
-                        // aTexelPos[1] = aTexelPos[0] + IV2{1, 0};
-                        // aTexelPos[2] = aTexelPos[0] + IV2{0, 1};
-                        // aTexelPos[3] = aTexelPos[0] + IV2{1, 1};
+                        simd::IV2x8 aTexelPos[4] {};
+                        aTexelPos[0] = simd::IV2x8(simd::floor(texelV2.x), simd::floor(texelV2.y));
+                        aTexelPos[1] = aTexelPos[0] + IV2{1, 0};
+                        aTexelPos[2] = aTexelPos[0] + IV2{0, 1};
+                        aTexelPos[3] = aTexelPos[0] + IV2{1, 1};
 
-                        // simd::V3x4 aTexelColors[4] {};
-                        // for (int texelI = 0; texelI < utils::size(aTexelPos); ++texelI)
-                        // {
-                        //     simd::IV2x4 currTexelPos = aTexelPos[texelI];
-                        //     {
-                        //         simd::V2x4 currTexelPosF = simd::V2x4(currTexelPos);
-                        //         simd::V2x4 factor = simd::floor(currTexelPosF / V2From(spTexture.getWidth(), spTexture.getHeight()));
-                        //         currTexelPosF = currTexelPosF - factor * V2From(spTexture.getWidth(), spTexture.getHeight());
-                        //         currTexelPos = simd::IV2x4(currTexelPosF);
-                        //     }
+                        simd::V3x8 aTexelColors[4] {};
+                        for (int texelI = 0; texelI < utils::size(aTexelPos); ++texelI)
+                        {
+                            simd::IV2x8 currTexelPos = aTexelPos[texelI];
+                            {
+                                simd::V2x8 currTexelPosF = simd::V2x8(currTexelPos);
+                                simd::V2x8 factor = simd::floor(currTexelPosF / V2From(spTexture.getWidth(), spTexture.getHeight()));
+                                currTexelPosF = currTexelPosF - factor * V2From(spTexture.getWidth(), spTexture.getHeight());
+                                currTexelPos = simd::IV2x8(currTexelPosF);
+                            }
 
-                        //     simd::i32x4 texelOffsets = currTexelPos.y * spTexture.getWidth() + currTexelPos.x;
-                        //     simd::i32x4 loadMask = edgeMask & depthMask;
-                        //     texelOffsets = (texelOffsets & loadMask) + simd::andNot(loadMask, simd::i32x4(0));
-                        //     simd::i32x4 texelColorI32 = simd::i32x4Gather((i32*)spTexture.data(), texelOffsets);
+                            simd::i32x8 texelOffsets = currTexelPos.y * spTexture.getWidth() + currTexelPos.x;
+                            simd::i32x8 loadMask = edgeMask & depthMask;
+                            texelOffsets = (texelOffsets & loadMask) + simd::andNot(loadMask, simd::i32x8(0));
+                            simd::i32x8 texelColorI32 = simd::i32x8Gather((i32*)spTexture.data(), texelOffsets);
 
-                        //     aTexelColors[texelI] = colorI32x4ToV3x4(texelColorI32);
-                        // }
+                            aTexelColors[texelI] = colorI32x8ToV3x8(texelColorI32);
+                        }
 
-                        // simd::f32x4 s = texelV2.x - simd::floor(texelV2.x);
-                        // simd::f32x4 k = texelV2.y - simd::floor(texelV2.y);
+                        simd::f32x8 s = texelV2.x - simd::floor(texelV2.x);
+                        simd::f32x8 k = texelV2.y - simd::floor(texelV2.y);
 
-                        // simd::V3x4 interpolated0 = lerp(aTexelColors[0], aTexelColors[1], s);
-                        // simd::V3x4 interpolated1 = lerp(aTexelColors[2], aTexelColors[3], s);
-                        // simd::V3x4 finalColor = lerp(interpolated0, interpolated1, k);
+                        simd::V3x8 interpolated0 = lerp(aTexelColors[0], aTexelColors[1], s);
+                        simd::V3x8 interpolated1 = lerp(aTexelColors[2], aTexelColors[3], s);
+                        simd::V3x8 finalColor = lerp(interpolated0, interpolated1, k);
 
-                        // texelColor = colorV3x4ToI32x4(finalColor);
+                        texelColor = colorV3x8ToI32x8(finalColor);
                     }
                     break;
                 }
@@ -557,7 +533,7 @@ drawTriangle(
         auto v2 = pong.aVertices[3*triangleIdx + 2];
 
 #ifdef ADT_AVX2
-        drawTriangleAVX2(v0, v1, v2, spTexture, SAMPLER::NEAREST);
+        drawTriangleAVX2(v0, v1, v2, spTexture, SAMPLER::BILINEAR);
 #else
         drawTriangleSSE(v0, v1, v2, spTexture, SAMPLER::BILINEAR);
 #endif /* ADT_AVX2 */
@@ -689,7 +665,7 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
                             };
 
                             //for (auto [i0, i1, i2] : spIndiciesU16)
-                            #pragma omp parallel for
+                            // #pragma omp parallel for
                             for (int i = 0; i < spIndiciesU16.getSize(); ++i)
                             {
                                 int i0 = spIndiciesU16[i].x;
@@ -716,7 +692,7 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
                             };
 
                             // for (auto [i0, i1, i2] : spIndiciesU32)
-                            #pragma omp parallel for
+                            // #pragma omp parallel for
                             for (int i = 0; i < spIndiciesU32.getSize(); ++i)
                             {
                                 int i0 = spIndiciesU32[i].x;
