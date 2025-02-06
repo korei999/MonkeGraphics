@@ -55,7 +55,7 @@ start()
 
     game::loadAssets();
 
-    Arena frameArena(SIZE_8K);
+    Arena frameArena(SIZE_8M);
     defer( frameArena.freeAll() );
 
     win.regUpdateCB(refresh, &frameArena);

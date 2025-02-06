@@ -396,8 +396,15 @@ drawTriangleAVX2(
             const int invY = sp.getHeight() - 1 - y;
             i32* pColor = reinterpret_cast<i32*>(&sp(x, invY));
             f32* pDepth = &spDepth(x, invY);
-            const simd::i32x8 pixelColors = simd::i32x8Load(pColor);
-            const simd::f32x8 pixelDepths = simd::f32x8Load(pDepth);
+            simd::i32x8 pixelColors;
+            simd::f32x8 pixelDepths;
+            {
+                /*guard::Mtx lock(&s_mtxDepth);*/
+                pixelColors = simd::i32x8Load(pColor);
+                pixelDepths = simd::f32x8Load(pDepth);
+            }
+            /*simd::i32x8 pixelColors = simd::i32x8Load(pColor);*/
+            /*simd::f32x8 pixelDepths = simd::f32x8Load(pDepth);*/
 
             const simd::i32x8 edgeMask = (edge0RowX | edge1RowX | edge2RowX) >= 0;
 
@@ -488,8 +495,11 @@ drawTriangleAVX2(
                 const simd::i32x8 outputColors = (texelColor & finalMaskI32) + simd::andNot(finalMaskI32, pixelColors);
                 const simd::f32x8 outputDepth = (depthZ & finalMaskF32) + simd::andNot(finalMaskF32, pixelDepths);
 
-                simd::i32x8Store(pColor, outputColors);
-                simd::f32x8Store(pDepth, outputDepth);
+                {
+                    /*guard::Mtx lock(&s_mtxDepth);*/
+                    simd::i32x8Store(pColor, outputColors);
+                    simd::f32x8Store(pDepth, outputDepth);
+                }
             }
             edge0RowX += edge0DiffX;
             edge1RowX += edge1DiffX;
@@ -664,14 +674,8 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
                                 accIndices.count / 3
                             };
 
-                            //for (auto [i0, i1, i2] : spIndiciesU16)
-                            // #pragma omp parallel for
-                            for (int i = 0; i < spIndiciesU16.getSize(); ++i)
+                            for (auto [i0, i1, i2] : spIndiciesU16)
                             {
-                                int i0 = spIndiciesU16[i].x;
-                                int i1 = spIndiciesU16[i].y;
-                                int i2 = spIndiciesU16[i].z;
-
                                 V3 aPos[3] {spPos[i0], spPos[i1], spPos[i2]};
                                 V2 aUVs[3] {spUVs[i0], spUVs[i1], spUVs[i2]};
 
@@ -691,14 +695,8 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
                                 accIndices.count / 3
                             };
 
-                            // for (auto [i0, i1, i2] : spIndiciesU32)
-                            // #pragma omp parallel for
-                            for (int i = 0; i < spIndiciesU32.getSize(); ++i)
+                            for (auto [i0, i1, i2] : spIndiciesU32)
                             {
-                                int i0 = spIndiciesU32[i].x;
-                                int i1 = spIndiciesU32[i].y;
-                                int i2 = spIndiciesU32[i].z;
-
                                 V3 aPos[3] {spPos[i0], spPos[i1], spPos[i2]};
                                 V2 aUVs[3] {spUVs[i0], spUVs[i1], spUVs[i2]};
 
@@ -728,7 +726,7 @@ drawGLTF(Arena* pArena, const gltf::Model& model, math::M4 trm)
     }
 }
 
-static void
+[[maybe_unused]] static void
 drawImgDBG(Image* pImg)
 {
     auto& win = app::window();
@@ -766,23 +764,36 @@ toBuffer(Arena* pArena)
         +[] { s_spDefaultTexture = allocDefaultTexture(); }
     );
 
+    /* clear */
+    win.clearColorBuffer({0.0f, 0.4f, 0.6f, 1.0f});
+    win.clearDepthBuffer();
+
+    const auto& camera = control::g_camera;
+    const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
+
+    const auto* pModel = asset::searchModel("assets/Sponza/Sponza.gltf");
+    // const f32 step = static_cast<f32>(frame::g_time*0.001);
+
     {
-        /* clear */
-        win.clearColorBuffer({0.0f, 0.4f, 0.6f, 1.0f});
-        win.clearDepthBuffer();
-
-        const auto& model = *asset::searchModel("assets/Sponza/Sponza.gltf");
-        const auto& camera = control::g_camera;
-        const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
-        // const f32 step = static_cast<f32>(frame::g_time*0.001);
-
         M4 cameraTrm = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
             camera.m_trm *
             M4TranslationFrom(0.0f, -0.0f, -0.0f) *
             M4RotFrom(0, 0, 0) *
             M4ScaleFrom(0.006f);
 
-        drawGLTF(pArena, model, cameraTrm);
+        if (pModel)
+            drawGLTF(pArena, *pModel, cameraTrm);
+
+        M4 cameraTrm2 = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
+            camera.m_trm *
+            M4TranslationFrom(0.0f, 0.5f, -0.0f) *
+            M4RotFrom(0, 0, 0) *
+            M4ScaleFrom(0.002f);
+
+        const auto* pModelBackpack = asset::searchModel("assets/backpack/scene.gltf");
+
+        if (pModelBackpack)
+            drawGLTF(pArena, *pModelBackpack, cameraTrm2);
     }
 
     const f64 t1 = utils::timeNowMS();

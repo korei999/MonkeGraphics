@@ -99,7 +99,7 @@ procMouse()
     V2 delta = (g_mouse.rel - g_mouse.prevRel) * g_camera.m_sens;
     g_mouse.prevRel = g_mouse.rel;
 
-    g_camera.m_yaw -= delta.x;
+    g_camera.m_yaw += delta.x;
     g_camera.m_pitch += delta.y;
 
     if (g_camera.m_pitch > 89.9f)
@@ -107,7 +107,7 @@ procMouse()
     if (g_camera.m_pitch < -89.9f)
         g_camera.m_pitch = -89.9f;
 
-    const M4 yawTrm = M4RotFrom(0, toRad(g_camera.m_yaw), 0);
+    const M4 yawTrm = M4RotFrom(0, toRad(-g_camera.m_yaw), 0);
     const M4 pitchTrm = M4RotFrom(toRad(g_camera.m_pitch), 0, 0);
     const M4 axisTrm = yawTrm * pitchTrm;
 
