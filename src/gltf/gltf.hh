@@ -1,3 +1,5 @@
+/* https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#properties-reference */
+
 #pragma once
 
 #include "json/Parser.hh"
@@ -37,8 +39,8 @@ struct Scene
 struct Buffer
 {
     adt::u32 byteLength;
-    adt::String uri;
-    adt::String bin;
+    adt::String sUri;
+    adt::String sBin;
 };
 
 enum class ACCESSOR_TYPE
@@ -83,17 +85,57 @@ struct Accessor
  * and together they define the structure of the scene as a scene graph. */
 struct Node
 {
-    adt::String name;
+    adt::String sName;
     adt::u32 camera;
     adt::VecBase<adt::u32> children;
     adt::math::M4 matrix = adt::math::M4Iden();
     adt::ssize mesh = adt::NPOS; /* The index of the mesh in this node. */
     adt::math::V3 translation {};
-    adt::math::V4 rotation = adt::math::QtIden().base;
-    adt::math::V3 scale {1, 1, 1};
+    adt::math::Qt rotation = adt::math::QtIden();
+    adt::math::V3 scale {1.0f, 1.0f, 1.0f};
 
     Node() = default;
     Node(adt::IAllocator* p) : children(p) {}
+};
+
+struct Animation
+{
+    struct Channel
+    {
+        struct Target
+        {
+            enum class PATH_TYPE : adt::u8 { TRANSLATION, ROTATION, SCALE };
+
+            /* The index of the node to animate. When undefined, the animated object MAY be defined by an extension. */
+            int node = -1;
+            /* REQUIRED. The name of the node’s TRS property to animate, or the "weights" of the Morph Targets it instantiates.
+             * For the "translation" property, the values that are provided by the sampler are the translation along the X, Y, and Z axes.
+             * For the "rotation" property, the values are a quaternion in the order (x, y, z, w), where w is the scalar.
+             * For the "scale" property, the values are the scaling factors along the X, Y, and Z axes. */
+            PATH_TYPE ePath {};
+        };
+
+        int sampler {}; /* REQUIRED. The index of a sampler in this animation used to compute the value for the target. */
+        Target target {}; /* REQUIRED. The descriptor of the animated property. */
+        
+    };
+
+    struct Sampler
+    {
+        enum class INTERPOLATION_TYPE : adt::u8 { LINEAR, STEP, CUBICSPLINE };
+
+        int input {}; /* REQUIRED. The index of an accessor containing keyframe timestamps. */
+        INTERPOLATION_TYPE interpolation = INTERPOLATION_TYPE::LINEAR;
+        int output {}; /* REQUIRED. The index of an accessor, containing keyframe output values. */
+    };
+
+    /* REQUIRED. An array of animation channels. An animation channel combines an animation sampler with a target property being animated.
+     * Different channels of the same animation MUST NOT have the same targets. */
+    adt::VecBase<Channel> channels {};
+    /* REQUIRED. An array of animation samplers.
+     * An animation sampler combines timestamps with a sequence of output values and defines an interpolation algorithm. */
+    adt::VecBase<Sampler> samplers {};
+    adt::String sName {}; /* The user-defined name of this object. */
 };
 
 struct CameraPersp
@@ -136,7 +178,7 @@ struct BufferView
 
 struct Image
 {
-    adt::String uri;
+    adt::String sUri;
 };
 
 /* match real gl macros */
@@ -170,7 +212,7 @@ struct Primitive
 struct Mesh
 {
     adt::VecBase<Primitive> aPrimitives; /* REQUIRED */
-    adt::String svName;
+    adt::String sName {};
 };
 
 struct Texture
@@ -232,6 +274,7 @@ struct Model
     adt::VecBase<Material> m_vMaterials {};
     adt::VecBase<Image> m_vImages {};
     adt::VecBase<Node> m_vNodes {};
+    adt::VecBase<Animation> m_vAnimations {};
 
     adt::String m_sPath {};
     adt::String m_sFile {};
@@ -248,15 +291,16 @@ struct Model
 
 private:
     void procJSONObjs(adt::IAllocator* pAlloc, const json::Parser& parser);
-    void procScenes(adt::IAllocator* pAlloc, const json::Parser& parser);
-    void procBuffers(adt::IAllocator* pAlloc, const json::Parser& parser);
-    void procBufferViews(adt::IAllocator* pAlloc, const json::Parser& parser);
-    void procAccessors(adt::IAllocator* pAlloc, const json::Parser& parser);
-    void procMeshes(adt::IAllocator* pAlloc, const json::Parser& parser);
-    void procTexures(adt::IAllocator* pAlloc, const json::Parser& parser);
-    void procMaterials(adt::IAllocator* pAlloc, const json::Parser& parser);
-    void procImages(adt::IAllocator* pAlloc, const json::Parser& parser);
-    void procNodes(adt::IAllocator* pAlloc, const json::Parser& parser);
+    void procScenes(adt::IAllocator* pAlloc);
+    void procBuffers(adt::IAllocator* pAlloc);
+    void procBufferViews(adt::IAllocator* pAlloc);
+    void procAccessors(adt::IAllocator* pAlloc);
+    void procMeshes(adt::IAllocator* pAlloc);
+    void procTexures(adt::IAllocator* pAlloc);
+    void procMaterials(adt::IAllocator* pAlloc);
+    void procImages(adt::IAllocator* pAlloc);
+    void procNodes(adt::IAllocator* pAlloc);
+    void procAnimations(adt::IAllocator* pAlloc);
 };
 
 inline adt::String

@@ -10,10 +10,10 @@ namespace game
 {
 
 static const String s_asAssetPaths[] {
-    "assets/cube.gltf",
-    "assets/Duck.gltf",
-    "assets/backpack/scene.gltf",
-    // "assets/Sponza/Sponza.gltf",
+    /*"assets/cube.gltf",*/
+    /*"assets/Duck.gltf",*/
+    /*"assets/backpack/scene.gltf",*/
+    /*"assets/Sponza/Sponza.gltf",*/
     "assets/vampire/vampire.gltf",
 };
 

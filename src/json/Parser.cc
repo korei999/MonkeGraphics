@@ -177,7 +177,7 @@ Parser::parseObject(Object* pNode)
         /* make sure key is quoted */
         OK_OR_RET(expect(TOKEN_TYPE::QUOTED_STRING));
 
-        aObjs.push(m_pAlloc, {.sKey = m_tCurr.sLiteral, .tagVal = {}});
+        aObjs.push(m_pAlloc, {.svKey = m_tCurr.sLiteral, .tagVal = {}});
 
         /* skip identifier and ':' */
         next();
@@ -287,7 +287,7 @@ Parser::print(FILE* fp)
 void
 printNode(FILE* fp, Object* pNode, String sEnd, int depth)
 {
-    String key = pNode->sKey;
+    String key = pNode->svKey;
 
     switch (pNode->tagVal.eTag)
     {

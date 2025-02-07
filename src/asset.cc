@@ -18,7 +18,7 @@ static Map<String, PoolHnd> s_mapStringToObjects(OsAllocatorGet(), g_objects.get
 void
 Object::destroy()
 {
-    LOG_NOTIFY("destroy(): hnd: {}, mappedWith: '{}'\n", g_objects.idx(this), m_sMappedWith);
+    LOG_NOTIFY("hnd: {}, mappedWith: '{}'\n", g_objects.idx(this), m_sMappedWith);
 
     s_mapStringToObjects.tryRemove(m_sMappedWith);
     m_arena.freeAll();
@@ -75,7 +75,7 @@ loadGLTF(const String svPath, const String sFile)
 
     for (const auto& image : gltfModel.m_vImages)
     {
-        String sPath = file::replacePathEnding(OsAllocatorGet(), svPath, image.uri);
+        String sPath = file::replacePathEnding(OsAllocatorGet(), svPath, image.sUri);
         defer( sPath.destroy(OsAllocatorGet()) );
         load(sPath);
     }
@@ -89,7 +89,7 @@ load(const adt::String svPath)
     auto found = s_mapStringToObjects.search(svPath);
     if (found)
     {
-        LOG_WARN("load(): '{}' is already loaded\n", svPath);
+        LOG_WARN("'{}' is already loaded\n", svPath);
         return found.value();
     }
 
@@ -117,13 +117,13 @@ load(const adt::String svPath)
         auto& obj = g_objects[oRetHnd.value()];
         obj.m_sMappedWith = svPath.clone(&obj.m_arena);
         [[maybe_unused]] auto mapRes = s_mapStringToObjects.insert(obj.m_sMappedWith, oRetHnd.value());
-        LOG_GOOD("load(): hnd: {}, type: '{}', mappedWith: '{}', hash: {}\n",
+        LOG_GOOD("hnd: {}, type: '{}', mappedWith: '{}', hash: {}\n",
             oRetHnd.value(), obj.m_eType, obj.m_sMappedWith, mapRes.hash
         );
     }
     else
     {
-        LOG_BAD("load(): failed to load: '{}'\n", svPath);
+        LOG_BAD("failed to load: '{}'\n", svPath);
     }
 
     return oRetHnd;

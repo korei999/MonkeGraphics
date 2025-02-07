@@ -584,7 +584,10 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
     /* NOTE: must be from the asset::g_objects, maybe pass Object* instead? */
     const asset::Object* pObj = (asset::Object*)&model;
 
-    trm *= node.matrix;
+    trm *= node.matrix *
+        M4TranslationFrom(node.translation) *
+        QtRot(node.rotation) *
+        M4ScaleFrom(node.scale);
 
     for (auto& children : node.children)
     {
@@ -604,6 +607,9 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
             auto& viewIndicies = model.m_vBufferViews[accIndices.bufferView];
             auto& buffInd = model.m_vBuffers[viewIndicies.buffer];
 
+            /* TODO: there might be any number of TEXCOORD_*,
+             * which would be specified in baseColorTexture.texCoord.
+             * But currect gltf parser only reads the 0th one. */
             auto& accUV = model.m_vAccessors[primitive.attributes.TEXCOORD_0];
             auto& viewUV = model.m_vBufferViews[accUV.bufferView];
             auto& buffUV = model.m_vBuffers[viewUV.buffer];
@@ -618,7 +624,7 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
             if (baseTextureIdx != static_cast<i32>(NPOS))
             {
                 auto& imgIdx = model.m_vTextures[baseTextureIdx].source;
-                auto& uri = model.m_vImages[imgIdx].uri;
+                auto& uri = model.m_vImages[imgIdx].sUri;
 
                 String nPath = file::replacePathEnding(pArena, pObj->m_sMappedWith, uri);
                 Image* pImg = asset::searchImage(nPath);
@@ -626,8 +632,6 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
                 if (pImg)
                     spImage = pImg->getSpanARGB();
             }
-
-            /* TODO: support every possible component type */
 
             ADT_ASSERT(accIndices.componentType == gltf::COMPONENT_TYPE::UNSIGNED_SHORT ||
                 accIndices.componentType == gltf::COMPONENT_TYPE::UNSIGNED_INT,
@@ -639,13 +643,13 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
 
             ADT_ASSERT(accUV.type == gltf::ACCESSOR_TYPE::VEC2, " ");
             const Span<V2> spUVs {
-                (V2*)&buffUV.bin[accUV.byteOffset + viewUV.byteOffset],
+                (V2*)&buffUV.sBin[accUV.byteOffset + viewUV.byteOffset],
                 accUV.count
             };
 
             ADT_ASSERT(accPos.type == gltf::ACCESSOR_TYPE::VEC3, " ");
             const Span<V3> spPos {
-                (V3*)&buffPos.bin[accPos.byteOffset + viewPos.byteOffset],
+                (V3*)&buffPos.sBin[accPos.byteOffset + viewPos.byteOffset],
                 accPos.count
             };
 
@@ -670,7 +674,7 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
                         case gltf::COMPONENT_TYPE::UNSIGNED_SHORT:
                         {
                             const Span<IdxU16x3> spIndiciesU16 {
-                                (IdxU16x3*)&buffInd.bin[accIndices.byteOffset + viewIndicies.byteOffset],
+                                (IdxU16x3*)&buffInd.sBin[accIndices.byteOffset + viewIndicies.byteOffset],
                                 accIndices.count / 3
                             };
 
@@ -691,7 +695,7 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
                         case gltf::COMPONENT_TYPE::UNSIGNED_INT:
                         {
                             const Span<IdxU32x3> spIndiciesU32 {
-                                (IdxU32x3*)&buffInd.bin[accIndices.byteOffset + viewIndicies.byteOffset],
+                                (IdxU32x3*)&buffInd.sBin[accIndices.byteOffset + viewIndicies.byteOffset],
                                 accIndices.count / 3
                             };
 
@@ -771,7 +775,7 @@ toBuffer(Arena* pArena)
     const auto& camera = control::g_camera;
     const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
 
-    const auto* pModel = asset::searchModel("assets/Sponza/Sponza.gltf");
+    /*const auto* pModel = asset::searchModel("assets/Sponza/Sponza.gltf");*/
     // const f32 step = static_cast<f32>(frame::g_time*0.001);
 
     {
@@ -788,7 +792,7 @@ toBuffer(Arena* pArena)
             camera.m_trm *
             M4TranslationFrom(0.0f, 0.5f, -0.0f) *
             M4RotFrom(0, 0, 0) *
-            M4ScaleFrom(1.0f);
+            M4ScaleFrom(100.0f);
 
         const auto* pModelBackpack = asset::searchModel("assets/vampire/vampire.gltf");
 

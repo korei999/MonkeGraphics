@@ -168,11 +168,17 @@ union M2
     V2 v[2];
 };
 
+union M4;
+
 union M3
 {
     f32 d[9];
     f32 e[3][3];
     V3 v[3];
+
+    /* */
+
+    constexpr explicit operator M4() const;
 };
 
 union M4
@@ -197,6 +203,17 @@ union Qt
     f32 e[4];
     struct { f32 x, y, z, w; };
 };
+
+constexpr
+M3::operator M4() const
+{
+    return {
+        e[0][0], e[0][1], e[0][2], 0,
+        e[1][0], e[1][1], e[1][2], 0,
+        e[2][0], e[2][1], e[2][2], 0,
+        0,       0,       0,       0
+    };
+}
 
 constexpr V2
 V2From(const f32 x, const f32 y)
@@ -674,10 +691,10 @@ M4Cofactors(const M4& s)
     M4 m = M4Minors(s);
     auto& e = m.e;
 
-    e[0][0] *= +1.0f, e[0][1] *= -1, e[0][2] *= +1, e[0][3] *= -1;
-    e[1][0] *= -1.0f, e[1][1] *= +1, e[1][2] *= -1, e[1][3] *= +1;
-    e[2][0] *= +1.0f, e[2][1] *= -1, e[2][2] *= +1, e[2][3] *= -1;
-    e[3][0] *= -1.0f, e[3][1] *= +1, e[3][2] *= -1, e[3][3] *= +1;
+    e[0][0] *= +1, e[0][1] *= -1, e[0][2] *= +1, e[0][3] *= -1;
+    e[1][0] *= -1, e[1][1] *= +1, e[1][2] *= -1, e[1][3] *= +1;
+    e[2][0] *= +1, e[2][1] *= -1, e[2][2] *= +1, e[2][3] *= -1;
+    e[3][0] *= -1, e[3][1] *= +1, e[3][2] *= -1, e[3][3] *= +1;
 
     return m;
 }
@@ -1333,7 +1350,7 @@ namespace adt::print
 {
 
 inline ssize
-formatToContext(Context ctx, [[maybe_unused]] FormatArgs fmtArgs, const math::V2& x)
+formatToContext(Context ctx, FormatArgs, const math::V2& x)
 {
     ctx.fmt = "[{:.3}, {:.3}]";
     ctx.fmtIdx = 0;
@@ -1341,7 +1358,7 @@ formatToContext(Context ctx, [[maybe_unused]] FormatArgs fmtArgs, const math::V2
 }
 
 inline ssize
-formatToContext(Context ctx, [[maybe_unused]] FormatArgs fmtArgs, const math::V3& x)
+formatToContext(Context ctx, FormatArgs, const math::V3& x)
 {
     ctx.fmt = "[{:.3}, {:.3}, {:.3}]";
     ctx.fmtIdx = 0;
@@ -1349,7 +1366,7 @@ formatToContext(Context ctx, [[maybe_unused]] FormatArgs fmtArgs, const math::V3
 }
 
 inline ssize
-formatToContext(Context ctx, [[maybe_unused]] FormatArgs fmtArgs, const math::V4& x)
+formatToContext(Context ctx, FormatArgs, const math::V4& x)
 {
     ctx.fmt = "[{:.3}, {:.3}, {:.3}, {:.3}]";
     ctx.fmtIdx = 0;
@@ -1357,7 +1374,13 @@ formatToContext(Context ctx, [[maybe_unused]] FormatArgs fmtArgs, const math::V4
 }
 
 inline ssize
-formatToContext(Context ctx, [[maybe_unused]] FormatArgs fmtArgs, const math::M2& x)
+formatToContext(Context ctx, FormatArgs fmtArgs, const math::Qt& x)
+{
+    return formatToContext(ctx, fmtArgs, x.base);
+}
+
+inline ssize
+formatToContext(Context ctx, FormatArgs, const math::M2& x)
 {
     ctx.fmt = "\n\t[{:.3}, {:.3}"
               "\n\t {:.3}, {:.3}]";
@@ -1366,7 +1389,7 @@ formatToContext(Context ctx, [[maybe_unused]] FormatArgs fmtArgs, const math::M2
 }
 
 inline ssize
-formatToContext(Context ctx, [[maybe_unused]] FormatArgs fmtArgs, const math::M3& x)
+formatToContext(Context ctx, FormatArgs, const math::M3& x)
 {
     ctx.fmt = "\n\t[{:.3}, {:.3}, {:.3}"
               "\n\t {:.3}, {:.3}, {:.3}"
@@ -1380,7 +1403,7 @@ formatToContext(Context ctx, [[maybe_unused]] FormatArgs fmtArgs, const math::M3
 }
 
 inline ssize
-formatToContext(Context ctx, [[maybe_unused]] FormatArgs fmtArgs, const math::M4& x)
+formatToContext(Context ctx, FormatArgs, const math::M4& x)
 {
     ctx.fmt = "\n\t[{:.3}, {:.3}, {:.3}, {:.3}"
               "\n\t {:.3}, {:.3}, {:.3}, {:.3}"

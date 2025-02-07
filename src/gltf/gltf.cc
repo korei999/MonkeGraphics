@@ -8,7 +8,7 @@ using namespace adt;
 namespace gltf
 {
 
-enum HASH_CODES : usize
+enum class HASH_CODES : usize
 {
     scene = hash::func("scene"),
     scenes = hash::func("scenes"),
@@ -69,25 +69,25 @@ stringToAccessorType(String sv)
     switch (hash::func(sv))
     {
         default:
-        case HASH_CODES::SCALAR:
+        case usize(HASH_CODES::SCALAR):
         return ACCESSOR_TYPE::SCALAR;
 
-        case HASH_CODES::VEC2:
+        case usize(HASH_CODES::VEC2):
         return ACCESSOR_TYPE::VEC2;
 
-        case HASH_CODES::VEC3:
+        case usize(HASH_CODES::VEC3):
         return ACCESSOR_TYPE::VEC3;
 
-        case HASH_CODES::VEC4:
+        case usize(HASH_CODES::VEC4):
         return ACCESSOR_TYPE::VEC4;
 
-        case HASH_CODES::MAT2:
+        case usize(HASH_CODES::MAT2):
         return ACCESSOR_TYPE::MAT3;
 
-        case HASH_CODES::MAT3:
+        case usize(HASH_CODES::MAT3):
         return ACCESSOR_TYPE::MAT3;
 
-        case HASH_CODES::MAT4:
+        case usize(HASH_CODES::MAT4):
         return ACCESSOR_TYPE::MAT4;
     }
 }
@@ -151,6 +151,20 @@ accessorTypeToUnionType(enum ACCESSOR_TYPE t, json::Object* obj)
     return type;
 }
 
+static Animation::Channel::Target::PATH_TYPE
+AnimationChannelTargetPathTypeStringToPATH_TYPE(const String svPath)
+{
+    if (svPath == "translation")
+        return Animation::Channel::Target::PATH_TYPE::TRANSLATION;
+    else if (svPath == "rotation")
+        return Animation::Channel::Target::PATH_TYPE::ROTATION;
+    else if (svPath == "scale")
+        return Animation::Channel::Target::PATH_TYPE::SCALE;
+
+    LOG_BAD("failed to convert path string\n");
+    return {};
+}
+
 bool
 Model::read(IAllocator* pAlloc, const json::Parser& parser, const String svPath)
 {
@@ -159,15 +173,19 @@ Model::read(IAllocator* pAlloc, const json::Parser& parser, const String svPath)
     procJSONObjs(pAlloc, parser);
     m_defaultSceneIdx = json::getLong(m_jsonObjs.pScene);
 
-    procScenes(pAlloc, parser);
-    procBuffers(pAlloc, parser);
-    procBufferViews(pAlloc, parser);
-    procAccessors(pAlloc, parser);
-    procMeshes(pAlloc, parser);
-    procTexures(pAlloc, parser);
-    procMaterials(pAlloc, parser);
-    procImages(pAlloc, parser);
-    procNodes(pAlloc, parser);
+    procScenes(pAlloc);
+    procBuffers(pAlloc);
+    procBufferViews(pAlloc);
+    procAccessors(pAlloc);
+    procMeshes(pAlloc);
+    procTexures(pAlloc);
+    procMaterials(pAlloc);
+    procImages(pAlloc);
+    procNodes(pAlloc);
+    procAnimations(pAlloc);
+
+    /* nullify potentially dangling pointers */
+    m_jsonObjs = {};
 
     return true;
 }
@@ -178,63 +196,63 @@ Model::procJSONObjs(IAllocator* pAlloc, const json::Parser& parser)
     /* collect all the top level objects */
     for (auto& node : parser.getRoot())
     {
-        switch (hash::func(node.sKey))
+        switch (hash::func(node.svKey))
         {
             default: break;
 
-            case HASH_CODES::scene:
+            case usize(HASH_CODES::scene):
             m_jsonObjs.pScene = &node;
             break;
 
-            case HASH_CODES::scenes:
+            case usize(HASH_CODES::scenes):
             m_jsonObjs.pScenes = &node;
             break;
 
-            case HASH_CODES::nodes:
+            case usize(HASH_CODES::nodes):
             m_jsonObjs.pNodes = &node;
             break;
 
-            case HASH_CODES::meshes:
+            case usize(HASH_CODES::meshes):
             m_jsonObjs.pMeshes = &node;
             break;
 
-            case HASH_CODES::cameras:
+            case usize(HASH_CODES::cameras):
             m_jsonObjs.pCameras = &node;
             break;
 
-            case HASH_CODES::buffers:
+            case usize(HASH_CODES::buffers):
             m_jsonObjs.pBuffers = &node;
             break;
 
-            case HASH_CODES::bufferViews:
+            case usize(HASH_CODES::bufferViews):
             m_jsonObjs.pBufferViews = &node;
             break;
 
-            case HASH_CODES::accessors:
+            case usize(HASH_CODES::accessors):
             m_jsonObjs.pAccessors = &node;
             break;
 
-            case HASH_CODES::materials:
+            case usize(HASH_CODES::materials):
             m_jsonObjs.pMaterials = &node;
             break;
 
-            case HASH_CODES::textures:
+            case usize(HASH_CODES::textures):
             m_jsonObjs.pTextures = &node;
             break;
 
-            case HASH_CODES::images:
+            case usize(HASH_CODES::images):
             m_jsonObjs.pImages = &node;
             break;
 
-            case HASH_CODES::samplers:
+            case usize(HASH_CODES::samplers):
             m_jsonObjs.pSamplers = &node;
             break;
 
-            case HASH_CODES::skins:
+            case usize(HASH_CODES::skins):
             m_jsonObjs.pSkins = &node;
             break;
 
-            case HASH_CODES::animations:
+            case usize(HASH_CODES::animations):
             m_jsonObjs.pAnimations = &node;
             break;
         }
@@ -263,7 +281,7 @@ Model::procJSONObjs(IAllocator* pAlloc, const json::Parser& parser)
 }
 
 void
-Model::procScenes(IAllocator* pAlloc, const json::Parser& parser)
+Model::procScenes(IAllocator* pAlloc)
 {
     auto scenes = m_jsonObjs.pScenes;
     auto& arr = json::getArray(scenes);
@@ -286,7 +304,7 @@ Model::procScenes(IAllocator* pAlloc, const json::Parser& parser)
 }
 
 void
-Model::procBuffers(IAllocator* pAlloc, const json::Parser& parser)
+Model::procBuffers(IAllocator* pAlloc)
 {
     auto buffers = m_jsonObjs.pBuffers;
     auto& arr = json::getArray(buffers);
@@ -319,14 +337,14 @@ Model::procBuffers(IAllocator* pAlloc, const json::Parser& parser)
 
         m_vBuffers.push(pAlloc, {
             .byteLength = (u32)(json::getLong(pByteLength)),
-            .uri = svUri,
-            .bin = aBin
+            .sUri = svUri,
+            .sBin = aBin
         });
     }
 }
 
 void
-Model::procBufferViews(IAllocator* pAlloc, const json::Parser& parser)
+Model::procBufferViews(IAllocator* pAlloc)
 {
     auto bufferViews = m_jsonObjs.pBufferViews;
     auto& arr = json::getArray(bufferViews);
@@ -353,7 +371,7 @@ Model::procBufferViews(IAllocator* pAlloc, const json::Parser& parser)
 }
 
 void
-Model::procAccessors(IAllocator* pAlloc, const json::Parser& parser)
+Model::procAccessors(IAllocator* pAlloc)
 {
     auto accessors = m_jsonObjs.pAccessors;
     auto& arr = json::getArray(accessors);
@@ -387,7 +405,7 @@ Model::procAccessors(IAllocator* pAlloc, const json::Parser& parser)
 }
 
 void
-Model::procMeshes(IAllocator* pAlloc, const json::Parser& parser)
+Model::procMeshes(IAllocator* pAlloc)
 {
     auto meshes = m_jsonObjs.pMeshes;
     auto& arr = json::getArray(meshes);
@@ -431,12 +449,12 @@ Model::procMeshes(IAllocator* pAlloc, const json::Parser& parser)
             });
         }
  
-        m_vMeshes.push(pAlloc, {.aPrimitives = aPrimitives, .svName = name});
+        m_vMeshes.push(pAlloc, {.aPrimitives = aPrimitives, .sName = name});
     }
 }
 
 void
-Model::procTexures(IAllocator* pAlloc, const json::Parser& parser)
+Model::procTexures(IAllocator* pAlloc)
 {
     auto textures = m_jsonObjs.pTextures;
     if (!textures) return;
@@ -457,7 +475,7 @@ Model::procTexures(IAllocator* pAlloc, const json::Parser& parser)
 }
 
 void
-Model::procMaterials(IAllocator* pAlloc, const json::Parser& parser)
+Model::procMaterials(IAllocator* pAlloc)
 {
     auto materials = m_jsonObjs.pMaterials;
     if (!materials) return;
@@ -508,7 +526,7 @@ Model::procMaterials(IAllocator* pAlloc, const json::Parser& parser)
 }
 
 void
-Model::procImages(IAllocator* pAlloc, const json::Parser& parser)
+Model::procImages(IAllocator* pAlloc)
 {
     auto imgs = m_jsonObjs.pImages;
     if (!imgs) return;
@@ -529,7 +547,7 @@ Model::procImages(IAllocator* pAlloc, const json::Parser& parser)
 }
 
 void
-Model::procNodes(IAllocator* pAlloc, const json::Parser& parser)
+Model::procNodes(IAllocator* pAlloc)
 {
     auto nodes = m_jsonObjs.pNodes;
     auto& arr = json::getArray(nodes);
@@ -540,7 +558,7 @@ Model::procNodes(IAllocator* pAlloc, const json::Parser& parser)
         Node nNode(pAlloc);
 
         auto pName = json::searchObject(obj, "name");
-        if (pName) nNode.name = json::getString(pName);
+        if (pName) nNode.sName = json::getString(pName);
 
         auto pCamera = json::searchObject(obj, "camera");
         if (pCamera) nNode.camera = (u32)(json::getLong(pCamera));
@@ -575,7 +593,7 @@ Model::procNodes(IAllocator* pAlloc, const json::Parser& parser)
         if (pRotation)
         {
             auto ut = assignUnionType(pRotation, 4);
-            nNode.rotation = ut.VEC4;
+            nNode.rotation.base = ut.VEC4;
         }
 
         auto pScale = json::searchObject(obj, "scale");
@@ -586,6 +604,80 @@ Model::procNodes(IAllocator* pAlloc, const json::Parser& parser)
         }
 
         m_vNodes.push(pAlloc, nNode);
+    }
+}
+
+void
+Model::procAnimations(adt::IAllocator* pAlloc)
+{
+    if (!m_jsonObjs.pAnimations)
+        return;
+
+    const auto* pAnimations = m_jsonObjs.pAnimations;
+    const auto& aAnimations = json::getArray(pAnimations); /* usually an array of one object */
+
+    for (auto& animation : aAnimations)
+    {
+        auto& obj = json::getObject(&animation);
+
+        Animation newAnim {};
+
+        auto* pName = json::searchObject(obj, "name");
+        newAnim.sName = json::getString(pName).clone(pAlloc);
+
+        auto* pChannelsObj = json::searchObject(obj, "channels");
+        if (!pChannelsObj)
+        {
+            LOG_BAD("'channels' object is required\n");
+            return;
+        }
+
+        auto& arrChannels = json::getArray(pChannelsObj);
+        for (const auto& channel : arrChannels)
+        {
+            auto& channelObj = json::getObject(&channel);
+
+            Animation::Channel newChannel {};
+
+            auto* pSampler = json::searchObject(channelObj, "sampler");
+            if (!pSampler)
+            {
+                LOG_BAD("'sampler' object is required\n");
+                return;
+            }
+
+            auto sampler = json::getLong(pSampler);
+            newChannel.sampler = sampler;
+
+            auto* pTarget = json::searchObject(channelObj, "target");
+            if (!pTarget)
+            {
+                LOG_BAD("'target' object is required\n");
+                return;
+            }
+
+            auto& targetObj = json::getObject(pTarget);
+
+            Animation::Channel::Target newTarget {};
+
+            auto pNode = json::searchObject(targetObj, "node");
+            if (pNode)
+                newTarget.node = static_cast<int>(json::getLong(pNode));
+
+            auto pPath = json::searchObject(targetObj, "path");
+            if (!pPath)
+            {
+                LOG_BAD("'path' object is required\n");
+                return;
+            }
+
+            auto eType = AnimationChannelTargetPathTypeStringToPATH_TYPE(json::getString(pPath));
+            newTarget.ePath = eType;
+
+            newAnim.channels.push(pAlloc, newChannel);
+        }
+
+        m_vAnimations.push(pAlloc, newAnim);
     }
 }
 

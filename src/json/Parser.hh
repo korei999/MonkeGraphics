@@ -49,7 +49,7 @@ struct TagVal
 
 struct Object
 {
-    adt::String sKey {};
+    adt::String svKey {};
     TagVal tagVal {};
 
     /* */
@@ -136,7 +136,7 @@ public:
 private:
     bool parseNode(Object* pNode);
     bool parseObject(Object* pNode);
-    bool parseArray(Object* pNode); /* arrays are same as objects */
+    bool parseArray(Object* pNode); /* arrays are the same as objects */
     void parseIdent(TagVal* pTV);
     void parseString(TagVal* pTV);
     void parseNumber(TagVal* pTV);
@@ -156,7 +156,17 @@ void printNode(FILE* fp, Object* pNode, adt::String sEnd = "", int depth = 0);
 searchObject(adt::VecBase<Object>& aObj, adt::String sKey)
 {
     for (adt::u32 i = 0; i < aObj.getSize(); i++)
-        if (aObj[i].sKey == sKey)
+        if (aObj[i].svKey == sKey)
+            return &aObj[i];
+
+    return nullptr;
+}
+
+[[nodiscard]] inline const Object*
+searchObject(const adt::VecBase<Object>& aObj, adt::String sKey)
+{
+    for (adt::u32 i = 0; i < aObj.getSize(); i++)
+        if (aObj[i].svKey == sKey)
             return &aObj[i];
 
     return nullptr;
@@ -191,28 +201,28 @@ getArray(const Object* obj)
 }
 
 [[nodiscard]] inline adt::i64
-getLong(Object* obj)
+getLong(const Object* obj)
 {
     ADT_ASSERT(obj->tagVal.eTag == TAG::LONG, " ");
     return obj->tagVal.val.l;
 }
 
 [[nodiscard]] inline double
-getDouble(Object* obj)
+getDouble(const Object* obj)
 {
     ADT_ASSERT(obj->tagVal.eTag == TAG::DOUBLE, " ");
     return obj->tagVal.val.d;
 }
 
 [[nodiscard]] inline adt::String
-getString(Object* obj)
+getString(const Object* obj)
 {
     ADT_ASSERT(obj->tagVal.eTag == TAG::STRING, " ");
     return obj->tagVal.val.s;
 }
 
 [[nodiscard]] inline bool
-getBool(Object* obj)
+getBool(const Object* obj)
 {
     ADT_ASSERT(obj->tagVal.eTag == TAG::BOOL, " ");
     return obj->tagVal.val.b;
@@ -222,7 +232,7 @@ getBool(Object* obj)
 makeObject(adt::IAllocator* pAlloc, adt::String key)
 {
     return {
-        .sKey = key,
+        .svKey = key,
         .tagVal {.eTag = TAG::OBJECT, .val {.o {pAlloc}}}
     };
 }
@@ -231,7 +241,7 @@ makeObject(adt::IAllocator* pAlloc, adt::String key)
 makeArray(adt::IAllocator* pAlloc, adt::String key)
 {
     return {
-        .sKey = key,
+        .svKey = key,
         .tagVal {.eTag = TAG::ARRAY, .val {.a {pAlloc}}}
     };
 }
@@ -240,7 +250,7 @@ makeArray(adt::IAllocator* pAlloc, adt::String key)
 makeNumber(adt::String key, adt::i64 l)
 {
     return {
-        .sKey = key,
+        .svKey = key,
         .tagVal {.eTag = TAG::LONG, .val {.l = l}}
     };
 }
@@ -249,7 +259,7 @@ makeNumber(adt::String key, adt::i64 l)
 makeFloat(adt::String key, adt::f64 d)
 {
     return {
-        .sKey = key,
+        .svKey = key,
         .tagVal {.eTag = TAG::DOUBLE, .val {.d = d}}
     };
 }
@@ -258,7 +268,7 @@ makeFloat(adt::String key, adt::f64 d)
 makeString(adt::String key, adt::String s)
 {
     return {
-        .sKey = key,
+        .svKey = key,
         .tagVal {.eTag = TAG::STRING, .val {.s = s}}
     };
 }
@@ -267,7 +277,7 @@ makeString(adt::String key, adt::String s)
 makeBool(adt::String key, bool b)
 {
     return {
-        .sKey = key,
+        .svKey = key,
         .tagVal {.eTag = TAG::BOOL, .val {.b = b}}
     };
 }
@@ -276,7 +286,7 @@ makeBool(adt::String key, bool b)
 makeNull(adt::String key)
 {
     return {
-        .sKey = key,
+        .svKey = key,
         .tagVal {.eTag = TAG::NULL_, .val {.n = nullptr}}
     };
 }
