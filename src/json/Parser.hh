@@ -122,27 +122,28 @@ public:
 
     void destroy();
 
-    STATUS parse(adt::IAllocator* pAlloc, adt::String sJson);
+    bool parse(adt::IAllocator* pAlloc, adt::String sJson);
 
     void print(FILE* fp);
 
     /* if root json object consists of only one object return that, otherwise get array of root objects */
     adt::VecBase<Object>& getRoot();
+    const adt::VecBase<Object>& getRoot() const;
 
     /* pfn returns true for early return */
     void traverse(bool (*pfn)(Object* p, void* pFnArgs), void* pArgs, TRAVERSAL_ORDER eOrder);
 
 private:
-    STATUS parseNode(Object* pNode);
-    STATUS parseObject(Object* pNode);
-    STATUS parseArray(Object* pNode); /* arrays are same as objects */
+    bool parseNode(Object* pNode);
+    bool parseObject(Object* pNode);
+    bool parseArray(Object* pNode); /* arrays are same as objects */
     void parseIdent(TagVal* pTV);
     void parseString(TagVal* pTV);
     void parseNumber(TagVal* pTV);
     void parseFloat(TagVal* pTV);
-    STATUS expect(TOKEN_TYPE t);
-    STATUS expectNot(TOKEN_TYPE t);
-    STATUS printNodeError();
+    bool expect(TOKEN_TYPE t);
+    bool expectNot(TOKEN_TYPE t);
+    bool printNodeError();
     void next();
 };
 
@@ -168,8 +169,22 @@ getObject(Object* obj)
     return obj->tagVal.val.o;
 }
 
+[[nodiscard]] inline const adt::VecBase<Object>&
+getObject(const Object* obj)
+{
+    ADT_ASSERT(obj->tagVal.eTag == TAG::OBJECT, " ");
+    return obj->tagVal.val.o;
+}
+
 [[nodiscard]] inline adt::VecBase<Object>&
 getArray(Object* obj)
+{
+    ADT_ASSERT(obj->tagVal.eTag == TAG::ARRAY, " ");
+    return obj->tagVal.val.a;
+}
+
+[[nodiscard]] inline const adt::VecBase<Object>&
+getArray(const Object* obj)
 {
     ADT_ASSERT(obj->tagVal.eTag == TAG::ARRAY, " ");
     return obj->tagVal.val.a;

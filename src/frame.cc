@@ -46,8 +46,8 @@ refresh(void* pArg)
     draw::toBuffer(pArena);
 }
 
-void
-start()
+static void
+eventLoop()
 {
     auto& win = app::window();
     win.m_bRunning = true;
@@ -77,6 +77,33 @@ start()
     for (auto& asset : asset::g_objects)
         asset.destroy();
     asset::g_objects.destroy();
+}
+
+static void
+renderLoop()
+{
+    auto& win = app::window();
+    win.m_bRunning = true;
+    g_time = utils::timeNowS();
+
+    Arena arena(SIZE_8M);
+    defer( arena.freeAll() );
+}
+
+void
+start()
+{
+    switch (app::g_eWindowType)
+    {
+        case app::WINDOW_TYPE::WAYLAND:
+        /* wayland event loop is not a normal render loop */
+        eventLoop();
+        break;
+
+        default:
+        renderLoop();
+        break;
+    }
 }
 
 } /* namespace frame */

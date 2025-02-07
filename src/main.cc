@@ -16,7 +16,12 @@ parseArgs(int argc, char** argv)
 
         if (sArg.beginsWith("--"))
         {
-            // add args...
+            if (sArg.beginsWith("--wayland"))
+                app::g_eWindowType = app::WINDOW_TYPE::WAYLAND;
+            else if (sArg.beginsWith("--wayland-gl"))
+                app::g_eWindowType = app::WINDOW_TYPE::WAYLAND_GL;
+            else if (sArg.beginsWith("--windows"))
+                app::g_eWindowType = app::WINDOW_TYPE::WINDOWS;
         }
         else return;
     }

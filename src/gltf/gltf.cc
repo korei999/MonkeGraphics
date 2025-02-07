@@ -152,93 +152,90 @@ accessorTypeToUnionType(enum ACCESSOR_TYPE t, json::Object* obj)
 }
 
 bool
-Model::read(const String sPath, String sFile)
+Model::read(IAllocator* pAlloc, const json::Parser& parser, const String svPath)
 {
-    if (m_parser.parse(m_pAlloc, sFile) == json::STATUS::FAIL)
-        return false;
+    m_sPath = svPath.clone(pAlloc);
 
-    m_sPath = sPath.clone(m_pAlloc);
+    procJSONObjs(pAlloc, parser);
+    m_defaultSceneIdx = json::getLong(m_jsonObjs.pScene);
 
-    procJSONObjs();
-    m_defaultSceneIdx = json::getLong(m_jsonObjs.scene);
-
-    procScenes();
-    procBuffers();
-    procBufferViews();
-    procAccessors();
-    procMeshes();
-    procTexures();
-    procMaterials();
-    procImages();
-    procNodes();
+    procScenes(pAlloc, parser);
+    procBuffers(pAlloc, parser);
+    procBufferViews(pAlloc, parser);
+    procAccessors(pAlloc, parser);
+    procMeshes(pAlloc, parser);
+    procTexures(pAlloc, parser);
+    procMaterials(pAlloc, parser);
+    procImages(pAlloc, parser);
+    procNodes(pAlloc, parser);
 
     return true;
 }
 
 void
-Model::procJSONObjs()
+Model::procJSONObjs(IAllocator* pAlloc, const json::Parser& parser)
 {
     /* collect all the top level objects */
-    for (auto& node : m_parser.getRoot())
+    for (auto& node : parser.getRoot())
     {
         switch (hash::func(node.sKey))
         {
             default: break;
 
             case HASH_CODES::scene:
-            m_jsonObjs.scene = &node;
+            m_jsonObjs.pScene = &node;
             break;
 
             case HASH_CODES::scenes:
-            m_jsonObjs.scenes = &node;
+            m_jsonObjs.pScenes = &node;
             break;
 
             case HASH_CODES::nodes:
-            m_jsonObjs.nodes = &node;
+            m_jsonObjs.pNodes = &node;
             break;
 
             case HASH_CODES::meshes:
-            m_jsonObjs.meshes = &node;
+            m_jsonObjs.pMeshes = &node;
             break;
 
             case HASH_CODES::cameras:
-            m_jsonObjs.cameras = &node;
+            m_jsonObjs.pCameras = &node;
             break;
 
             case HASH_CODES::buffers:
-            m_jsonObjs.buffers = &node;
+            m_jsonObjs.pBuffers = &node;
             break;
 
             case HASH_CODES::bufferViews:
-            m_jsonObjs.bufferViews = &node;
+            m_jsonObjs.pBufferViews = &node;
             break;
 
             case HASH_CODES::accessors:
-            m_jsonObjs.accessors = &node;
+            m_jsonObjs.pAccessors = &node;
             break;
 
             case HASH_CODES::materials:
-            m_jsonObjs.materials = &node;
+            m_jsonObjs.pMaterials = &node;
             break;
 
             case HASH_CODES::textures:
-            m_jsonObjs.textures = &node;
+            m_jsonObjs.pTextures = &node;
             break;
 
             case HASH_CODES::images:
-            m_jsonObjs.images = &node;
+            m_jsonObjs.pImages = &node;
             break;
 
             case HASH_CODES::samplers:
-            m_jsonObjs.samplers = &node;
+            m_jsonObjs.pSamplers = &node;
             break;
 
             case HASH_CODES::skins:
-            m_jsonObjs.skins = &node;
+            m_jsonObjs.pSkins = &node;
             break;
 
             case HASH_CODES::animations:
-            m_jsonObjs.animations = &node;
+            m_jsonObjs.pAnimations = &node;
             break;
         }
     }
@@ -266,9 +263,9 @@ Model::procJSONObjs()
 }
 
 void
-Model::procScenes()
+Model::procScenes(IAllocator* pAlloc, const json::Parser& parser)
 {
-    auto scenes = m_jsonObjs.scenes;
+    auto scenes = m_jsonObjs.pScenes;
     auto& arr = json::getArray(scenes);
     for (auto& e : arr)
     {
@@ -278,20 +275,20 @@ Model::procScenes()
         {
             auto& a = json::getArray(pNodes);
             for (auto& el : a)
-                m_vScenes.push(m_pAlloc, {(u32)json::getLong(&el)});
+                m_vScenes.push(pAlloc, {(u32)json::getLong(&el)});
         }
         else
         {
-            m_vScenes.push(m_pAlloc, {0});
+            m_vScenes.push(pAlloc, {0});
             break;
         }
     }
 }
 
 void
-Model::procBuffers()
+Model::procBuffers(IAllocator* pAlloc, const json::Parser& parser)
 {
-    auto buffers = m_jsonObjs.buffers;
+    auto buffers = m_jsonObjs.pBuffers;
     auto& arr = json::getArray(buffers);
     for (auto& e : arr)
     {
@@ -306,10 +303,10 @@ Model::procBuffers()
 
         if (pUri)
         {
-            svUri = json::getString(pUri).clone(m_pAlloc);
-            auto sNewPath = file::replacePathEnding(m_pAlloc, m_sPath, svUri);
+            svUri = json::getString(pUri).clone(pAlloc);
+            auto sNewPath = file::replacePathEnding(pAlloc, m_sPath, svUri);
 
-            rsBin = file::load(m_pAlloc, sNewPath);
+            rsBin = file::load(pAlloc, sNewPath);
             if (!rsBin)
             {
                 LOG_WARN("error opening file: '{}'\n", sNewPath);
@@ -320,7 +317,7 @@ Model::procBuffers()
             }
         }
 
-        m_vBuffers.push(m_pAlloc, {
+        m_vBuffers.push(pAlloc, {
             .byteLength = (u32)(json::getLong(pByteLength)),
             .uri = svUri,
             .bin = aBin
@@ -329,9 +326,9 @@ Model::procBuffers()
 }
 
 void
-Model::procBufferViews()
+Model::procBufferViews(IAllocator* pAlloc, const json::Parser& parser)
 {
-    auto bufferViews = m_jsonObjs.bufferViews;
+    auto bufferViews = m_jsonObjs.pBufferViews;
     auto& arr = json::getArray(bufferViews);
     for (auto& e : arr)
     {
@@ -345,7 +342,7 @@ Model::procBufferViews()
         auto pByteStride = json::searchObject(obj, "byteStride");
         auto pTarget = json::searchObject(obj, "target");
 
-        m_vBufferViews.push(m_pAlloc, {
+        m_vBufferViews.push(pAlloc, {
             .buffer = (u32)(json::getLong(pBuffer)),
             .byteOffset = pByteOffset ? (u32)(json::getLong(pByteOffset)) : 0,
             .byteLength = (u32)(json::getLong(pByteLength)),
@@ -356,9 +353,9 @@ Model::procBufferViews()
 }
 
 void
-Model::procAccessors()
+Model::procAccessors(IAllocator* pAlloc, const json::Parser& parser)
 {
-    auto accessors = m_jsonObjs.accessors;
+    auto accessors = m_jsonObjs.pAccessors;
     auto& arr = json::getArray(accessors);
     for (auto& e : arr)
     {
@@ -377,7 +374,7 @@ Model::procAccessors()
  
         enum ACCESSOR_TYPE type = stringToAccessorType(json::getString(pType));
  
-        m_vAccessors.push(m_pAlloc, {
+        m_vAccessors.push(pAlloc, {
             .bufferView = pBufferView ? (u32)(json::getLong(pBufferView)) : 0,
             .byteOffset = pByteOffset ? (u32)(json::getLong(pByteOffset)) : 0,
             .componentType = (COMPONENT_TYPE)(json::getLong(pComponentType)),
@@ -390,9 +387,9 @@ Model::procAccessors()
 }
 
 void
-Model::procMeshes()
+Model::procMeshes(IAllocator* pAlloc, const json::Parser& parser)
 {
-    auto meshes = m_jsonObjs.meshes;
+    auto meshes = m_jsonObjs.pMeshes;
     auto& arr = json::getArray(meshes);
     for (auto& e : arr)
     {
@@ -401,9 +398,9 @@ Model::procMeshes()
         auto pPrimitives = json::searchObject(obj, "primitives");
         if (!pPrimitives) LOG_FATAL("'primitives' field is required\n");
  
-        VecBase<Primitive> aPrimitives(m_pAlloc);
+        VecBase<Primitive> aPrimitives(pAlloc);
         auto pName = json::searchObject(obj, "name");
-        auto name = pName ? json::getString(pName).clone(m_pAlloc) : "";
+        auto name = pName ? json::getString(pName).clone(pAlloc) : "";
  
         auto& aPrim = json::getArray(pPrimitives);
         for (auto& p : aPrim)
@@ -421,7 +418,7 @@ Model::procMeshes()
             auto pMode = json::searchObject(op, "mode");
             auto pMaterial = json::searchObject(op, "material");
  
-            aPrimitives.push(m_pAlloc, {
+            aPrimitives.push(pAlloc, {
                 .attributes {
                     .NORMAL = pNORMAL ? (i32)(json::getLong(pNORMAL)) : -1,
                     .POSITION = pPOSITION ? (i32)(json::getLong(pPOSITION)) : -1,
@@ -434,14 +431,14 @@ Model::procMeshes()
             });
         }
  
-        m_vMeshes.push(m_pAlloc, {.aPrimitives = aPrimitives, .svName = name});
+        m_vMeshes.push(pAlloc, {.aPrimitives = aPrimitives, .svName = name});
     }
 }
 
 void
-Model::procTexures()
+Model::procTexures(IAllocator* pAlloc, const json::Parser& parser)
 {
-    auto textures = m_jsonObjs.textures;
+    auto textures = m_jsonObjs.pTextures;
     if (!textures) return;
 
     auto& arr = json::getArray(textures);
@@ -452,7 +449,7 @@ Model::procTexures()
         auto pSource = json::searchObject(obj, "source");
         auto pSampler = json::searchObject(obj, "sampler");
 
-        m_vTextures.push(m_pAlloc, {
+        m_vTextures.push(pAlloc, {
             .source = pSource ? (i32)(json::getLong(pSource)) : -1,
             .sampler = pSampler ? (i32)(json::getLong(pSampler)) : -1
         });
@@ -460,9 +457,9 @@ Model::procTexures()
 }
 
 void
-Model::procMaterials()
+Model::procMaterials(IAllocator* pAlloc, const json::Parser& parser)
 {
-    auto materials = m_jsonObjs.materials;
+    auto materials = m_jsonObjs.pMaterials;
     if (!materials) return;
 
     auto& arr = json::getArray(materials);
@@ -501,7 +498,7 @@ Model::procMaterials()
             normTexInfo.index = json::getLong(pIndex);
         }
 
-        m_vMaterials.push(m_pAlloc, {
+        m_vMaterials.push(pAlloc, {
             .pbrMetallicRoughness {
                 .baseColorTexture = texInfo,
             },
@@ -511,9 +508,9 @@ Model::procMaterials()
 }
 
 void
-Model::procImages()
+Model::procImages(IAllocator* pAlloc, const json::Parser& parser)
 {
-    auto imgs = m_jsonObjs.images;
+    auto imgs = m_jsonObjs.pImages;
     if (!imgs) return;
 
     auto& arr = json::getArray(imgs);
@@ -524,23 +521,23 @@ Model::procImages()
         auto pUri = json::searchObject(obj, "uri");
         if (pUri)
         {
-            m_vImages.push(m_pAlloc,
-                {json::getString(pUri).clone(m_pAlloc)}
+            m_vImages.push(pAlloc,
+                {json::getString(pUri).clone(pAlloc)}
             );
         }
     }
 }
 
 void
-Model::procNodes()
+Model::procNodes(IAllocator* pAlloc, const json::Parser& parser)
 {
-    auto nodes = m_jsonObjs.nodes;
+    auto nodes = m_jsonObjs.pNodes;
     auto& arr = json::getArray(nodes);
     for (auto& node : arr)
     {
         auto& obj = json::getObject(&node);
 
-        Node nNode(m_pAlloc);
+        Node nNode(pAlloc);
 
         auto pName = json::searchObject(obj, "name");
         if (pName) nNode.name = json::getString(pName);
@@ -554,7 +551,7 @@ Model::procNodes()
             auto& arrChil = json::getArray(pChildren);
             for (auto& c : arrChil)
 
-            nNode.children.push(m_pAlloc, (u32)(json::getLong(&c)));
+            nNode.children.push(pAlloc, (u32)(json::getLong(&c)));
         }
 
         auto pMatrix = json::searchObject(obj, "matrix");
@@ -588,7 +585,7 @@ Model::procNodes()
             nNode.scale = ut.VEC3;
         }
 
-        m_vNodes.push(m_pAlloc, nNode);
+        m_vNodes.push(pAlloc, nNode);
     }
 }
 

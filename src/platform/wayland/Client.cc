@@ -1,7 +1,25 @@
 #include "Client.hh"
 
+#include "adt/OsAllocator.hh"
+#include "adt/defer.hh"
 #include "adt/logs.hh"
+
 #include "shm.hh"
+
+// #include <EGL/eglext.h>
+// 
+// static EGLint s_eglLastErrorCode = EGL_SUCCESS;
+// 
+// #ifndef NDEBUG
+// #    define EGLD(C)                                                                                                    \
+//         {                                                                                                              \
+//             C;                                                                                                         \
+//             if ((s_eglLastErrorCode = eglGetError()) != EGL_SUCCESS)                                                     \
+//                 LOG_FATAL("eglLastErrorCode: {:#x}\n", s_eglLastErrorCode);                                              \
+//         }
+// #else
+// #    define EGLD(C) C
+// #endif
 
 using namespace adt;
 
@@ -154,6 +172,9 @@ Client::start(int width, int height)
     zwp_relative_pointer_v1_add_listener(m_pRelPointer, &s_relativePointerListener, this);
 
     wl_display_roundtrip(m_pDisplay);
+
+    if (m_bOpenGl)
+        initEGL();
 }
 
 Span2D<ImagePixelARGB>
@@ -225,18 +246,23 @@ Client::unsetFullscreen()
 }
 
 void
-Client::setSwapInterval([[maybe_unused]] int interval)
+Client::setSwapInterval(int interval)
 {
+//     m_swapInterval = interval;
+//     EGLD( eglSwapInterval(m_eglDisplay, interval) );
+//     LOG_NOTIFY("swapInterval: {}\n", m_swapInterval);
 }
 
 void
 Client::toggleVSync()
 {
+    m_swapInterval == 1 ? setSwapInterval(0) : setSwapInterval(1);
 }
 
 void
 Client::swapBuffers()
 {
+    // EGLD( eglSwapBuffers(m_eglDisplay, m_eglSurface) );
 }
 
 void
@@ -289,6 +315,18 @@ Client::scheduleFrame()
     };
     wl_callback_add_listener(m_pCallBack, &s_callbackListener, this);
     updateSurface();
+}
+
+void
+Client::bindGlContext()
+{
+    // EGLD ( eglMakeCurrent(m_eglDisplay, m_eglSurface, m_eglSurface, m_eglContext) );
+}
+
+void
+Client::unbindGlContext()
+{
+    // EGLD( eglMakeCurrent(m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) );
 }
 
 void
@@ -522,6 +560,76 @@ Client::callbackDone(
 {
     wl_callback_destroy(pCallback);
     update();
+}
+
+void
+Client::initEGL()
+{
+//     EGLD( m_eglDisplay = eglGetDisplay(m_pDisplay) );
+//     if (m_eglDisplay == EGL_NO_DISPLAY)
+//         LOG_FATAL("failed to create EGL display\n");
+// 
+//     EGLint major, minor;
+//     if (!eglInitialize(m_eglDisplay, &major, &minor))
+//         LOG_FATAL("failed to initialize EGL\n");
+//     EGLD();
+// 
+//     /* Default is GLES */
+//     if (!eglBindAPI(EGL_OPENGL_API))
+//         LOG_FATAL("eglBindAPI(EGL_OPENGL_API) failed\n");
+// 
+//     LOG_OK("egl: major: {}, minor: {}\n", major, minor);
+// 
+//     EGLint count;
+//     EGLD( eglGetConfigs(m_eglDisplay, nullptr, 0, &count) );
+// 
+//     EGLint configAttribs[] = {
+//         EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+//         EGL_RED_SIZE, 8,
+//         EGL_GREEN_SIZE, 8,
+//         EGL_BLUE_SIZE, 8,
+//         // EGL_ALPHA_SIZE, 8, /* KDE makes window transparent even in fullscreen */
+//         EGL_DEPTH_SIZE, 24,
+//         EGL_STENCIL_SIZE, 8,
+//         EGL_CONFORMANT, EGL_OPENGL_BIT,
+//         // EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+//         EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
+//         // EGL_MIN_SWAP_INTERVAL, 0,
+//         // EGL_MAX_SWAP_INTERVAL, 1,
+//         // EGL_SAMPLE_BUFFERS, 1,
+//         // EGL_SAMPLES, 4,
+//         EGL_NONE
+//     };
+// 
+//     EGLint n = 0;
+//     Vec<EGLConfig> configs(OsAllocatorGet(), count);
+//     defer( configs.destroy() );
+//     configs.setSize(count);
+// 
+//     EGLD( eglChooseConfig(m_eglDisplay, configAttribs, configs.data(), count, &n) );
+//     if (n == 0)
+//         LOG_FATAL("Failed to choose an EGL config\n");
+// 
+//     EGLConfig eglConfig = configs[0];
+// 
+//     EGLint contextAttribs[] {
+//         // EGL_CONTEXT_CLIENT_VERSION, 3,
+//         // EGL_CONTEXT_MAJOR_VERSION, 3,
+//         // EGL_CONTEXT_MINOR_VERSION, 3,
+//         // EGL_CONTEXT_OPENGL_PROFILE_MASK, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT,
+// #ifndef NDEBUG
+//         EGL_CONTEXT_OPENGL_DEBUG, EGL_TRUE,
+// #endif
+//         EGL_NONE,
+//     };
+// 
+//     EGLD( m_eglContext = eglCreateContext(m_eglDisplay, eglConfig, EGL_NO_CONTEXT, contextAttribs) );
+// 
+//     m_eglWindow = wl_egl_window_create(m_pSurface, m_width, m_height);
+//     EGLD( m_eglSurface = eglCreateWindowSurface(m_eglDisplay, eglConfig, (EGLNativeWindowType)(m_eglWindow), nullptr) );
+// 
+//     wl_surface_commit(m_pSurface);
+//     wl_display_roundtrip(m_pDisplay);
 }
 
 } /* namespace platform::wayland */

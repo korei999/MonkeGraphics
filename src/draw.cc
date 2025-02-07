@@ -775,22 +775,22 @@ toBuffer(Arena* pArena)
     // const f32 step = static_cast<f32>(frame::g_time*0.001);
 
     {
-        M4 cameraTrm = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
-            camera.m_trm *
-            M4TranslationFrom(0.0f, -0.0f, -0.0f) *
-            M4RotFrom(0, 0, 0) *
-            M4ScaleFrom(0.006f);
+        // M4 cameraTrm = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
+        //     camera.m_trm *
+        //     M4TranslationFrom(0.0f, -0.0f, -0.0f) *
+        //     M4RotFrom(0, 0, 0) *
+        //     M4ScaleFrom(0.006f);
 
-        if (pModel)
-            drawGLTF(pArena, *pModel, cameraTrm);
+        // if (pModel)
+        //     drawGLTF(pArena, *pModel, cameraTrm);
 
         M4 cameraTrm2 = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
             camera.m_trm *
             M4TranslationFrom(0.0f, 0.5f, -0.0f) *
             M4RotFrom(0, 0, 0) *
-            M4ScaleFrom(0.002f);
+            M4ScaleFrom(1.0f);
 
-        const auto* pModelBackpack = asset::searchModel("assets/backpack/scene.gltf");
+        const auto* pModelBackpack = asset::searchModel("assets/vampire/vampire.gltf");
 
         if (pModelBackpack)
             drawGLTF(pArena, *pModelBackpack, cameraTrm2);

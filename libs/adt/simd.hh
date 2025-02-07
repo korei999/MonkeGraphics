@@ -497,8 +497,8 @@ floor(V2x4 a)
 inline V3x4
 lerp(V3x4 a, V3x4 b, f32x4 t)
 {
-    V3x4 Result = (1.0f - t) * a + t * b;
-    return Result;
+    V3x4 res = (1.0f - t) * a + t * b;
+    return res;
 }
 
 inline simd::V3x4

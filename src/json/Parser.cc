@@ -7,9 +7,9 @@ using namespace adt;
 namespace json
 {
 
-#define OK_OR_RET(RES) if (RES == STATUS::FAIL) return STATUS::FAIL;
+#define OK_OR_RET(RES) if (!RES) return false;
 
-STATUS
+bool
 Parser::parse(IAllocator* pAlloc, String sJson)
 {
     m_pAlloc = pAlloc;
@@ -21,31 +21,31 @@ Parser::parse(IAllocator* pAlloc, String sJson)
     if ((m_tCurr.eType != TOKEN_TYPE::L_BRACE) && (m_tCurr.eType != TOKEN_TYPE::L_BRACKET))
     {
         CERR("wrong first token\n");
-        return STATUS::FAIL;
+        return false;
     }
 
     do
     {
         m_aObjects.push(m_pAlloc, {});
-        if (parseNode(&m_aObjects.last()) == STATUS::FAIL)
+        if (!parseNode(&m_aObjects.last()))
         {
             LOG_WARN("parseNode() failed\n");
-            return STATUS::FAIL;
+            return false;
         }
     }
     while (m_tCurr.eType == TOKEN_TYPE::L_BRACE); /* some json files have multiple root objects */
 
-    return STATUS::OK;
+    return true;
 }
 
-STATUS
+bool
 Parser::printNodeError()
 {
     const auto& tok = m_tCurr;
     CERR("({}, {}): unexpected token: '{}'\n",
         tok.row, tok.column, m_tCurr.eType
     );
-    return STATUS::FAIL;
+    return false;
 }
 
 void
@@ -55,44 +55,42 @@ Parser::next()
     m_tNext = m_lex.next();
 }
 
-STATUS
+bool
 Parser::expect(TOKEN_TYPE t)
 {
     const auto& tok = m_tCurr;
 
-    if (u32(tok.eType & t) > 0u)
+    if (tok.eType & t)
     {
-        return STATUS::OK;
+        return true;
     }
     else
     {
         CERR("({}, {}): unexpected token: expected: '{}', got '{}' ('{}')\n",
              tok.row, tok.column, t, m_tCurr.eType, m_tCurr.sLiteral
         );
-        return STATUS::FAIL;
+        return false;
     }
 }
 
-STATUS
+bool
 Parser::expectNot(TOKEN_TYPE t)
 {
     const auto& tok = m_tCurr;
 
-    if (u32(tok.eType & t) > 0u)
+    if (tok.eType & t)
     {
         CERR("({}, {}): unexpected token: not expected: '{}', got '{}' ('{}')\n",
              tok.row, tok.column, t, m_tCurr.eType, m_tCurr.sLiteral
         );
-        return STATUS::FAIL;
+        return false;
     }
-    else return STATUS::OK;
+    else return true;
 }
 
-STATUS
+bool
 Parser::parseNode(Object* pNode)
 {
-    /*LOG_WARN("({}, {}): '{}': '{}'\n", m_tCurr.row, m_tCurr.column, m_tCurr.eType, m_tCurr.sLiteral);*/
-
     switch (m_tCurr.eType)
     {
         default:
@@ -126,7 +124,7 @@ Parser::parseNode(Object* pNode)
         break;
     }
 
-    return STATUS::OK;
+    return true;
 }
 
 void
@@ -167,7 +165,7 @@ Parser::parseFloat(TagVal* pTV)
     next();
 }
 
-STATUS
+bool
 Parser::parseObject(Object* pNode)
 {
     pNode->tagVal.eTag = TAG::OBJECT;
@@ -201,12 +199,13 @@ Parser::parseObject(Object* pNode)
         }
     }
 
-    if (aObjs.getSize() == 0) next();
+    if (aObjs.empty())
+        next();
 
-    return STATUS::OK;
+    return true;
 }
 
-STATUS
+bool
 Parser::parseArray(Object* pNode)
 {
     pNode->tagVal.eTag = TAG::ARRAY;
@@ -253,9 +252,10 @@ Parser::parseArray(Object* pNode)
         }
     }
 
-    if (aTVs.getSize() == 0) next();
+    if (aTVs.empty())
+        next();
 
-    return STATUS::OK;
+    return true;
 }
 
 void
@@ -503,6 +503,16 @@ traverseNode(Object* pNode, bool (*pfn)(Object* p, void* pFnArgs), void* pArgs, 
 
 VecBase<Object>&
 Parser::getRoot()
+{
+    ADT_ASSERT(m_aObjects.getSize() > 0, "empty");
+
+    if (m_aObjects.getSize() == 1)
+        return getObject(&m_aObjects.first());
+    else return m_aObjects;
+}
+
+const VecBase<Object>&
+Parser::getRoot() const
 {
     ADT_ASSERT(m_aObjects.getSize() > 0, "empty");
 

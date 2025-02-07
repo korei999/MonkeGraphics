@@ -1299,9 +1299,9 @@ normalize(const V4& v)
 }
 
 constexpr inline auto
-lerp(auto& l, auto& r, auto& t)
+lerp(auto& a, auto& b, auto& t)
 {
-    return l + (r - l)*t;
+    return (1.0 - t) * a + t * b;
 }
 
 template<typename T>

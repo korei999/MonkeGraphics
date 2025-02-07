@@ -7,6 +7,9 @@
 #include "wayland-protocols/relative-pointer-unstable-v1.h"
 #include "wayland-protocols/pointer-constraints-unstable-v1.h"
 
+// #include <wayland-egl.h>
+// #include <EGL/egl.h>
+
 namespace platform::wayland
 {
 
@@ -49,10 +52,17 @@ struct Client final : public IWindow
     wp_viewporter* m_pViewporter {};
     wp_viewport* m_pViewport {};
 
+    bool m_bOpenGl {};
+    // wl_egl_window* m_eglWindow {};
+    // EGLDisplay m_eglDisplay {};
+    // EGLContext m_eglContext {};
+    // EGLSurface m_eglSurface {};
+
     /* */
 
     Client() = default;
-    Client(adt::IAllocator* pAlloc, const char* sName) : IWindow(pAlloc, sName) {}
+    Client(adt::IAllocator* pAlloc, const char* ntsName, bool bOpenGl)
+        : IWindow(pAlloc, ntsName), m_bOpenGl(bOpenGl) {}
 
     /* */
 
@@ -73,6 +83,8 @@ struct Client final : public IWindow
     virtual void showWindow() override;
     virtual void destroy() override;
     virtual void scheduleFrame() override;
+    virtual void bindGlContext() override;
+    virtual void unbindGlContext() override;
 
     /* */
 
@@ -135,6 +147,8 @@ struct Client final : public IWindow
     /* */
 
     void callbackDone(wl_callback* pCallback, uint32_t callbackData);
+
+    void initEGL();
 };
 
 } /* namespace platform::wayland */

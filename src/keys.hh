@@ -3,8 +3,6 @@
 #include "adt/types.hh"
 #include "adt/enum.hh"
 
-#include <limits>
-
 /* wayland(xkb) codes */
 enum class MOD_STATE : adt::u8
 {
@@ -13,7 +11,6 @@ enum class MOD_STATE : adt::u8
     CTRL = 1 << 2,
     ALT = 1 << 3,
     SUPER = 1 << 6,
-    ANY = std::numeric_limits<std::underlying_type_t<MOD_STATE>>::max(),
 };
 ADT_ENUM_BITWISE_OPERATORS(MOD_STATE);
 

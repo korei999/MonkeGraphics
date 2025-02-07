@@ -38,10 +38,10 @@ struct Object
     void destroy();
 };
 
-adt::Opt<adt::PoolHnd> load(adt::String svFilePath);
-[[nodiscard]] Object* search(adt::String svKey, TYPE eType); /* may be null */
-[[nodiscard]] Image* searchImage(adt::String svKey);
-[[nodiscard]] gltf::Model* searchModel(adt::String svKey);
+adt::Opt<adt::PoolHnd> load(const adt::String svFilePath);
+[[nodiscard]] Object* search(const adt::String svKey, TYPE eType); /* may be null */
+[[nodiscard]] Image* searchImage(const adt::String svKey);
+[[nodiscard]] gltf::Model* searchModel(const adt::String svKey);
 
 extern adt::Pool<Object, 128> g_objects;
 

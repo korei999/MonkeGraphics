@@ -65,6 +65,8 @@ struct IWindow
     virtual void showWindow() = 0;
     virtual void destroy() = 0;
     virtual void scheduleFrame() = 0;
+    virtual void bindGlContext() = 0;
+    virtual void unbindGlContext() = 0;
 
     /* */
 

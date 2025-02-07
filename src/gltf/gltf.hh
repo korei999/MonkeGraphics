@@ -203,28 +203,26 @@ struct Material
 
 struct Model
 {
-    adt::IAllocator* m_pAlloc {};
     struct
     {
-        json::Object* scene;
-        json::Object* scenes;
-        json::Object* nodes;
-        json::Object* meshes;
-        json::Object* cameras;
-        json::Object* buffers;
-        json::Object* bufferViews;
-        json::Object* accessors;
-        json::Object* materials;
-        json::Object* textures;
-        json::Object* images;
-        json::Object* samplers;
-        json::Object* skins;
-        json::Object* animations;
+        json::Object* pScene;
+        json::Object* pScenes;
+        json::Object* pNodes;
+        json::Object* pMeshes;
+        json::Object* pCameras;
+        json::Object* pBuffers;
+        json::Object* pBufferViews;
+        json::Object* pAccessors;
+        json::Object* pMaterials;
+        json::Object* pTextures;
+        json::Object* pImages;
+        json::Object* pSamplers;
+        json::Object* pSkins;
+        json::Object* pAnimations;
     } m_jsonObjs {};
-    json::Parser m_parser {};
     adt::String m_sGenerator {};
     adt::String m_sVersion {};
-    adt::u32 m_defaultSceneIdx {};
+    int m_defaultSceneIdx {};
     adt::VecBase<Scene> m_vScenes {};
     adt::VecBase<Buffer> m_vBuffers {};
     adt::VecBase<BufferView> m_vBufferViews {};
@@ -241,35 +239,24 @@ struct Model
     /* */
 
     Model() = default;
-    Model(adt::IAllocator* p)
-        : m_pAlloc(p),
-          m_vScenes(p),
-          m_vBuffers(p),
-          m_vBufferViews(p),
-          m_vAccessors(p),
-          m_vMeshes(p),
-          m_vTextures(p),
-          m_vMaterials(p),
-          m_vImages(p),
-          m_vNodes(p) {}
 
     /* */
 
-    bool read(const adt::String sPath, adt::String sFile); /* clones uri */
+    bool read(adt::IAllocator* pAlloc, const json::Parser& parser, const adt::String svPath); /* clones uri */
 
     /* */
 
 private:
-    void procJSONObjs();
-    void procScenes();
-    void procBuffers();
-    void procBufferViews();
-    void procAccessors();
-    void procMeshes();
-    void procTexures();
-    void procMaterials();
-    void procImages();
-    void procNodes();
+    void procJSONObjs(adt::IAllocator* pAlloc, const json::Parser& parser);
+    void procScenes(adt::IAllocator* pAlloc, const json::Parser& parser);
+    void procBuffers(adt::IAllocator* pAlloc, const json::Parser& parser);
+    void procBufferViews(adt::IAllocator* pAlloc, const json::Parser& parser);
+    void procAccessors(adt::IAllocator* pAlloc, const json::Parser& parser);
+    void procMeshes(adt::IAllocator* pAlloc, const json::Parser& parser);
+    void procTexures(adt::IAllocator* pAlloc, const json::Parser& parser);
+    void procMaterials(adt::IAllocator* pAlloc, const json::Parser& parser);
+    void procImages(adt::IAllocator* pAlloc, const json::Parser& parser);
+    void procNodes(adt::IAllocator* pAlloc, const json::Parser& parser);
 };
 
 inline adt::String

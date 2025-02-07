@@ -27,7 +27,7 @@ Object::destroy()
 }
 
 static Opt<PoolHnd>
-loadBMP(const String svPath, String sFile)
+loadBMP(const String svPath, const String sFile)
 {
     bmp::Reader reader {};
     if (!reader.read(sFile))
@@ -48,12 +48,20 @@ loadBMP(const String svPath, String sFile)
 }
 
 static Opt<PoolHnd>
-loadGLTF(const String svPath, String sFile)
+loadGLTF(const String svPath, const String sFile)
 {
     Object nObj(SIZE_1M);
+    bool bSucces = false;
 
-    gltf::Model gltfModel(&nObj.m_arena);
-    bool bSucces = gltfModel.read(svPath, sFile);
+    json::Parser parser;
+    bSucces = parser.parse(OsAllocatorGet(), sFile);
+    defer( parser.destroy() );
+
+    if (!bSucces)
+        return {};
+
+    gltf::Model gltfModel;
+    bSucces = gltfModel.read(&nObj.m_arena, parser, svPath);
     if (!bSucces)
     {
         nObj.destroy();
@@ -65,17 +73,18 @@ loadGLTF(const String svPath, String sFile)
 
     PoolHnd hnd = g_objects.push(nObj);
 
-    for (auto& image : gltfModel.m_vImages)
+    for (const auto& image : gltfModel.m_vImages)
     {
-        String nPath = file::replacePathEnding(&nObj.m_arena, svPath, image.uri);
-        load(nPath);
+        String sPath = file::replacePathEnding(OsAllocatorGet(), svPath, image.uri);
+        defer( sPath.destroy(OsAllocatorGet()) );
+        load(sPath);
     }
 
     return hnd;
 }
 
 Opt<PoolHnd>
-load(adt::String svPath)
+load(const adt::String svPath)
 {
     auto found = s_mapStringToObjects.search(svPath);
     if (found)
@@ -121,7 +130,7 @@ load(adt::String svPath)
 }
 
 Object*
-search(adt::String svKey, TYPE eType)
+search(const adt::String svKey, TYPE eType)
 {
     auto f = s_mapStringToObjects.search(svKey);
 
@@ -145,7 +154,7 @@ search(adt::String svKey, TYPE eType)
 }
 
 Image*
-searchImage(adt::String svKey)
+searchImage(const adt::String svKey)
 {
     auto* f = search(svKey, TYPE::IMAGE);
     if (f)
@@ -154,7 +163,7 @@ searchImage(adt::String svKey)
 }
 
 gltf::Model*
-searchModel(adt::String svKey)
+searchModel(const adt::String svKey)
 {
     auto* f = search(svKey, TYPE::MODEL);
     if (f)

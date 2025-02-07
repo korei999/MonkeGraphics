@@ -24,7 +24,10 @@ allocWindow(IAllocator* pAlloc, const char* ntsName)
 
 #ifdef __linux__
         case WINDOW_TYPE::WAYLAND:
-        return pAlloc->alloc<platform::wayland::Client>(pAlloc, ntsName);
+        return pAlloc->alloc<platform::wayland::Client>(pAlloc, ntsName, false);
+
+        case WINDOW_TYPE::WAYLAND_GL:
+        return pAlloc->alloc<platform::wayland::Client>(pAlloc, ntsName, true);
 #endif
 
 #if defined _WIN32
