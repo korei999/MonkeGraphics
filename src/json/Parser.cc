@@ -60,7 +60,7 @@ Parser::expect(TOKEN_TYPE t)
 {
     const auto& tok = m_tCurr;
 
-    if (tok.eType & t)
+    if (!!(tok.eType & t))
     {
         return true;
     }
@@ -78,7 +78,7 @@ Parser::expectNot(TOKEN_TYPE t)
 {
     const auto& tok = m_tCurr;
 
-    if (tok.eType & t)
+    if (!!(tok.eType & t))
     {
         CERR("({}, {}): unexpected token: not expected: '{}', got '{}' ('{}')\n",
              tok.row, tok.column, t, m_tCurr.eType, m_tCurr.sLiteral

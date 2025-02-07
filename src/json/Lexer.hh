@@ -6,7 +6,7 @@
 namespace json
 {
 
-enum TOKEN_TYPE : adt::u32
+enum class TOKEN_TYPE : adt::u32
 {
     NONE = 0,
     DOT = 1,
