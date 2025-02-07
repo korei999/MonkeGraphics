@@ -5,7 +5,7 @@
 namespace app
 {
 
-enum class WINDOW_TYPE : adt::u8 { WAYLAND };
+enum class WINDOW_TYPE : adt::u8 { WAYLAND, WINDOWS };
 
 extern WINDOW_TYPE g_eWindowType;
 extern IWindow* g_pWindow;

@@ -4,6 +4,7 @@
 #include "adt/Map.hh"
 #include "adt/file.hh"
 #include "adt/OsAllocator.hh"
+#include "adt/Pool.hh"
 #include "gltf/gltf.hh"
 
 using namespace adt;
@@ -11,7 +12,7 @@ using namespace adt;
 namespace asset
 {
 
-Pool<Object, 128> g_objects(INIT);
+Pool<Object, 128> g_objects(true);
 static Map<String, PoolHnd> s_mapStringToObjects(OsAllocatorGet(), g_objects.getCap());
 
 void

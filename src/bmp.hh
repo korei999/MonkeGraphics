@@ -13,22 +13,22 @@
 namespace bmp
 {
 
-enum COMPRESSION_METHOD_ID : adt::u32
+enum class COMPRESSION_METHOD_ID : adt::u32
 {
-    BI_RGB = 0,
-    BI_RLE8 = 1,
-    BI_RLE4 = 2,
-    BI_BITFIELDS = 3,
-    BI_JPEG = 4,
-    BI_PNG = 5,
-    BI_ALPHABITFIELDS = 6,
-    BI_CMYK = 11,
-    BI_CMYKRLE8 = 12,
-    BI_CMYKRLE4 = 13,
+    RGB = 0,
+    RLE8 = 1,
+    RLE4 = 2,
+    BITFIELDS = 3,
+    JPEG = 4,
+    PNG = 5,
+    ALPHABITFIELDS = 6,
+    CMYK = 11,
+    CMYKRLE8 = 12,
+    CMYKRLE4 = 13,
 };
 
 #pragma pack(1)
-struct BITMAPINFOHEADER
+struct BitmapInfoHeader
 {
     adt::u32 size {}; /* the size of this header, in bytes (40) */
     adt::i32 width {}; /* the bitmap width in pixels (signed integer) */
@@ -66,7 +66,7 @@ struct Reader
 {
     adt::String m_sBMP {};
     Header m_header {};
-    BITMAPINFOHEADER m_bmInfoHeader {};
+    BitmapInfoHeader m_bmInfoHeader {};
 
     /* */
 
@@ -86,7 +86,7 @@ Reader::read(adt::String sBMP)
 {
     using namespace adt;
 
-    if (sBMP.getSize() < static_cast<ssize>(sizeof(Header) + sizeof(BITMAPINFOHEADER)))
+    if (sBMP.getSize() < static_cast<ssize>(sizeof(Header) + sizeof(BitmapInfoHeader)))
         return false;
 
     m_sBMP = sBMP;
@@ -146,9 +146,9 @@ Reader::parse()
     );
 #endif /* DBG_BMP */
 
-    m_bmInfoHeader = m_sBMP.reinterpret<BITMAPINFOHEADER>(sizeof(Header));
+    m_bmInfoHeader = m_sBMP.reinterpret<BitmapInfoHeader>(sizeof(Header));
 #ifdef DBG_BMP
-    LOG_NOTIFY("BITMAPINFOHEADER\n"
+    LOG_NOTIFY("BitmapInfoHeader\n"
         "size: {}\n"
         "width: {}\n"
         "height: {}\n"

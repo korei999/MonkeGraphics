@@ -3,8 +3,6 @@
 #include "adt/types.hh"
 #include "adt/enum.hh"
 
-#include <linux/input-event-codes.h>
-
 #include <limits>
 
 /* wayland(xkb) codes */

@@ -1,7 +1,8 @@
 #include "app.hh"
 
-#ifdef __linux__
+#if defined __linux__
     #include "platform/wayland/Client.hh"
+#elif defined _WIN32
 #else
     #error "unsupported platform"
 #endif
@@ -21,8 +22,15 @@ allocWindow(IAllocator* pAlloc, const char* ntsName)
     {
         default: throw RuntimeException("allocWindow(): can't create platform window");
 
+#ifdef __linux__
         case WINDOW_TYPE::WAYLAND:
         return pAlloc->alloc<platform::wayland::Client>(pAlloc, ntsName);
+#endif
+
+#if defined _WIN32
+        case WINDOW_TYPE::WINDOWS:
+        return nullptr;
+#endif
     }
 }
 

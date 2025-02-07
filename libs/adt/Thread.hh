@@ -165,7 +165,7 @@ Thread::Thread(LAMBDA l)
 
     auto stub = +[](void* pArg) -> THREAD_STATUS
     {
-        (*reinterpret_cast<LABMDA*>(pArg))();
+        (*reinterpret_cast<decltype(l)*>(pArg))();
         return 0;
     };
 
@@ -521,12 +521,11 @@ CallOnce::exec(void (*pfn)())
 
     auto stub = +[](PINIT_ONCE InitOnce, PVOID Parameter, PVOID *lpContext) -> BOOL
     {
-        auto pfnStub = reinterpret_cast<void(*)()>(Parameter);
-        pfnStub();
+        (reinterpret_cast<void(*)()>(Parameter))();
         return TRUE;
     };
 
-    InitOnceExecuteOnce(&m_initOnce, stub, pfn, nullptr);
+    return InitOnceExecuteOnce(&m_onceCtrl, stub, reinterpret_cast<void*>(pfn), nullptr);
 
 #endif
 }

@@ -37,6 +37,9 @@ main(int argc, char** argv)
         const char* ntsName = "MonkeGraphics";
 
         app::g_pWindow = app::allocWindow(&allocator, ntsName);
+        if (!app::g_pWindow)
+            throw RuntimeException("allocWindow() failed: app::g_pWindow == nullptr");
+
         app::g_pWindow->start(640, 480);
         defer( app::g_pWindow->destroy() );
 
