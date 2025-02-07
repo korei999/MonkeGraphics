@@ -8,8 +8,9 @@ using namespace adt;
 namespace gltf
 {
 
-enum class HASH_CODES : usize
+enum class HASH_CODE : usize
 {
+    asset = hash::func("asset"),
     scene = hash::func("scene"),
     scenes = hash::func("scenes"),
     nodes = hash::func("nodes"),
@@ -69,25 +70,25 @@ stringToAccessorType(String sv)
     switch (hash::func(sv))
     {
         default:
-        case usize(HASH_CODES::SCALAR):
+        case usize(HASH_CODE::SCALAR):
         return ACCESSOR_TYPE::SCALAR;
 
-        case usize(HASH_CODES::VEC2):
+        case usize(HASH_CODE::VEC2):
         return ACCESSOR_TYPE::VEC2;
 
-        case usize(HASH_CODES::VEC3):
+        case usize(HASH_CODE::VEC3):
         return ACCESSOR_TYPE::VEC3;
 
-        case usize(HASH_CODES::VEC4):
+        case usize(HASH_CODE::VEC4):
         return ACCESSOR_TYPE::VEC4;
 
-        case usize(HASH_CODES::MAT2):
+        case usize(HASH_CODE::MAT2):
         return ACCESSOR_TYPE::MAT3;
 
-        case usize(HASH_CODES::MAT3):
+        case usize(HASH_CODE::MAT3):
         return ACCESSOR_TYPE::MAT3;
 
-        case usize(HASH_CODES::MAT4):
+        case usize(HASH_CODE::MAT4):
         return ACCESSOR_TYPE::MAT4;
     }
 }
@@ -160,9 +161,24 @@ AnimationChannelTargetPathTypeStringToPATH_TYPE(const String svPath)
         return Animation::Channel::Target::PATH_TYPE::ROTATION;
     else if (svPath == "scale")
         return Animation::Channel::Target::PATH_TYPE::SCALE;
+    else if (svPath == "weights")
+        return Animation::Channel::Target::PATH_TYPE::WEIGHTS;
 
     LOG_BAD("failed to convert path string\n");
     return {};
+}
+
+static Animation::Sampler::INTERPOLATION_TYPE
+AnimationSamplerStringToPATH_TYPE(const String svPath)
+{
+    if (svPath == "LINEAR")
+        return Animation::Sampler::INTERPOLATION_TYPE::LINEAR;
+    else if (svPath == "STEP")
+        return Animation::Sampler::INTERPOLATION_TYPE::STEP;
+    else if (svPath == "CUBICSPLINE")
+        return Animation::Sampler::INTERPOLATION_TYPE::CUBICSPLINE;
+
+    return Animation::Sampler::INTERPOLATION_TYPE::LINEAR;
 }
 
 bool
@@ -170,19 +186,20 @@ Model::read(IAllocator* pAlloc, const json::Parser& parser, const String svPath)
 {
     m_sPath = svPath.clone(pAlloc);
 
-    procJSONObjs(pAlloc, parser);
-    m_defaultSceneIdx = json::getLong(m_jsonObjs.pScene);
+    procToplevelObjs(pAlloc, parser);
 
-    procScenes(pAlloc);
-    procBuffers(pAlloc);
-    procBufferViews(pAlloc);
-    procAccessors(pAlloc);
-    procMeshes(pAlloc);
-    procTexures(pAlloc);
-    procMaterials(pAlloc);
-    procImages(pAlloc);
-    procNodes(pAlloc);
-    procAnimations(pAlloc);
+    if (!procAsset(pAlloc)) return false;
+    if (!procRootScene(pAlloc)) return false;
+    if (!procScenes(pAlloc)) return false;
+    if (!procBuffers(pAlloc)) return false;
+    if (!procBufferViews(pAlloc)) return false;
+    if (!procAccessors(pAlloc)) return false;
+    if (!procMeshes(pAlloc)) return false;
+    if (!procTexures(pAlloc)) return false;
+    if (!procMaterials(pAlloc)) return false;
+    if (!procImages(pAlloc)) return false;
+    if (!procNodes(pAlloc)) return false;
+    if (!procAnimations(pAlloc)) return false;
 
     /* nullify potentially dangling pointers */
     m_jsonObjs = {};
@@ -190,97 +207,125 @@ Model::read(IAllocator* pAlloc, const json::Parser& parser, const String svPath)
     return true;
 }
 
-void
-Model::procJSONObjs(IAllocator* pAlloc, const json::Parser& parser)
+bool
+Model::procToplevelObjs(IAllocator* pAlloc, const json::Parser& parser)
 {
     /* collect all the top level objects */
     for (auto& node : parser.getRoot())
     {
         switch (hash::func(node.svKey))
         {
-            default: break;
+            case usize(HASH_CODE::asset):
+            m_jsonObjs.pAsset = &node;
+            break;
 
-            case usize(HASH_CODES::scene):
+            case usize(HASH_CODE::scene):
             m_jsonObjs.pScene = &node;
             break;
 
-            case usize(HASH_CODES::scenes):
+            case usize(HASH_CODE::scenes):
             m_jsonObjs.pScenes = &node;
             break;
 
-            case usize(HASH_CODES::nodes):
+            case usize(HASH_CODE::nodes):
             m_jsonObjs.pNodes = &node;
             break;
 
-            case usize(HASH_CODES::meshes):
+            case usize(HASH_CODE::meshes):
             m_jsonObjs.pMeshes = &node;
             break;
 
-            case usize(HASH_CODES::cameras):
+            case usize(HASH_CODE::cameras):
             m_jsonObjs.pCameras = &node;
             break;
 
-            case usize(HASH_CODES::buffers):
+            case usize(HASH_CODE::buffers):
             m_jsonObjs.pBuffers = &node;
             break;
 
-            case usize(HASH_CODES::bufferViews):
+            case usize(HASH_CODE::bufferViews):
             m_jsonObjs.pBufferViews = &node;
             break;
 
-            case usize(HASH_CODES::accessors):
+            case usize(HASH_CODE::accessors):
             m_jsonObjs.pAccessors = &node;
             break;
 
-            case usize(HASH_CODES::materials):
+            case usize(HASH_CODE::materials):
             m_jsonObjs.pMaterials = &node;
             break;
 
-            case usize(HASH_CODES::textures):
+            case usize(HASH_CODE::textures):
             m_jsonObjs.pTextures = &node;
             break;
 
-            case usize(HASH_CODES::images):
+            case usize(HASH_CODE::images):
             m_jsonObjs.pImages = &node;
             break;
 
-            case usize(HASH_CODES::samplers):
+            case usize(HASH_CODE::samplers):
             m_jsonObjs.pSamplers = &node;
             break;
 
-            case usize(HASH_CODES::skins):
+            case usize(HASH_CODE::skins):
             m_jsonObjs.pSkins = &node;
             break;
 
-            case usize(HASH_CODES::animations):
+            case usize(HASH_CODE::animations):
             m_jsonObjs.pAnimations = &node;
             break;
         }
     }
 
-#ifdef D_GLTF
-    auto check = [](const char* nts, json::Object* p) -> void {
-        String s = p ? p->sKey : "(null)";
-        CERR("\t{}: '{}'\n", nts, s);
-    };
-
-    check("scene", m_jsonObjs.scene);
-    check("scenes", m_jsonObjs.scenes);
-    check("nodes", m_jsonObjs.nodes);
-    check("meshes", m_jsonObjs.meshes);
-    check("buffers", m_jsonObjs.buffers);
-    check("bufferViews", m_jsonObjs.bufferViews);
-    check("accessors", m_jsonObjs.accessors);
-    check("materials", m_jsonObjs.materials);
-    check("textures", m_jsonObjs.textures);
-    check("images", m_jsonObjs.images);
-    check("samplers", m_jsonObjs.samplers);
-    check("skins", m_jsonObjs.skins);
-    check("animations", m_jsonObjs.animations);
-#endif
+    return true;
 }
 
-void
+bool
+Model::procAsset(adt::IAllocator* pAlloc)
+{
+    if (!m_jsonObjs.pAsset)
+        return false;
+
+    const auto& assetObj = json::getObject(m_jsonObjs.pAsset);
+    auto* pVersion = json::searchObject(assetObj, "version");
+    if (!pVersion)
+    {
+        LOG_BAD("'version' string is required\n");
+        return false;
+    }
+
+    m_asset.sVersion = json::getString(pVersion).clone(pAlloc);
+
+    auto* pCopyright = json::searchObject(assetObj, "copyright");
+    if (pCopyright)
+        m_asset.sCopyright = json::getString(pCopyright).clone(pAlloc);
+
+    auto* pGenerator = json::searchObject(assetObj, "generator");
+    if (pGenerator)
+        m_asset.sGenerator = json::getString(pGenerator).clone(pAlloc);
+
+    auto* pMinVersion = json::searchObject(assetObj, "minVersion");
+    if (pMinVersion)
+        m_asset.sMinVersion = json::getString(pMinVersion).clone(pAlloc);
+
+    return true;
+}
+
+bool
+Model::procRootScene(adt::IAllocator* pAlloc)
+{
+    if (!m_jsonObjs.pScene)
+    {
+        LOG_BAD("'scene' object not found\n");
+        return false;
+    }
+
+    m_rootScene.nodeIdx = json::getLong(m_jsonObjs.pScene);
+
+    return true;
+}
+
+bool
 Model::procScenes(IAllocator* pAlloc)
 {
     auto scenes = m_jsonObjs.pScenes;
@@ -301,9 +346,11 @@ Model::procScenes(IAllocator* pAlloc)
             break;
         }
     }
+
+    return true;
 }
 
-void
+bool
 Model::procBuffers(IAllocator* pAlloc)
 {
     auto buffers = m_jsonObjs.pBuffers;
@@ -313,7 +360,11 @@ Model::procBuffers(IAllocator* pAlloc)
         auto& obj = json::getObject(&e);
         auto pByteLength = json::searchObject(obj, "byteLength");
         auto pUri = json::searchObject(obj, "uri");
-        if (!pByteLength) LOG_FATAL("'byteLength' field is required\n");
+        if (!pByteLength)
+        {
+            LOG_BAD("'byteLength' is required\n");
+            return false;
+        }
 
         String svUri;
         Opt<String> rsBin;
@@ -341,9 +392,11 @@ Model::procBuffers(IAllocator* pAlloc)
             .sBin = aBin
         });
     }
+
+    return true;
 }
 
-void
+bool
 Model::procBufferViews(IAllocator* pAlloc)
 {
     auto bufferViews = m_jsonObjs.pBufferViews;
@@ -368,9 +421,11 @@ Model::procBufferViews(IAllocator* pAlloc)
             .target = pTarget ? (TARGET)(json::getLong(pTarget)) : TARGET::NONE
         });
     }
+
+    return true;
 }
 
-void
+bool
 Model::procAccessors(IAllocator* pAlloc)
 {
     auto accessors = m_jsonObjs.pAccessors;
@@ -402,9 +457,11 @@ Model::procAccessors(IAllocator* pAlloc)
             .type = type
         });
     }
+
+    return true;
 }
 
-void
+bool
 Model::procMeshes(IAllocator* pAlloc)
 {
     auto meshes = m_jsonObjs.pMeshes;
@@ -430,6 +487,7 @@ Model::procMeshes(IAllocator* pAlloc)
             auto pNORMAL = json::searchObject(oAttr, "NORMAL");
             auto pTANGENT = json::searchObject(oAttr, "TANGENT");
             auto pPOSITION = json::searchObject(oAttr, "POSITION");
+            /* TODO: parse every TEXCOORD_* field */
             auto pTEXCOORD_0 = json::searchObject(oAttr, "TEXCOORD_0");
  
             auto pIndices = json::searchObject(op, "indices");
@@ -451,13 +509,16 @@ Model::procMeshes(IAllocator* pAlloc)
  
         m_vMeshes.push(pAlloc, {.aPrimitives = aPrimitives, .sName = name});
     }
+
+    return true;
 }
 
-void
+bool
 Model::procTexures(IAllocator* pAlloc)
 {
     auto textures = m_jsonObjs.pTextures;
-    if (!textures) return;
+    if (!textures)
+        return true;
 
     auto& arr = json::getArray(textures);
     for (auto& tex : arr)
@@ -472,13 +533,16 @@ Model::procTexures(IAllocator* pAlloc)
             .sampler = pSampler ? (i32)(json::getLong(pSampler)) : -1
         });
     }
+
+    return true;
 }
 
-void
+bool
 Model::procMaterials(IAllocator* pAlloc)
 {
     auto materials = m_jsonObjs.pMaterials;
-    if (!materials) return;
+    if (!materials)
+        return true;
 
     auto& arr = json::getArray(materials);
     for (auto& mat : arr)
@@ -523,13 +587,16 @@ Model::procMaterials(IAllocator* pAlloc)
             .normalTexture = normTexInfo
         });
     }
+
+    return true;
 }
 
-void
+bool
 Model::procImages(IAllocator* pAlloc)
 {
     auto imgs = m_jsonObjs.pImages;
-    if (!imgs) return;
+    if (!imgs)
+        return true;
 
     auto& arr = json::getArray(imgs);
     for (auto& img : arr)
@@ -544,9 +611,11 @@ Model::procImages(IAllocator* pAlloc)
             );
         }
     }
+
+    return true;
 }
 
-void
+bool
 Model::procNodes(IAllocator* pAlloc)
 {
     auto nodes = m_jsonObjs.pNodes;
@@ -605,13 +674,15 @@ Model::procNodes(IAllocator* pAlloc)
 
         m_vNodes.push(pAlloc, nNode);
     }
+
+    return true;
 }
 
-void
+bool
 Model::procAnimations(adt::IAllocator* pAlloc)
 {
     if (!m_jsonObjs.pAnimations)
-        return;
+        return true;
 
     const auto* pAnimations = m_jsonObjs.pAnimations;
     const auto& aAnimations = json::getArray(pAnimations); /* usually an array of one object */
@@ -629,7 +700,7 @@ Model::procAnimations(adt::IAllocator* pAlloc)
         if (!pChannelsObj)
         {
             LOG_BAD("'channels' object is required\n");
-            return;
+            return false;
         }
 
         auto& arrChannels = json::getArray(pChannelsObj);
@@ -643,7 +714,7 @@ Model::procAnimations(adt::IAllocator* pAlloc)
             if (!pSampler)
             {
                 LOG_BAD("'sampler' object is required\n");
-                return;
+                return false;
             }
 
             auto sampler = json::getLong(pSampler);
@@ -653,7 +724,7 @@ Model::procAnimations(adt::IAllocator* pAlloc)
             if (!pTarget)
             {
                 LOG_BAD("'target' object is required\n");
-                return;
+                return false;
             }
 
             auto& targetObj = json::getObject(pTarget);
@@ -668,7 +739,7 @@ Model::procAnimations(adt::IAllocator* pAlloc)
             if (!pPath)
             {
                 LOG_BAD("'path' object is required\n");
-                return;
+                return false;
             }
 
             auto eType = AnimationChannelTargetPathTypeStringToPATH_TYPE(json::getString(pPath));
@@ -677,8 +748,49 @@ Model::procAnimations(adt::IAllocator* pAlloc)
             newAnim.channels.push(pAlloc, newChannel);
         }
 
+        auto* pSamplers = json::searchObject(obj, "samplers");
+        if (!pSamplers)
+        {
+            LOG_BAD("'samplers' objects is required\n");
+            return false;
+        }
+
+        auto& samplersArr = json::getArray(pSamplers);
+        for (auto& sampler : samplersArr)
+        {
+            auto& samplerObj = json::getObject(&sampler);
+
+            Animation::Sampler newSampler {};
+
+            auto* pInput = json::searchObject(samplerObj, "input");
+            if (!pInput)
+            {
+                LOG_BAD("'input' is required\n");
+                return false;
+            }
+
+            newSampler.input = static_cast<int>(json::getLong(pInput));
+
+            auto* pInterpolation = json::searchObject(samplerObj, "interpolation");
+            if (pInterpolation)
+                newSampler.interpolation = AnimationSamplerStringToPATH_TYPE(json::getString(pInterpolation));
+
+            auto* pOutput = json::searchObject(samplerObj, "output");
+            if (!pOutput)
+            {
+                LOG_BAD("'output' field is required\n");
+                return false;
+            }
+
+            newSampler.output = static_cast<int>(json::getLong(pOutput));
+
+            newAnim.samplers.push(pAlloc, newSampler);
+        }
+
         m_vAnimations.push(pAlloc, newAnim);
     }
+    
+    return true;
 }
 
 } /* namespace gltf */

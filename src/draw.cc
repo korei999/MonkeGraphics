@@ -584,10 +584,8 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
     /* NOTE: must be from the asset::g_objects, maybe pass Object* instead? */
     const asset::Object* pObj = (asset::Object*)&model;
 
-    trm *= node.matrix *
-        M4TranslationFrom(node.translation) *
-        QtRot(node.rotation) *
-        M4ScaleFrom(node.scale);
+    if (node.matrix)
+        trm *= node.matrix;
 
     for (auto& children : node.children)
     {
@@ -610,9 +608,15 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
             /* TODO: there might be any number of TEXCOORD_*,
              * which would be specified in baseColorTexture.texCoord.
              * But currect gltf parser only reads the 0th one. */
-            auto& accUV = model.m_vAccessors[primitive.attributes.TEXCOORD_0];
-            auto& viewUV = model.m_vBufferViews[accUV.bufferView];
-            auto& buffUV = model.m_vBuffers[viewUV.buffer];
+            gltf::Accessor accUV {};
+            gltf::BufferView viewUV {};
+            gltf::Buffer buffUV {};
+            if (primitive.attributes.TEXCOORD_0 != -1)
+            {
+                accUV = model.m_vAccessors[primitive.attributes.TEXCOORD_0];
+                viewUV = model.m_vBufferViews[accUV.bufferView];
+                buffUV = model.m_vBuffers[viewUV.buffer];
+            }
 
             auto& accPos = model.m_vAccessors[primitive.attributes.POSITION];
             auto& viewPos = model.m_vBufferViews[accPos.bufferView];
@@ -641,19 +645,20 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
                 (int)accIndices.componentType
             );
 
-            ADT_ASSERT(accUV.type == gltf::ACCESSOR_TYPE::VEC2, " ");
-            const Span<V2> spUVs {
-                (V2*)&buffUV.sBin[accUV.byteOffset + viewUV.byteOffset],
-                accUV.count
-            };
+            Span<V2> spUVs {};
+            if (primitive.attributes.TEXCOORD_0 != -1)
+            {
+                spUVs = {
+                    (V2*)&buffUV.sBin[accUV.byteOffset + viewUV.byteOffset],
+                    accUV.count
+                };
+            }
 
             ADT_ASSERT(accPos.type == gltf::ACCESSOR_TYPE::VEC3, " ");
             const Span<V3> spPos {
                 (V3*)&buffPos.sBin[accPos.byteOffset + viewPos.byteOffset],
                 accPos.count
             };
-
-            ADT_ASSERT(accUV.count == accPos.count, " ");
 
             switch (primitive.mode)
             {
@@ -681,7 +686,13 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
                             for (auto [i0, i1, i2] : spIndiciesU16)
                             {
                                 V3 aPos[3] {spPos[i0], spPos[i1], spPos[i2]};
-                                V2 aUVs[3] {spUVs[i0], spUVs[i1], spUVs[i2]};
+                                V2 aUVs[3] {};
+                                if (primitive.attributes.TEXCOORD_0 != -1)
+                                {
+                                    aUVs[0] = spUVs[i0];
+                                    aUVs[1] = spUVs[i1];
+                                    aUVs[2] = spUVs[i2];
+                                }
 
                                 drawTriangle(
                                     trm*V4From(aPos[0], 1.0f), trm * V4From(aPos[1], 1.0f), trm* V4From(aPos[2], 1.0f),
@@ -702,7 +713,13 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
                             for (auto [i0, i1, i2] : spIndiciesU32)
                             {
                                 V3 aPos[3] {spPos[i0], spPos[i1], spPos[i2]};
-                                V2 aUVs[3] {spUVs[i0], spUVs[i1], spUVs[i2]};
+                                V2 aUVs[3] {};
+                                if (primitive.attributes.TEXCOORD_0 != -1)
+                                {
+                                    aUVs[0] = spUVs[i0];
+                                    aUVs[1] = spUVs[i1];
+                                    aUVs[2] = spUVs[i2];
+                                }
 
                                 drawTriangle(
                                     trm*V4From(aPos[0], 1.0f), trm*V4From(aPos[1], 1.0f), trm*V4From(aPos[2], 1.0f),
@@ -723,11 +740,9 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
 static void
 drawGLTF(Arena* pArena, const gltf::Model& model, math::M4 trm)
 {
-    for (auto& scene : model.m_vScenes)
-    {
-        auto& node = model.m_vNodes[scene.nodeIdx];
-        drawGLTFNode(pArena, model, node, trm);
-    }
+    const auto& scene = model.m_vScenes[model.m_rootScene.nodeIdx];
+    const auto& node = model.m_vNodes[scene.nodeIdx];
+    drawGLTFNode(pArena, model, node, trm);
 }
 
 [[maybe_unused]] static void
@@ -792,7 +807,7 @@ toBuffer(Arena* pArena)
             camera.m_trm *
             M4TranslationFrom(0.0f, 0.5f, -0.0f) *
             M4RotFrom(0, 0, 0) *
-            M4ScaleFrom(100.0f);
+            M4ScaleFrom(1.0f);
 
         const auto* pModelBackpack = asset::searchModel("assets/vampire/vampire.gltf");
 

@@ -22,8 +22,9 @@ Object::destroy()
 
     s_mapStringToObjects.tryRemove(m_sMappedWith);
     m_arena.freeAll();
-    *this = {};
     g_objects.giveBack(this);
+
+    *this = {};
 }
 
 static Opt<PoolHnd>
@@ -64,7 +65,7 @@ loadGLTF(const String svPath, const String sFile)
     bSucces = gltfModel.read(&nObj.m_arena, parser, svPath);
     if (!bSucces)
     {
-        nObj.destroy();
+        nObj.m_arena.freeAll();
         return {};
     }
 

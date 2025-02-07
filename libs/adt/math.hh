@@ -756,6 +756,13 @@ operator*(const M4& l, const f32 r)
     return m;
 }
 
+inline M4
+operator*(const M4& a, bool)
+{
+    ADT_ASSERT(false, "mul with bool is no good");
+    return a;
+}
+
 inline M3&
 operator*=(M3& l, const f32 r)
 {
@@ -772,6 +779,13 @@ operator*=(M4& l, const f32 r)
         l.d[i] *= r;
 
     return l;
+}
+
+inline M4&
+operator*=(M4& a, bool)
+{
+    ADT_ASSERT(false, "mul with bool is no good");
+    return a;
 }
 
 inline M3
