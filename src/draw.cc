@@ -64,7 +64,10 @@ ndcToPix(math::V2 ndcPos)
     const auto& win = *app::g_pWindow;
 
     V2 res = 0.5f * (ndcPos + V2{1.0f, 1.0f});
-    res *= V2{static_cast<f32>(win.m_width), static_cast<f32>(win.m_height)};
+    res *= V2{
+        static_cast<f32>(win.m_width),
+        static_cast<f32>(win.m_height)
+    };
 
     return res;
 }
@@ -605,8 +608,8 @@ drawGLTFNode(Arena* pArena, gltf::Model& model, gltf::Node& node, math::M4 trm)
             for (auto& sampler : animation.vSamplers)
             {
                 auto& accTimeStamps = model.m_vAccessors[sampler.inputI];
-                globalMinTime = std::min(globalMinTime, static_cast<f32>(accTimeStamps.min.SCALAR));
-                globalMaxTime = std::max(globalMaxTime, static_cast<f32>(accTimeStamps.max.SCALAR));
+                globalMinTime = utils::min(globalMinTime, static_cast<f32>(accTimeStamps.min.SCALAR));
+                globalMaxTime = utils::max(globalMaxTime, static_cast<f32>(accTimeStamps.max.SCALAR));
             }
         }
 
@@ -652,8 +655,6 @@ drawGLTFNode(Arena* pArena, gltf::Model& model, gltf::Node& node, math::M4 trm)
                     const auto& accOutput = model.m_vAccessors[sampler.outputI];
                     const auto& viewOutput = model.m_vBufferViews[accOutput.bufferViewI];
                     const auto& buffOutput = model.m_vBuffers[viewOutput.bufferI];
-
-                    LOG("node: {}, type: {}, timeStamps: {}, currTime: {}\n", nodeI, channel.target.ePath, spTimeStamps, node.extras.currTime);
 
                     if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::TRANSLATION)
                     {
