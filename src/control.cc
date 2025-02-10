@@ -20,12 +20,13 @@ static void cameraRight() { g_camera.m_lastMove += g_camera.m_right; }
 static void cameraLeft() { g_camera.m_lastMove -= g_camera.m_right; }
 static void cameraUp() { g_camera.m_lastMove += CAMERA_UP; }
 static void cameraDown() { g_camera.m_lastMove -= CAMERA_UP; }
-static void cameraBoost() { g_camera.m_lastBoost += 1.0f; }
+static void cameraBoost() { g_camera.m_lastBoost *= 2.0f; }
+static void cameraDeboost() { g_camera.m_lastBoost *= 0.5f; }
 
 Camera g_camera {.m_pos {0, 0, -3}, .m_lastMove {}, .m_sens = 0.05f, .m_speed = 4.0f};
 Mouse g_mouse {};
-bool g_aPrevPressed[MAX_KEY_VALUE] {};
-bool g_aPressed[MAX_KEY_VALUE] {};
+bool g_abPrevPressed[MAX_KEY_VALUE] {};
+bool g_abPressed[MAX_KEY_VALUE] {};
 MOD_STATE g_ePressedMods {};
 
 Arr<Keybind, MAX_KEYBINDS> g_aKeybinds {
@@ -35,6 +36,7 @@ Arr<Keybind, MAX_KEYBINDS> g_aKeybinds {
     {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_ESC,      quit                 },
     {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_W,        cameraForward        },
     {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::SHIFT, 0,            cameraBoost          },
+    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::ALT,   0,            cameraDeboost        },
     {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_S,        cameraBack           },
     {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_A,        cameraLeft           },
     {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_D,        cameraRight          },
@@ -54,12 +56,12 @@ procKeybinds(Arr<bool, MAX_KEYBINDS>* paPressOnceMap, const Arr<Keybind, MAX_KEY
 
         if (com.eExecOn == EXEC_ON::PRESS)
         {
-            bKey = com.key == 0 ? true : g_aPressed[com.key];
+            bKey = com.key == 0 ? true : g_abPressed[com.key];
             bMod = com.eMod == MOD_STATE::NONE ? true : static_cast<bool>(com.eMod & g_ePressedMods);
         }
         else
         {
-            bKey = g_aPrevPressed[com.key] && !g_aPressed[com.key];
+            bKey = g_abPrevPressed[com.key] && !g_abPressed[com.key];
             /* NOTE: not using `ePrevMods` */
             bMod = com.eMod == MOD_STATE::NONE ? true : com.eMod == g_ePressedMods;
         }
@@ -133,12 +135,12 @@ procInput()
     g_camera.m_lastMove = {};
     g_camera.m_lastBoost = 1.0f;
 
-    ADT_ASSERT(sizeof(g_aPrevPressed) == sizeof(g_aPressed),
+    ADT_ASSERT(sizeof(g_abPrevPressed) == sizeof(g_abPressed),
         "must be same size: %llu, %llu",
-        static_cast<u64>(sizeof(g_aPrevPressed)), static_cast<u64>(sizeof(g_aPressed))
+        static_cast<u64>(sizeof(g_abPrevPressed)), static_cast<u64>(sizeof(g_abPressed))
     );
 
-    defer( utils::copy(g_aPrevPressed, g_aPressed, utils::size(g_aPrevPressed)) );
+    defer( utils::copy(g_abPrevPressed, g_abPressed, utils::size(g_abPrevPressed)) );
 
     static Arr<bool, MAX_KEYBINDS> s_aPressedKeysOnceMap(MAX_KEYBINDS);
     procKeybinds(&s_aPressedKeysOnceMap, g_aKeybinds);

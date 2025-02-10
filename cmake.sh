@@ -7,6 +7,10 @@ BIN=$(cat name)
 _clean()
 {
     rm -rf build
+    rm -f CMakeCache.txt
+    rm -f cmake_install.cmake
+    rm -f compile_commands.json
+    rm -f Makefile
 }
 
 releaseCLANG()

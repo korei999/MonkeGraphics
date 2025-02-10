@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "adt/Opt.hh"
 #include "adt/Vec.hh"
 #include "adt/math.hh"
 #include "adt/String.hh"
@@ -38,9 +37,15 @@ enum class TARGET
     ELEMENT_ARRAY_BUFFER = 34963
 };
 
+struct DefaultScene
+{
+    int nodeI {};
+};
+
 struct Scene
 {
-    adt::u32 nodeIdx {};
+    adt::VecBase<int> vNodes {};
+    adt::String sName {};
 };
 
 /* A buffer represents a block of raw binary data, without an inherent structure or meaning.
@@ -48,9 +53,9 @@ struct Scene
  * This URI may either point to an external file, or be a data URI that encodes the binary data directly in the JSON file. */
 struct Buffer
 {
-    adt::u32 byteLength {};
+    int byteLength {};
     adt::String sUri {};
-    adt::String sBin  {};
+    adt::String sBin {};
 };
 
 enum class ACCESSOR_TYPE
@@ -80,13 +85,13 @@ union Type
  * The raw data of a buffer is structured using bufferView objects and is augmented with data type information using accessor objects.*/
 struct Accessor
 {
-    adt::u32 bufferView {};
-    adt::u32 byteOffset {}; /* The offset relative to the start of the buffer view in bytes. This MUST be a multiple of the size of the component datatype. */
-    enum COMPONENT_TYPE componentType {}; /* REQUIRED */
-    adt::u32 count {}; /* REQUIRED The number of elements referenced by this accessor, not to be confused with the number of bytes or number of components. */
+    int bufferViewI {};
+    int byteOffset {}; /* The offset relative to the start of the buffer view in bytes. This MUST be a multiple of the size of the component datatype. */
+    enum COMPONENT_TYPE eComponentType {}; /* REQUIRED */
+    int count {}; /* REQUIRED The number of elements referenced by this accessor, not to be confused with the number of bytes or number of components. */
     union Type max {};
     union Type min {};
-    enum ACCESSOR_TYPE type {}; /* REQUIRED */
+    enum ACCESSOR_TYPE eType {}; /* REQUIRED */
 };
 
 
@@ -95,19 +100,32 @@ struct Accessor
  * and together they define the structure of the scene as a scene graph. */
 struct Node
 {
+    enum class TRANSFORMATION_TYPE : adt::u8 { NONE, MATRIX, ANIMATION };
+
+    /* */
+
     adt::String sName {};
-    adt::u32 camera {};
-    adt::VecBase<adt::u32> children {};
+    int camera {};
+    adt::VecBase<int> vChildren {};
     /* each node can have a local transform.
      * This transform can be given either by the matrix property of the node or by using the translation, rotation, and scale (TRS) properties. */
-    adt::Opt<adt::math::M4> matrix {};
-    adt::ssize mesh = adt::NPOS; /* The index of the mesh in this node. */
-    adt::math::V3 translation {};
-    adt::math::Qt rotation = adt::math::QtIden();
-    adt::math::V3 scale {1.0f, 1.0f, 1.0f};
+    TRANSFORMATION_TYPE eTransformationType {};
+    union
+    {
+        adt::math::M4 matrix;
+        struct
+        {
+            adt::math::V3 translation {};
+            adt::math::Qt rotation = adt::math::QtIden();
+            adt::math::V3 scale {1.0f, 1.0f, 1.0f};
+        } animation {};
+    } uTransformation {};
+    int meshI = adt::NPOS; /* The index of the mesh in this node. */
 
-    Node() = default;
-    Node(adt::IAllocator* p) : children(p) {}
+    struct
+    {
+        adt::f32 currTime = 1.0f;
+    } extras {}; /* Application-specific data. */
 };
 
 struct Animation
@@ -119,7 +137,7 @@ struct Animation
             enum class PATH_TYPE : adt::u8 { TRANSLATION, ROTATION, SCALE, WEIGHTS };
 
             /* The index of the node to animate. When undefined, the animated object MAY be defined by an extension. */
-            int node = -1;
+            int nodeI = -1;
             /* REQUIRED. The name of the node’s TRS property to animate, or the "weights" of the Morph Targets it instantiates.
              * For the "translation" property, the values that are provided by the sampler are the translation along the X, Y, and Z axes.
              * For the "rotation" property, the values are a quaternion in the order (x, y, z, w), where w is the scalar.
@@ -127,7 +145,7 @@ struct Animation
             PATH_TYPE ePath {};
         };
 
-        int sampler {}; /* REQUIRED. The index of a sampler in this animation used to compute the value for the target. */
+        int samplerI {}; /* REQUIRED. The index of a sampler in this animation used to compute the value for the target. */
         Target target {}; /* REQUIRED. The descriptor of the animated property. */
         
     };
@@ -136,26 +154,26 @@ struct Animation
     {
         enum class INTERPOLATION_TYPE : adt::u8 { LINEAR, STEP, CUBICSPLINE };
 
-        int input {}; /* REQUIRED. The index of an accessor containing keyframe timestamps. */
-        INTERPOLATION_TYPE interpolation = INTERPOLATION_TYPE::LINEAR;
-        int output {}; /* REQUIRED. The index of an accessor, containing keyframe output values. */
+        int inputI {}; /* REQUIRED. The index of an accessor containing keyframe timestamps. */
+        INTERPOLATION_TYPE eInterpolation = INTERPOLATION_TYPE::LINEAR;
+        int outputI {}; /* REQUIRED. The index of an accessor, containing keyframe output values. */
     };
 
     /* REQUIRED. An array of animation channels. An animation channel combines an animation sampler with a target property being animated.
      * Different channels of the same animation MUST NOT have the same targets. */
-    adt::VecBase<Channel> channels {};
+    adt::VecBase<Channel> vChannels {};
     /* REQUIRED. An array of animation samplers.
      * An animation sampler combines timestamps with a sequence of output values and defines an interpolation algorithm. */
-    adt::VecBase<Sampler> samplers {};
+    adt::VecBase<Sampler> vSamplers {};
     adt::String sName {}; /* The user-defined name of this object. */
 };
 
 struct CameraPersp
 {
-    adt::f64 aspectRatio;
-    adt::f64 yfov;
-    adt::f64 zfar;
-    adt::f64 znear;
+    adt::f64 aspectRatio {};
+    adt::f64 yfov {};
+    adt::f64 zfar {};
+    adt::f64 znear {};
 };
 
 struct CameraOrtho
@@ -169,28 +187,28 @@ struct Camera
     {
         CameraPersp perspective;
         CameraOrtho orthographic;
-    } proj;
+    } proj {};
     enum
     {
         perspective,
         orthographic
-    } type;
+    } eType {};
 };
 
 /* A bufferView represents a “slice” of the data of one buffer.
  * This slice is defined using an offset and a length, in bytes. */
 struct BufferView
 {
-    adt::u32 buffer;
-    adt::u32 byteOffset = 0; /* The offset into the buffer in bytes. */
-    adt::u32 byteLength;
-    adt::u32 byteStride = 0; /* The stride, in bytes, between vertex attributes. When this is not defined, data is tightly packed. */
-    enum TARGET target;
+    int bufferI {};
+    int byteOffset {}; /* The offset into the buffer in bytes. */
+    int byteLength {};
+    int byteStride {}; /* The stride, in bytes, between vertex attributes. When this is not defined, data is tightly packed. */
+    enum TARGET eTarget {};
 };
 
 struct Image
 {
-    adt::String sUri;
+    adt::String sUri {};
 };
 
 /* match real gl macros */
@@ -209,50 +227,50 @@ struct Primitive
 {
     struct
     {
-        adt::i32 NORMAL = adt::NPOS32;
-        adt::i32 POSITION = adt::NPOS32;
-        adt::i32 TEXCOORD_0 = adt::NPOS32;
-        adt::i32 TANGENT = adt::NPOS32;
-    } attributes; /* each value is the index of the accessor containing attribute’s data. */
-    adt::i32 indices = adt::NPOS32; /* The index of the accessor that contains the vertex indices, drawElements() when defined and drawArrays() otherwise. */
-    adt::i32 material = adt::NPOS32; /* The index of the material to apply to this primitive when rendering */
-    enum PRIMITIVES mode = PRIMITIVES::TRIANGLES;
+        int NORMAL = adt::NPOS32;
+        int POSITION = adt::NPOS32;
+        int TEXCOORD_0 = adt::NPOS32;
+        int TANGENT = adt::NPOS32;
+    } attributes {}; /* each value is the index of the accessor containing attribute’s data. */
+    int indicesI = adt::NPOS32; /* The index of the accessor that contains the vertex indices, drawElements() when defined and drawArrays() otherwise. */
+    int materialI = adt::NPOS32; /* The index of the material to apply to this primitive when rendering */
+    enum PRIMITIVES eMode = PRIMITIVES::TRIANGLES;
 };
 
 /* A mesh primitive defines the geometry data of the object using its attributes dictionary.
  * This geometry data is given by references to accessor objects that contain the data of vertex attributes. */
 struct Mesh
 {
-    adt::VecBase<Primitive> aPrimitives; /* REQUIRED */
+    adt::VecBase<Primitive> vPrimitives {}; /* REQUIRED */
     adt::String sName {};
 };
 
 struct Texture
 {
-    adt::i32 source = adt::NPOS32; /* The index of the image used by this texture. */
-    adt::i32 sampler = adt::NPOS32; /* The index of the sampler used by this texture. When undefined, a sampler with repeat wrapping and auto filtering SHOULD be used. */
+    int sourceI = adt::NPOS32; /* The index of the image used by this texture. */
+    int samplerI = adt::NPOS32; /* The index of the sampler used by this texture. When undefined, a sampler with repeat wrapping and auto filtering SHOULD be used. */
 };
 
 struct TextureInfo
 {
-    adt::i32 index = adt::NPOS32; /* REQUIRED The index of the texture. */
+    int index = adt::NPOS32; /* REQUIRED The index of the texture. */
 };
 
 struct NormalTextureInfo
 {
-    adt::i32 index = adt::NPOS32; /* REQUIRED */
-    adt::f64 scale;
+    int index = adt::NPOS32; /* REQUIRED */
+    adt::f64 scale {};
 };
 
 struct PbrMetallicRoughness
 {
-    TextureInfo baseColorTexture;
+    TextureInfo baseColorTexture {};
 };
 
 struct Material
 {
-    PbrMetallicRoughness pbrMetallicRoughness;
-    NormalTextureInfo normalTexture;
+    PbrMetallicRoughness pbrMetallicRoughness {};
+    NormalTextureInfo normalTexture {};
 };
 
 } /* namespace gltf */

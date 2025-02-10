@@ -19,8 +19,8 @@ namespace draw
 
 enum class SAMPLER : u8 { NEAREST, BILINEAR };
 
-struct IdxU16x3 { u16 x, y, z; };
-struct IdxU32x3 { u32 x, y, z; };
+struct IndexU16x3 { u16 x, y, z; };
+struct IndexU32x3 { u32 x, y, z; };
 
 static u8 s_aScratchMem[SIZE_8K] {};
 static ScratchBuffer s_scratch {s_aScratchMem};
@@ -577,72 +577,167 @@ helloGradientTest()
 }
 
 static void
-drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, math::M4 trm)
+drawGLTFNode(Arena* pArena, gltf::Model& model, gltf::Node& node, math::M4 trm)
 {
     using namespace adt::math;
 
-    /* NOTE: must be from the asset::g_objects, maybe pass Object* instead? */
-    const asset::Object* pObj = (asset::Object*)&model;
+    /* NOTE: must be one of asset::g_objects */
+    auto pObj = (const asset::Object*)&model;
+    const ssize nodeI = model.m_vNodes.idx(&node);
 
-    if (node.matrix)
-        trm *= node.matrix;
+    node.extras.currTime += frame::g_frameTime;
 
-    for (auto& children : node.children)
+    if (node.eTransformationType == gltf::Node::TRANSFORMATION_TYPE::MATRIX)
+    {
+        trm *= node.uTransformation.matrix;
+    }
+    else
+    {
+        for (auto& animation : model.m_vAnimations)
+        {
+            for (auto& channel : animation.vChannels)
+            {
+                if (channel.target.nodeI != nodeI)
+                    continue;
+
+                const gltf::Animation::Sampler& sampler = animation.vSamplers[channel.samplerI];
+
+                auto& accTimeStamps = model.m_vAccessors[sampler.inputI];
+                auto& viewTimeStamps = model.m_vBufferViews[accTimeStamps.bufferViewI];
+                auto& buffTimeStamps = model.m_vBuffers[viewTimeStamps.bufferI];
+
+                const Span<f32> spTimeStamps(
+                    (f32*)(&buffTimeStamps.sBin[accTimeStamps.byteOffset + viewTimeStamps.byteOffset]), accTimeStamps.count
+                );
+
+                ADT_ASSERT(spTimeStamps.getSize() >= 2, " ");
+
+                f32 maxTimeStamp = static_cast<f32>(accTimeStamps.max.SCALAR);
+
+                f32 prevTime = -INFINITY;
+                f32 nextTime {};
+
+                if (node.extras.currTime >= accTimeStamps.max.SCALAR)
+                    node.extras.currTime = 0.0f;
+
+                int prevTimeI = 0;
+                for (auto& timeStamp : spTimeStamps)
+                {
+                    if (timeStamp < node.extras.currTime && timeStamp > prevTime)
+                        prevTimeI = spTimeStamps.idx(&timeStamp);
+                }
+
+                prevTime = spTimeStamps[prevTimeI + 0];
+                nextTime = spTimeStamps[prevTimeI + 1];
+
+                const f32 interpolationValue = (node.extras.currTime - prevTime) / (nextTime - prevTime);
+
+                const auto& accOutput = model.m_vAccessors[sampler.outputI];
+                const auto& viewOutput = model.m_vBufferViews[accOutput.bufferViewI];
+                const auto& buffOutput = model.m_vBuffers[viewOutput.bufferI];
+
+                V3 currTranslation = node.uTransformation.animation.translation;
+                Qt currRotation = node.uTransformation.animation.rotation;
+                V3 currScale = node.uTransformation.animation.scale;
+
+                if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::TRANSLATION)
+                {
+                    const Span<V3> spOutTranslations(
+                        (V3*)&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset],
+                        accOutput.count
+                    );
+
+                    currTranslation = lerp(spOutTranslations[prevTimeI], spOutTranslations[prevTimeI + 1], interpolationValue);
+                }
+                else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::ROTATION)
+                {
+                    const Span<Qt> spOutRotations(
+                        (Qt*)&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset],
+                        accOutput.count
+                    );
+
+                    currRotation = slerp(spOutRotations[prevTimeI], spOutRotations[prevTimeI + 1], interpolationValue);
+                }
+                else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::SCALE)
+                {
+                    const Span<V3> spOutScales(
+                        (V3*)&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset],
+                        accOutput.count
+                    );
+
+                    currScale = lerp(spOutScales[prevTimeI], spOutScales[prevTimeI + 1], interpolationValue);
+                }
+
+                node.uTransformation.animation.translation = currTranslation;
+                node.uTransformation.animation.rotation = currRotation;
+                node.uTransformation.animation.scale = currScale;
+            }
+        }
+
+        trm *= M4TranslationFrom(node.uTransformation.animation.translation) *
+            QtRot(node.uTransformation.animation.rotation) *
+            M4ScaleFrom(node.uTransformation.animation.scale);
+    }
+
+    for (auto& children : node.vChildren)
     {
         auto& childNode = model.m_vNodes[children];
         drawGLTFNode(pArena, model, childNode, trm);
     }
 
-    if (node.mesh != NPOS)
+    if (node.meshI != NPOS)
     {
-        auto& mesh = model.m_vMeshes[node.mesh];
-        for (auto& primitive : mesh.aPrimitives)
+        auto& mesh = model.m_vMeshes[node.meshI];
+        for (const auto& primitive : mesh.vPrimitives)
         {
             /* TODO: can be NPOS */
-            ADT_ASSERT(primitive.indices != static_cast<i32>(NPOS32), " ");
+            ADT_ASSERT(primitive.indicesI != static_cast<i32>(NPOS32), " ");
 
-            auto& accIndices = model.m_vAccessors[primitive.indices];
-            auto& viewIndicies = model.m_vBufferViews[accIndices.bufferView];
-            auto& buffInd = model.m_vBuffers[viewIndicies.buffer];
+            auto& accIndices = model.m_vAccessors[primitive.indicesI];
+            auto& viewIndicies = model.m_vBufferViews[accIndices.bufferViewI];
+            auto& buffInd = model.m_vBuffers[viewIndicies.bufferI];
 
             /* TODO: there might be any number of TEXCOORD_*,
              * which would be specified in baseColorTexture.texCoord.
-             * But currect gltf parser only reads the 0th one. */
+             * But current gltf parser only reads the 0th. */
             gltf::Accessor accUV {};
             gltf::BufferView viewUV {};
             gltf::Buffer buffUV {};
             if (primitive.attributes.TEXCOORD_0 != -1)
             {
                 accUV = model.m_vAccessors[primitive.attributes.TEXCOORD_0];
-                viewUV = model.m_vBufferViews[accUV.bufferView];
-                buffUV = model.m_vBuffers[viewUV.buffer];
+                viewUV = model.m_vBufferViews[accUV.bufferViewI];
+                buffUV = model.m_vBuffers[viewUV.bufferI];
             }
 
             auto& accPos = model.m_vAccessors[primitive.attributes.POSITION];
-            auto& viewPos = model.m_vBufferViews[accPos.bufferView];
-            auto& buffPos = model.m_vBuffers[viewPos.buffer];
+            auto& viewPos = model.m_vBufferViews[accPos.bufferViewI];
+            auto& buffPos = model.m_vBuffers[viewPos.bufferI];
 
             Span2D<ImagePixelARGB> spImage = s_spDefaultTexture;
-            auto& mat = model.m_vMaterials[primitive.material];
-            auto& baseTextureIdx = mat.pbrMetallicRoughness.baseColorTexture.index;
-            if (baseTextureIdx != static_cast<i32>(NPOS))
+            if (primitive.materialI != -1)
             {
-                auto& imgIdx = model.m_vTextures[baseTextureIdx].source;
-                auto& uri = model.m_vImages[imgIdx].sUri;
+                gltf::Material mat = model.m_vMaterials[primitive.materialI];
+                int baseTextureIdx = mat.pbrMetallicRoughness.baseColorTexture.index;
+                if (baseTextureIdx != static_cast<i32>(NPOS))
+                {
+                    auto& imgIdx = model.m_vTextures[baseTextureIdx].sourceI;
+                    auto& uri = model.m_vImages[imgIdx].sUri;
 
-                String nPath = file::replacePathEnding(pArena, pObj->m_sMappedWith, uri);
-                Image* pImg = asset::searchImage(nPath);
+                    String nPath = file::replacePathEnding(pArena, pObj->m_sMappedWith, uri);
+                    Image* pImg = asset::searchImage(nPath);
 
-                if (pImg)
-                    spImage = pImg->getSpanARGB();
+                    if (pImg)
+                        spImage = pImg->getSpanARGB();
+                }
             }
 
-            ADT_ASSERT(accIndices.componentType == gltf::COMPONENT_TYPE::UNSIGNED_SHORT ||
-                accIndices.componentType == gltf::COMPONENT_TYPE::UNSIGNED_INT,
+            ADT_ASSERT(accIndices.eComponentType == gltf::COMPONENT_TYPE::UNSIGNED_SHORT ||
+                accIndices.eComponentType == gltf::COMPONENT_TYPE::UNSIGNED_INT,
                 "exp: %d or %d, got: %d",
                 (int)gltf::COMPONENT_TYPE::UNSIGNED_SHORT,
                 (int)gltf::COMPONENT_TYPE::UNSIGNED_INT,
-                (int)accIndices.componentType
+                (int)accIndices.eComponentType
             );
 
             Span<V2> spUVs {};
@@ -654,13 +749,13 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
                 };
             }
 
-            ADT_ASSERT(accPos.type == gltf::ACCESSOR_TYPE::VEC3, " ");
+            ADT_ASSERT(accPos.eType == gltf::ACCESSOR_TYPE::VEC3, " ");
             const Span<V3> spPos {
                 (V3*)&buffPos.sBin[accPos.byteOffset + viewPos.byteOffset],
                 accPos.count
             };
 
-            switch (primitive.mode)
+            switch (primitive.eMode)
             {
                 default: break;
 
@@ -668,22 +763,22 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
                 {
                     if (accIndices.count < 3)
                     {
-                        LOG_WARN("accIndices.count: {}\n", accIndices.count);
+                        LOG_BAD("accIndices.count: {}\n", accIndices.count);
                         return;
                     }
 
-                    switch (accIndices.componentType)
+                    switch (accIndices.eComponentType)
                     {
                         default: break;
 
                         case gltf::COMPONENT_TYPE::UNSIGNED_SHORT:
                         {
-                            const Span<IdxU16x3> spIndiciesU16 {
-                                (IdxU16x3*)&buffInd.sBin[accIndices.byteOffset + viewIndicies.byteOffset],
+                            const Span<IndexU16x3> spIndiciesU16 {
+                                (IndexU16x3*)&buffInd.sBin[accIndices.byteOffset + viewIndicies.byteOffset],
                                 accIndices.count / 3
                             };
 
-                            for (auto [i0, i1, i2] : spIndiciesU16)
+                            for (const auto [i0, i1, i2] : spIndiciesU16)
                             {
                                 V3 aPos[3] {spPos[i0], spPos[i1], spPos[i2]};
                                 V2 aUVs[3] {};
@@ -705,12 +800,12 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
 
                         case gltf::COMPONENT_TYPE::UNSIGNED_INT:
                         {
-                            const Span<IdxU32x3> spIndiciesU32 {
-                                (IdxU32x3*)&buffInd.sBin[accIndices.byteOffset + viewIndicies.byteOffset],
+                            const Span<IndexU32x3> spIndiciesU32 {
+                                (IndexU32x3*)&buffInd.sBin[accIndices.byteOffset + viewIndicies.byteOffset],
                                 accIndices.count / 3
                             };
 
-                            for (auto [i0, i1, i2] : spIndiciesU32)
+                            for (const auto [i0, i1, i2] : spIndiciesU32)
                             {
                                 V3 aPos[3] {spPos[i0], spPos[i1], spPos[i2]};
                                 V2 aUVs[3] {};
@@ -738,11 +833,11 @@ drawGLTFNode(Arena* pArena, const gltf::Model& model, const gltf::Node& node, ma
 }
 
 static void
-drawGLTF(Arena* pArena, const gltf::Model& model, math::M4 trm)
+drawGLTF(Arena* pArena, gltf::Model& model, math::M4 trm)
 {
-    const auto& scene = model.m_vScenes[model.m_rootScene.nodeIdx];
-    const auto& node = model.m_vNodes[scene.nodeIdx];
-    drawGLTFNode(pArena, model, node, trm);
+    auto& scene = model.m_vScenes[model.m_rootScene.nodeI];
+    for (auto& nodeI : scene.vNodes)
+        drawGLTFNode(pArena, model, model.m_vNodes[nodeI], trm);
 }
 
 [[maybe_unused]] static void
@@ -764,7 +859,6 @@ drawImgDBG(Image* pImg)
             sp(x, y) = spImg(x * xStep, invY * yStep);
         }
     }
-
 }
 
 void
@@ -790,26 +884,14 @@ toBuffer(Arena* pArena)
     const auto& camera = control::g_camera;
     const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
 
-    /*const auto* pModel = asset::searchModel("assets/Sponza/Sponza.gltf");*/
-    // const f32 step = static_cast<f32>(frame::g_time*0.001);
-
     {
-        // M4 cameraTrm = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
-        //     camera.m_trm *
-        //     M4TranslationFrom(0.0f, -0.0f, -0.0f) *
-        //     M4RotFrom(0, 0, 0) *
-        //     M4ScaleFrom(0.006f);
-
-        // if (pModel)
-        //     drawGLTF(pArena, *pModel, cameraTrm);
-
         M4 cameraTrm2 = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
             camera.m_trm *
-            M4TranslationFrom(0.0f, 0.5f, -0.0f) *
+            M4TranslationFrom(0.0f, 0.0f, -0.0f) *
             M4RotFrom(0, 0, 0) *
             M4ScaleFrom(1.0f);
 
-        const auto* pModelBackpack = asset::searchModel("assets/vampire/vampire.gltf");
+        auto* pModelBackpack = asset::searchModel("assets/BoxAnimated/BoxAnimated.gltf");
 
         if (pModelBackpack)
             drawGLTF(pArena, *pModelBackpack, cameraTrm2);

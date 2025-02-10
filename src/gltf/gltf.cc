@@ -94,12 +94,12 @@ stringToAccessorType(String sv)
 }
 
 static union Type
-assignUnionType(json::Object* obj, u32 n)
+assignUnionType(json::Object* obj, int n)
 {
     auto& arr = json::getArray(obj);
     union Type type;
 
-    for (u32 i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
         if (arr[i].tagVal.eTag == json::TAG::LONG)
             type.MAT4.d[i] = f32(json::getLong(&arr[i]));
         else
@@ -320,7 +320,7 @@ Model::procRootScene(adt::IAllocator* pAlloc)
         return false;
     }
 
-    m_rootScene.nodeIdx = json::getLong(m_jsonObjs.pScene);
+    m_rootScene.nodeI = json::getLong(m_jsonObjs.pScene);
 
     return true;
 }
@@ -333,18 +333,25 @@ Model::procScenes(IAllocator* pAlloc)
     for (auto& e : arr)
     {
         auto& obj = json::getObject(&e);
+
+        Scene newScene {};
+
         auto pNodes = json::searchObject(obj, "nodes");
         if (pNodes)
         {
-            auto& a = json::getArray(pNodes);
-            for (auto& el : a)
-                m_vScenes.push(pAlloc, {(u32)json::getLong(&el)});
+            auto& vNodes = json::getArray(pNodes);
+            VecBase<int> vNewNodes {};
+            for (auto& node : vNodes)
+                vNewNodes.push(pAlloc, static_cast<int>(json::getLong(&node)));
+
+            newScene.vNodes = vNewNodes;
         }
-        else
-        {
-            m_vScenes.push(pAlloc, {0});
-            break;
-        }
+
+        auto pName = json::searchObject(obj, "name");
+        if (pName)
+            newScene.sName = json::getString(pName).clone(pAlloc);
+
+        m_vScenes.push(pAlloc, newScene);
     }
 
     return true;
@@ -387,7 +394,7 @@ Model::procBuffers(IAllocator* pAlloc)
         }
 
         m_vBuffers.push(pAlloc, {
-            .byteLength = (u32)(json::getLong(pByteLength)),
+            .byteLength = static_cast<int>(json::getLong(pByteLength)),
             .sUri = svUri,
             .sBin = aBin
         });
@@ -414,11 +421,11 @@ Model::procBufferViews(IAllocator* pAlloc)
         auto pTarget = json::searchObject(obj, "target");
 
         m_vBufferViews.push(pAlloc, {
-            .buffer = (u32)(json::getLong(pBuffer)),
-            .byteOffset = pByteOffset ? (u32)(json::getLong(pByteOffset)) : 0,
-            .byteLength = (u32)(json::getLong(pByteLength)),
-            .byteStride = pByteStride ? (u32)(json::getLong(pByteStride)) : 0,
-            .target = pTarget ? (TARGET)(json::getLong(pTarget)) : TARGET::NONE
+            .bufferI = static_cast<int>(json::getLong(pBuffer)),
+            .byteOffset = pByteOffset ? static_cast<int>(json::getLong(pByteOffset)) : 0,
+            .byteLength = static_cast<int>(json::getLong(pByteLength)),
+            .byteStride = pByteStride ? static_cast<int>(json::getLong(pByteStride)) : 0,
+            .eTarget = pTarget ? (TARGET)(json::getLong(pTarget)) : TARGET::NONE
         });
     }
 
@@ -448,13 +455,13 @@ Model::procAccessors(IAllocator* pAlloc)
         enum ACCESSOR_TYPE type = stringToAccessorType(json::getString(pType));
  
         m_vAccessors.push(pAlloc, {
-            .bufferView = pBufferView ? (u32)(json::getLong(pBufferView)) : 0,
-            .byteOffset = pByteOffset ? (u32)(json::getLong(pByteOffset)) : 0,
-            .componentType = (COMPONENT_TYPE)(json::getLong(pComponentType)),
-            .count = (u32)(json::getLong(pCount)),
+            .bufferViewI = pBufferView ? static_cast<int>(json::getLong(pBufferView)) : 0,
+            .byteOffset = pByteOffset ? static_cast<int>(json::getLong(pByteOffset)) : 0,
+            .eComponentType = (COMPONENT_TYPE)(json::getLong(pComponentType)),
+            .count = static_cast<int>(json::getLong(pCount)),
             .max = pMax ? accessorTypeToUnionType(type, pMax) : Type{},
             .min = pMin ? accessorTypeToUnionType(type, pMin) : Type{},
-            .type = type
+            .eType = type
         });
     }
 
@@ -501,13 +508,13 @@ Model::procMeshes(IAllocator* pAlloc)
                     .TEXCOORD_0 = pTEXCOORD_0 ? (i32)(json::getLong(pTEXCOORD_0)) : -1,
                     .TANGENT = pTANGENT ? (i32)(json::getLong(pTANGENT)) : -1,
                 },
-                .indices = pIndices ? (i32)(json::getLong(pIndices)) : -1,
-                .material = pMaterial ? (i32)(json::getLong(pMaterial)) : -1,
-                .mode = pMode ? static_cast<decltype(Primitive::mode)>(json::getLong(pMode)) : PRIMITIVES::TRIANGLES,
+                .indicesI = pIndices ? (i32)(json::getLong(pIndices)) : -1,
+                .materialI = pMaterial ? (i32)(json::getLong(pMaterial)) : -1,
+                .eMode = pMode ? static_cast<decltype(Primitive::eMode)>(json::getLong(pMode)) : PRIMITIVES::TRIANGLES,
             });
         }
  
-        m_vMeshes.push(pAlloc, {.aPrimitives = aPrimitives, .sName = name});
+        m_vMeshes.push(pAlloc, {.vPrimitives = aPrimitives, .sName = name});
     }
 
     return true;
@@ -529,8 +536,8 @@ Model::procTexures(IAllocator* pAlloc)
         auto pSampler = json::searchObject(obj, "sampler");
 
         m_vTextures.push(pAlloc, {
-            .source = pSource ? (i32)(json::getLong(pSource)) : -1,
-            .sampler = pSampler ? (i32)(json::getLong(pSampler)) : -1
+            .sourceI = pSource ? (i32)(json::getLong(pSource)) : -1,
+            .samplerI = pSampler ? (i32)(json::getLong(pSampler)) : -1
         });
     }
 
@@ -624,55 +631,58 @@ Model::procNodes(IAllocator* pAlloc)
     {
         auto& obj = json::getObject(&node);
 
-        Node nNode(pAlloc);
+        Node newNode {};
 
         auto pName = json::searchObject(obj, "name");
-        if (pName) nNode.sName = json::getString(pName);
+        if (pName)
+            newNode.sName = json::getString(pName);
 
         auto pCamera = json::searchObject(obj, "camera");
-        if (pCamera) nNode.camera = (u32)(json::getLong(pCamera));
+        if (pCamera) newNode.camera = static_cast<int>(json::getLong(pCamera));
 
         auto pChildren = json::searchObject(obj, "children");
         if (pChildren)
         {
             auto& arrChil = json::getArray(pChildren);
             for (auto& c : arrChil)
-
-            nNode.children.push(pAlloc, (u32)(json::getLong(&c)));
+                newNode.vChildren.push(pAlloc, static_cast<int>(json::getLong(&c)));
         }
 
         auto pMatrix = json::searchObject(obj, "matrix");
         if (pMatrix)
         {
-            auto ut = assignUnionType(pMatrix, 4*4);
-            nNode.matrix = ut.MAT4;
+            newNode.uTransformation.matrix = assignUnionType(pMatrix, 4*4).MAT4;
+            newNode.eTransformationType = Node::TRANSFORMATION_TYPE::MATRIX;
         }
 
         auto pMesh = json::searchObject(obj, "mesh");
-        if (pMesh) nNode.mesh = (u32)(json::getLong(pMesh));
+        if (pMesh) newNode.meshI = static_cast<int>(json::getLong(pMesh));
 
         auto pTranslation = json::searchObject(obj, "translation");
         if (pTranslation)
         {
             auto ut = assignUnionType(pTranslation, 3);
-            nNode.translation = ut.VEC3;
+            newNode.uTransformation.animation.translation = ut.VEC3;
+            newNode.eTransformationType = Node::TRANSFORMATION_TYPE::ANIMATION;
         }
 
         auto pRotation = json::searchObject(obj, "rotation");
         if (pRotation)
         {
             auto ut = assignUnionType(pRotation, 4);
-            nNode.rotation.base = ut.VEC4;
+            newNode.uTransformation.animation.rotation.base = ut.VEC4;
+            newNode.eTransformationType = Node::TRANSFORMATION_TYPE::ANIMATION;
         }
 
         auto pScale = json::searchObject(obj, "scale");
         if (pScale)
         {
             auto ut = assignUnionType(pScale, 3);
-            nNode.scale = ut.VEC3;
+            newNode.uTransformation.animation.scale = ut.VEC3;
+            newNode.eTransformationType = Node::TRANSFORMATION_TYPE::ANIMATION;
         }
 
-        m_vNodes.push(pAlloc, nNode);
+        m_vNodes.push(pAlloc, newNode);
     }
 
     return true;
@@ -694,7 +704,8 @@ Model::procAnimations(adt::IAllocator* pAlloc)
         Animation newAnim {};
 
         auto* pName = json::searchObject(obj, "name");
-        newAnim.sName = json::getString(pName).clone(pAlloc);
+        if (pName)
+            newAnim.sName = json::getString(pName).clone(pAlloc);
 
         auto* pChannelsObj = json::searchObject(obj, "channels");
         if (!pChannelsObj)
@@ -718,7 +729,7 @@ Model::procAnimations(adt::IAllocator* pAlloc)
             }
 
             auto sampler = json::getLong(pSampler);
-            newChannel.sampler = sampler;
+            newChannel.samplerI = sampler;
 
             auto* pTarget = json::searchObject(channelObj, "target");
             if (!pTarget)
@@ -733,7 +744,9 @@ Model::procAnimations(adt::IAllocator* pAlloc)
 
             auto pNode = json::searchObject(targetObj, "node");
             if (pNode)
-                newTarget.node = static_cast<int>(json::getLong(pNode));
+            {
+                newTarget.nodeI = static_cast<int>(json::getLong(pNode));
+            }
 
             auto pPath = json::searchObject(targetObj, "path");
             if (!pPath)
@@ -745,7 +758,8 @@ Model::procAnimations(adt::IAllocator* pAlloc)
             auto eType = AnimationChannelTargetPathTypeStringToPATH_TYPE(json::getString(pPath));
             newTarget.ePath = eType;
 
-            newAnim.channels.push(pAlloc, newChannel);
+            newChannel.target = newTarget;
+            newAnim.vChannels.push(pAlloc, newChannel);
         }
 
         auto* pSamplers = json::searchObject(obj, "samplers");
@@ -769,11 +783,11 @@ Model::procAnimations(adt::IAllocator* pAlloc)
                 return false;
             }
 
-            newSampler.input = static_cast<int>(json::getLong(pInput));
+            newSampler.inputI = static_cast<int>(json::getLong(pInput));
 
             auto* pInterpolation = json::searchObject(samplerObj, "interpolation");
             if (pInterpolation)
-                newSampler.interpolation = AnimationSamplerStringToPATH_TYPE(json::getString(pInterpolation));
+                newSampler.eInterpolation = AnimationSamplerStringToPATH_TYPE(json::getString(pInterpolation));
 
             auto* pOutput = json::searchObject(samplerObj, "output");
             if (!pOutput)
@@ -782,9 +796,9 @@ Model::procAnimations(adt::IAllocator* pAlloc)
                 return false;
             }
 
-            newSampler.output = static_cast<int>(json::getLong(pOutput));
+            newSampler.outputI = static_cast<int>(json::getLong(pOutput));
 
-            newAnim.samplers.push(pAlloc, newSampler);
+            newAnim.vSamplers.push(pAlloc, newSampler);
         }
 
         m_vAnimations.push(pAlloc, newAnim);

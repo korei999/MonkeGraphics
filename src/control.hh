@@ -83,8 +83,8 @@ struct Keybind
 
 extern Camera g_camera;
 extern Mouse g_mouse;
-extern bool g_aPrevPressed[MAX_KEY_VALUE];
-extern bool g_aPressed[MAX_KEY_VALUE];
+extern bool g_abPrevPressed[MAX_KEY_VALUE];
+extern bool g_abPressed[MAX_KEY_VALUE];
 extern MOD_STATE g_ePressedMods;
 
 extern adt::Arr<Keybind, MAX_KEYBINDS> g_aKeybinds;

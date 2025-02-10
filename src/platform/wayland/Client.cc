@@ -6,20 +6,22 @@
 
 #include "shm.hh"
 
-// #include <EGL/eglext.h>
-// 
-// static EGLint s_eglLastErrorCode = EGL_SUCCESS;
-// 
-// #ifndef NDEBUG
-// #    define EGLD(C)                                                                                                    \
-//         {                                                                                                              \
-//             C;                                                                                                         \
-//             if ((s_eglLastErrorCode = eglGetError()) != EGL_SUCCESS)                                                     \
-//                 LOG_FATAL("eglLastErrorCode: {:#x}\n", s_eglLastErrorCode);                                              \
-//         }
-// #else
-// #    define EGLD(C) C
-// #endif
+/*
+#include <EGL/eglext.h>
+
+static EGLint s_eglLastErrorCode = EGL_SUCCESS;
+
+#ifndef NDEBUG
+    #define EGLD(C)                                                                                                    \
+        {                                                                                                              \
+            C;                                                                                                         \
+            if ((s_eglLastErrorCode = eglGetError()) != EGL_SUCCESS)                                                   \
+                LOG_FATAL("eglLastErrorCode: {:#x}\n", s_eglLastErrorCode);                                            \
+        }
+#else
+    #define EGLD(C) C
+#endif
+*/
 
 using namespace adt;
 
@@ -173,8 +175,8 @@ Client::start(int width, int height)
 
     wl_display_roundtrip(m_pDisplay);
 
-    if (m_bOpenGl)
-        initEGL();
+    /*if (m_bOpenGl)*/
+    /*    initEGL();*/
 }
 
 Span2D<ImagePixelARGB>

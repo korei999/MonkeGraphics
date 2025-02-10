@@ -7,3 +7,6 @@ tags
 .clangd
 CMakeCache.txt
 CMakeFiles/
+Makefile
+MonkeGraphics
+cmake_install.cmake

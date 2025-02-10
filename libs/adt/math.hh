@@ -446,6 +446,21 @@ operator/(const V3& v, f32 s)
     };
 }
 
+inline V3
+operator+(V3 a, f32 b)
+{
+    a.x += b;
+    a.y += b;
+    a.z += b;
+    return a;
+}
+
+inline V3&
+operator+=(V3& a, f32 b)
+{
+    return a = a + b;
+}
+
 inline V3&
 operator+=(V3& l, const V3& r)
 {
@@ -479,6 +494,17 @@ operator+(const V4& l, const V4& r)
         .z = l.z + r.z,
         .w = l.w + r.w
     };
+}
+
+inline V4
+operator-(const V4& l)
+{
+    V4 res;
+    res.x = -l.x;
+    res.y = -l.y;
+    res.z = -l.z;
+    res.w = -l.w;
+    return res;
 }
 
 inline V4
@@ -1278,6 +1304,14 @@ QtConj(const Qt& q)
 }
 
 inline Qt
+operator-(const Qt& l)
+{
+    Qt res;
+    res.base = -l.base;
+    return res;
+}
+
+inline Qt
 operator*(const Qt& l, const Qt& r)
 {
     return {
@@ -1311,6 +1345,13 @@ operator*=(Qt& l, const V4& r)
     return l = l * r;
 }
 
+inline Qt
+QtNorm(Qt a)
+{
+    f32 mag = std::sqrt(a.w * a.w + a.x * a.x + a.y * a.y + a.z * a.z);
+    return {a.w / mag, a.x / mag, a.y / mag, a.z / mag};
+}
+
 inline V2
 normalize(const V2& v)
 {
@@ -1333,6 +1374,42 @@ constexpr inline auto
 lerp(auto& a, auto& b, auto& t)
 {
     return (1.0 - t) * a + t * b;
+}
+
+inline Qt
+slerp(const Qt& q1, const Qt& q2, f32 t)
+{
+    auto dot = V4Dot(q1.base, q2.base);
+
+    Qt q2b = q2;
+    if (dot < 0.0f)
+    {
+        q2b = -q2;
+        dot = -dot;
+    }
+
+    if (dot > 0.9995f)
+    {
+        Qt res;
+        res.w = q1.w + t * (q2b.w - q1.w);
+        res.z = q1.x + t * (q2b.x - q1.x);
+        res.y = q1.y + t * (q2b.y - q1.y);
+        res.x = q1.z + t * (q2b.z - q1.z);
+        return QtNorm(res);
+    }
+
+    f32 theta = std::acos(dot);
+    f32 sinTheta = std::sin(theta);
+
+    f32 w1 = std::sin((1 - t) * theta) / sinTheta;
+    f32 w2 = std::sin(t * theta) / sinTheta;
+
+    Qt res;
+    res.w = w1 * q1.w + w2 * q2b.w;
+    res.z = w1 * q1.x + w2 * q2b.x;
+    res.y = w1 * q1.y + w2 * q2b.y;
+    res.x = w1 * q1.z + w2 * q2b.z;
+    return res;
 }
 
 template<typename T>
