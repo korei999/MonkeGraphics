@@ -597,6 +597,19 @@ drawGLTFNode(Arena* pArena, gltf::Model& model, gltf::Node& node, math::M4 trm)
         Qt currRotation = node.uTransformation.animation.rotation;
         V3 currScale = node.uTransformation.animation.scale;
 
+        f32 globalMinTime {};
+        f32 globalMaxTime {};
+
+        for (auto& animation : model.m_vAnimations)
+        {
+            for (auto& sampler : animation.vSamplers)
+            {
+                auto& accTimeStamps = model.m_vAccessors[sampler.inputI];
+                globalMinTime = std::min(globalMinTime, static_cast<f32>(accTimeStamps.min.SCALAR));
+                globalMaxTime = std::max(globalMaxTime, static_cast<f32>(accTimeStamps.max.SCALAR));
+            }
+        }
+
         for (auto& animation : model.m_vAnimations)
         {
             for (auto& channel : animation.vChannels)
@@ -616,7 +629,7 @@ drawGLTFNode(Arena* pArena, gltf::Model& model, gltf::Node& node, math::M4 trm)
 
                 ADT_ASSERT(spTimeStamps.getSize() >= 2, " ");
 
-                node.extras.currTime = std::fmod(node.extras.currTime, accTimeStamps.max.SCALAR);
+                node.extras.currTime = std::fmod(node.extras.currTime, globalMaxTime);
 
                 if (node.extras.currTime >= accTimeStamps.min.SCALAR && node.extras.currTime <= accTimeStamps.max.SCALAR)
                 {
