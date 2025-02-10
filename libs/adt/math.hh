@@ -1325,12 +1325,7 @@ operator*(const Qt& l, const Qt& r)
 inline Qt
 operator*(const Qt& l, const V4& r)
 {
-    return {
-        l.w*r.x + l.x*r.w + l.y*r.z - l.z*r.y,
-        l.w*r.y - l.x*r.z + l.y*r.w + l.z*r.x,
-        l.w*r.z + l.x*r.y - l.y*r.x + l.z*r.w,
-        l.w*r.w - l.x*r.x - l.y*r.y - l.z*r.z,
-    };
+    return l * (*(Qt*)&r);
 }
 
 inline Qt
@@ -1345,11 +1340,17 @@ operator*=(Qt& l, const V4& r)
     return l = l * r;
 }
 
+inline bool
+operator==(const Qt& a, const Qt& b)
+{
+    return a.base == b.base;
+}
+
 inline Qt
 QtNorm(Qt a)
 {
     f32 mag = std::sqrt(a.w * a.w + a.x * a.x + a.y * a.y + a.z * a.z);
-    return {a.w / mag, a.x / mag, a.y / mag, a.z / mag};
+    return {a.x / mag, a.y / mag, a.z / mag, a.w / mag};
 }
 
 inline V2
@@ -1384,31 +1385,34 @@ slerp(const Qt& q1, const Qt& q2, f32 t)
     Qt q2b = q2;
     if (dot < 0.0f)
     {
-        q2b = -q2;
+        q2b = -q2b;
         dot = -dot;
     }
 
     if (dot > 0.9995f)
     {
         Qt res;
-        res.w = q1.w + t * (q2b.w - q1.w);
-        res.z = q1.x + t * (q2b.x - q1.x);
+        res.x = q1.x + t * (q2b.x - q1.x);
         res.y = q1.y + t * (q2b.y - q1.y);
-        res.x = q1.z + t * (q2b.z - q1.z);
+        res.z = q1.z + t * (q2b.z - q1.z);
+        res.w = q1.w + t * (q2b.w - q1.w);
         return QtNorm(res);
     }
 
-    f32 theta = std::acos(dot);
+    f32 theta0 = std::acos(dot);
+    f32 theta = theta0 * t;
+
+    f32 sinTheta0 = std::sin(theta0);
     f32 sinTheta = std::sin(theta);
 
-    f32 w1 = std::sin((1 - t) * theta) / sinTheta;
-    f32 w2 = std::sin(t * theta) / sinTheta;
+    f32 s1 = std::cos(theta) - dot * (sinTheta / sinTheta0);
+    f32 s2 = sinTheta / sinTheta0;
 
     Qt res;
-    res.w = w1 * q1.w + w2 * q2b.w;
-    res.z = w1 * q1.x + w2 * q2b.x;
-    res.y = w1 * q1.y + w2 * q2b.y;
-    res.x = w1 * q1.z + w2 * q2b.z;
+    res.x = (s1 * q1.x) + (s2 * q2b.x);
+    res.y = (s1 * q1.y) + (s2 * q2b.y);
+    res.z = (s1 * q1.z) + (s2 * q2b.z);
+    res.w = (s1 * q1.w) + (s2 * q2b.w);
     return res;
 }
 

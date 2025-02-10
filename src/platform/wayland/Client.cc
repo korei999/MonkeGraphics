@@ -248,7 +248,7 @@ Client::unsetFullscreen()
 }
 
 void
-Client::setSwapInterval(int interval)
+Client::setSwapInterval([[maybe_unused]] int interval)
 {
 //     m_swapInterval = interval;
 //     EGLD( eglSwapInterval(m_eglDisplay, interval) );

@@ -30,7 +30,7 @@ struct Model
         json::Object* pAnimations;
     } m_jsonObjs {};
     Asset m_asset {}; /* REQUIRED */
-    DefaultScene m_rootScene {};
+    DefaultScene m_defaultScene {};
     adt::VecBase<Scene> m_vScenes {};
     adt::VecBase<Buffer> m_vBuffers {};
     adt::VecBase<BufferView> m_vBufferViews {};

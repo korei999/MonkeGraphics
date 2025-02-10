@@ -208,7 +208,7 @@ Model::read(IAllocator* pAlloc, const json::Parser& parser, const String svPath)
 }
 
 bool
-Model::procToplevelObjs(IAllocator* pAlloc, const json::Parser& parser)
+Model::procToplevelObjs(IAllocator*, const json::Parser& parser)
 {
     /* collect all the top level objects */
     for (auto& node : parser.getRoot())
@@ -312,7 +312,7 @@ Model::procAsset(adt::IAllocator* pAlloc)
 }
 
 bool
-Model::procRootScene(adt::IAllocator* pAlloc)
+Model::procRootScene(adt::IAllocator*)
 {
     if (!m_jsonObjs.pScene)
     {
@@ -320,7 +320,7 @@ Model::procRootScene(adt::IAllocator* pAlloc)
         return false;
     }
 
-    m_rootScene.nodeI = json::getLong(m_jsonObjs.pScene);
+    m_defaultScene.nodeI = json::getLong(m_jsonObjs.pScene);
 
     return true;
 }

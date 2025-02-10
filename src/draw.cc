@@ -593,6 +593,10 @@ drawGLTFNode(Arena* pArena, gltf::Model& model, gltf::Node& node, math::M4 trm)
     }
     else
     {
+        V3 currTranslation = node.uTransformation.animation.translation;
+        Qt currRotation = node.uTransformation.animation.rotation;
+        V3 currScale = node.uTransformation.animation.scale;
+
         for (auto& animation : model.m_vAnimations)
         {
             for (auto& channel : animation.vChannels)
@@ -612,71 +616,69 @@ drawGLTFNode(Arena* pArena, gltf::Model& model, gltf::Node& node, math::M4 trm)
 
                 ADT_ASSERT(spTimeStamps.getSize() >= 2, " ");
 
-                f32 maxTimeStamp = static_cast<f32>(accTimeStamps.max.SCALAR);
+                node.extras.currTime = std::fmod(node.extras.currTime, accTimeStamps.max.SCALAR);
 
-                f32 prevTime = -INFINITY;
-                f32 nextTime {};
-
-                if (node.extras.currTime >= accTimeStamps.max.SCALAR)
-                    node.extras.currTime = 0.0f;
-
-                int prevTimeI = 0;
-                for (auto& timeStamp : spTimeStamps)
+                if (node.extras.currTime >= accTimeStamps.min.SCALAR && node.extras.currTime <= accTimeStamps.max.SCALAR)
                 {
-                    if (timeStamp < node.extras.currTime && timeStamp > prevTime)
-                        prevTimeI = spTimeStamps.idx(&timeStamp);
+                    f32 prevTime = -INFINITY;
+                    f32 nextTime {};
+
+                    int prevTimeI = 0;
+                    for (auto& timeStamp : spTimeStamps)
+                    {
+                        if (timeStamp < node.extras.currTime && timeStamp > prevTime)
+                            prevTimeI = spTimeStamps.idx(&timeStamp);
+                    }
+
+                    prevTime = spTimeStamps[prevTimeI + 0];
+                    nextTime = spTimeStamps[prevTimeI + 1];
+
+                    ADT_ASSERT(nextTime - prevTime != 0.0f, " ");
+                    const f32 interpolationValue = (node.extras.currTime - prevTime) / (nextTime - prevTime);
+
+                    const auto& accOutput = model.m_vAccessors[sampler.outputI];
+                    const auto& viewOutput = model.m_vBufferViews[accOutput.bufferViewI];
+                    const auto& buffOutput = model.m_vBuffers[viewOutput.bufferI];
+
+                    LOG("node: {}, type: {}, timeStamps: {}, currTime: {}\n", nodeI, channel.target.ePath, spTimeStamps, node.extras.currTime);
+
+                    if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::TRANSLATION)
+                    {
+                        const Span<V3> spOutTranslations(
+                            (V3*)&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset],
+                            accOutput.count
+                        );
+
+                        currTranslation = lerp(spOutTranslations[prevTimeI], spOutTranslations[prevTimeI + 1], interpolationValue);
+                    }
+                    else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::ROTATION)
+                    {
+                        const Span<Qt> spOutRotations(
+                            (Qt*)&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset],
+                            accOutput.count
+                        );
+
+                        Qt prevRot = spOutRotations[prevTimeI + 0];
+                        Qt nextRot = spOutRotations[prevTimeI + 1];
+
+                        currRotation = slerp(prevRot, nextRot, interpolationValue);
+                    }
+                    else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::SCALE)
+                    {
+                        const Span<V3> spOutScales(
+                            (V3*)&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset],
+                            accOutput.count
+                        );
+
+                        currScale = lerp(spOutScales[prevTimeI], spOutScales[prevTimeI + 1], interpolationValue);
+                    }
                 }
-
-                prevTime = spTimeStamps[prevTimeI + 0];
-                nextTime = spTimeStamps[prevTimeI + 1];
-
-                const f32 interpolationValue = (node.extras.currTime - prevTime) / (nextTime - prevTime);
-
-                const auto& accOutput = model.m_vAccessors[sampler.outputI];
-                const auto& viewOutput = model.m_vBufferViews[accOutput.bufferViewI];
-                const auto& buffOutput = model.m_vBuffers[viewOutput.bufferI];
-
-                V3 currTranslation = node.uTransformation.animation.translation;
-                Qt currRotation = node.uTransformation.animation.rotation;
-                V3 currScale = node.uTransformation.animation.scale;
-
-                if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::TRANSLATION)
-                {
-                    const Span<V3> spOutTranslations(
-                        (V3*)&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset],
-                        accOutput.count
-                    );
-
-                    currTranslation = lerp(spOutTranslations[prevTimeI], spOutTranslations[prevTimeI + 1], interpolationValue);
-                }
-                else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::ROTATION)
-                {
-                    const Span<Qt> spOutRotations(
-                        (Qt*)&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset],
-                        accOutput.count
-                    );
-
-                    currRotation = slerp(spOutRotations[prevTimeI], spOutRotations[prevTimeI + 1], interpolationValue);
-                }
-                else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::SCALE)
-                {
-                    const Span<V3> spOutScales(
-                        (V3*)&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset],
-                        accOutput.count
-                    );
-
-                    currScale = lerp(spOutScales[prevTimeI], spOutScales[prevTimeI + 1], interpolationValue);
-                }
-
-                node.uTransformation.animation.translation = currTranslation;
-                node.uTransformation.animation.rotation = currRotation;
-                node.uTransformation.animation.scale = currScale;
             }
-        }
 
-        trm *= M4TranslationFrom(node.uTransformation.animation.translation) *
-            QtRot(node.uTransformation.animation.rotation) *
-            M4ScaleFrom(node.uTransformation.animation.scale);
+            trm *= M4TranslationFrom(currTranslation) *
+                QtRot(currRotation) *
+                M4ScaleFrom(currScale);
+        }
     }
 
     for (auto& children : node.vChildren)
@@ -835,7 +837,7 @@ drawGLTFNode(Arena* pArena, gltf::Model& model, gltf::Node& node, math::M4 trm)
 static void
 drawGLTF(Arena* pArena, gltf::Model& model, math::M4 trm)
 {
-    auto& scene = model.m_vScenes[model.m_rootScene.nodeI];
+    auto& scene = model.m_vScenes[model.m_defaultScene.nodeI];
     for (auto& nodeI : scene.vNodes)
         drawGLTFNode(pArena, model, model.m_vNodes[nodeI], trm);
 }

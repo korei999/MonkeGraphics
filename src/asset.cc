@@ -28,7 +28,7 @@ Object::destroy()
 }
 
 static Opt<PoolHnd>
-loadBMP(const String svPath, const String sFile)
+loadBMP([[maybe_unused]] const String svPath, const String sFile)
 {
     bmp::Reader reader {};
     if (!reader.read(sFile))

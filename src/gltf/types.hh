@@ -274,3 +274,18 @@ struct Material
 };
 
 } /* namespace gltf */
+
+namespace adt::print
+{
+
+inline ssize
+formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Channel::Target::PATH_TYPE x)
+{
+    constexpr adt::String aMap[] {
+        "TRANSLATION", "ROTATION", "SCALE", "WEIGHTS"
+    };
+
+    return formatToContext(ctx, fmtArgs, aMap[static_cast<int>(x)]);
+}
+
+} /* namespace adt::print */
