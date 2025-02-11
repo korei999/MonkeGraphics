@@ -9,16 +9,15 @@ using namespace adt;
 namespace game
 {
 
-static const String s_asAssetPaths[] {
-    /*"assets/cube.gltf",*/
-    /*"assets/Duck.gltf",*/
+static const String s_asAssetsToLoad[] {
+    "assets/duck/Duck.gltf",
     "assets/BoxAnimated/BoxAnimated.gltf",
 };
 
 void
 loadAssets()
 {
-    for (const auto& sPath : s_asAssetPaths)
+    for (const auto& sPath : s_asAssetsToLoad)
     {
         if (!asset::load(sPath))
             LOG_BAD("failed to load: '{}'\n", sPath);

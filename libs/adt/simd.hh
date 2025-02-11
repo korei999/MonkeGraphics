@@ -151,9 +151,15 @@ i32x4::operator f32x4() const
 }
 
 inline i32x4
-i32x4Load(i32* const ptr)
+i32x4Load(const i32* const ptr)
 {
-    return _mm_loadu_si128(reinterpret_cast<__m128i*>(ptr));
+    return _mm_loadu_si128(reinterpret_cast<const __m128i*>(ptr));
+}
+
+inline i32x4
+i32x4Load(const __m128i* const ptr)
+{
+    return _mm_loadu_si128(ptr);
 }
 
 inline i32x4
@@ -178,6 +184,12 @@ inline void
 i32x4Store(i32* const pDest, const i32x4 x)
 {
     _mm_storeu_si128(reinterpret_cast<__m128i*>(pDest), x.pack);
+}
+
+inline void
+i32x4Store(__m128i* const pDest, const i32x4 x)
+{
+    _mm_storeu_si128(pDest, x.pack);
 }
 
 inline i32x4
@@ -678,9 +690,15 @@ i32x8::operator f32x8() const
 }
 
 inline i32x8
-i32x8Load(i32* const ptr)
+i32x8Load(const i32* const ptr)
 {
-    return _mm256_loadu_si256(reinterpret_cast<__m256i*>(ptr));
+    return _mm256_loadu_si256(reinterpret_cast<const __m256i*>(ptr));
+}
+
+inline i32x8
+i32x8Load(const __m256i* const ptr)
+{
+    return _mm256_loadu_si256(ptr);
 }
 
 inline i32x8
@@ -708,6 +726,12 @@ inline void
 i32x8Store(i32* const pDest, const i32x8 x)
 {
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(pDest), x.pack);
+}
+
+inline void
+i32x8Store(__m256i* const pDest, const i32x8 x)
+{
+    _mm256_storeu_si256(pDest, x.pack);
 }
 
 inline i32x8

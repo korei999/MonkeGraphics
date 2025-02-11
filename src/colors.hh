@@ -296,21 +296,23 @@ namespace colors
     constexpr adt::math::V4
     hexToV4(int hex)
     {
+        adt::f32 f = 1.0f / 255.0f;
         return {
-            ((hex >> 24) & 0xff) / 255.0f,
-            ((hex >> 16) & 0xff) / 255.0f,
-            ((hex >> 8 ) & 0xff) / 255.0f,
-            ((hex)       & 0xff) / 255.0f
+            ((hex >> 24) & 0xff) * f,
+            ((hex >> 16) & 0xff) * f,
+            ((hex >> 8 ) & 0xff) * f,
+            ((hex)       & 0xff) * f
         };
     }
 
     constexpr adt::math::V3
     hexToV3(int hex)
     {
+        adt::f32 f = 1.0f / 255.0f;
         return {
-            ((hex >> 16) & 0xff) / 255.0f,
-            ((hex >> 8 ) & 0xff) / 255.0f,
-            ((hex)       & 0xff) / 255.0f
+            ((hex >> 16) & 0xff) * f,
+            ((hex >> 8 ) & 0xff) * f,
+            ((hex)       & 0xff) * f
         };
     }
 
@@ -318,10 +320,22 @@ namespace colors
     V4ToARGB(adt::math::V4 v)
     {
         adt::u32 r {};
-        r |= (adt::u32(v.a * 255.0f) << 24);
-        r |= (adt::u32(v.r * 255.0f) << 16);
-        r |= (adt::u32(v.g * 255.0f) << 8);
-        r |=  adt::u32(v.b * 255.0f);
+        r |= (adt::u32(v.r * 255.0f) << 24);
+        r |= (adt::u32(v.g * 255.0f) << 16);
+        r |= (adt::u32(v.b * 255.0f) << 8);
+        r |=  adt::u32(v.a * 255.0f);
+
+        return r;
+    }
+
+    inline constexpr adt::u32
+    V4ToRGBA(adt::math::V4 v)
+    {
+        adt::u32 r {};
+        r |= (adt::u32(v.r * 255.0f) << 8 * 0);
+        r |= (adt::u32(v.g * 255.0f) << 8 * 1);
+        r |= (adt::u32(v.b * 255.0f) << 8 * 2);
+        r |=  adt::u32(v.a * 255.0f) << 8 * 3;
 
         return r;
     }

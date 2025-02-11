@@ -30,6 +30,7 @@ load(IAllocator* pAlloc, String sPath)
     ret.m_pData = (char*)pAlloc->malloc(size, sizeof(char));
     ret.m_size = size - 1;
     fread(ret.data(), 1, ret.getSize(), pf);
+    ret.m_pData[ret.m_size] = '\0';
 
     return ret;
 }

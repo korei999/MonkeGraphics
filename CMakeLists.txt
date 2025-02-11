@@ -178,11 +178,13 @@ add_executable(
     src/json/Lexer.cc
 
     src/gltf/gltf.cc
+
+    src/gl.cc
 )
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     find_package(PkgConfig REQUIRED)
-    pkg_check_modules(LINUX_PKGS REQUIRED wayland-client)
+    pkg_check_modules(LINUX_PKGS REQUIRED wayland-client gl egl wayland-egl)
 
     include_directories(BEFORE ${LINUX_PKGS_INCLUDE_DIRS})
     target_link_libraries(

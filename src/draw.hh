@@ -5,6 +5,6 @@
 namespace draw
 {
 
-void toBuffer(adt::Arena* pArena);
+void toSurfaceBuffer(adt::Arena* pArena);
 
 } /* namespace draw */

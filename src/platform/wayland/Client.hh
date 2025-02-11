@@ -7,8 +7,8 @@
 #include "wayland-protocols/relative-pointer-unstable-v1.h"
 #include "wayland-protocols/pointer-constraints-unstable-v1.h"
 
-// #include <wayland-egl.h>
-// #include <EGL/egl.h>
+#include <wayland-egl.h>
+#include <EGL/egl.h>
 
 namespace platform::wayland
 {
@@ -53,10 +53,13 @@ struct Client final : public IWindow
     wp_viewport* m_pViewport {};
 
     bool m_bOpenGl {};
-    // wl_egl_window* m_eglWindow {};
-    // EGLDisplay m_eglDisplay {};
-    // EGLContext m_eglContext {};
-    // EGLSurface m_eglSurface {};
+    wl_egl_window* m_eglWindow {};
+    EGLDisplay m_eglDisplay {};
+    EGLContext m_eglContext {};
+    EGLSurface m_eglSurface {};
+
+    adt::u8* m_pSurfaceBufferBind {};
+    adt::VecBase<ImagePixelRGBA> m_vSurfaceBuffer {};
 
     /* */
 
@@ -67,7 +70,7 @@ struct Client final : public IWindow
     /* */
 
     virtual void start(int width, int height) override;
-    virtual adt::Span2D<ImagePixelARGB> surfaceBuffer() override;
+    virtual adt::Span2D<ImagePixelRGBA> surfaceBuffer() override;
     virtual void disableRelativeMode() override;
     virtual void enableRelativeMode() override;
     virtual void togglePointerRelativeMode() override;
@@ -107,10 +110,7 @@ struct Client final : public IWindow
     void seatCapabilities(wl_seat* pWlSeat, uint32_t capabilities);
     void seatName(wl_seat* pWlSeat, const char* ntsName);
 
-    void outputGeometry(
-        wl_output* pOutput, int32_t x, int32_t y, int32_t physicalWidth, int32_t physicalHeight,
-        int32_t subpixel, const char* ntsMake, const char* ntsModel, int32_t transform
-    );
+    void outputGeometry(wl_output* pOutput, int32_t x, int32_t y, int32_t physicalWidth, int32_t physicalHeight, int32_t subpixel, const char* ntsMake, const char* ntsModel, int32_t transform);
     void outputMode(wl_output* pOutput, uint32_t flags, int32_t width, int32_t height, int32_t refresh);
     void outputDone(wl_output* pOutput);
     void outputScale(wl_output* pOutput, int32_t factor);
@@ -122,16 +122,10 @@ struct Client final : public IWindow
     void keyboardEnter(wl_keyboard* pKeyboard, uint32_t serial, wl_surface* pSurface, wl_array* pKeys);
     void keyboardLeave(wl_keyboard* pKeyboard, uint32_t serial, wl_surface* pSurface);
     void keyboardKey(wl_keyboard* pKeyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state);
-    void keyboardModifiers(
-        wl_keyboard* pKeyboard, uint32_t serial, uint32_t modsDepressed, uint32_t modsLatched,
-        uint32_t modsLocked, uint32_t group
-    );
+    void keyboardModifiers(wl_keyboard* pKeyboard, uint32_t serial, uint32_t modsDepressed, uint32_t modsLatched, uint32_t modsLocked, uint32_t group);
     void keyboardRepeatInfo(wl_keyboard* pKeyboard, int32_t rate, int32_t delay);
 
-    void pointerEnter(
-        wl_pointer* pPointer, uint32_t serial, wl_surface* pSurface, wl_fixed_t surfaceX,
-        wl_fixed_t surfaceY
-    );
+    void pointerEnter(wl_pointer* pPointer, uint32_t serial, wl_surface* pSurface, wl_fixed_t surfaceX, wl_fixed_t surfaceY);
     void pointerLeave(wl_pointer* pPointer, uint32_t serial, wl_surface* pSurface);
     void pointerMotion(wl_pointer* pPointer, uint32_t time, wl_fixed_t surfaceX, wl_fixed_t surfaceY);
     void pointerButton(wl_pointer* pPointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state);
@@ -148,6 +142,7 @@ struct Client final : public IWindow
 
     void callbackDone(wl_callback* pCallback, uint32_t callbackData);
 
+    void initShm();
     void initEGL();
 };
 

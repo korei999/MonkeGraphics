@@ -5,6 +5,7 @@
 #include "control.hh"
 #include "draw.hh"
 #include "game.hh"
+#include "gl.hh"
 
 #include "adt/utils.hh"
 
@@ -43,7 +44,7 @@ refresh(void* pArg)
         s_accumulator -= g_dt;
     }
 
-    draw::toBuffer(pArena);
+    draw::toSurfaceBuffer(pArena);
 }
 
 static void
@@ -73,10 +74,6 @@ eventLoop()
         frameArena.shrinkToFirstBlock();
         frameArena.reset();
     }
-
-    for (auto& asset : asset::g_objects)
-        asset.destroy();
-    asset::g_objects.destroy();
 }
 
 static void
@@ -86,8 +83,55 @@ renderLoop()
     win.m_bRunning = true;
     g_time = utils::timeNowS();
 
-    Arena arena(SIZE_8M);
-    defer( arena.freeAll() );
+    Arena frameArena(SIZE_8M);
+    defer( frameArena.freeAll() );
+
+    win.bindGlContext();
+    auto spSurface = win.surfaceBuffer();
+
+#ifndef NDEBUG
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageCallback(gl::debugCallback, app::g_pWindow);
+#endif
+
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+
+    game::loadAssets();
+    gl::loadShaders();
+
+    win.swapBuffers(); /* trigger events */
+
+    win.togglePointerRelativeMode();
+
+    gl::Texture surfaceTexture(spSurface.getStride(), spSurface.getHeight());
+    gl::Shader* pshQuad = gl::searchShader("Quad");
+    gl::Quad quad(adt::INIT);
+    ADT_ASSERT(pshQuad, " ");
+
+    pshQuad->queryActiveUniforms();
+
+    while (win.m_bRunning)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        win.procEvents();
+        refresh(&frameArena);
+
+        surfaceTexture.bind(GL_TEXTURE0);
+        surfaceTexture.subImage(win.surfaceBuffer());
+        pshQuad->use();
+        quad.bind();
+        quad.draw();
+
+        frameArena.shrinkToFirstBlock();
+        frameArena.reset();
+        win.swapBuffers();
+    }
 }
 
 void
@@ -104,6 +148,16 @@ start()
         renderLoop();
         break;
     }
+
+#ifndef NDEBUG
+
+    for (auto& asset : asset::g_objects)
+        asset.destroy();
+
+    for (auto& shader : gl::g_shaders)
+        shader.destroy();
+
+#endif
 }
 
 } /* namespace frame */

@@ -12,7 +12,7 @@ using namespace adt;
 namespace asset
 {
 
-Pool<Object, 128> g_objects(true);
+Pool<Object, 128> g_objects(adt::INIT);
 static Map<String, PoolHnd> s_mapStringToObjects(OsAllocatorGet(), g_objects.getCap());
 
 void
@@ -38,7 +38,8 @@ loadBMP([[maybe_unused]] const String svPath, const String sFile)
 
     Image img = reader.getImage();
 
-    img = img.cloneToARGB(&nObj.m_arena);
+    img = img.cloneToRGBA(&nObj.m_arena);
+    img.swapRB();
 
     nObj.m_uData.img = img;
     nObj.m_eType = TYPE::IMAGE;

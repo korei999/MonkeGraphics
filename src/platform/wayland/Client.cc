@@ -6,10 +6,9 @@
 
 #include "shm.hh"
 
-/*
 #include <EGL/eglext.h>
 
-static EGLint s_eglLastErrorCode = EGL_SUCCESS;
+[[maybe_unused]] static EGLint s_eglLastErrorCode = EGL_SUCCESS;
 
 #ifndef NDEBUG
     #define EGLD(C)                                                                                                    \
@@ -21,7 +20,6 @@ static EGLint s_eglLastErrorCode = EGL_SUCCESS;
 #else
     #define EGLD(C) C
 #endif
-*/
 
 using namespace adt;
 
@@ -96,8 +94,6 @@ static const zwp_relative_pointer_v1_listener s_relativePointerListener {
 void
 Client::start(int width, int height)
 {
-    LOG_GOOD("starting wayland client...\n");
-
     m_winWidth = m_width = width;
     m_winHeight = m_height = height;
     m_stride = m_width + 7; /* NOTE: simd padding */
@@ -146,43 +142,24 @@ Client::start(int width, int height)
     while (wl_display_dispatch(m_pDisplay) != -1 && !m_bConfigured)
         ;
 
-    wl_shm_add_listener(m_pShm, &s_shmListener, this);
-
-    const int stride = m_stride * 4;
-    const int shmPoolSize = m_height * stride;
-
-    int fd = shm::allocFile(shmPoolSize);
-    m_pPoolData = static_cast<u8*>(mmap(nullptr, shmPoolSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
-    m_poolSize = shmPoolSize;
-    if (!m_pPoolData)
-        throw RuntimeException("mmap() failed");
-
-    m_vDepthBuffer.setSize(m_pAlloc, m_width * m_height);
-
-    m_pShmPool = wl_shm_create_pool(m_pShm, fd, shmPoolSize);
-    if (!m_pShmPool)
-        throw RuntimeException("wl_shm_create_pool() failed");
-
-    m_pBuffer = wl_shm_pool_create_buffer(m_pShmPool, 0, m_width, m_height, stride, WL_SHM_FORMAT_XRGB8888);
-    if (!m_pBuffer)
-        throw RuntimeException("wl_shm_pool_create_buffer() failed");
-
     m_pRelPointer = zwp_relative_pointer_manager_v1_get_relative_pointer(m_pRelPointerMgr, m_pPointer);
     if (!m_pRelPointer)
         throw RuntimeException("zwp_relative_pointer_manager_v1_get_relative_pointer() failed");
 
     zwp_relative_pointer_v1_add_listener(m_pRelPointer, &s_relativePointerListener, this);
 
-    wl_display_roundtrip(m_pDisplay);
+    if (m_bOpenGl)
+        initEGL();
+    else initShm();
 
-    /*if (m_bOpenGl)*/
-    /*    initEGL();*/
+    wl_surface_commit(m_pSurface);
+    wl_display_roundtrip(m_pDisplay);
 }
 
-Span2D<ImagePixelARGB>
+Span2D<ImagePixelRGBA>
 Client::surfaceBuffer()
 {
-    return {reinterpret_cast<ImagePixelARGB*>(m_pPoolData), m_width, m_height, m_stride};
+    return {reinterpret_cast<ImagePixelRGBA*>(m_pSurfaceBufferBind), m_width, m_height, m_stride};
 }
 
 void
@@ -250,9 +227,9 @@ Client::unsetFullscreen()
 void
 Client::setSwapInterval([[maybe_unused]] int interval)
 {
-//     m_swapInterval = interval;
-//     EGLD( eglSwapInterval(m_eglDisplay, interval) );
-//     LOG_NOTIFY("swapInterval: {}\n", m_swapInterval);
+    m_swapInterval = interval;
+    EGLD( eglSwapInterval(m_eglDisplay, interval) );
+    LOG_NOTIFY("swapInterval: {}\n", m_swapInterval);
 }
 
 void
@@ -264,7 +241,7 @@ Client::toggleVSync()
 void
 Client::swapBuffers()
 {
-    // EGLD( eglSwapBuffers(m_eglDisplay, m_eglSurface) );
+    EGLD( eglSwapBuffers(m_eglDisplay, m_eglSurface) );
 }
 
 void
@@ -322,18 +299,31 @@ Client::scheduleFrame()
 void
 Client::bindGlContext()
 {
-    // EGLD ( eglMakeCurrent(m_eglDisplay, m_eglSurface, m_eglSurface, m_eglContext) );
+    EGLD ( eglMakeCurrent(m_eglDisplay, m_eglSurface, m_eglSurface, m_eglContext) );
 }
 
 void
 Client::unbindGlContext()
 {
-    // EGLD( eglMakeCurrent(m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) );
+    EGLD( eglMakeCurrent(m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) );
 }
 
 void
 Client::updateSurface()
 {
+    /* flip the image... */
+    auto sp = surfaceBuffer();
+    u32* pTemp = m_pAlloc->mallocV<u32>(sp.getStride());
+    defer( m_pAlloc->free(pTemp) );
+    const int heightOver2 = sp.getHeight() / 2;
+
+    for (int y = 0; y < heightOver2; ++y)
+    {
+        utils::copy(pTemp, &sp(0, y).data, sp.getStride());
+        utils::copy(&sp(0, y).data, &sp(0, sp.getHeight() - y - 1).data, sp.getStride());
+        utils::copy(&sp(0, sp.getHeight() - y - 1).data, pTemp, sp.getStride());
+    }
+
     wl_surface_attach(m_pSurface, m_pBuffer, 0, 0);
     wl_surface_damage(m_pSurface, 0, 0, m_winWidth, m_winHeight);
     wl_surface_commit(m_pSurface);
@@ -395,8 +385,9 @@ Client::globalRemove(wl_registry*, uint32_t)
 }
 
 void
-Client::shmFormat(wl_shm*, uint32_t)
+Client::shmFormat(wl_shm*, [[maybe_unused]] uint32_t format)
 {
+    LOG("format: {}\n", format);
 }
 
 void
@@ -565,73 +556,106 @@ Client::callbackDone(
 }
 
 void
+Client::initShm()
+{
+    wl_shm_add_listener(m_pShm, &s_shmListener, this);
+
+    const int stride = m_stride * 4;
+    const int shmPoolSize = m_height * stride;
+
+    int fd = shm::allocFile(shmPoolSize);
+    m_pPoolData = static_cast<u8*>(mmap(nullptr, shmPoolSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
+    m_poolSize = shmPoolSize;
+    if (!m_pPoolData)
+        throw RuntimeException("mmap() failed");
+
+    m_vDepthBuffer.setSize(m_pAlloc, m_width * m_height);
+
+    m_pShmPool = wl_shm_create_pool(m_pShm, fd, shmPoolSize);
+    if (!m_pShmPool)
+        throw RuntimeException("wl_shm_create_pool() failed");
+
+    m_pBuffer = wl_shm_pool_create_buffer(m_pShmPool, 0, m_width, m_height, stride, WL_SHM_FORMAT_ARGB8888);
+    if (!m_pBuffer)
+        throw RuntimeException("wl_shm_pool_create_buffer() failed");
+
+    m_pSurfaceBufferBind = m_pPoolData;
+
+    LOG_GOOD("wayland shm client started...\n");
+}
+
+void
 Client::initEGL()
 {
-//     EGLD( m_eglDisplay = eglGetDisplay(m_pDisplay) );
-//     if (m_eglDisplay == EGL_NO_DISPLAY)
-//         LOG_FATAL("failed to create EGL display\n");
-// 
-//     EGLint major, minor;
-//     if (!eglInitialize(m_eglDisplay, &major, &minor))
-//         LOG_FATAL("failed to initialize EGL\n");
-//     EGLD();
-// 
-//     /* Default is GLES */
-//     if (!eglBindAPI(EGL_OPENGL_API))
-//         LOG_FATAL("eglBindAPI(EGL_OPENGL_API) failed\n");
-// 
-//     LOG_OK("egl: major: {}, minor: {}\n", major, minor);
-// 
-//     EGLint count;
-//     EGLD( eglGetConfigs(m_eglDisplay, nullptr, 0, &count) );
-// 
-//     EGLint configAttribs[] = {
-//         EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-//         EGL_RED_SIZE, 8,
-//         EGL_GREEN_SIZE, 8,
-//         EGL_BLUE_SIZE, 8,
-//         // EGL_ALPHA_SIZE, 8, /* KDE makes window transparent even in fullscreen */
-//         EGL_DEPTH_SIZE, 24,
-//         EGL_STENCIL_SIZE, 8,
-//         EGL_CONFORMANT, EGL_OPENGL_BIT,
-//         // EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
-//         EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
-//         // EGL_MIN_SWAP_INTERVAL, 0,
-//         // EGL_MAX_SWAP_INTERVAL, 1,
-//         // EGL_SAMPLE_BUFFERS, 1,
-//         // EGL_SAMPLES, 4,
-//         EGL_NONE
-//     };
-// 
-//     EGLint n = 0;
-//     Vec<EGLConfig> configs(OsAllocatorGet(), count);
-//     defer( configs.destroy() );
-//     configs.setSize(count);
-// 
-//     EGLD( eglChooseConfig(m_eglDisplay, configAttribs, configs.data(), count, &n) );
-//     if (n == 0)
-//         LOG_FATAL("Failed to choose an EGL config\n");
-// 
-//     EGLConfig eglConfig = configs[0];
-// 
-//     EGLint contextAttribs[] {
-//         // EGL_CONTEXT_CLIENT_VERSION, 3,
-//         // EGL_CONTEXT_MAJOR_VERSION, 3,
-//         // EGL_CONTEXT_MINOR_VERSION, 3,
-//         // EGL_CONTEXT_OPENGL_PROFILE_MASK, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT,
-// #ifndef NDEBUG
-//         EGL_CONTEXT_OPENGL_DEBUG, EGL_TRUE,
-// #endif
-//         EGL_NONE,
-//     };
-// 
-//     EGLD( m_eglContext = eglCreateContext(m_eglDisplay, eglConfig, EGL_NO_CONTEXT, contextAttribs) );
-// 
-//     m_eglWindow = wl_egl_window_create(m_pSurface, m_width, m_height);
-//     EGLD( m_eglSurface = eglCreateWindowSurface(m_eglDisplay, eglConfig, (EGLNativeWindowType)(m_eglWindow), nullptr) );
-// 
-//     wl_surface_commit(m_pSurface);
-//     wl_display_roundtrip(m_pDisplay);
+    EGLD( m_eglDisplay = eglGetDisplay(m_pDisplay) );
+    if (m_eglDisplay == EGL_NO_DISPLAY)
+        LOG_FATAL("failed to create EGL display\n");
+
+    EGLint major, minor;
+    if (!eglInitialize(m_eglDisplay, &major, &minor))
+        LOG_FATAL("failed to initialize EGL\n");
+    EGLD();
+
+    /* Default is GLES */
+    if (!eglBindAPI(EGL_OPENGL_API))
+        LOG_FATAL("eglBindAPI(EGL_OPENGL_API) failed\n");
+
+    LOG_OK("egl: major: {}, minor: {}\n", major, minor);
+
+    EGLint count;
+    EGLD( eglGetConfigs(m_eglDisplay, nullptr, 0, &count) );
+
+    EGLint configAttribs[] = {
+        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+        EGL_RED_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_BLUE_SIZE, 8,
+        // EGL_ALPHA_SIZE, 8, /* KDE makes window transparent even if fullscreen */
+        EGL_DEPTH_SIZE, 24,
+        EGL_STENCIL_SIZE, 8,
+        EGL_CONFORMANT, EGL_OPENGL_BIT,
+        // EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
+        // EGL_MIN_SWAP_INTERVAL, 0,
+        // EGL_MAX_SWAP_INTERVAL, 1,
+        // EGL_SAMPLE_BUFFERS, 1,
+        // EGL_SAMPLES, 4,
+        EGL_NONE
+    };
+
+    EGLint n = 0;
+    Vec<EGLConfig> configs(OsAllocatorGet(), count);
+    defer( configs.destroy() );
+    configs.setSize(count);
+
+    EGLD( eglChooseConfig(m_eglDisplay, configAttribs, configs.data(), count, &n) );
+    if (n == 0)
+        LOG_FATAL("Failed to choose an EGL config\n");
+
+    EGLConfig eglConfig = configs[0];
+
+    EGLint contextAttribs[] {
+        // EGL_CONTEXT_CLIENT_VERSION, 3,
+        // EGL_CONTEXT_MAJOR_VERSION, 3,
+        // EGL_CONTEXT_MINOR_VERSION, 3,
+        // EGL_CONTEXT_OPENGL_PROFILE_MASK, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT,
+#ifndef NDEBUG
+        EGL_CONTEXT_OPENGL_DEBUG, EGL_TRUE,
+#endif
+        EGL_NONE,
+    };
+
+    EGLD( m_eglContext = eglCreateContext(m_eglDisplay, eglConfig, EGL_NO_CONTEXT, contextAttribs) );
+
+    m_eglWindow = wl_egl_window_create(m_pSurface, m_width, m_height);
+    EGLD( m_eglSurface = eglCreateWindowSurface(m_eglDisplay, eglConfig, (EGLNativeWindowType)(m_eglWindow), nullptr) );
+
+    /* create some texture buffer to draw into */
+    m_vDepthBuffer.setSize(m_pAlloc, m_width * m_height);
+    m_vSurfaceBuffer.setSize(m_pAlloc, m_width * m_height);
+    m_pSurfaceBufferBind = reinterpret_cast<u8*>(m_vSurfaceBuffer.data());
+
+    LOG_GOOD("wayland egl client started...\n");
 }
 
 } /* namespace platform::wayland */

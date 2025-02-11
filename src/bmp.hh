@@ -118,10 +118,10 @@ Reader::getImage()
         case 32:
         {
             return {
-                .m_uData {.pARGB = reinterpret_cast<ImagePixelARGB*>(&m_sBMP[m_header.offset])},
+                .m_uData {.pRGBA = reinterpret_cast<ImagePixelRGBA*>(&m_sBMP[m_header.offset])},
                 .m_width = static_cast<i16>(m_bmInfoHeader.width),
                 .m_height = static_cast<i16>(m_bmInfoHeader.height),
-                .m_eType = IMAGE_TYPE::ARGB,
+                .m_eType = IMAGE_TYPE::RGBA,
             };
         }
         break;

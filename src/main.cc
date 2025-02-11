@@ -10,17 +10,17 @@ using namespace adt;
 static void
 parseArgs(int argc, char** argv)
 {
-    for (ssize i = 0; i < argc; ++i)
+    for (ssize i = 1; i < argc; ++i)
     {
-        String sArg = argv[i];
+        const String svArg = argv[i];
 
-        if (sArg.beginsWith("--"))
+        if (svArg.beginsWith("--"))
         {
-            if (sArg.beginsWith("--wayland"))
+            if (svArg == "--wayland")
                 app::g_eWindowType = app::WINDOW_TYPE::WAYLAND;
-            else if (sArg.beginsWith("--wayland-gl"))
+            else if (svArg == "--wayland-gl")
                 app::g_eWindowType = app::WINDOW_TYPE::WAYLAND_GL;
-            else if (sArg.beginsWith("--windows"))
+            else if (svArg == "--windows")
                 app::g_eWindowType = app::WINDOW_TYPE::WINDOWS;
         }
         else return;

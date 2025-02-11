@@ -24,33 +24,32 @@ struct IndexU32x3 { u32 x, y, z; };
 
 static u8 s_aScratchMem[SIZE_8K] {};
 static ScratchBuffer s_scratch {s_aScratchMem};
-static Span2D<ImagePixelARGB> s_spDefaultTexture;
+static Span2D<ImagePixelRGBA> s_spDefaultTexture;
 
 static CallOnce s_callOnceAllocDefaultTexture(INIT);
 
-Span2D<ImagePixelARGB>
+Span2D<ImagePixelRGBA>
 allocDefaultTexture()
 {
     const int width = 8;
     const int height = 8;
 
-    static ImagePixelARGB aPixels[width * height] {};
+    static ImagePixelRGBA aPixels[width * height] {};
 
     Span2D sp(aPixels, width, height, width);
     for (int y = 0; y < sp.getHeight(); ++y)
     {
         for (int x = 0; x < sp.getWidth(); ++x)
         {
-            u32 colorChannel = 255 * ((x + (y % 2)) % 2);
-            ImagePixelARGB p {
-                .b = static_cast<u8>(colorChannel),
-                .g = static_cast<u8>(colorChannel),
-                .r = static_cast<u8>(0),
-                .a = 255,
-            };
-            sp(x, y) = p;
+            /*u32 colorChannel = 255 * ((x + (y % 2)) % 2);*/
+            ImagePixelRGBA p;
+            p.r = 0;
+            p.g = 255;
+            p.b = 0;
+            p.a = 255;
 
-            // sp(x, y).data = -1;
+            sp(x, y) = p;
+            /*sp(x, y).data = -1;*/
         }
     }
 
@@ -75,7 +74,7 @@ ndcToPix(math::V2 ndcPos)
 [[maybe_unused]] ADT_NO_UB static void
 drawTriangleSSE(
     clip::Vertex vertex0, clip::Vertex vertex1, clip::Vertex vertex2,
-    const Span2D<ImagePixelARGB> spTexture,
+    const Span2D<ImagePixelRGBA> spTexture,
     const SAMPLER eSampler
 )
 {
@@ -179,7 +178,9 @@ drawTriangleSSE(
 
         for (int x = minX; x <= maxX; x += 4)
         {
-            const int invY = sp.getHeight() - 1 - y;
+            /*const int invY = sp.getHeight() - 1 - y;*/
+            const int invY = y;
+
             i32* pColor = &sp(x, invY).iData;
             f32* pDepth = &spDepth(x, invY);
             const simd::i32x4 pixelColors = simd::i32x4Load(pColor);
@@ -292,7 +293,7 @@ drawTriangleSSE(
 ADT_NO_UB static void
 drawTriangleAVX2(
     clip::Vertex vertex0, clip::Vertex vertex1, clip::Vertex vertex2,
-    const Span2D<ImagePixelARGB> spTexture,
+    const Span2D<ImagePixelRGBA> spTexture,
     const SAMPLER eSampler
 )
 {
@@ -396,7 +397,9 @@ drawTriangleAVX2(
 
         for (int x = minX; x <= maxX; x += 8)
         {
-            const int invY = sp.getHeight() - 1 - y;
+            /*const int invY = sp.getHeight() - 1 - y;*/
+            const int invY = y;
+
             i32* pColor = reinterpret_cast<i32*>(&sp(x, invY));
             f32* pDepth = &spDepth(x, invY);
             simd::i32x8 pixelColors;
@@ -520,7 +523,7 @@ ADT_NO_UB static void
 drawTriangle(
     const math::V4 p0, const math::V4 p1, const math::V4 p2,
     const math::V2 uv0, const math::V2 uv1, const math::V2 uv2,
-    const Span2D<ImagePixelARGB> spTexture
+    const Span2D<ImagePixelRGBA> spTexture
 )
 {
     clip::Result ping {};
@@ -565,12 +568,11 @@ helloGradientTest()
     {
         for (ssize x = 0; x < sp.getWidth(); ++x)
         {
-            ImagePixelARGB pix {
-                .b = static_cast<u8>(x),
-                .g = static_cast<u8>(x + frame),
-                .r = static_cast<u8>(y - frame),
-                .a = 255,
-            };
+            ImagePixelRGBA pix;
+            pix.r = 255;
+            pix.g = static_cast<u8>(x);
+            pix.b = static_cast<u8>(x + frame);
+            pix.a = static_cast<u8>(y - frame);
 
             sp(x, y).data = pix.data;
         }
@@ -730,7 +732,7 @@ drawGLTFNode(Arena* pArena, gltf::Model& model, gltf::Node& node, math::M4 trm)
             auto& viewPos = model.m_vBufferViews[accPos.bufferViewI];
             auto& buffPos = model.m_vBuffers[viewPos.bufferI];
 
-            Span2D<ImagePixelARGB> spImage = s_spDefaultTexture;
+            Span2D<ImagePixelRGBA> spImage = s_spDefaultTexture;
             if (primitive.materialI != -1)
             {
                 gltf::Material mat = model.m_vMaterials[primitive.materialI];
@@ -859,6 +861,8 @@ drawGLTF(Arena* pArena, gltf::Model& model, math::M4 trm)
 [[maybe_unused]] static void
 drawImgDBG(Image* pImg)
 {
+    ADT_ASSERT(pImg, "pImg == nullptr");
+
     auto& win = app::window();
     auto sp = win.surfaceBuffer();
     auto spImg = pImg->getSpanARGB();
@@ -878,7 +882,7 @@ drawImgDBG(Image* pImg)
 }
 
 void
-toBuffer(Arena* pArena)
+toSurfaceBuffer(Arena* pArena)
 {
     using namespace adt::math;
 
@@ -894,11 +898,16 @@ toBuffer(Arena* pArena)
     );
 
     /* clear */
-    win.clearColorBuffer({0.0f, 0.4f, 0.6f, 1.0f});
+    win.clearSurfaceBuffer({0.0f, 0.1f, 0.0f, 1.0f});
     win.clearDepthBuffer();
+
+    /*u32 blue = colors::V4ToRGBA({0.0f, 0.0f, 1.0f, 0.0f});*/
+    /*LOG("blue: {:#x}\n", blue);*/
 
     const auto& camera = control::g_camera;
     const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
+
+    /*drawImgDBG(asset::searchImage("assets/duck/DuckCM.bmp"));*/
 
     {
         M4 cameraTrm2 = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
@@ -907,7 +916,8 @@ toBuffer(Arena* pArena)
             M4RotFrom(0, 0, 0) *
             M4ScaleFrom(1.0f);
 
-        auto* pModelBackpack = asset::searchModel("assets/BoxAnimated/BoxAnimated.gltf");
+        /*auto* pModelBackpack = asset::searchModel("assets/BoxAnimated/BoxAnimated.gltf");*/
+        auto* pModelBackpack = asset::searchModel("assets/duck/Duck.gltf");
 
         if (pModelBackpack)
             drawGLTF(pArena, *pModelBackpack, cameraTrm2);

@@ -6,19 +6,19 @@
 
 enum IMAGE_TYPE : adt::u8
 {
-    ARGB, RGB
+    RGBA, RGB
 };
 
-union ImagePixelARGB
+union ImagePixelRGBA
 {
-    struct { adt::u8 b, g, r, a; };
+    struct { adt::u8 r, g, b, a; };
     adt::u32 data;
     adt::i32 iData;
 };
 
 union ImagePixelRGB
 {
-    struct { adt::u8 b, g, r; };
+    struct { adt::u8 r, g, b; };
     adt::u8 aData[3];
 };
 
@@ -26,7 +26,7 @@ struct Image
 {
     union
     {
-        ImagePixelARGB* pARGB;
+        ImagePixelRGBA* pRGBA;
         ImagePixelRGB* pRGB;
     } m_uData {};
     adt::i16 m_width {};
@@ -35,18 +35,19 @@ struct Image
 
     /* */
 
-    [[nodiscard]] Image cloneToARGB(adt::IAllocator* pAlloc);
+    [[nodiscard]] Image cloneToRGBA(adt::IAllocator* pAlloc);
+    void swapRB();
 
-    adt::Span2D<ImagePixelARGB>
+    adt::Span2D<ImagePixelRGBA>
     getSpanARGB()
     {
-        return {m_uData.pARGB, m_width, m_height, m_width};
+        return {m_uData.pRGBA, m_width, m_height, m_width};
     }
 
-    const adt::Span2D<ImagePixelARGB>
+    const adt::Span2D<ImagePixelRGBA>
     getSpanARGB() const
     {
-        return {m_uData.pARGB, m_width, m_height, m_width};
+        return {m_uData.pRGBA, m_width, m_height, m_width};
     }
 
     adt::Span2D<ImagePixelRGB>

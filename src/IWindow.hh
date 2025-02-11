@@ -49,7 +49,7 @@ struct IWindow
     /* */
 
     virtual void start(int width, int height) = 0;
-    virtual adt::Span2D<ImagePixelARGB> surfaceBuffer() = 0;
+    virtual adt::Span2D<ImagePixelRGBA> surfaceBuffer() = 0;
     virtual void disableRelativeMode() = 0;
     virtual void enableRelativeMode() = 0;
     virtual void togglePointerRelativeMode() = 0;
@@ -79,7 +79,7 @@ struct IWindow
     }
 
     void
-    clearColorBuffer(adt::math::V4 color)
+    clearSurfaceBuffer(adt::math::V4 color)
     {
 #ifdef ADT_AVX2
         adt::simd::i32Fillx8(
@@ -87,7 +87,7 @@ struct IWindow
                 (adt::i32*)surfaceBuffer().data(),
                 surfaceBuffer().getStride() * surfaceBuffer().getHeight()
             },
-            colors::V4ToARGB(color)
+            colors::V4ToRGBA(color)
         );
 #else
 
@@ -96,7 +96,7 @@ struct IWindow
                 (adt::i32*)surfaceBuffer().data(),
                 surfaceBuffer().getStride() * surfaceBuffer().getHeight()
             },
-            colors::V4ToARGB(color)
+            colors::V4ToRGBA(color)
         );
 #endif /* ADT_AVX2 */
     }
