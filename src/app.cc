@@ -2,6 +2,7 @@
 
 #if defined __linux__
     #include "platform/wayland/Client.hh"
+    #include "platform/wayland/ClientGL.hh"
 #elif defined _WIN32
 #else
     #error "unsupported platform"
@@ -24,10 +25,10 @@ allocWindow(IAllocator* pAlloc, const char* ntsName)
 
 #ifdef __linux__
         case WINDOW_TYPE::WAYLAND:
-        return pAlloc->alloc<platform::wayland::Client>(pAlloc, ntsName, false);
+        return pAlloc->alloc<platform::wayland::Client>(pAlloc, ntsName);
 
         case WINDOW_TYPE::WAYLAND_GL:
-        return pAlloc->alloc<platform::wayland::Client>(pAlloc, ntsName, true);
+        return pAlloc->alloc<platform::wayland::ClientGL>(pAlloc, ntsName);
 #endif
 
 #if defined _WIN32

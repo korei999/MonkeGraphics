@@ -30,6 +30,7 @@ endif()
 option(OPT_SSE4_2 "" ON)
 option(OPT_AVX2 "" OFF)
 option(OPT_MARCH_NATIVE "" OFF)
+option(OPT_WAYLAND_GL "" ON)
 
 include_directories(BEFORE "libs")
 include_directories(BEFORE "src")
@@ -178,18 +179,16 @@ add_executable(
     src/json/Lexer.cc
 
     src/gltf/gltf.cc
-
-    src/gl.cc
 )
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     find_package(PkgConfig REQUIRED)
-    pkg_check_modules(LINUX_PKGS REQUIRED wayland-client gl egl wayland-egl)
+    pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client)
 
-    include_directories(BEFORE ${LINUX_PKGS_INCLUDE_DIRS})
+    include_directories(BEFORE ${WAYLAND_CLIENT_INCLUDE_DIRS})
     target_link_libraries(
         ${CMAKE_PROJECT_NAME} PRIVATE
-        ${LINUX_PKGS_LIBRARIES} 
+        ${WAYLAND_CLIENT_LIBRARIES} 
     )
 
     set(WLP "./src/platform/wayland")
@@ -208,7 +207,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     set(POINTER_CONSTRAINTS "${WAYLAND_PROTOCOLS_DIR}/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml")
     set(RELATIVE_POINTER "${WAYLAND_PROTOCOLS_DIR}/unstable/relative-pointer/relative-pointer-unstable-v1.xml")
     set(VIEWPORTER "${WAYLAND_PROTOCOLS_DIR}/stable/viewporter/viewporter.xml")
-    set(TEARING "${WAYLAND_PROTOCOLS_DIR}/staging/tearing-control/tearing-control-v1.xml")
+    # set(TEARING "${WAYLAND_PROTOCOLS_DIR}/staging/tearing-control/tearing-control-v1.xml")
 
     message(STATUS "WLP: '${WLP}'")
     message(STATUS "WLPD: '${WLPD}'")
@@ -238,6 +237,24 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
         ${WLPD}/xdg-shell.c
         ${WLPD}/viewporter.c
     )
+
+    if (OPT_WAYLAND_GL)
+        pkg_check_modules(WAYLAND_GL REQUIRED gl egl wayland-egl)
+
+        if (WAYLAND_GL_FOUND)
+            include_directories(BEFORE ${WAYLAND_GL_INCLUDE_DIRS})
+            target_link_libraries(
+                ${CMAKE_PROJECT_NAME} PRIVATE
+                ${WAYLAND_GL_LIBRARIES} 
+            )
+
+            target_sources(
+                ${CMAKE_PROJECT_NAME} PRIVATE
+                src/gl.cc
+                src/platform/wayland/ClientGL.cc
+            )
+        endif()
+    endif()
 endif()
 
 # install(TARGETS ${CMAKE_PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

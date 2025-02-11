@@ -7,13 +7,10 @@
 #include "wayland-protocols/relative-pointer-unstable-v1.h"
 #include "wayland-protocols/pointer-constraints-unstable-v1.h"
 
-#include <wayland-egl.h>
-#include <EGL/egl.h>
-
 namespace platform::wayland
 {
 
-struct Client final : public IWindow
+struct Client : public IWindow
 {
     wl_display* m_pDisplay {};
     wl_registry* m_pRegistry {};
@@ -52,21 +49,14 @@ struct Client final : public IWindow
     wp_viewporter* m_pViewporter {};
     wp_viewport* m_pViewport {};
 
-    bool m_bOpenGl {};
-    wl_egl_window* m_eglWindow {};
-    EGLDisplay m_eglDisplay {};
-    EGLContext m_eglContext {};
-    EGLSurface m_eglSurface {};
-
     adt::u8* m_pSurfaceBufferBind {};
-    adt::VecBase<ImagePixelRGBA> m_vSurfaceBuffer {};
+
     adt::VecBase<ImagePixelRGBA> m_vTempBuff {};
 
     /* */
 
     Client() = default;
-    Client(adt::IAllocator* pAlloc, const char* ntsName, bool bOpenGl)
-        : IWindow(pAlloc, ntsName), m_bOpenGl(bOpenGl) {}
+    Client(adt::IAllocator* pAlloc, const char* ntsName);
 
     /* */
 
@@ -89,6 +79,10 @@ struct Client final : public IWindow
     virtual void scheduleFrame() override;
     virtual void bindGlContext() override;
     virtual void unbindGlContext() override;
+
+    /* */
+
+    virtual void adjustResize(adt::i32* pWidth, adt::i32* pHeight) {};
 
     /* */
 
@@ -144,7 +138,6 @@ struct Client final : public IWindow
     void callbackDone(wl_callback* pCallback, uint32_t callbackData);
 
     void initShm();
-    void initEGL();
 };
 
 } /* namespace platform::wayland */

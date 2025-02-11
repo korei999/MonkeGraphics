@@ -1,25 +1,8 @@
 #include "Client.hh"
 
-#include "adt/OsAllocator.hh"
-#include "adt/defer.hh"
 #include "adt/logs.hh"
 
 #include "shm.hh"
-
-#include <EGL/eglext.h>
-
-[[maybe_unused]] static EGLint s_eglLastErrorCode = EGL_SUCCESS;
-
-#ifndef NDEBUG
-    #define EGLD(C)                                                                                                    \
-        {                                                                                                              \
-            C;                                                                                                         \
-            if ((s_eglLastErrorCode = eglGetError()) != EGL_SUCCESS)                                                   \
-                LOG_FATAL("eglLastErrorCode: {:#x}\n", s_eglLastErrorCode);                                            \
-        }
-#else
-    #define EGLD(C) C
-#endif
 
 using namespace adt;
 
@@ -109,13 +92,9 @@ static const zwp_relative_pointer_v1_listener s_relativePointerListener {
     .relative_motion = reinterpret_cast<decltype(zwp_relative_pointer_v1_listener::relative_motion)>(methodPointer(&Client::relativePointerMotion))
 };
 
-void
-Client::start(int width, int height)
+Client::Client(adt::IAllocator* pAlloc, const char* ntsName)
+    : IWindow(pAlloc, ntsName)
 {
-    m_winWidth = m_width = width;
-    m_winHeight = m_height = height;
-    m_stride = m_width + 7; /* NOTE: simd padding */
-
     m_pDisplay = wl_display_connect(nullptr);
     if (!m_pDisplay)
         throw RuntimeException("wl_display_connect() failed");
@@ -135,11 +114,6 @@ Client::start(int width, int height)
     m_pViewport = wp_viewporter_get_viewport(m_pViewporter, m_pSurface);
     if (!m_pViewport)
         throw RuntimeException("wp_viewporter_get_viewport() failed");
-
-    wp_viewport_set_source(m_pViewport,
-        wl_fixed_from_int(0), wl_fixed_from_int(0),
-        wl_fixed_from_int(m_width), wl_fixed_from_int(m_height)
-    );
 
     m_pXdgSurface = xdg_wm_base_get_xdg_surface(m_pXdgWmBase, m_pSurface);
     if (!m_pXdgSurface)
@@ -166,12 +140,23 @@ Client::start(int width, int height)
 
     zwp_relative_pointer_v1_add_listener(m_pRelPointer, &s_relativePointerListener, this);
 
-    if (m_bOpenGl)
-        initEGL();
-    else initShm();
-
     wl_surface_commit(m_pSurface);
     wl_display_roundtrip(m_pDisplay);
+}
+
+void
+Client::start(int width, int height)
+{
+    m_winWidth = m_width = width;
+    m_winHeight = m_height = height;
+    m_stride = m_width + 7; /* NOTE: simd padding */
+
+    wp_viewport_set_source(m_pViewport,
+        wl_fixed_from_int(0), wl_fixed_from_int(0),
+        wl_fixed_from_int(m_width), wl_fixed_from_int(m_height)
+    );
+
+    initShm();
 }
 
 Span2D<ImagePixelRGBA>
@@ -246,11 +231,7 @@ void
 Client::setSwapInterval([[maybe_unused]] int interval)
 {
     m_swapInterval = interval;
-    if (m_bOpenGl)
-    {
-        EGLD( eglSwapInterval(m_eglDisplay, interval) );
-        LOG_NOTIFY("swapInterval: {}\n", m_swapInterval);
-    }
+    LOG_WARN("noop\n");
 }
 
 void
@@ -262,7 +243,7 @@ Client::toggleVSync()
 void
 Client::swapBuffers()
 {
-    EGLD( eglSwapBuffers(m_eglDisplay, m_eglSurface) );
+    LOG_WARN("noop\n");
 }
 
 void
@@ -320,13 +301,13 @@ Client::scheduleFrame()
 void
 Client::bindGlContext()
 {
-    EGLD ( eglMakeCurrent(m_eglDisplay, m_eglSurface, m_eglSurface, m_eglContext) );
+    LOG_WARN("noop\n");
 }
 
 void
 Client::unbindGlContext()
 {
-    EGLD( eglMakeCurrent(m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) );
+    LOG_WARN("noop\n");
 }
 
 void
@@ -442,11 +423,7 @@ Client::xdgToplevelConfigure(
         m_winWidth = width;
         m_winHeight = height;
 
-        if (m_bOpenGl)
-        {
-            f32 r = static_cast<f32>(m_stride) / static_cast<f32>(m_width);
-            width *= r;
-        }
+        adjustResize(&width, &height);
 
         wp_viewport_set_destination(m_pViewport, width, height);
     }
@@ -611,80 +588,6 @@ Client::initShm()
     m_vTempBuff.setSize(m_pAlloc, surfaceBuffer().getStride());
 
     LOG_GOOD("wayland shm client started...\n");
-}
-
-void
-Client::initEGL()
-{
-    EGLD( m_eglDisplay = eglGetDisplay(m_pDisplay) );
-    if (m_eglDisplay == EGL_NO_DISPLAY)
-        LOG_FATAL("failed to create EGL display\n");
-
-    EGLint major, minor;
-    if (!eglInitialize(m_eglDisplay, &major, &minor))
-        LOG_FATAL("failed to initialize EGL\n");
-    EGLD();
-
-    /* Default is GLES */
-    if (!eglBindAPI(EGL_OPENGL_API))
-        LOG_FATAL("eglBindAPI(EGL_OPENGL_API) failed\n");
-
-    LOG_OK("egl: major: {}, minor: {}\n", major, minor);
-
-    EGLint count;
-    EGLD( eglGetConfigs(m_eglDisplay, nullptr, 0, &count) );
-
-    EGLint configAttribs[] = {
-        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-        EGL_RED_SIZE, 8,
-        EGL_GREEN_SIZE, 8,
-        EGL_BLUE_SIZE, 8,
-        // EGL_ALPHA_SIZE, 8, /* KDE makes window transparent even if fullscreen */
-        EGL_DEPTH_SIZE, 24,
-        EGL_STENCIL_SIZE, 8,
-        EGL_CONFORMANT, EGL_OPENGL_BIT,
-        // EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
-        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
-        // EGL_MIN_SWAP_INTERVAL, 0,
-        // EGL_MAX_SWAP_INTERVAL, 1,
-        // EGL_SAMPLE_BUFFERS, 1,
-        // EGL_SAMPLES, 4,
-        EGL_NONE
-    };
-
-    EGLint n = 0;
-    Vec<EGLConfig> configs(OsAllocatorGet(), count);
-    defer( configs.destroy() );
-    configs.setSize(count);
-
-    EGLD( eglChooseConfig(m_eglDisplay, configAttribs, configs.data(), count, &n) );
-    if (n == 0)
-        LOG_FATAL("Failed to choose an EGL config\n");
-
-    EGLConfig eglConfig = configs[0];
-
-    EGLint contextAttribs[] {
-        // EGL_CONTEXT_CLIENT_VERSION, 3,
-        // EGL_CONTEXT_MAJOR_VERSION, 3,
-        // EGL_CONTEXT_MINOR_VERSION, 3,
-        // EGL_CONTEXT_OPENGL_PROFILE_MASK, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT,
-#ifndef NDEBUG
-        EGL_CONTEXT_OPENGL_DEBUG, EGL_TRUE,
-#endif
-        EGL_NONE,
-    };
-
-    EGLD( m_eglContext = eglCreateContext(m_eglDisplay, eglConfig, EGL_NO_CONTEXT, contextAttribs) );
-
-    m_eglWindow = wl_egl_window_create(m_pSurface, m_width, m_height);
-    EGLD( m_eglSurface = eglCreateWindowSurface(m_eglDisplay, eglConfig, (EGLNativeWindowType)(m_eglWindow), nullptr) );
-
-    /* create some texture buffer to draw into */
-    m_vDepthBuffer.setSize(m_pAlloc, m_width * m_height);
-    m_vSurfaceBuffer.setSize(m_pAlloc, m_stride * m_height);
-    m_pSurfaceBufferBind = reinterpret_cast<u8*>(m_vSurfaceBuffer.data());
-
-    LOG_GOOD("wayland egl client started...\n");
 }
 
 } /* namespace platform::wayland */
