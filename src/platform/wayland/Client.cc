@@ -246,8 +246,11 @@ void
 Client::setSwapInterval([[maybe_unused]] int interval)
 {
     m_swapInterval = interval;
-    EGLD( eglSwapInterval(m_eglDisplay, interval) );
-    LOG_NOTIFY("swapInterval: {}\n", m_swapInterval);
+    if (m_bOpenGl)
+    {
+        EGLD( eglSwapInterval(m_eglDisplay, interval) );
+        LOG_NOTIFY("swapInterval: {}\n", m_swapInterval);
+    }
 }
 
 void
