@@ -439,6 +439,12 @@ Client::xdgToplevelConfigure(
         m_winWidth = width;
         m_winHeight = height;
 
+        if (m_bOpenGl)
+        {
+            f32 r = static_cast<f32>(m_stride) / static_cast<f32>(m_width);
+            width *= r;
+        }
+
         wp_viewport_set_destination(m_pViewport, width, height);
     }
 }

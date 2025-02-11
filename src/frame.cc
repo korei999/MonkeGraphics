@@ -86,6 +86,8 @@ renderLoop()
     Arena frameArena(SIZE_8M);
     defer( frameArena.freeAll() );
 
+    game::loadAssets();
+
     win.bindGlContext();
     auto spSurface = win.surfaceBuffer();
 
@@ -100,12 +102,12 @@ renderLoop()
     glEnable(GL_BLEND);
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
-    game::loadAssets();
     gl::loadShaders();
 
     win.swapBuffers(); /* trigger events */
 
     win.togglePointerRelativeMode();
+    win.toggleVSync();
 
     gl::Texture surfaceTexture(spSurface.getStride(), spSurface.getHeight());
     gl::Shader* pshQuad = gl::searchShader("Quad");

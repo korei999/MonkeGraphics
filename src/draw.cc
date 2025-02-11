@@ -902,7 +902,7 @@ toSurfaceBuffer(Arena* pArena)
         M4 cameraTrm2 = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
             camera.m_trm *
             M4TranslationFrom(0.0f, 0.0f, -0.0f) *
-            M4RotFrom(0, 0, 0) *
+            M4RotFrom(0.0f, 0.0f, 0.0f) *
             M4ScaleFrom(1.0f);
 
         auto* pModelBackpack = asset::searchModel("assets/BoxAnimated/BoxAnimated.gltf");

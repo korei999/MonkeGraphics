@@ -105,7 +105,7 @@ Shader::loadOne(GLenum type, adt::String sShader)
     glShaderSource(shader, 1, &srcData, nullptr);
     glCompileShader(shader);
 
-    GLint ok;
+    GLint ok {};
     glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
     if (!ok)
     {

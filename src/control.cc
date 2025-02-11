@@ -13,6 +13,7 @@ namespace control
 static void toggleFullscreen() { app::window().toggleFullscreen(); }
 static void quit() { app::window().m_bRunning = false; }
 static void toggleRelativePointer() { app::window().togglePointerRelativeMode(); }
+static void toggleVSync() { app::window().toggleVSync(); }
 
 static void cameraForward() { g_camera.m_lastMove += g_camera.getForwardVecNoY(); }
 static void cameraBack() { g_camera.m_lastMove -= g_camera.getForwardVecNoY(); }
@@ -32,8 +33,10 @@ MOD_STATE g_ePressedMods {};
 Arr<Keybind, MAX_KEYBINDS> g_aKeybinds {
     {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_F,        toggleFullscreen     },
     {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_R,        toggleRelativePointer},
+    {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_V,        toggleVSync          },
     {REPEAT::ONCE,       EXEC_ON::RELEASE, MOD_STATE::NONE,  KEY_Q,        quit                 },
     {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_ESC,      quit                 },
+
     {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_W,        cameraForward        },
     {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::SHIFT, 0,            cameraBoost          },
     {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::ALT,   0,            cameraDeboost        },
