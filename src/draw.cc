@@ -178,11 +178,8 @@ drawTriangleSSE(
 
         for (int x = minX; x <= maxX; x += 4)
         {
-            /*const int invY = sp.getHeight() - 1 - y;*/
-            const int invY = y;
-
-            i32* pColor = &sp(x, invY).iData;
-            f32* pDepth = &spDepth(x, invY);
+            i32* pColor = &sp(x, y).iData;
+            f32* pDepth = &spDepth(x, y);
             const simd::i32x4 pixelColors = simd::i32x4Load(pColor);
             const simd::f32x4 pixelDepths = simd::f32x4Load(pDepth);
 
@@ -397,11 +394,8 @@ drawTriangleAVX2(
 
         for (int x = minX; x <= maxX; x += 8)
         {
-            /*const int invY = sp.getHeight() - 1 - y;*/
-            const int invY = y;
-
-            i32* pColor = reinterpret_cast<i32*>(&sp(x, invY));
-            f32* pDepth = &spDepth(x, invY);
+            i32* pColor = reinterpret_cast<i32*>(&sp(x, y));
+            f32* pDepth = &spDepth(x, y);
             simd::i32x8 pixelColors;
             simd::f32x8 pixelDepths;
             {
@@ -874,9 +868,7 @@ drawImgDBG(Image* pImg)
     {
         for (int x = 0; x < sp.getWidth(); ++x)
         {
-            const int invY = sp.getHeight() - 1 - y;
-
-            sp(x, y) = spImg(x * xStep, invY * yStep);
+            sp(x, y) = spImg(x * xStep, y * yStep);
         }
     }
 }
@@ -898,11 +890,8 @@ toSurfaceBuffer(Arena* pArena)
     );
 
     /* clear */
-    win.clearSurfaceBuffer({0.0f, 0.1f, 0.0f, 1.0f});
+    win.clearSurfaceBuffer({0.1f, 0.1f, 0.1f, 1.0f});
     win.clearDepthBuffer();
-
-    /*u32 blue = colors::V4ToRGBA({0.0f, 0.0f, 1.0f, 0.0f});*/
-    /*LOG("blue: {:#x}\n", blue);*/
 
     const auto& camera = control::g_camera;
     const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
@@ -916,8 +905,8 @@ toSurfaceBuffer(Arena* pArena)
             M4RotFrom(0, 0, 0) *
             M4ScaleFrom(1.0f);
 
-        /*auto* pModelBackpack = asset::searchModel("assets/BoxAnimated/BoxAnimated.gltf");*/
-        auto* pModelBackpack = asset::searchModel("assets/duck/Duck.gltf");
+        auto* pModelBackpack = asset::searchModel("assets/BoxAnimated/BoxAnimated.gltf");
+        /*auto* pModelBackpack = asset::searchModel("assets/duck/Duck.gltf");*/
 
         if (pModelBackpack)
             drawGLTF(pArena, *pModelBackpack, cameraTrm2);
