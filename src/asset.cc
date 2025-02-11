@@ -1,4 +1,5 @@
 #include "asset.hh"
+#include "app.hh"
 #include "bmp.hh"
 
 #include "adt/Map.hh"
@@ -39,7 +40,8 @@ loadBMP([[maybe_unused]] const String svPath, const String sFile)
     Image img = reader.getImage();
 
     img = img.cloneToRGBA(&nObj.m_arena);
-    img.swapRB();
+    if (app::g_eWindowType != app::WINDOW_TYPE::WAYLAND)
+        img.swapRB();
 
     nObj.m_uData.img = img;
     nObj.m_eType = TYPE::IMAGE;

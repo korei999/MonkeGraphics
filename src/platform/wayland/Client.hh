@@ -60,6 +60,7 @@ struct Client final : public IWindow
 
     adt::u8* m_pSurfaceBufferBind {};
     adt::VecBase<ImagePixelRGBA> m_vSurfaceBuffer {};
+    adt::VecBase<ImagePixelRGBA> m_vTempBuff {};
 
     /* */
 

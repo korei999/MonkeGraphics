@@ -330,16 +330,17 @@ void
 Client::updateSurface()
 {
     /* flip the image... */
-    auto sp = surfaceBuffer();
-    u32* pTemp = m_pAlloc->mallocV<u32>(sp.getStride());
-    defer( m_pAlloc->free(pTemp) );
-    const int heightOver2 = sp.getHeight() / 2;
-
-    for (int y = 0; y < heightOver2; ++y)
     {
-        utils::copy(pTemp, &sp(0, y).data, sp.getStride());
-        utils::copy(&sp(0, y).data, &sp(0, sp.getHeight() - y - 1).data, sp.getStride());
-        utils::copy(&sp(0, sp.getHeight() - y - 1).data, pTemp, sp.getStride());
+        auto sp = surfaceBuffer();
+        u32* pTemp = reinterpret_cast<u32*>(m_vTempBuff.data());
+        const int heightOver2 = sp.getHeight() / 2;
+
+        for (int y = 0; y < heightOver2; ++y)
+        {
+            utils::copy(pTemp, &sp(0, y).data, sp.getStride());
+            utils::copy(&sp(0, y).data, &sp(0, sp.getHeight() - y - 1).data, sp.getStride());
+            utils::copy(&sp(0, sp.getHeight() - y - 1).data, pTemp, sp.getStride());
+        }
     }
 
     wl_surface_attach(m_pSurface, m_pBuffer, 0, 0);
@@ -598,6 +599,7 @@ Client::initShm()
         throw RuntimeException("wl_shm_pool_create_buffer() failed");
 
     m_pSurfaceBufferBind = m_pPoolData;
+    m_vTempBuff.setSize(m_pAlloc, surfaceBuffer().getStride());
 
     LOG_GOOD("wayland shm client started...\n");
 }
@@ -670,7 +672,7 @@ Client::initEGL()
 
     /* create some texture buffer to draw into */
     m_vDepthBuffer.setSize(m_pAlloc, m_width * m_height);
-    m_vSurfaceBuffer.setSize(m_pAlloc, m_width * m_height);
+    m_vSurfaceBuffer.setSize(m_pAlloc, m_stride * m_height);
     m_pSurfaceBufferBind = reinterpret_cast<u8*>(m_vSurfaceBuffer.data());
 
     LOG_GOOD("wayland egl client started...\n");
