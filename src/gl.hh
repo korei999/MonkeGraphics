@@ -39,7 +39,6 @@ struct ShaderMapping
 
     ShaderMapping() = default;
     ShaderMapping(const adt::String svVertPath, const adt::String svFragPath, const adt::String svMappedTo);
-    // ShaderMapping(const adt::String svVertPath, const adt::String svGeomPath, const adt::String svFragPath, const adt::String svMappedTo) { ADT_ASSERT(false, "TODO"); }
 };
 
 struct Texture
@@ -142,6 +141,7 @@ struct Quad
 };
 
 [[nodiscard]] Shader* searchShader(const adt::String svKey);
+void init();
 void loadShaders();
 
 #ifndef NDEBUG

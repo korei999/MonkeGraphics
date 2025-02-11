@@ -5,6 +5,7 @@
 #include "adt/OsAllocator.hh"
 #include "adt/file.hh"
 #include "adt/logs.hh"
+#include "app.hh"
 
 using namespace adt;
 
@@ -238,6 +239,21 @@ searchShader(const adt::String svKey)
 }
 
 void
+init()
+{
+#ifndef NDEBUG
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageCallback(gl::debugCallback, app::g_pWindow);
+#endif
+
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+}
+
+void
 loadShaders()
 {
     for (const auto& shader : s_aShadersToLoad)
@@ -269,7 +285,6 @@ loadShaders()
         }
     }
 }
-
 
 #ifndef NDEBUG
 

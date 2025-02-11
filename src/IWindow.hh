@@ -49,7 +49,6 @@ struct IWindow
     /* */
 
     virtual void start(int width, int height) = 0;
-    virtual adt::Span2D<ImagePixelRGBA> surfaceBuffer() = 0;
     virtual void disableRelativeMode() = 0;
     virtual void enableRelativeMode() = 0;
     virtual void togglePointerRelativeMode() = 0;
@@ -64,9 +63,12 @@ struct IWindow
     virtual void procEvents() = 0;
     virtual void showWindow() = 0;
     virtual void destroy() = 0;
+    virtual void bindContext() = 0;
+    virtual void unbindContext() = 0;
+
+    /* software renderer / event loop stuff */
+    virtual adt::Span2D<ImagePixelRGBA> surfaceBuffer() = 0;
     virtual void scheduleFrame() = 0;
-    virtual void bindGlContext() = 0;
-    virtual void unbindGlContext() = 0;
 
     /* */
 

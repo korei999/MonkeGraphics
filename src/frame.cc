@@ -77,8 +77,10 @@ eventLoop()
 }
 
 static void
-renderLoop()
+mainLoop()
 {
+#if defined OPT_GL
+
     auto& win = app::window();
     win.m_bRunning = true;
     g_time = utils::timeNowS();
@@ -88,20 +90,10 @@ renderLoop()
 
     game::loadAssets();
 
-    win.bindGlContext();
+    win.bindContext();
     auto spSurface = win.surfaceBuffer();
 
-#ifndef NDEBUG
-    glEnable(GL_DEBUG_OUTPUT);
-    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    glDebugMessageCallback(gl::debugCallback, app::g_pWindow);
-#endif
-
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-
+    gl::init();
     gl::loadShaders();
 
     win.swapBuffers(); /* trigger events */
@@ -134,6 +126,8 @@ renderLoop()
         frameArena.reset();
         win.swapBuffers();
     }
+
+#endif
 }
 
 void
@@ -147,7 +141,7 @@ start()
         break;
 
         default:
-        renderLoop();
+        mainLoop();
         break;
     }
 
@@ -156,8 +150,12 @@ start()
     for (auto& asset : asset::g_objects)
         asset.destroy();
 
+    #if defined OPT_GL
+
     for (auto& shader : gl::g_shaders)
         shader.destroy();
+
+    #endif
 
 #endif
 }

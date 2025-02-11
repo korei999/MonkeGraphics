@@ -299,13 +299,13 @@ Client::scheduleFrame()
 }
 
 void
-Client::bindGlContext()
+Client::bindContext()
 {
     LOG_WARN("noop\n");
 }
 
 void
-Client::unbindGlContext()
+Client::unbindContext()
 {
     LOG_WARN("noop\n");
 }
@@ -423,7 +423,7 @@ Client::xdgToplevelConfigure(
         m_winWidth = width;
         m_winHeight = height;
 
-        adjustResize(&width, &height);
+        adjustViewportSize(&width, &height);
 
         wp_viewport_set_destination(m_pViewport, width, height);
     }

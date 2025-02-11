@@ -30,7 +30,7 @@ endif()
 option(OPT_SSE4_2 "" ON)
 option(OPT_AVX2 "" OFF)
 option(OPT_MARCH_NATIVE "" OFF)
-option(OPT_WAYLAND_GL "" ON)
+option(OPT_WAYLAND_GL "" OFF)
 
 include_directories(BEFORE "libs")
 include_directories(BEFORE "src")
@@ -242,7 +242,11 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
         pkg_check_modules(WAYLAND_GL REQUIRED gl egl wayland-egl)
 
         if (WAYLAND_GL_FOUND)
+            message(STATUS "WAYLAND_GL_FOUND: '${WAYLAND_GL_FOUND}'")
+
+            add_definitions("-DOPT_GL")
             include_directories(BEFORE ${WAYLAND_GL_INCLUDE_DIRS})
+
             target_link_libraries(
                 ${CMAKE_PROJECT_NAME} PRIVATE
                 ${WAYLAND_GL_LIBRARIES} 

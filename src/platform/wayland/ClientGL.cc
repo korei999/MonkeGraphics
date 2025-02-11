@@ -60,19 +60,19 @@ ClientGL::toggleVSync()
 }
 
 void
-ClientGL::bindGlContext()
+ClientGL::bindContext()
 {
     EGLD ( eglMakeCurrent(m_eglDisplay, m_eglSurface, m_eglSurface, m_eglContext) );
 }
 
 void
-ClientGL::unbindGlContext()
+ClientGL::unbindContext()
 {
     EGLD( eglMakeCurrent(m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) );
 }
 
 void
-ClientGL::adjustResize(adt::i32* pWidth, adt::i32* pHeight)
+ClientGL::adjustViewportSize(adt::i32* pWidth, adt::i32* pHeight)
 {
     if (pWidth && pHeight)
     {

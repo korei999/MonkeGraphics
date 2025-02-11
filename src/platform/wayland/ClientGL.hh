@@ -30,12 +30,12 @@ struct ClientGL : public Client
     virtual void swapBuffers() override;
     virtual void setSwapInterval(int interval) override;
     virtual void toggleVSync() override;
-    virtual void bindGlContext() override;
-    virtual void unbindGlContext() override;
+    virtual void bindContext() override;
+    virtual void unbindContext() override;
 
     /* */
 
-    virtual void adjustResize(adt::i32* pWidth, adt::i32* pHeight) override;
+    virtual void adjustViewportSize(adt::i32* pWidth, adt::i32* pHeight) override;
 
     /* */
 
