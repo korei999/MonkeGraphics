@@ -36,7 +36,7 @@ struct Image
     /* */
 
     [[nodiscard]] Image cloneToRGBA(adt::IAllocator* pAlloc);
-    void swapRB();
+    void swapRedBlue();
 
     adt::Span2D<ImagePixelRGBA>
     getSpanARGB()

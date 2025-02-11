@@ -41,7 +41,7 @@ loadBMP([[maybe_unused]] const String svPath, const String sFile)
 
     img = img.cloneToRGBA(&nObj.m_arena);
     if (app::g_eWindowType != app::WINDOW_TYPE::WAYLAND)
-        img.swapRB();
+        img.swapRedBlue();
 
     nObj.m_uData.img = img;
     nObj.m_eType = TYPE::IMAGE;

@@ -47,7 +47,7 @@ Image::cloneToRGBA(adt::IAllocator* pAlloc)
 }
 
 void
-Image::swapRB()
+Image::swapRedBlue()
 {
     using namespace adt::simd;
 
