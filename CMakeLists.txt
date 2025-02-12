@@ -91,10 +91,13 @@ endif()
 
 if (CMAKE_BUILD_TYPE MATCHES "DebugO1")
     if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        # doesn't allow to override
+        # add_compile_options(/Zi)
     else()
         add_compile_options(-O1 -g3)
-        set(CMAKE_BUILD_TYPE "Debug")
     endif()
+
+    set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
 if (CMAKE_BUILD_TYPE MATCHES "Asan")
