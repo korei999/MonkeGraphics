@@ -187,8 +187,8 @@ windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
         case WM_MOUSEMOVE:
             {
-                control::g_mouse.abs.x = GET_X_LPARAM(lParam);
-                control::g_mouse.abs.y = GET_Y_LPARAM(lParam);
+                s->m_pointerSurfaceX = static_cast<f32>(GET_X_LPARAM(lParam));
+                s->m_pointerSurfaceY = static_cast<f32>(GET_Y_LPARAM(lParam));
             }
             break;
 
@@ -200,8 +200,8 @@ windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
                 if (raw->header.dwType == RIM_TYPEMOUSE)
                 {
-                    control::g_mouse.rel.x += raw->data.mouse.lLastX;
-                    control::g_mouse.rel.y += raw->data.mouse.lLastY;
+                    s->m_relMotionX += static_cast<f32>(raw->data.mouse.lLastX);
+                    s->m_relMotionY += static_cast<f32>(raw->data.mouse.lLastY);
                 }
             }
             break;
@@ -280,9 +280,6 @@ Window::start(int width, int height)
     m_hDeviceContext = GetDC(m_hWindow);
     if (!m_hDeviceContext) LOG_FATAL("GetDC failed\n");
 
-    /* FIXME: find better way to toggle this on startup */
-    // input::registerRawMouseDevice(this, true);
-
     int attrib[] {
         WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
         WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
@@ -350,12 +347,14 @@ void
 Window::disableRelativeMode()
 {
     m_bPointerRelativeMode = 0;
+    registerRawMouseDevice(false);
 }
 
 void
 Window::enableRelativeMode()
 {
     m_bPointerRelativeMode = 1;
+    registerRawMouseDevice(true);
 }
 
 void
@@ -414,6 +413,22 @@ Window::swapBuffers()
 void
 Window::procEvents()
 {
+    MSG msg;
+    while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
+    {
+        switch (msg.message)
+        {
+            case WM_QUIT:
+                m_bRunning = false;
+                break;
+
+            default:
+                break;
+        };
+
+        TranslateMessage(&msg);
+        DispatchMessageW(&msg);
+    }
 }
 
 void

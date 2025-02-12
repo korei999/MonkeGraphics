@@ -1,7 +1,9 @@
 #include "Window.hh"
-#include "control.hh"
 
+#include "control.hh"
 #include "keys.hh"
+
+using namespace adt;
 
 namespace platform::win32
 {
@@ -162,6 +164,7 @@ setMods(WPARAM keyCode, bool bDown)
 void
 Window::procKey(WPARAM keyCode, bool bDown)
 {
+    ADT_ASSERT(keyCode < utils::size(s_aAsciiToLinuxKeyCodes), " ");
     control::g_abPressed[ s_aAsciiToLinuxKeyCodes[keyCode] ] = bDown;
     setMods(keyCode, bDown);
 }
