@@ -153,64 +153,73 @@ windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     switch (msg)
     {
         case WM_DESTROY:
-            s->m_bRunning = false;
-            return 0;
+        s->m_bRunning = false;
+        return 0;
 
         case WM_SIZE:
+        {
             s->m_winHeight = LOWORD(lParam);
             s->m_winWidth = HIWORD(lParam);
-            break;
+            LOG("WM_SIZE: [{}, {}]\n", s->m_winHeight, s->m_winWidth);
+
+            f32 fStride = static_cast<f32>(s->m_stride) / static_cast<f32>(s->m_width);
+            f32 aspect = 16.0f / 9.0f;
+
+            glViewport(0, 0, s->m_winWidth * aspect * fStride, s->m_winHeight);
+        }
+        break;
 
         case WM_KILLFOCUS:
-            memset(control::g_abPressed, 0, sizeof(control::g_abPressed));
-            break;
+        memset(control::g_abPressed, 0, sizeof(control::g_abPressed));
+        ShowWindow(s->m_hWindow, SW_MINIMIZE);
+        break;
 
         case WM_NCCREATE:
-            SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)((CREATESTRUCT*)lParam)->lpCreateParams);
-            break;
+        SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)((CREATESTRUCT*)lParam)->lpCreateParams);
+        break;
 
         case WM_LBUTTONDOWN:
-            break;
+        break;
 
         case WM_SYSKEYUP:
         case WM_SYSKEYDOWN:
         case WM_KEYUP:
         case WM_KEYDOWN:
-            {
-                WPARAM keyCode = wParam;
-                bool bWasDown = ((lParam & (1 << 30)) != 0);
-                bool bDown = ((lParam >> 31) & 1) == 0;
+        {
+            WPARAM keyCode = wParam;
+            bool bWasDown = ((lParam & (1 << 30)) != 0);
+            bool bDown = ((lParam >> 31) & 1) == 0;
 
-                if (bWasDown == bDown)
-                    break;
+            if (bWasDown == bDown)
+                break;
 
-                s->procKey(keyCode, bDown);
-            }
-            break;
+            s->procKey(keyCode, bDown);
+        }
+        break;
 
         case WM_MOUSEMOVE:
-            {
-                s->m_pointerSurfaceX = static_cast<f32>(GET_X_LPARAM(lParam));
-                s->m_pointerSurfaceY = static_cast<f32>(GET_Y_LPARAM(lParam));
-            }
-            break;
+        {
+            s->m_pointerSurfaceX = static_cast<f32>(GET_X_LPARAM(lParam));
+            s->m_pointerSurfaceY = static_cast<f32>(GET_Y_LPARAM(lParam));
+        }
+        break;
 
         case WM_INPUT:
-            {
-                u32 size = sizeof(RAWINPUT);
-                static RAWINPUT raw[sizeof(RAWINPUT)] {};
-                GetRawInputData((HRAWINPUT)lParam, RID_INPUT, raw, &size, sizeof(RAWINPUTHEADER));
+        {
+            u32 size = sizeof(RAWINPUT);
+            static RAWINPUT raw[sizeof(RAWINPUT)] {};
+            GetRawInputData((HRAWINPUT)lParam, RID_INPUT, raw, &size, sizeof(RAWINPUTHEADER));
 
-                if (raw->header.dwType == RIM_TYPEMOUSE)
-                {
-                    s->m_relMotionX += static_cast<f32>(raw->data.mouse.lLastX);
-                    s->m_relMotionY += static_cast<f32>(raw->data.mouse.lLastY);
-                }
+            if (raw->header.dwType == RIM_TYPEMOUSE)
+            {
+                s->m_relMotionX += static_cast<f32>(raw->data.mouse.lLastX);
+                s->m_relMotionY += static_cast<f32>(raw->data.mouse.lLastY);
             }
-            break;
+        }
+        break;
 
         default:
-            break;
+        break;
     }
 
     if (s && s->m_bPointerRelativeMode)
@@ -370,6 +379,7 @@ Window::togglePointerRelativeMode()
 void
 Window::toggleFullscreen()
 {
+    m_bFullscreen == false ? setFullscreen() : unsetFullscreen();
 }
 
 void
@@ -385,11 +395,23 @@ Window::setCursorImage(adt::String cursorType)
 void
 Window::setFullscreen()
 {
+    m_bFullscreen = true;
+
+    enterFullscreen(
+        m_hWindow,
+        GetDeviceCaps(m_hDeviceContext, 0),
+        GetDeviceCaps(m_hDeviceContext, 1),
+        GetDeviceCaps(m_hDeviceContext, 2),
+        GetDeviceCaps(m_hDeviceContext, 3)
+    );
 }
 
 void
 Window::unsetFullscreen()
 {
+    m_bFullscreen = false;
+
+    exitFullscreen(m_hWindow, 0, 0, m_width, m_height, 0, 0);
 }
 
 void
@@ -466,6 +488,7 @@ Window::surfaceBuffer()
 void
 Window::scheduleFrame()
 {
+    LOG_WARN("noop\n");
 }
 
 } /* namespace platform::win32 */

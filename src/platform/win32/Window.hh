@@ -47,6 +47,8 @@ struct Window : public IWindow
 
     void procKey(WPARAM keyCode, bool bDown);
     void registerRawMouseDevice(bool bOn);
+    static bool enterFullscreen(HWND hwnd, int fullscreenWidth, int fullscreenHeight, int colorBits, int refreshRate);
+    static bool exitFullscreen(HWND hwnd, int windowX, int windowY, int windowedWidth, int windowedHeight, int windowedPaddingX, int windowedPaddingY);
 };
 
 } /* namespace platform::win32 */

@@ -420,10 +420,10 @@ Client::xdgToplevelConfigure(
 {
     if (width > 0 && height > 0)
     {
+        adjustViewportSize(&width, &height);
+
         m_winWidth = width;
         m_winHeight = height;
-
-        adjustViewportSize(&width, &height);
 
         wp_viewport_set_destination(m_pViewport, width, height);
     }
