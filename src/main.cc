@@ -7,6 +7,30 @@
 
 using namespace adt;
 
+static int startup(int argc, char** argv);
+
+#if defined _WIN32 && defined NDEBUG
+
+int WINAPI
+WinMain(
+    [[maybe_unused]] HINSTANCE instance,
+    [[maybe_unused]] HINSTANCE previnstance,
+    [[maybe_unused]] LPSTR cmdline,
+    [[maybe_unused]] int cmdshow)
+{
+    return startup(__argc, __argv);
+}
+
+#else
+
+int
+main(int argc, char** argv)
+{
+    startup(argc, argv);
+}
+
+#endif
+
 static void
 parseArgs(int argc, char** argv)
 {
@@ -27,8 +51,8 @@ parseArgs(int argc, char** argv)
     }
 }
 
-int
-main(int argc, char** argv)
+static int
+startup(int argc, char** argv)
 {
 #ifdef __linux__
     app::g_eWindowType = app::WINDOW_TYPE::WAYLAND;
@@ -61,4 +85,6 @@ main(int argc, char** argv)
     {
         ex.printErrorMsg(stdout);
     }
+
+    return 0;
 }

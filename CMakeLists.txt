@@ -62,15 +62,6 @@ if (CMAKE_BUILD_TYPE MATCHES "DebugMingw" OR CMAKE_BUILD_TYPE MATCHES "ReleaseMi
     endif()
 endif()
 
-if (CMAKE_BUILD_TYPE MATCHES "Release" AND CMAKE_SYSTEM_NAME MATCHES "Windows")
-    set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY WIN32_EXECUTABLE TRUE)
-
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        add_compile_options(-flto)
-        add_link_options(-flto)
-    endif()
-endif()
-
 if (OPT_MARCH_NATIVE)
     if(MSVC)
     else()
@@ -278,6 +269,15 @@ elseif (CMAKE_SYSTEM_NAME MATCHES "Windows")
         src/platform/win32/Window.cc
         src/platform/win32/WindowInput.cc
     )
+endif()
+
+if (CMAKE_BUILD_TYPE MATCHES "Release" AND CMAKE_SYSTEM_NAME MATCHES "Windows")
+    set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY WIN32_EXECUTABLE TRUE)
+
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        add_compile_options(-flto)
+        add_link_options(-flto)
+    endif()
 endif()
 
 # install(TARGETS ${CMAKE_PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
