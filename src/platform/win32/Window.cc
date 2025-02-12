@@ -7,6 +7,7 @@
 
 #include "adt/logs.hh"
 
+#include <clocale>
 #include <windowsx.h>
 
 #if defined __clang__
@@ -246,6 +247,8 @@ Window::Window(adt::IAllocator* pAlloc, const char* ntsName)
 void
 Window::start(int width, int height)
 {
+    ADT_ASSERT_ALWAYS(setlocale(LC_ALL, "en_US.UTF-8"), " ");
+
     m_winWidth = m_width = width;
     m_winHeight = m_height = height;
     m_stride = m_width + 7; /* simd padding */
@@ -271,7 +274,7 @@ Window::start(int width, int height)
     m_height = rect.bottom - rect.top;
 
     static wchar_t s_aBuff[128] {};
-    mbtowc(s_aBuff, m_ntsName, 0);
+    mbstowcs(s_aBuff, m_ntsName, -1);
 
     m_hWindow = CreateWindowExW(exstyle,
         m_windowClass.lpszClassName,
