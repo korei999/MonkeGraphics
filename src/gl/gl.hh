@@ -17,22 +17,11 @@ struct ShaderMapping
 
     /* */
 
-    union
-    {
-        struct
-        {
-            adt::String svVert {};
-            adt::String svFrag {};
-        } vsFs;
-
-        struct
-        {
-            adt::String svVert {};
-            adt::String svGeom {};
-            adt::String svFrag {};
-        } vsGsFs;
-    } m_uPaths {};
+    adt::String m_svVert {};
+    adt::String m_svGeom {};
+    adt::String m_svFrag {};
     adt::String m_svMappedTo {};
+
     TYPE m_eType {};
 
     /* */

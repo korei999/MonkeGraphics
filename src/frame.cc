@@ -106,7 +106,7 @@ mainLoop()
     win.toggleVSync();
 
     gl::Texture surfaceTexture(spSurface.getStride(), spSurface.getHeight());
-    gl::Shader* pshQuad = gl::searchShader("Quad");
+    gl::Shader* pshQuad = gl::searchShader("QuadTex");
     gl::Quad quad(adt::INIT);
     ADT_ASSERT(pshQuad, " ");
 

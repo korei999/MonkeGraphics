@@ -1,9 +1,8 @@
 #include "gl.hh"
+#include "glsl.hh"
 
 #include "adt/Map.hh"
-#include "adt/Opt.hh"
 #include "adt/OsAllocator.hh"
-#include "adt/file.hh"
 #include "adt/logs.hh"
 #include "app.hh"
 
@@ -16,15 +15,11 @@ Pool<Shader, 128> g_shaders(adt::INIT);
 static Map<String, PoolHnd> s_mapStringToShaders(OsAllocatorGet(), g_shaders.getCap());
 
 static const ShaderMapping s_aShadersToLoad[] {
-    {"src/shaders/quad/tex.vert", "src/shaders/quad/tex.frag", "Quad"},
+    {glsl::ntsQuadTexVert, glsl::ntsQuadTexFrag, "QuadTex"},
 };
 
-ShaderMapping::ShaderMapping(const String svVertPath, const String svFragPath, const String svMappedTo)
-    : m_svMappedTo(svMappedTo), m_eType(TYPE::VS_FS)
-{
-    m_uPaths.vsFs.svVert = svVertPath;
-    m_uPaths.vsFs.svFrag = svFragPath;
-}
+ShaderMapping::ShaderMapping(const String svVert, const String svFrag, const String svMappedTo)
+    : m_svVert(svVert), m_svFrag(svFrag), m_svMappedTo(svMappedTo), m_eType(TYPE::VS_FS) {}
 
 Texture::Texture(int width, int height)
     : m_width(width), m_height(height)
@@ -262,20 +257,8 @@ loadShaders()
         {
             case ShaderMapping::TYPE::VS_FS:
             {
-                OsAllocator al;
-
-                Opt<String> osVert = file::load(&al, shader.m_uPaths.vsFs.svVert);
-                if (!osVert)
-                    exit(1);
-                defer( osVert.value().destroy(&al) );
-
-                Opt<String> osFrag = file::load(&al, shader.m_uPaths.vsFs.svFrag);
-                if (!osFrag)
-                    exit(1);
-                defer( osFrag.value().destroy(&al) );
-
                 /* maps to gl::g_shaders */
-                gl::Shader(osVert.value(), osFrag.value(), shader.m_svMappedTo);
+                gl::Shader(shader.m_svVert, shader.m_svFrag, shader.m_svMappedTo);
             }
             break;
 
