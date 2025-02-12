@@ -574,7 +574,7 @@ Client::initShm()
     if (!m_pPoolData)
         throw RuntimeException("mmap() failed");
 
-    m_vDepthBuffer.setSize(m_pAlloc, m_width * m_height);
+    m_vDepthBuffer.setSize(m_pAlloc, m_stride * m_height);
 
     m_pShmPool = wl_shm_create_pool(m_pShm, fd, shmPoolSize);
     if (!m_pShmPool)

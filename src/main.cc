@@ -30,7 +30,11 @@ parseArgs(int argc, char** argv)
 int
 main(int argc, char** argv)
 {
+#ifdef __linux__
     app::g_eWindowType = app::WINDOW_TYPE::WAYLAND;
+#elif defined _WIN32
+    app::g_eWindowType = app::WINDOW_TYPE::WINDOWS;
+#endif
 
     parseArgs(argc, argv);
 
@@ -42,8 +46,11 @@ main(int argc, char** argv)
         const char* ntsName = "MonkeGraphics";
 
         app::g_pWindow = app::allocWindow(&allocator, ntsName);
-        if (!app::g_pWindow)
-            throw RuntimeException("allocWindow() failed: app::g_pWindow == nullptr");
+
+        ADT_ASSERT_ALWAYS(
+            app::g_pWindow, "allocWindow() failed: app::g_pWindow: %p",
+            reinterpret_cast<void*>(app::g_pWindow)
+        );
 
         app::g_pWindow->start(640, 480);
         defer( app::g_pWindow->destroy() );

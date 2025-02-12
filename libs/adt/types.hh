@@ -9,6 +9,19 @@
     #include <cstddef>
 #endif
 
+#if __has_include(<windows.h>)
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+
+    #include <windows.h>
+    #include <winuser.h>
+#endif
+
 namespace adt
 {
 
@@ -70,10 +83,10 @@ constexpr INIT_FLAG INIT = true;
     #define ADT_LOGS_FILE __FILE__
 #endif
 
-#if defined __clang__ || __GNUC__
-    #define ADT_NO_UNIQUE_ADDRESS [[no_unique_address]]
-#elif defined _MSC_VER
+#if defined _WIN32
     #define ADT_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+#else
+    #define ADT_NO_UNIQUE_ADDRESS [[no_unique_address]]
 #endif
 
 template<typename METHOD_T>
@@ -96,14 +109,23 @@ Overloaded(Ts...) -> Overloaded<Ts...>;
 [[noreturn]] inline void
 assertionFailed(const char* cnd, const char* msg, const char* file, int line, const char* func)
 {
-    char aBuff[128] {};
+    char aBuff[256] {};
+    snprintf(aBuff, sizeof(aBuff) - 1, "[%s, %d: %s()] assertion( %s ) failed.\n(msg) %s\n", file, line, func, cnd, msg);
 
-    snprintf(aBuff, sizeof(aBuff) - 1, "[%s, %d: %s()] assertion( %s ) failed.\n(msg) ", file, line, func, cnd);
+#if __has_include(<windows.h>)
+    MessageBoxA(nullptr,
+        aBuff,
+        "Assertion failed",
+        MB_ICONWARNING | MB_OK | MB_DEFBUTTON2
+    );
+#else
     fputs(aBuff, stderr);
-    fputs(msg, stderr);
-    fputc('\n', stderr);
     fflush(stderr);
+#endif
+
+#ifndef NDEBUG
     abort();
+#endif
 }
 
 #ifndef NDEBUG
@@ -119,6 +141,19 @@ assertionFailed(const char* cnd, const char* msg, const char* file, int line, co
         } while (0)
 #else
     #define ADT_ASSERT(...) (void)0
+#endif
+
+#ifndef ADT_DISABLE_ASSERT_ALWAYS
+    #define ADT_ASSERT_ALWAYS(CND, ...)                                                                               \
+        do                                                                                                             \
+        {                                                                                                              \
+            if (!static_cast<bool>(CND))                                                                               \
+            {                                                                                                          \
+                char aMsgBuff[128] {};                                                                                 \
+                snprintf(aMsgBuff, sizeof(aMsgBuff) - 1, __VA_ARGS__);                                                 \
+                adt::assertionFailed(#CND, aMsgBuff, ADT_LOGS_FILE, __LINE__, __func__);                               \
+            }                                                                                                          \
+        } while (0)
 #endif
 
 } /* namespace adt */

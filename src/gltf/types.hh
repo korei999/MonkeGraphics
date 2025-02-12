@@ -227,13 +227,13 @@ struct Primitive
 {
     struct
     {
-        int NORMAL = adt::NPOS32;
-        int POSITION = adt::NPOS32;
-        int TEXCOORD_0 = adt::NPOS32;
-        int TANGENT = adt::NPOS32;
+        int NORMAL = -1;
+        int POSITION = -1;
+        int TEXCOORD_0 = -1;
+        int TANGENT = -1;
     } attributes {}; /* each value is the index of the accessor containing attribute’s data. */
-    int indicesI = adt::NPOS32; /* The index of the accessor that contains the vertex indices, drawElements() when defined and drawArrays() otherwise. */
-    int materialI = adt::NPOS32; /* The index of the material to apply to this primitive when rendering */
+    int indicesI = -1; /* The index of the accessor that contains the vertex indices, drawElements() when defined and drawArrays() otherwise. */
+    int materialI = -1; /* The index of the material to apply to this primitive when rendering */
     enum PRIMITIVES eMode = PRIMITIVES::TRIANGLES;
 };
 
@@ -247,18 +247,18 @@ struct Mesh
 
 struct Texture
 {
-    int sourceI = adt::NPOS32; /* The index of the image used by this texture. */
-    int samplerI = adt::NPOS32; /* The index of the sampler used by this texture. When undefined, a sampler with repeat wrapping and auto filtering SHOULD be used. */
+    int sourceI = -1; /* The index of the image used by this texture. */
+    int samplerI = -1; /* The index of the sampler used by this texture. When undefined, a sampler with repeat wrapping and auto filtering SHOULD be used. */
 };
 
 struct TextureInfo
 {
-    int index = adt::NPOS32; /* REQUIRED The index of the texture. */
+    int index = -1; /* REQUIRED The index of the texture. */
 };
 
 struct NormalTextureInfo
 {
-    int index = adt::NPOS32; /* REQUIRED */
+    int index = -1; /* REQUIRED */
     adt::f64 scale {};
 };
 

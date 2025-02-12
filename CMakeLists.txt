@@ -259,6 +259,25 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
             )
         endif()
     endif()
+elseif (CMAKE_SYSTEM_NAME MATCHES "Windows")
+    # only gl renderer
+    add_definitions("-DOPT_GL")
+
+    find_package(OpenGL REQUIRED)
+    message(STATUS "OpenGL: '${OpenGL}'")
+
+    target_link_libraries(
+        ${CMAKE_PROJECT_NAME} PRIVATE
+        ${OPENGL_gl_LIBRARY}
+    )
+
+    target_sources(
+        ${CMAKE_PROJECT_NAME} PRIVATE
+        src/gl.cc
+        src/platform/glfunc.cc
+        src/platform/win32/Window.cc
+        src/platform/win32/WindowInput.cc
+    )
 endif()
 
 # install(TARGETS ${CMAKE_PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

@@ -3,13 +3,6 @@
 #include "adt/types.hh"
 
 #if __has_include(<windows.h>)
-    #ifndef WIN32_LEAN_AND_MEAN
-        #define WIN32_LEAN_AND_MEAN 1
-    #endif
-    #ifndef NOMINMAX
-        #define NOMINMAX
-    #endif
-    #include <windows.h>
     #define ADT_USE_WIN32THREAD
 #elif __has_include(<pthread.h>)
     #include <pthread.h>
@@ -21,20 +14,6 @@
 
     #define ADT_GET_NPROCS() get_nprocs()
 #elif _WIN32
-    #define WIN32_LEAN_AND_MEAN 1
-    #include <windows.h>
-    #ifdef min
-        #undef min
-    #endif
-    #ifdef max
-        #undef max
-    #endif
-    #ifdef near
-        #undef near
-    #endif
-    #ifdef far
-        #undef far
-    #endif
     #include <sysinfoapi.h>
 
 inline DWORD

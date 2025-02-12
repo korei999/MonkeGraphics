@@ -148,7 +148,7 @@ ClientGL::initGL()
     EGLD( m_eglSurface = eglCreateWindowSurface(m_eglDisplay, eglConfig, (EGLNativeWindowType)(m_eglWindow), nullptr) );
 
     /* create some texture buffer to draw into */
-    m_vDepthBuffer.setSize(m_pAlloc, m_width * m_height);
+    m_vDepthBuffer.setSize(m_pAlloc, m_stride * m_height);
     m_vSurfaceBuffer.setSize(m_pAlloc, m_stride * m_height);
     m_pSurfaceBufferBind = reinterpret_cast<u8*>(m_vSurfaceBuffer.data());
 

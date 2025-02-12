@@ -5,9 +5,12 @@
 #include "control.hh"
 #include "draw.hh"
 #include "game.hh"
-#include "gl.hh"
 
 #include "adt/utils.hh"
+
+#if defined OPT_GL
+    #include "gl.hh"
+#endif
 
 using namespace adt;
 
@@ -91,6 +94,7 @@ mainLoop()
     game::loadAssets();
 
     win.bindContext();
+    win.showWindow();
     auto spSurface = win.surfaceBuffer();
 
     gl::init();

@@ -180,24 +180,24 @@ death:
 /* Separated by delimiter String iterator adapter */
 struct StringWordIt
 {
-    String m_s {};
-    char m_delimiter {};
+    const String m_sv {};
+    const String m_svDelimiters {};
 
     /* */
 
-    StringWordIt(const String s, const char delimiter = ' ') : m_s(s), m_delimiter(delimiter) {}
+    StringWordIt(const String sv, const String svDelimiters = " ") : m_sv(sv), m_svDelimiters(svDelimiters) {}
 
     struct It
     {
-        String m_sCurrWord {};
-        String m_str;
+        String m_svCurrWord {};
+        const String m_svStr;
+        const String m_svSeps {};
         ssize m_i = 0;
-        char m_sep {};
 
         /* */
 
-        It(String s, ssize pos, char sep)
-            : m_str(s), m_i(pos), m_sep(sep)
+        It(const String sv, ssize pos, const String svSeps)
+            : m_svStr(sv), m_i(pos), m_svSeps(svSeps)
         {
             if (pos != NPOS)
                 operator++();
@@ -205,13 +205,13 @@ struct StringWordIt
 
         /* */
 
-        String& operator*() { return m_sCurrWord; }
-        String* operator->() { return &m_sCurrWord; }
+        auto& operator*() { return m_svCurrWord; }
+        auto* operator->() { return &m_svCurrWord; }
 
         It&
         operator++()
         {
-            if (m_i >= m_str.getSize())
+            if (m_i >= m_svStr.getSize())
             {
                 m_i = NPOS;
                 return *this;
@@ -220,10 +220,19 @@ struct StringWordIt
             ssize start = m_i;
             ssize end = m_i;
 
-            while (end < m_str.getSize() && m_str[end] != m_sep)
+            auto oneOf = [&](char c) -> bool
+            {
+                for (auto sep : m_svSeps)
+                    if (c == sep)
+                        return true;
+
+                return false;
+            };
+
+            while (end < m_svStr.getSize() && !oneOf(m_svStr[end]))
                 end++;
 
-            m_sCurrWord = {&m_str[start], end - start};
+            m_svCurrWord = {const_cast<char*>(&m_svStr[start]), end - start};
             m_i = end + 1;
 
             return *this;
@@ -233,11 +242,11 @@ struct StringWordIt
         friend bool operator!=(const It& l, const It& r) { return l.m_i != r.m_i; }
     };
 
-    It begin() { return {m_s, 0, m_delimiter}; }
-    It end() { return {m_s, NPOS, m_delimiter}; }
+    It begin() { return {m_sv, 0, m_svDelimiters}; }
+    It end() { return {m_sv, NPOS, m_svDelimiters}; }
 
-    const It begin() const { return {m_s, 0, m_delimiter}; }
-    const It end() const { return {m_s, NPOS, m_delimiter}; }
+    const It begin() const { return {m_sv, 0, m_svDelimiters}; }
+    const It end() const { return {m_sv, NPOS, m_svDelimiters}; }
 };
 
 inline bool

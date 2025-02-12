@@ -6,6 +6,7 @@
         #include "platform/wayland/ClientGL.hh"
     #endif
 #elif defined _WIN32
+    #include "platform/win32/Window.hh"
 #else
     #error "unsupported platform"
 #endif
@@ -23,7 +24,7 @@ allocWindow(IAllocator* pAlloc, const char* ntsName)
 {
     switch (g_eWindowType)
     {
-        default: throw RuntimeException("allocWindow(): failed to create platform window");
+        default: break;
 
 #ifdef __linux__
         case WINDOW_TYPE::WAYLAND:
@@ -38,9 +39,11 @@ allocWindow(IAllocator* pAlloc, const char* ntsName)
 
 #if defined _WIN32
         case WINDOW_TYPE::WINDOWS:
-        return nullptr;
+        return pAlloc->alloc<platform::win32::Window>(pAlloc, ntsName);
 #endif
     }
+
+    return nullptr;
 }
 
 } /* namespace app */;

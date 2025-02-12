@@ -1,12 +1,12 @@
 #pragma once
 
+#include "platform/glfunc.hh"
+
 #include "adt/String.hh"
 #include "adt/math.hh"
 #include "adt/Pool.hh"
 
 #include "Image.hh"
-
-#include <GLES3/gl32.h>
 
 namespace gl
 {
