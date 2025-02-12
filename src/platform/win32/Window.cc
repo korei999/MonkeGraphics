@@ -470,7 +470,3 @@ Window::scheduleFrame()
 }
 
 } /* namespace platform::win32 */
-
-#if defined __clang__
-    #pragma clang diagnostic pop
-#endif
