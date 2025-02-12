@@ -9,7 +9,7 @@
 #include "adt/utils.hh"
 
 #if defined OPT_GL
-    #include "gl.hh"
+    #include "gl/gl.hh"
 #endif
 
 using namespace adt;

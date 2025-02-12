@@ -248,7 +248,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
 
             target_sources(
                 ${CMAKE_PROJECT_NAME} PRIVATE
-                src/gl.cc
+                src/gl/gl.cc
                 src/platform/wayland/ClientGL.cc
             )
         endif()
@@ -267,8 +267,8 @@ elseif (CMAKE_SYSTEM_NAME MATCHES "Windows")
 
     target_sources(
         ${CMAKE_PROJECT_NAME} PRIVATE
-        src/gl.cc
-        src/platform/glfunc.cc
+        src/gl/gl.cc
+        src/gl/glfunc.cc
         src/platform/win32/Window.cc
         src/platform/win32/WindowInput.cc
     )
