@@ -93,16 +93,15 @@ loadWGLFunctions(void)
 static void
 loadGLFunctions()
 {
+    HMODULE module = LoadLibraryA("opengl32.dll");
+
     auto loadFunc = [&](auto& pfn, const char* ntsFnName) {
         void* p = (void*)wglGetProcAddress(ntsFnName);
 
         if (p == 0 || (p == (void*)0x1) || (p == (void*)0x2) || (p == (void*)0x3) || (p == (void*)-1))
-        {
-            HMODULE module = LoadLibraryA("opengl32.dll");
             p = (void*)GetProcAddress(module, ntsFnName);
-        }
 
-        ADT_ASSERT_ALWAYS(p, "wglGetProcAddress() failed: pfn: %p", p);
+        ADT_ASSERT_ALWAYS(p, "failed to load '%s' function", ntsFnName);
 
         pfn = reinterpret_cast<decltype(pfn)>(p);
     };
@@ -141,7 +140,7 @@ loadGLFunctions()
     LOAD_GL_FUNC(glBufferData);
     LOAD_GL_FUNC(glVertexAttribPointer);
     LOAD_GL_FUNC(glEnableVertexAttribArray);
-    LOAD_GL_FUNC(glDebugMessageCallback);
+    LOAD_GL_FUNC(glDebugMessageCallbackARB);
 
 #undef LOAD_GL_FUNC
 }

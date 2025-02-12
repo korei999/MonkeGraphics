@@ -244,7 +244,7 @@ init()
 #ifndef NDEBUG
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    glDebugMessageCallback(gl::debugCallback, app::g_pWindow);
+    glDebugMessageCallbackARB(gl::debugCallback, app::g_pWindow);
 #endif
 
     glEnable(GL_CULL_FACE);
