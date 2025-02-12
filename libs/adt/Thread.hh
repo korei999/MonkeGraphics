@@ -257,7 +257,7 @@ private:
 };
 
 inline
-Mutex::Mutex(MUTEX_TYPE eType)
+Mutex::Mutex([[maybe_unused]] MUTEX_TYPE eType)
 {
 #ifdef ADT_USE_PTHREAD
 
@@ -498,7 +498,7 @@ CallOnce::exec(void (*pfn)())
 
 #elif defined ADT_USE_WIN32THREAD
 
-    auto stub = +[](PINIT_ONCE InitOnce, PVOID Parameter, PVOID *lpContext) -> BOOL
+    auto stub = +[](PINIT_ONCE, PVOID Parameter, [[maybe_unused]] PVOID *lpContext) -> BOOL
     {
         (reinterpret_cast<void(*)()>(Parameter))();
         return TRUE;

@@ -9,6 +9,10 @@
 
 #include <windowsx.h>
 
+#if defined __clang__
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
+#endif
 
 using namespace adt;
 
@@ -466,3 +470,7 @@ Window::scheduleFrame()
 }
 
 } /* namespace platform::win32 */
+
+#if defined __clang__
+    #pragma clang diagnostic pop
+#endif

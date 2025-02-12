@@ -197,7 +197,7 @@ struct StringWordIt
         /* */
 
         It(const String sv, ssize pos, const String svSeps)
-            : m_svStr(sv), m_i(pos), m_svSeps(svSeps)
+            : m_svStr(sv), m_svSeps(svSeps),  m_i(pos)
         {
             if (pos != NPOS)
                 operator++();

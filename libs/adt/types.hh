@@ -106,7 +106,7 @@ template<typename ...Ts>
 Overloaded(Ts...) -> Overloaded<Ts...>;
 
 /* TODO: windows messagebox? */
-[[noreturn]] inline void
+inline void
 assertionFailed(const char* cnd, const char* msg, const char* file, int line, const char* func)
 {
     char aBuff[256] {};
@@ -144,7 +144,7 @@ assertionFailed(const char* cnd, const char* msg, const char* file, int line, co
 #endif
 
 #ifndef ADT_DISABLE_ASSERT_ALWAYS
-    #define ADT_ASSERT_ALWAYS(CND, ...)                                                                               \
+    #define ADT_ASSERT_ALWAYS(CND, ...)                                                                                \
         do                                                                                                             \
         {                                                                                                              \
             if (!static_cast<bool>(CND))                                                                               \
