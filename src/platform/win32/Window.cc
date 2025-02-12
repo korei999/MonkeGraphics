@@ -1,7 +1,7 @@
 #include "Window.hh"
 
-#include "platform/glfunc.hh"
-#include "platform/win32/wglext.h"
+#include "gl/glfunc.hh"
+#include "wglext.h"
 
 #include "control.hh"
 
