@@ -262,7 +262,8 @@ Window::start(int width, int height)
     m_windowClass.lpszClassName = L"opengl_window_class";
 
     ATOM atom = RegisterClassExW(&m_windowClass);
-    if (!atom) LOG_FATAL("RegisterClassExW failed\n");
+    ADT_ASSERT_ALWAYS(atom, "RegisterClassExW() failed");
+
 
     DWORD exstyle = WS_EX_APPWINDOW;
     DWORD style = WS_OVERLAPPEDWINDOW;
@@ -290,10 +291,10 @@ Window::start(int width, int height)
         this
     );
 
-    if (!m_hWindow) LOG_FATAL("CreateWindowExW failed\n");
+    ADT_ASSERT_ALWAYS(m_hWindow, "CreateWindowExW() failed");
 
     m_hDeviceContext = GetDC(m_hWindow);
-    if (!m_hDeviceContext) LOG_FATAL("GetDC failed\n");
+    ADT_ASSERT_ALWAYS(m_hDeviceContext, "GetDC() failed");
 
     int attrib[] {
         WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
