@@ -1,6 +1,7 @@
 #include "gl.hh"
 
 #include "asset.hh"
+#include "common.hh"
 #include "control.hh"
 #include "game/game.hh"
 #include "shaders/glsl.hh"
@@ -45,7 +46,7 @@ drawGLTFNode(gltf::Model* pModel, gltf::Node* pNode, math::M4 trm)
 {
     using namespace adt::math;
 
-    game::updateModelNode(pModel, pNode, &trm);
+    common::updateModelNode(pModel, pNode, &trm);
 
     for (auto& children : pNode->vChildren)
     {
@@ -58,10 +59,9 @@ drawGLTFNode(gltf::Model* pModel, gltf::Node* pNode, math::M4 trm)
         auto& mesh = pModel->m_vMeshes[pNode->meshI];
         for (const auto& primitive : mesh.vPrimitives)
         {
-            /* TODO: can be NPOS */
-            ADT_ASSERT(primitive.indicesI != -1, " ");
-
-            auto& accIndices = pModel->m_vAccessors[primitive.indicesI];
+            gltf::Accessor& accIndices = pModel->m_vAccessors[primitive.indicesI];
+            if (primitive.indicesI != -1)
+                accIndices = pModel->m_vAccessors[primitive.indicesI];
 
             /* TODO: there might be any number of TEXCOORD_*,
              * which would be specified in baseColorTexture.texCoord.
@@ -86,12 +86,20 @@ drawGLTFNode(gltf::Model* pModel, gltf::Node* pNode, math::M4 trm)
             if (pPrimitiveData)
                 glBindVertexArray(pPrimitiveData->vao);
 
-            glDrawElements(
-                static_cast<GLenum>(primitive.eMode),
-                accIndices.count,
-                static_cast<GLenum>(accIndices.eComponentType),
-                {}
-            );
+            if (primitive.indicesI != -1)
+            {
+                glDrawElements(
+                    static_cast<GLenum>(primitive.eMode),
+                    accIndices.count,
+                    static_cast<GLenum>(accIndices.eComponentType),
+                    {}
+                );
+            }
+            else
+            {
+                const auto& accPos = pModel->m_vAccessors[primitive.attributes.POSITION];
+                glDrawArrays(static_cast<GLenum>(primitive.eMode), 0, accPos.count);
+            }
         }
     }
 }

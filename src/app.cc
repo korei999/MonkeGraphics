@@ -1,7 +1,5 @@
 #include "app.hh"
 
-#include "render/sw/sw.hh"
-
 #if defined __linux__
     #include "platform/wayland/Client.hh"
     #if defined OPT_GL
@@ -15,6 +13,10 @@
 
 #if defined OPT_GL
     #include "render/gl/gl.hh"
+#endif
+
+#if defined OPT_SW
+    #include "render/sw/sw.hh"
 #endif
 
 using namespace adt;
@@ -39,7 +41,6 @@ allocWindow(IAllocator* pAlloc, const char* ntsName)
         case WINDOW_TYPE::WAYLAND:
         return pAlloc->alloc<platform::wayland::Client>(pAlloc, ntsName);
 
-
     #if defined OPT_GL
         case WINDOW_TYPE::WAYLAND_GL:
         return pAlloc->alloc<platform::wayland::ClientGL>(pAlloc, ntsName);
@@ -62,8 +63,10 @@ allocRenderer(IAllocator* pAlloc)
     {
         default: break;
 
+#if defined OPT_SW
         case RENDERER_TYPE::SW:
         return pAlloc->alloc<render::sw::Renderer>();
+#endif
 
 #if defined OPT_GL
         case RENDERER_TYPE::OPEN_GL:

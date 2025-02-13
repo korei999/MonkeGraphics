@@ -1,14 +1,15 @@
 #include "sw.hh"
 
-#include "adt/ScratchBuffer.hh"
-#include "adt/file.hh"
 #include "app.hh"
 #include "asset.hh"
 #include "clip.hh"
+#include "common.hh"
 #include "control.hh"
-#include "frame.hh"
 #include "game/game.hh"
 #include "gltf/gltf.hh"
+
+#include "adt/ScratchBuffer.hh"
+#include "adt/file.hh"
 
 using namespace adt;
 
@@ -579,7 +580,7 @@ drawGLTFNode(Arena* pArena, gltf::Model& model, gltf::Node& node, math::M4 trm)
     /* NOTE: must be one of asset::g_objects */
     auto pObj = (const asset::Object*)&model;
 
-    game::updateModelNode(&model, &node, &trm);
+    common::updateModelNode(&model, &node, &trm);
 
     for (auto& children : node.vChildren)
     {

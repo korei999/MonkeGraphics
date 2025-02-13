@@ -31,6 +31,7 @@ option(OPT_SSE4_2 "" ON)
 option(OPT_AVX2 "" OFF)
 option(OPT_MARCH_NATIVE "" OFF)
 
+option(OPT_SW "" OFF)
 option(OPT_GL "" ON)
 option(OPT_WAYLAND_GL "" ON)
 
@@ -167,6 +168,7 @@ add_executable(
     src/control.cc
     src/Image.cc
     src/asset.cc
+    src/common.cc
 
     src/json/Parser.cc
     src/json/Lexer.cc
@@ -174,10 +176,16 @@ add_executable(
     src/gltf/gltf.cc
 
     src/game/game.cc
-
-    src/render/sw/sw.cc
-    src/render/sw/clip.cc
 )
+
+if (OPT_SW)
+    target_sources(
+        ${CMAKE_PROJECT_NAME} PRIVATE
+        src/render/sw/sw.cc
+        src/render/sw/clip.cc
+    )
+endif()
+
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     find_package(PkgConfig REQUIRED)
