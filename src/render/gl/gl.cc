@@ -45,8 +45,6 @@ drawGLTFNode(gltf::Model* pModel, gltf::Node* pNode, math::M4 trm)
 {
     using namespace adt::math;
 
-    auto pObj = reinterpret_cast<asset::Object*>(pModel);
-
     game::updateModelNode(pModel, pNode, &trm);
 
     for (auto& children : pNode->vChildren)
@@ -64,25 +62,15 @@ drawGLTFNode(gltf::Model* pModel, gltf::Node* pNode, math::M4 trm)
             ADT_ASSERT(primitive.indicesI != -1, " ");
 
             auto& accIndices = pModel->m_vAccessors[primitive.indicesI];
-            auto& viewIndicies = pModel->m_vBufferViews[accIndices.bufferViewI];
-            auto& buffInd = pModel->m_vBuffers[viewIndicies.bufferI];
 
             /* TODO: there might be any number of TEXCOORD_*,
              * which would be specified in baseColorTexture.texCoord.
              * But current gltf parser only reads the 0th. */
             gltf::Accessor accUV {};
-            gltf::BufferView viewUV {};
-            gltf::Buffer buffUV {};
             if (primitive.attributes.TEXCOORD_0 != -1)
             {
                 accUV = pModel->m_vAccessors[primitive.attributes.TEXCOORD_0];
-                viewUV = pModel->m_vBufferViews[accUV.bufferViewI];
-                buffUV = pModel->m_vBuffers[viewUV.bufferI];
             }
-
-            auto& accPos = pModel->m_vAccessors[primitive.attributes.POSITION];
-            auto& viewPos = pModel->m_vBufferViews[accPos.bufferViewI];
-            auto& buffPos = pModel->m_vBuffers[viewPos.bufferI];
 
             Shader* pSh = searchShader("SimpleColor");
             pSh->use();
@@ -93,6 +81,10 @@ drawGLTFNode(gltf::Model* pModel, gltf::Node* pNode, math::M4 trm)
                 auto& mat = pModel->m_vMaterials[primitive.materialI];
                 pSh->setV4("u_color", mat.pbrMetallicRoughness.baseColorFactor);
             }
+
+            auto* pPrimitiveData = reinterpret_cast<PrimitiveData*>(primitive.extras.pData);
+            if (pPrimitiveData)
+                glBindVertexArray(pPrimitiveData->vao);
 
             glDrawElements(
                 static_cast<GLenum>(primitive.eMode),
@@ -113,7 +105,7 @@ drawModel(gltf::Model* pModel, math::M4 trm)
 }
 
 void
-Renderer::drawEntities(Arena* pArena)
+Renderer::drawEntities([[maybe_unused]] Arena* pArena)
 {
     using namespace adt::math;
 
@@ -405,7 +397,7 @@ loadShaders()
     }
 }
 
-static int
+[[maybe_unused]] static int
 componentByteSize(gltf::COMPONENT_TYPE eType)
 {
     switch (eType)
@@ -485,24 +477,20 @@ loadModel(gltf::Model* pModel)
                 auto& accInd = pModel->m_vAccessors[primitive.indicesI];
                 auto& viewInd = pModel->m_vBufferViews[accInd.bufferViewI];
                 auto& buffInd = pModel->m_vBuffers[viewInd.bufferI];
-                int indComponentByteSize = componentByteSize(accInd.eComponentType);
 
                 ADT_ASSERT(primitive.attributes.POSITION != -1, " ");
                 auto& accPos = pModel->m_vAccessors[primitive.attributes.POSITION];
                 auto& viewPos = pModel->m_vBufferViews[accPos.bufferViewI];
                 auto& buffPos = pModel->m_vBufferViews[viewPos.bufferI];
-                int posComponentByteSize = componentByteSize(accPos.eComponentType);
 
                 gltf::Accessor accUV {};
                 gltf::BufferView viewUV {};
                 gltf::Buffer buffUV {};
-                int uvComponentByteSize = 0;
                 if (primitive.attributes.TEXCOORD_0 != -1)
                 {
                     accUV = pModel->m_vAccessors[primitive.attributes.TEXCOORD_0];
                     viewUV = pModel->m_vBufferViews[accUV.bufferViewI];
                     buffUV = pModel->m_vBuffers[viewUV.bufferI];
-                    uvComponentByteSize = componentByteSize(accUV.eComponentType);
                 }
 
                 PrimitiveData primitiveData {};
