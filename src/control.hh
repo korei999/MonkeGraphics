@@ -1,6 +1,5 @@
 #pragma once
 
-#include "adt/defer.hh"
 #include "adt/Arr.hh"
 #include "adt/math.hh"
 

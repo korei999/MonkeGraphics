@@ -1,20 +1,19 @@
-/* Rasterization goes here */
+#include "sw.hh"
 
-#include "adt/OsAllocator.hh"
-#include "adt/logs.hh"
-#include "adt/math.hh"
 #include "adt/ScratchBuffer.hh"
+#include "adt/Thread.hh"
 #include "adt/file.hh"
-
 #include "app.hh"
 #include "asset.hh"
 #include "clip.hh"
 #include "control.hh"
-#include "draw.hh"
+#include "frame.hh"
+#include "game/game.hh"
+#include "gltf/gltf.hh"
 
 using namespace adt;
 
-namespace draw
+namespace render::sw
 {
 
 enum class SAMPLER : u8 { NEAREST, BILINEAR };
@@ -867,18 +866,14 @@ drawImgDBG(Image* pImg)
     for (int y = 0; y < sp.getHeight(); ++y)
     {
         for (int x = 0; x < sp.getWidth(); ++x)
-        {
             sp(x, y) = spImg(x * xStep, y * yStep);
-        }
     }
 }
 
 void
-toSurfaceBuffer(Arena* pArena)
+drawEntities(adt::Arena* pArena)
 {
     using namespace adt::math;
-
-    auto& win = app::window();
 
     static Vec<f64> s_vFrameTimes(OsAllocatorGet(), 1000);
     static f64 s_lastAvgFrameTimeUpdate {};
@@ -886,30 +881,48 @@ toSurfaceBuffer(Arena* pArena)
     const f64 t0 = utils::timeNowMS();
 
     s_callOnceAllocDefaultTexture.exec(
-        +[] { s_spDefaultTexture = allocDefaultTexture(); }
+        +[]
+        {
+            s_spDefaultTexture = allocDefaultTexture();
+            ADT_ASSERT(s_spDefaultTexture.data() != nullptr, " ");
+        }
     );
 
-    /* clear */
+    auto& win = app::window();
+
     win.clearSurfaceBuffer({0.1f, 0.1f, 0.1f, 1.0f});
     win.clearDepthBuffer();
 
     const auto& camera = control::g_camera;
     const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
 
-    /*drawImgDBG(asset::searchImage("assets/duck/DuckCM.bmp"));*/
-
     {
-        M4 cameraTrm2 = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
-            camera.m_trm *
-            M4TranslationFrom(0.0f, 0.0f, -0.0f) *
-            M4RotFrom(0.0f, 0.0f, 0.0f) *
-            M4ScaleFrom(1.0f);
+        for (int entityI = 0; entityI < game::g_aEntites.m_size; ++entityI)
+        {
+            const auto& arrays = game::g_aEntites.m_arrays;
+            if (arrays.abDead[entityI] || arrays.priv.abFree[entityI])
+                continue;
 
-        auto* pModel = asset::searchModel("assets/BoxAnimated/BoxAnimated.gltf");
-        /*auto* pModel = asset::searchModel("assets/duck/Duck.gltf");*/
+            game::EntityBind entity = game::g_aEntites[ game::Entity{.i = entityI} ];
 
-        if (pModel)
-            drawGLTF(pArena, *pModel, cameraTrm2);
+            M4 cameraTrm = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
+                camera.m_trm *
+                M4TranslationFrom(entity.pos) *
+                QtRot(entity.rot) *
+                M4ScaleFrom(entity.scale);
+
+            auto& obj = asset::g_objects[entity.assetI];
+            switch (obj.m_eType)
+            {
+                default: break;
+
+                case asset::TYPE::MODEL:
+                {
+                    drawGLTF(pArena, obj.m_uData.model, cameraTrm);
+                }
+                break;
+            }
+        }
     }
 
     const f64 t1 = utils::timeNowMS();
@@ -925,4 +938,16 @@ toSurfaceBuffer(Arena* pArena)
     }
 }
 
-} /* namespace draw */
+void
+Renderer::init()
+{
+    s_spDefaultTexture = allocDefaultTexture();
+}
+
+void
+Renderer::drawEntities(Arena* pArena)
+{
+    sw::drawEntities(pArena);
+}
+
+} /* namespace render::sw */

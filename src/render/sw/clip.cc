@@ -6,7 +6,7 @@ namespace adt::print
 {
 
 [[maybe_unused]] static ssize
-formatToContext(Context ctx, FormatArgs, const clip::AXIS e)
+formatToContext(Context ctx, FormatArgs, const render::sw::clip::AXIS e)
 {
     ctx.fmt = "{}";
     ctx.fmtIdx = 0;
@@ -20,7 +20,7 @@ formatToContext(Context ctx, FormatArgs, const clip::AXIS e)
 
 } /* namespace adt::print */
 
-namespace clip
+namespace render::sw::clip
 {
 
 constexpr f32 VERY_SMALL_NUMBER = 0.0001f;
@@ -242,4 +242,4 @@ polygonToAxis(const Result* pInput, Result* pOutput, const AXIS eAxis)
     }
 }
 
-} /* namespace clip */
+} /* namespace render::sw::clip */

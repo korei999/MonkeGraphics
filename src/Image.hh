@@ -37,9 +37,10 @@ struct Image
 
     [[nodiscard]] Image cloneToRGBA(adt::IAllocator* pAlloc);
     void swapRedBlue();
+    void flipVertically(adt::IAllocator* pAlloc);
 
     adt::Span2D<ImagePixelRGBA>
-    getSpanARGB()
+    getSpanRGBA()
     {
         return {m_uData.pRGBA, m_width, m_height, m_width};
     }

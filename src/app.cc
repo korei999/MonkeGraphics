@@ -1,5 +1,7 @@
 #include "app.hh"
 
+#include "render/sw/sw.hh"
+
 #if defined __linux__
     #include "platform/wayland/Client.hh"
     #if defined OPT_GL
@@ -11,13 +13,20 @@
     #error "unsupported platform"
 #endif
 
+#if defined OPT_GL
+    #include "render/gl/gl.hh"
+#endif
+
 using namespace adt;
 
 namespace app
 {
 
 WINDOW_TYPE g_eWindowType {};
+RENDERER_TYPE g_eRendererType {};
+
 IWindow* g_pWindow {};
+render::IRenderer* g_pRenderer {};
 
 IWindow*
 allocWindow(IAllocator* pAlloc, const char* ntsName)
@@ -40,6 +49,25 @@ allocWindow(IAllocator* pAlloc, const char* ntsName)
 #if defined _WIN32
         case WINDOW_TYPE::WINDOWS:
         return pAlloc->alloc<platform::win32::Window>(pAlloc, ntsName);
+#endif
+    }
+
+    return nullptr;
+}
+
+render::IRenderer*
+allocRenderer(IAllocator* pAlloc)
+{
+    switch (g_eRendererType)
+    {
+        default: break;
+
+        case RENDERER_TYPE::SW:
+        return pAlloc->alloc<render::sw::Renderer>();
+
+#if defined OPT_GL
+        case RENDERER_TYPE::OPEN_GL:
+        return pAlloc->alloc<render::gl::Renderer>();
 #endif
     }
 

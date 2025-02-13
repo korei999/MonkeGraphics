@@ -1,5 +1,5 @@
 #include "gl.hh"
-#include "glsl.hh"
+#include "shaders/glsl.hh"
 
 #include "adt/Map.hh"
 #include "adt/OsAllocator.hh"
@@ -8,15 +8,27 @@
 
 using namespace adt;
 
-namespace gl
+namespace render::gl
 {
 
 Pool<Shader, 128> g_shaders(adt::INIT);
 static Map<String, PoolHnd> s_mapStringToShaders(OsAllocatorGet(), g_shaders.getCap());
 
 static const ShaderMapping s_aShadersToLoad[] {
-    {glsl::ntsQuadTexVert, glsl::ntsQuadTexFrag, "QuadTex"},
+    {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"},
 };
+
+void
+Renderer::init()
+{
+    gl::init();
+    gl::loadShaders();
+};
+
+void
+Renderer::drawEntities(Arena* pArena)
+{
+}
 
 ShaderMapping::ShaderMapping(const String svVert, const String svFrag, const String svMappedTo)
     : m_svVert(svVert), m_svFrag(svFrag), m_svMappedTo(svMappedTo), m_eType(TYPE::VS_FS) {}
@@ -317,4 +329,4 @@ debugCallback(
 
 #endif
 
-} /* namespace gl */
+} /* namespace render::gl */

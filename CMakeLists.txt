@@ -30,7 +30,9 @@ endif()
 option(OPT_SSE4_2 "" ON)
 option(OPT_AVX2 "" OFF)
 option(OPT_MARCH_NATIVE "" OFF)
-option(OPT_WAYLAND_GL "" OFF)
+
+option(OPT_GL "" ON)
+option(OPT_WAYLAND_GL "" ON)
 
 include_directories(BEFORE "libs")
 include_directories(BEFORE "src")
@@ -162,10 +164,7 @@ add_executable(
     src/main.cc
     src/app.cc
     src/frame.cc
-    src/draw.cc
     src/control.cc
-    src/clip.cc
-    src/game.cc
     src/Image.cc
     src/asset.cc
 
@@ -173,6 +172,11 @@ add_executable(
     src/json/Lexer.cc
 
     src/gltf/gltf.cc
+
+    src/game/game.cc
+
+    src/render/sw/sw.cc
+    src/render/sw/clip.cc
 )
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -238,9 +242,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
         if (WAYLAND_GL_FOUND)
             message(STATUS "WAYLAND_GL_FOUND: '${WAYLAND_GL_FOUND}'")
 
-            add_definitions("-DOPT_GL")
             include_directories(BEFORE ${WAYLAND_GL_INCLUDE_DIRS})
-
             target_link_libraries(
                 ${CMAKE_PROJECT_NAME} PRIVATE
                 ${WAYLAND_GL_LIBRARIES} 
@@ -248,15 +250,12 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
 
             target_sources(
                 ${CMAKE_PROJECT_NAME} PRIVATE
-                src/gl/gl.cc
                 src/platform/wayland/ClientGL.cc
             )
         endif()
     endif()
 elseif (CMAKE_SYSTEM_NAME MATCHES "Windows")
     # only gl renderer
-    add_definitions("-DOPT_GL")
-
     find_package(OpenGL REQUIRED)
     message(STATUS "OpenGL: '${OpenGL}'")
 
@@ -267,10 +266,18 @@ elseif (CMAKE_SYSTEM_NAME MATCHES "Windows")
 
     target_sources(
         ${CMAKE_PROJECT_NAME} PRIVATE
-        src/gl/gl.cc
-        src/gl/glfunc.cc
+        src/render/gl/glfunc.cc
         src/platform/win32/Window.cc
         src/platform/win32/WindowInput.cc
+    )
+endif()
+
+if (OPT_GL)
+    add_definitions("-DOPT_GL")
+
+    target_sources(
+        ${CMAKE_PROJECT_NAME} PRIVATE
+        src/render/gl/gl.cc
     )
 endif()
 

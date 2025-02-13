@@ -1,6 +1,7 @@
 #pragma once
 
 #include "glfunc.hh" /* IWYU pragma: keep */
+#include "../IRenderer.hh"
 
 #include "adt/String.hh"
 #include "adt/math.hh"
@@ -8,8 +9,14 @@
 
 #include "Image.hh"
 
-namespace gl
+namespace render::gl
 {
+
+struct Renderer : public IRenderer
+{
+    virtual void init() override;
+    virtual void drawEntities(adt::Arena* pArena) override;
+};
 
 struct ShaderMapping
 {
@@ -147,4 +154,4 @@ void debugCallback(
 
 extern adt::Pool<Shader, 128> g_shaders;
 
-} /* namespace gl */
+} /* namespace render::gl */

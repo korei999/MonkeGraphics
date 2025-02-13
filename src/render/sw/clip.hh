@@ -2,7 +2,7 @@
 
 #include "adt/math.hh"
 
-namespace clip
+namespace render::sw::clip
 {
 
 constexpr int MAX_NUM_VERTICES = 128;
@@ -23,4 +23,4 @@ struct Result
 
 void polygonToAxis(const Result* pInput, Result* pOutput, const AXIS eAxis);
 
-} /* namespace clip */
+} /* namespace render::sw::clip */

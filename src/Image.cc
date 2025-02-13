@@ -1,5 +1,6 @@
 #include "Image.hh"
 
+#include "adt/defer.hh"
 #include "adt/utils.hh"
 #include "adt/simd.hh"
 
@@ -101,6 +102,47 @@ Image::swapRedBlue()
             for (ssize i = 0; i < size; ++i)
                 utils::swap(&m_uData.pRGB[i].r, &m_uData.pRGB[i].b);
         };
+        break;
+    }
+}
+
+void
+Image::flipVertically(adt::IAllocator* pAlloc)
+{
+    switch (m_eType)
+    {
+        case IMAGE_TYPE::RGBA:
+        {
+            auto* pTemp = pAlloc->mallocV<ImagePixelRGBA>(m_width * m_height);
+            defer( pAlloc->free(pTemp) );
+
+            auto sp = getSpanRGBA();
+            const int halfHeight = m_height / 2;
+
+            for (int y = 0; y < halfHeight; ++y)
+            {
+                utils::copy(pTemp, &sp(0, m_height - y - 1), m_width);
+                utils::copy(&sp(0, m_height - y - 1), &sp(0, y), m_width);
+                utils::copy(&sp(0, y), pTemp, m_width);
+            }
+        }
+        break;
+
+        case IMAGE_TYPE::RGB:
+        {
+            auto* pTemp = pAlloc->mallocV<ImagePixelRGB>(m_width * m_height);
+            defer( pAlloc->free(pTemp) );
+
+            auto sp = getSpanRGB();
+            const int halfHeight = m_height / 2;
+
+            for (int y = 0; y < halfHeight; ++y)
+            {
+                utils::copy(pTemp, &sp(0, m_height - y - 1), m_width);
+                utils::copy(&sp(0, m_height - y - 1), &sp(0, y), m_width);
+                utils::copy(&sp(0, y), pTemp, m_width);
+            }
+        }
         break;
     }
 }

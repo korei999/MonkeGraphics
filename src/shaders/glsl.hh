@@ -1,6 +1,6 @@
 #pragma once
 
-namespace gl::glsl
+namespace shaders::glsl
 {
 
 static const char* ntsQuadTexVert =

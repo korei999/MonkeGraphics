@@ -1,11 +1,15 @@
 #pragma once
 
+#include "Entity.hh"
+
 #include "adt/Arena.hh"
 
 namespace game
 {
 
-void loadAssets();
+void loadStuff();
 void updateState(adt::Arena* pArena);
+
+extern EntityPoolSOA<128> g_aEntites;
 
 } /* namespace game */

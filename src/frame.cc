@@ -3,14 +3,9 @@
 #include "app.hh"
 #include "asset.hh"
 #include "control.hh"
-#include "draw.hh"
-#include "game.hh"
+#include "game/game.hh"
 
-#include "adt/utils.hh"
-
-#if defined OPT_GL
-    #include "gl/gl.hh"
-#endif
+#include "adt/defer.hh"
 
 using namespace adt;
 
@@ -26,6 +21,7 @@ static void
 refresh(void* pArg)
 {
     Arena* pArena = static_cast<Arena*>(pArg);
+    auto& renderer = app::renderer();
 
     static f64 s_accumulator = 0.0;
 
@@ -47,7 +43,7 @@ refresh(void* pArg)
         s_accumulator -= g_dt;
     }
 
-    draw::toSurfaceBuffer(pArena);
+    renderer.drawEntities(pArena);
 }
 
 static void
@@ -57,7 +53,7 @@ eventLoop()
     win.m_bRunning = true;
     g_time = utils::timeNowS();
 
-    game::loadAssets();
+    game::loadStuff();
 
     Arena frameArena(SIZE_8M);
     defer( frameArena.freeAll() );
@@ -82,56 +78,54 @@ eventLoop()
 static void
 mainLoop()
 {
-#if defined OPT_GL
-
     auto& win = app::window();
+    auto& renderer = app::renderer();
     win.m_bRunning = true;
     g_time = utils::timeNowS();
 
     Arena frameArena(SIZE_8M);
     defer( frameArena.freeAll() );
 
-    game::loadAssets();
+    game::loadStuff();
 
     win.bindContext();
     win.showWindow();
-    auto spSurface = win.surfaceBuffer();
 
-    gl::init();
-    gl::loadShaders();
+    renderer.init();
 
     win.swapBuffers(); /* trigger events */
 
     win.togglePointerRelativeMode();
     win.toggleVSync();
 
-    gl::Texture surfaceTexture(spSurface.getStride(), spSurface.getHeight());
-    gl::Shader* pshQuad = gl::searchShader("QuadTex");
-    gl::Quad quad(adt::INIT);
-    ADT_ASSERT(pshQuad, " ");
+    /*gl::Texture surfaceTexture(spSurface.getStride(), spSurface.getHeight());*/
+    /*gl::Shader* pshQuad = gl::searchShader("QuadTex");*/
+    /*gl::Quad quad(adt::INIT);*/
+    /*ADT_ASSERT(pshQuad, " ");*/
 
-    pshQuad->queryActiveUniforms();
+    /*pshQuad->queryActiveUniforms();*/
 
     while (win.m_bRunning)
     {
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        /*glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
+        /*glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);*/
 
         win.procEvents();
+
         refresh(&frameArena);
 
-        surfaceTexture.bind(GL_TEXTURE0);
-        surfaceTexture.subImage(win.surfaceBuffer());
-        pshQuad->use();
-        quad.bind();
-        quad.draw();
+        renderer.drawEntities(&frameArena);
+
+        /*surfaceTexture.bind(GL_TEXTURE0);*/
+        /*surfaceTexture.subImage(win.surfaceBuffer());*/
+        /*pshQuad->use();*/
+        /*quad.bind();*/
+        /*quad.draw();*/
 
         frameArena.shrinkToFirstBlock();
         frameArena.reset();
         win.swapBuffers();
     }
-
-#endif
 }
 
 void
@@ -153,13 +147,6 @@ start()
 
     for (auto& asset : asset::g_objects)
         asset.destroy();
-
-    #if defined OPT_GL
-
-    for (auto& shader : gl::g_shaders)
-        shader.destroy();
-
-    #endif
 
 #endif
 }

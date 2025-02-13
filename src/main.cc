@@ -41,11 +41,20 @@ parseArgs(int argc, char** argv)
         if (svArg.beginsWith("--"))
         {
             if (svArg == "--wayland")
+            {
                 app::g_eWindowType = app::WINDOW_TYPE::WAYLAND;
+                app::g_eRendererType = app::RENDERER_TYPE::SW;
+            }
             else if (svArg == "--wayland-gl")
+            {
                 app::g_eWindowType = app::WINDOW_TYPE::WAYLAND_GL;
+                app::g_eRendererType = app::RENDERER_TYPE::OPEN_GL;
+            }
             else if (svArg == "--windows")
+            {
                 app::g_eWindowType = app::WINDOW_TYPE::WINDOWS;
+                app::g_eRendererType = app::RENDERER_TYPE::OPEN_GL;
+            }
         }
         else return;
     }
@@ -70,10 +79,16 @@ startup(int argc, char** argv)
         const char* ntsName = "MonkeGraphics";
 
         app::g_pWindow = app::allocWindow(&allocator, ntsName);
+        app::g_pRenderer = app::allocRenderer(&allocator);
 
         ADT_ASSERT_ALWAYS(
             app::g_pWindow, "allocWindow() failed: app::g_pWindow: %p",
             reinterpret_cast<void*>(app::g_pWindow)
+        );
+
+        ADT_ASSERT_ALWAYS(
+            app::g_pRenderer, "allocRenderer() failed: app::g_pWindow: %p",
+            reinterpret_cast<void*>(app::g_pRenderer)
         );
 
         app::g_pWindow->start(640, 480);
