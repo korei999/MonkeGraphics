@@ -28,7 +28,7 @@ struct Model
         json::Object* pSamplers;
         json::Object* pSkins;
         json::Object* pAnimations;
-    } m_jsonObjs {};
+    } m_toplevelObjs {};
     Asset m_asset {}; /* REQUIRED */
     DefaultScene m_defaultScene {};
     adt::VecBase<Scene> m_vScenes {};
@@ -43,7 +43,6 @@ struct Model
     adt::VecBase<Animation> m_vAnimations {};
 
     adt::String m_sPath {};
-    adt::String m_sFile {};
 
     /* */
 
@@ -51,7 +50,7 @@ struct Model
 
     /* */
 
-    bool read(adt::IAllocator* pAlloc, const json::Parser& parser, const adt::String svPath); /* clones uri */
+    bool read(adt::IAllocator* pAlloc, const json::Parser& parsed, const adt::String svPath); /* clones uri */
 
     /* */
 
@@ -70,36 +69,5 @@ private:
     bool procNodes(adt::IAllocator* pAlloc);
     bool procAnimations(adt::IAllocator* pAlloc);
 };
-
-inline adt::String
-getComponentTypeString(enum COMPONENT_TYPE eType)
-{
-    switch (eType)
-    {
-        default:
-        case COMPONENT_TYPE::BYTE:
-            return "BYTE";
-        case COMPONENT_TYPE::UNSIGNED_BYTE:
-            return "UNSIGNED_BYTE";
-        case COMPONENT_TYPE::SHORT:
-            return "SHORT";
-        case COMPONENT_TYPE::UNSIGNED_SHORT:
-            return "UNSIGNED_SHORT";
-        case COMPONENT_TYPE::UNSIGNED_INT:
-            return "UNSIGNED_INT";
-        case COMPONENT_TYPE::FLOAT:
-            return "FLOAT";
-    }
-}
-
-inline adt::String
-getPrimitiveModeString(enum PRIMITIVES ePm)
-{
-    const char* ss[] {
-        "POINTS", "LINES", "LINE_LOOP", "LINE_STRIP", "TRIANGLES", "TRIANGLE_STRIP", "TRIANGLE_FAN"
-    };
-
-    return ss[int(ePm)];
-}
 
 } /* namespace gltf */

@@ -1,7 +1,6 @@
 #include "sw.hh"
 
 #include "adt/ScratchBuffer.hh"
-#include "adt/Thread.hh"
 #include "adt/file.hh"
 #include "app.hh"
 #include "asset.hh"
@@ -24,8 +23,6 @@ struct IndexU32x3 { u32 x, y, z; };
 static u8 s_aScratchMem[SIZE_8K] {};
 static ScratchBuffer s_scratch {s_aScratchMem};
 static Span2D<ImagePixelRGBA> s_spDefaultTexture;
-
-static CallOnce s_callOnceAllocDefaultTexture(INIT);
 
 Span2D<ImagePixelRGBA>
 allocDefaultTexture()
@@ -581,114 +578,8 @@ drawGLTFNode(Arena* pArena, gltf::Model& model, gltf::Node& node, math::M4 trm)
 
     /* NOTE: must be one of asset::g_objects */
     auto pObj = (const asset::Object*)&model;
-    const ssize nodeI = model.m_vNodes.idx(&node);
 
-    node.extras.currTime += frame::g_frameTime;
-
-    if (node.eTransformationType == gltf::Node::TRANSFORMATION_TYPE::MATRIX)
-    {
-        trm *= node.uTransformation.matrix;
-    }
-    else
-    {
-        V3 currTranslation = node.uTransformation.animation.translation;
-        Qt currRotation = node.uTransformation.animation.rotation;
-        V3 currScale = node.uTransformation.animation.scale;
-
-        f32 globalMinTime {};
-        f32 globalMaxTime {};
-
-        for (auto& animation : model.m_vAnimations)
-        {
-            for (auto& sampler : animation.vSamplers)
-            {
-                auto& accTimeStamps = model.m_vAccessors[sampler.inputI];
-                globalMinTime = utils::min(globalMinTime, static_cast<f32>(accTimeStamps.min.SCALAR));
-                globalMaxTime = utils::max(globalMaxTime, static_cast<f32>(accTimeStamps.max.SCALAR));
-            }
-        }
-
-        for (auto& animation : model.m_vAnimations)
-        {
-            for (auto& channel : animation.vChannels)
-            {
-                if (channel.target.nodeI != nodeI)
-                    continue;
-
-                const gltf::Animation::Sampler& sampler = animation.vSamplers[channel.samplerI];
-
-                auto& accTimeStamps = model.m_vAccessors[sampler.inputI];
-                auto& viewTimeStamps = model.m_vBufferViews[accTimeStamps.bufferViewI];
-                auto& buffTimeStamps = model.m_vBuffers[viewTimeStamps.bufferI];
-
-                const Span<f32> spTimeStamps(
-                    (f32*)(&buffTimeStamps.sBin[accTimeStamps.byteOffset + viewTimeStamps.byteOffset]), accTimeStamps.count
-                );
-
-                ADT_ASSERT(spTimeStamps.getSize() >= 2, " ");
-
-                node.extras.currTime = std::fmod(node.extras.currTime, globalMaxTime);
-
-                if (node.extras.currTime >= accTimeStamps.min.SCALAR && node.extras.currTime <= accTimeStamps.max.SCALAR)
-                {
-                    f32 prevTime = -INFINITY;
-                    f32 nextTime {};
-
-                    int prevTimeI = 0;
-                    for (auto& timeStamp : spTimeStamps)
-                    {
-                        if (timeStamp < node.extras.currTime && timeStamp > prevTime)
-                            prevTimeI = spTimeStamps.idx(&timeStamp);
-                    }
-
-                    prevTime = spTimeStamps[prevTimeI + 0];
-                    nextTime = spTimeStamps[prevTimeI + 1];
-
-                    ADT_ASSERT(nextTime - prevTime != 0.0f, " ");
-                    const f32 interpolationValue = (node.extras.currTime - prevTime) / (nextTime - prevTime);
-
-                    const auto& accOutput = model.m_vAccessors[sampler.outputI];
-                    const auto& viewOutput = model.m_vBufferViews[accOutput.bufferViewI];
-                    const auto& buffOutput = model.m_vBuffers[viewOutput.bufferI];
-
-                    if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::TRANSLATION)
-                    {
-                        const Span<V3> spOutTranslations(
-                            (V3*)&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset],
-                            accOutput.count
-                        );
-
-                        currTranslation = lerp(spOutTranslations[prevTimeI], spOutTranslations[prevTimeI + 1], interpolationValue);
-                    }
-                    else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::ROTATION)
-                    {
-                        const Span<Qt> spOutRotations(
-                            (Qt*)&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset],
-                            accOutput.count
-                        );
-
-                        Qt prevRot = spOutRotations[prevTimeI + 0];
-                        Qt nextRot = spOutRotations[prevTimeI + 1];
-
-                        currRotation = slerp(prevRot, nextRot, interpolationValue);
-                    }
-                    else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::SCALE)
-                    {
-                        const Span<V3> spOutScales(
-                            (V3*)&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset],
-                            accOutput.count
-                        );
-
-                        currScale = lerp(spOutScales[prevTimeI], spOutScales[prevTimeI + 1], interpolationValue);
-                    }
-                }
-            }
-
-            trm *= M4TranslationFrom(currTranslation) *
-                QtRot(currRotation) *
-                M4ScaleFrom(currScale);
-        }
-    }
+    game::updateModelNode(&model, &node, &trm);
 
     for (auto& children : node.vChildren)
     {
@@ -702,7 +593,7 @@ drawGLTFNode(Arena* pArena, gltf::Model& model, gltf::Node& node, math::M4 trm)
         for (const auto& primitive : mesh.vPrimitives)
         {
             /* TODO: can be NPOS */
-            ADT_ASSERT(primitive.indicesI != static_cast<i32>(NPOS32), " ");
+            ADT_ASSERT(primitive.indicesI != -1, " ");
 
             auto& accIndices = model.m_vAccessors[primitive.indicesI];
             auto& viewIndicies = model.m_vBufferViews[accIndices.bufferViewI];
@@ -770,7 +661,7 @@ drawGLTFNode(Arena* pArena, gltf::Model& model, gltf::Node& node, math::M4 trm)
             {
                 default: break;
 
-                case gltf::PRIMITIVES::TRIANGLES:
+                case gltf::PRIMITIVE_TYPE::TRIANGLES:
                 {
                     if (accIndices.count < 3)
                     {
@@ -871,7 +762,13 @@ drawImgDBG(Image* pImg)
 }
 
 void
-drawEntities(adt::Arena* pArena)
+Renderer::init()
+{
+    s_spDefaultTexture = allocDefaultTexture();
+}
+
+void
+Renderer::drawEntities(Arena* pArena)
 {
     using namespace adt::math;
 
@@ -879,14 +776,6 @@ drawEntities(adt::Arena* pArena)
     static f64 s_lastAvgFrameTimeUpdate {};
 
     const f64 t0 = utils::timeNowMS();
-
-    s_callOnceAllocDefaultTexture.exec(
-        +[]
-        {
-            s_spDefaultTexture = allocDefaultTexture();
-            ADT_ASSERT(s_spDefaultTexture.data() != nullptr, " ");
-        }
-    );
 
     auto& win = app::window();
 
@@ -905,20 +794,20 @@ drawEntities(adt::Arena* pArena)
 
             game::EntityBind entity = game::g_aEntites[ game::Entity{.i = entityI} ];
 
-            M4 cameraTrm = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
+            M4 trm = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
                 camera.m_trm *
                 M4TranslationFrom(entity.pos) *
                 QtRot(entity.rot) *
                 M4ScaleFrom(entity.scale);
 
-            auto& obj = asset::g_objects[entity.assetI];
+            auto& obj = asset::g_aObjects[entity.assetI];
             switch (obj.m_eType)
             {
                 default: break;
 
-                case asset::TYPE::MODEL:
+                case asset::Object::TYPE::MODEL:
                 {
-                    drawGLTF(pArena, obj.m_uData.model, cameraTrm);
+                    drawGLTF(pArena, obj.m_uData.model, trm);
                 }
                 break;
             }
@@ -936,18 +825,6 @@ drawEntities(adt::Arena* pArena)
         s_vFrameTimes.setSize(0);
         s_lastAvgFrameTimeUpdate = t1;
     }
-}
-
-void
-Renderer::init()
-{
-    s_spDefaultTexture = allocDefaultTexture();
-}
-
-void
-Renderer::drawEntities(Arena* pArena)
-{
-    sw::drawEntities(pArena);
 }
 
 } /* namespace render::sw */

@@ -1,6 +1,11 @@
 #include "gl.hh"
+
+#include "asset.hh"
+#include "control.hh"
+#include "game/game.hh"
 #include "shaders/glsl.hh"
 
+#include "adt/defer.hh"
 #include "adt/Map.hh"
 #include "adt/OsAllocator.hh"
 #include "adt/logs.hh"
@@ -11,23 +16,142 @@ using namespace adt;
 namespace render::gl
 {
 
-Pool<Shader, 128> g_shaders(adt::INIT);
-static Map<String, PoolHnd> s_mapStringToShaders(OsAllocatorGet(), g_shaders.getCap());
+/* used for gltf::Primitive::extras::pData */
+struct PrimitiveData
+{
+    GLuint vao {};
+    GLuint vbo {};
+    GLuint ebo {};
+};
+
+Pool<Shader, 128> g_aShaders(adt::INIT);
+static Map<String, PoolHnd> s_mapStringToShaders(OsAllocatorGet(), g_aShaders.getCap());
 
 static const ShaderMapping s_aShadersToLoad[] {
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"},
+    {shaders::glsl::ntsSimpleColorVert, shaders::glsl::ntsSimpleColorFrag, "SimpleColor"},
 };
 
 void
 Renderer::init()
 {
     gl::init();
-    gl::loadShaders();
+    loadShaders();
+    loadAssetObjects();
 };
+
+static void
+drawGLTFNode(gltf::Model* pModel, gltf::Node* pNode, math::M4 trm)
+{
+    using namespace adt::math;
+
+    auto pObj = reinterpret_cast<asset::Object*>(pModel);
+
+    game::updateModelNode(pModel, pNode, &trm);
+
+    for (auto& children : pNode->vChildren)
+    {
+        auto& childNode = pModel->m_vNodes[children];
+        drawGLTFNode(pModel, &childNode, trm);
+    }
+
+    if (pNode->meshI != -1)
+    {
+        auto& mesh = pModel->m_vMeshes[pNode->meshI];
+        for (const auto& primitive : mesh.vPrimitives)
+        {
+            /* TODO: can be NPOS */
+            ADT_ASSERT(primitive.indicesI != -1, " ");
+
+            auto& accIndices = pModel->m_vAccessors[primitive.indicesI];
+            auto& viewIndicies = pModel->m_vBufferViews[accIndices.bufferViewI];
+            auto& buffInd = pModel->m_vBuffers[viewIndicies.bufferI];
+
+            /* TODO: there might be any number of TEXCOORD_*,
+             * which would be specified in baseColorTexture.texCoord.
+             * But current gltf parser only reads the 0th. */
+            gltf::Accessor accUV {};
+            gltf::BufferView viewUV {};
+            gltf::Buffer buffUV {};
+            if (primitive.attributes.TEXCOORD_0 != -1)
+            {
+                accUV = pModel->m_vAccessors[primitive.attributes.TEXCOORD_0];
+                viewUV = pModel->m_vBufferViews[accUV.bufferViewI];
+                buffUV = pModel->m_vBuffers[viewUV.bufferI];
+            }
+
+            auto& accPos = pModel->m_vAccessors[primitive.attributes.POSITION];
+            auto& viewPos = pModel->m_vBufferViews[accPos.bufferViewI];
+            auto& buffPos = pModel->m_vBuffers[viewPos.bufferI];
+
+            Shader* pSh = searchShader("SimpleColor");
+            pSh->use();
+            pSh->setM4("u_trm", trm);
+
+            if (primitive.materialI != -1)
+            {
+                auto& mat = pModel->m_vMaterials[primitive.materialI];
+                pSh->setV4("u_color", mat.pbrMetallicRoughness.baseColorFactor);
+            }
+
+            glDrawElements(
+                static_cast<GLenum>(primitive.eMode),
+                accIndices.count,
+                static_cast<GLenum>(accIndices.eComponentType),
+                {}
+            );
+        }
+    }
+}
+
+static void
+drawModel(gltf::Model* pModel, math::M4 trm)
+{
+    auto& scene = pModel->m_vScenes[pModel->m_defaultScene.nodeI];
+    for (auto& nodeI : scene.vNodes)
+        drawGLTFNode(pModel, &pModel->m_vNodes[nodeI], trm);
+}
 
 void
 Renderer::drawEntities(Arena* pArena)
 {
+    using namespace adt::math;
+
+    auto& win = app::window();
+
+    const auto& camera = control::g_camera;
+    const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    {
+        for (int entityI = 0; entityI < game::g_aEntites.m_size; ++entityI)
+        {
+            const auto& arrays = game::g_aEntites.m_arrays;
+            if (arrays.abDead[entityI] || arrays.priv.abFree[entityI])
+                continue;
+
+            game::EntityBind entity = game::g_aEntites[ game::Entity{.i = entityI} ];
+
+            auto& obj = asset::g_aObjects[entity.assetI];
+            switch (obj.m_eType)
+            {
+                default: break;
+
+                case asset::Object::TYPE::MODEL:
+                {
+                    M4 trm = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
+                        camera.m_trm *
+                        M4TranslationFrom(entity.pos) *
+                        QtRot(entity.rot) *
+                        M4ScaleFrom(entity.scale);
+
+                    drawModel(&obj.m_uData.model, trm);
+                }
+                break;
+            }
+        }
+    }
 }
 
 ShaderMapping::ShaderMapping(const String svVert, const String svFrag, const String svMappedTo)
@@ -98,7 +222,7 @@ Shader::Shader(const adt::String sVertexShader, const adt::String sFragmentShade
     glDeleteShader(vertex);
     glDeleteShader(fragment);
 
-    s_mapStringToShaders.insert(svMapTo, g_shaders.push(*this));
+    s_mapStringToShaders.insert(svMapTo, g_aShaders.push(*this));
 }
 
 GLuint
@@ -242,7 +366,7 @@ searchShader(const adt::String svKey)
         return {};
     }
 
-    return &g_shaders[res.value()];
+    return &g_aShaders[res.value()];
 }
 
 void
@@ -276,6 +400,182 @@ loadShaders()
 
             case ShaderMapping::TYPE::VS_GS_FS:
             ADT_ASSERT(false, "TODO");
+            break;
+        }
+    }
+}
+
+static int
+componentByteSize(gltf::COMPONENT_TYPE eType)
+{
+    switch (eType)
+    {
+        case gltf::COMPONENT_TYPE::UNSIGNED_BYTE:
+        return static_cast<int>(sizeof(GLubyte));
+
+        case gltf::COMPONENT_TYPE::UNSIGNED_SHORT:
+        return static_cast<int>(sizeof(GLushort));
+
+        case gltf::COMPONENT_TYPE::UNSIGNED_INT:
+        return static_cast<int>(sizeof(GLuint));
+
+        case gltf::COMPONENT_TYPE::BYTE:
+        return static_cast<int>(sizeof(GLbyte));
+
+        case gltf::COMPONENT_TYPE::SHORT:
+        return static_cast<int>(sizeof(GLshort));
+
+        case gltf::COMPONENT_TYPE::FLOAT:
+        return static_cast<int>(sizeof(GLfloat));
+    }
+
+    char aBuff[127] {};
+    print::toSpan(aBuff, "invalid component type: '{}'", eType);
+    ADT_ASSERT(false, "%s", aBuff);
+    return 0;
+}
+
+static void
+loadImage(Image* pImage)
+{
+    if (!pImage)
+    {
+        LOG_WARN("pImage: {}\n", pImage);
+        return;
+    }
+}
+
+static void
+loadModel(gltf::Model* pModel)
+{
+    if (!pModel)
+    {
+        LOG_WARN("pModel: {}\n", pModel);
+        return;
+    }
+
+    auto& obj = *reinterpret_cast<asset::Object*>(pModel);
+
+    Vec<GLuint> vVBOs(OsAllocatorGet());;
+    defer( vVBOs.destroy() );
+    {
+        for (auto& buffer : pModel->m_vBuffers)
+        {
+            GLuint vbo;
+            glGenBuffers(1, &vbo);
+            glBindBuffer(GL_ARRAY_BUFFER, vbo);
+            glBufferData(GL_ARRAY_BUFFER, buffer.byteLength, buffer.sBin.data(), GL_STATIC_DRAW);
+            vVBOs.push(vbo);
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
+    /* if no buffers there is nothing to do */
+    if (vVBOs.empty())
+        return;
+
+    {
+        for (auto& mesh : pModel->m_vMeshes)
+        {
+            LOG_GOOD("loading mesh: '{}'...\n", mesh.sName);
+            for (auto& primitive : mesh.vPrimitives)
+            {
+                ADT_ASSERT(primitive.indicesI != -1, "TODO: deal with non non indexed arrays");
+
+                auto& accInd = pModel->m_vAccessors[primitive.indicesI];
+                auto& viewInd = pModel->m_vBufferViews[accInd.bufferViewI];
+                auto& buffInd = pModel->m_vBuffers[viewInd.bufferI];
+                int indComponentByteSize = componentByteSize(accInd.eComponentType);
+
+                ADT_ASSERT(primitive.attributes.POSITION != -1, " ");
+                auto& accPos = pModel->m_vAccessors[primitive.attributes.POSITION];
+                auto& viewPos = pModel->m_vBufferViews[accPos.bufferViewI];
+                auto& buffPos = pModel->m_vBufferViews[viewPos.bufferI];
+                int posComponentByteSize = componentByteSize(accPos.eComponentType);
+
+                gltf::Accessor accUV {};
+                gltf::BufferView viewUV {};
+                gltf::Buffer buffUV {};
+                int uvComponentByteSize = 0;
+                if (primitive.attributes.TEXCOORD_0 != -1)
+                {
+                    accUV = pModel->m_vAccessors[primitive.attributes.TEXCOORD_0];
+                    viewUV = pModel->m_vBufferViews[accUV.bufferViewI];
+                    buffUV = pModel->m_vBuffers[viewUV.bufferI];
+                    uvComponentByteSize = componentByteSize(accUV.eComponentType);
+                }
+
+                PrimitiveData primitiveData {};
+
+                glGenVertexArrays(1, &primitiveData.vao);
+                glBindVertexArray(primitiveData.vao);
+
+                {
+                    /* NOTE: we are duplicating index buffer here.
+                     * we can try glBufferStorage (4.4) */
+                    glGenBuffers(1, &primitiveData.ebo);
+                    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, primitiveData.ebo);
+                    glBufferData(
+                        GL_ELEMENT_ARRAY_BUFFER,
+                        viewInd.byteLength,
+                        &buffInd.sBin[accInd.byteOffset + viewInd.byteOffset],
+                        GL_STATIC_DRAW
+                    );
+                }
+
+                primitiveData.vbo = vVBOs[buffPos.bufferI];
+                glBindBuffer(GL_ARRAY_BUFFER, primitiveData.vbo);
+
+                /* positions */
+                glEnableVertexAttribArray(0);
+                glVertexAttribPointer(
+                    0, /* enabled index */
+                    3, /* positions are 3 f32s */
+                    static_cast<GLenum>(accPos.eComponentType),
+                    false,
+                    viewPos.byteStride,
+                    reinterpret_cast<void*>(accPos.byteOffset + viewPos.byteOffset)
+                );
+
+                /* uv's */
+                if (primitive.attributes.TEXCOORD_0 != -1)
+                {
+                    glEnableVertexAttribArray(1);
+                    glVertexAttribPointer(
+                        1, /* enabled index */
+                        2, /* uv's are 2 f32s */
+                        static_cast<GLenum>(accUV.eComponentType),
+                        false,
+                        viewPos.byteStride,
+                        reinterpret_cast<void*>(accUV.byteOffset + viewUV.byteOffset)
+                    );
+                }
+
+                primitive.extras.pData = obj.m_arena.alloc<PrimitiveData>(primitiveData);
+            }
+        }
+    }
+}
+
+void
+loadAssetObjects()
+{
+    if (asset::g_aObjects.empty())
+        LOG_WARN("asset::g_aObjects.empty(): {}\n", asset::g_aObjects.empty());
+
+    for (auto& obj : asset::g_aObjects)
+    {
+        switch (obj.m_eType)
+        {
+            case asset::Object::TYPE::MODEL:
+            loadModel(&obj.m_uData.model);
+            break;
+
+            case asset::Object::TYPE::IMAGE:
+            loadImage(&obj.m_uData.img);
+            break;
+
+            case asset::Object::TYPE::NONE:
             break;
         }
     }

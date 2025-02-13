@@ -43,5 +43,42 @@ main()
 )"
 ;
 
+static const char* ntsSimpleColorVert =
+R"(/* ntsQuadTexVert */
+
+#version 300 es
+
+layout(location = 0) in vec3 a_pos;
+
+uniform mat4 u_trm;
+
+void
+main()
+{
+    gl_Position = u_trm * vec4(a_pos, 1.0);
+}
+)"
+;
+
+static const char* ntsSimpleColorFrag = 
+R"(/* ntsQuadTexFrag */
+
+#version 300 es
+
+precision mediump float;
+
+out vec4 fs_fragColor;
+in vec2 vs_texCoords;
+
+uniform vec4 u_color;
+
+void
+main()
+{
+    fs_fragColor = u_color;
+}
+)"
+;
+
 } /* namespace gl::glsl */
 

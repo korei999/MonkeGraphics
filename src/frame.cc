@@ -1,5 +1,6 @@
 #include "frame.hh"
 
+#include "adt/logs.hh"
 #include "app.hh"
 #include "asset.hh"
 #include "control.hh"
@@ -26,13 +27,12 @@ refresh(void* pArg)
     static f64 s_accumulator = 0.0;
 
     f64 newTime = utils::timeNowS();
-    f64 frameTime = newTime - g_time;
-    g_frameTime = frameTime;
+    g_frameTime = newTime - g_time;
     g_time = newTime;
     /*if (frameTime > 0.25)*/
     /*    frameTime = 0.25;*/
 
-    s_accumulator += frameTime;
+    s_accumulator += g_frameTime;
 
     control::procInput();
 
@@ -50,10 +50,7 @@ static void
 eventLoop()
 {
     auto& win = app::window();
-    win.m_bRunning = true;
-    g_time = utils::timeNowS();
-
-    game::loadStuff();
+    auto& renderer = app::renderer();
 
     Arena frameArena(SIZE_8M);
     defer( frameArena.freeAll() );
@@ -80,57 +77,65 @@ mainLoop()
 {
     auto& win = app::window();
     auto& renderer = app::renderer();
-    win.m_bRunning = true;
-    g_time = utils::timeNowS();
 
     Arena frameArena(SIZE_8M);
     defer( frameArena.freeAll() );
 
-    game::loadStuff();
-
-    win.bindContext();
     win.showWindow();
-
-    renderer.init();
-
     win.swapBuffers(); /* trigger events */
 
     win.togglePointerRelativeMode();
     win.toggleVSync();
 
-    /*gl::Texture surfaceTexture(spSurface.getStride(), spSurface.getHeight());*/
-    /*gl::Shader* pshQuad = gl::searchShader("QuadTex");*/
-    /*gl::Quad quad(adt::INIT);*/
-    /*ADT_ASSERT(pshQuad, " ");*/
+    g_time = utils::timeNowS();
 
-    /*pshQuad->queryActiveUniforms();*/
+    Vec<f64> vFrameTimes(OsAllocatorGet(), 1000);
+    defer( vFrameTimes.destroy() );
+    f64 lastAvgFrameTimeUpdate {};
 
     while (win.m_bRunning)
     {
-        /*glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
-        /*glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);*/
+        const f64 t0 = utils::timeNowMS();
 
-        win.procEvents();
+        {
+            win.procEvents();
 
-        refresh(&frameArena);
+            refresh(&frameArena);
+            renderer.drawEntities(&frameArena);
 
-        renderer.drawEntities(&frameArena);
+            frameArena.shrinkToFirstBlock();
+            frameArena.reset();
+            win.swapBuffers();
+        }
 
-        /*surfaceTexture.bind(GL_TEXTURE0);*/
-        /*surfaceTexture.subImage(win.surfaceBuffer());*/
-        /*pshQuad->use();*/
-        /*quad.bind();*/
-        /*quad.draw();*/
+        const f64 t1 = utils::timeNowMS();
+        vFrameTimes.push(t1 - t0);
 
-        frameArena.shrinkToFirstBlock();
-        frameArena.reset();
-        win.swapBuffers();
+        if (t1 > lastAvgFrameTimeUpdate + 1000.0)
+        {
+            f64 avg = 0;
+            for (f64 ft : vFrameTimes)
+                avg += ft;
+
+            CERR("FPS: {} | avg frame time: {} ms\n", vFrameTimes.getSize(), avg / vFrameTimes.getSize());
+            vFrameTimes.setSize(0);
+            lastAvgFrameTimeUpdate = t1;
+        }
     }
 }
 
 void
 start()
 {
+    auto& win = app::window();
+    auto& renderer = app::renderer();
+
+    win.m_bRunning = true;
+
+    game::loadStuff();
+    win.bindContext();
+    renderer.init();
+
     switch (app::g_eWindowType)
     {
         case app::WINDOW_TYPE::WAYLAND:
@@ -145,7 +150,7 @@ start()
 
 #ifndef NDEBUG
 
-    for (auto& asset : asset::g_objects)
+    for (auto& asset : asset::g_aObjects)
         asset.destroy();
 
 #endif

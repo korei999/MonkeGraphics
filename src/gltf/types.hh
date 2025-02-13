@@ -19,7 +19,7 @@ struct Asset
 };
 
 /* matches gl macros */
-enum class COMPONENT_TYPE
+enum class COMPONENT_TYPE : adt::u32
 {
     BYTE = 5120,
     UNSIGNED_BYTE = 5121,
@@ -71,7 +71,7 @@ enum class ACCESSOR_TYPE
 
 union Type
 {
-    adt::f64 SCALAR;
+    adt::f32 SCALAR;
     adt::math::V2 VEC2;
     adt::math::V3 VEC3;
     adt::math::V4 VEC4;
@@ -87,11 +87,11 @@ struct Accessor
 {
     int bufferViewI {};
     int byteOffset {}; /* The offset relative to the start of the buffer view in bytes. This MUST be a multiple of the size of the component datatype. */
-    enum COMPONENT_TYPE eComponentType {}; /* REQUIRED */
+    COMPONENT_TYPE eComponentType {}; /* REQUIRED */
     int count {}; /* REQUIRED The number of elements referenced by this accessor, not to be confused with the number of bytes or number of components. */
     union Type max {};
     union Type min {};
-    enum ACCESSOR_TYPE eType {}; /* REQUIRED */
+    ACCESSOR_TYPE eType {}; /* REQUIRED */
 };
 
 
@@ -124,7 +124,7 @@ struct Node
 
     struct
     {
-        adt::f32 currTime = 1.0f;
+        adt::f32 currTime = 0.0f;
     } extras {}; /* Application-specific data. */
 };
 
@@ -170,10 +170,10 @@ struct Animation
 
 struct CameraPersp
 {
-    adt::f64 aspectRatio {};
-    adt::f64 yfov {};
-    adt::f64 zfar {};
-    adt::f64 znear {};
+    adt::f32 aspectRatio {};
+    adt::f32 yfov {};
+    adt::f32 zfar {};
+    adt::f32 znear {};
 };
 
 struct CameraOrtho
@@ -203,7 +203,7 @@ struct BufferView
     int byteOffset {}; /* The offset into the buffer in bytes. */
     int byteLength {};
     int byteStride {}; /* The stride, in bytes, between vertex attributes. When this is not defined, data is tightly packed. */
-    enum TARGET eTarget {};
+    TARGET eTarget {};
 };
 
 struct Image
@@ -212,7 +212,7 @@ struct Image
 };
 
 /* match real gl macros */
-enum class PRIMITIVES
+enum class PRIMITIVE_TYPE
 {
     POINTS = 0,
     LINES = 1,
@@ -234,7 +234,12 @@ struct Primitive
     } attributes {}; /* each value is the index of the accessor containing attribute’s data. */
     int indicesI = -1; /* The index of the accessor that contains the vertex indices, drawElements() when defined and drawArrays() otherwise. */
     int materialI = -1; /* The index of the material to apply to this primitive when rendering */
-    enum PRIMITIVES eMode = PRIMITIVES::TRIANGLES;
+    PRIMITIVE_TYPE eMode = PRIMITIVE_TYPE::TRIANGLES;
+
+    struct
+    {
+        void* pData {};
+    } extras {};
 };
 
 /* A mesh primitive defines the geometry data of the object using its attributes dictionary.
@@ -259,16 +264,18 @@ struct TextureInfo
 struct NormalTextureInfo
 {
     int index = -1; /* REQUIRED */
-    adt::f64 scale {};
+    adt::f32 scale {};
 };
 
 struct PbrMetallicRoughness
 {
+    adt::math::V4 baseColorFactor {};
     TextureInfo baseColorTexture {};
 };
 
 struct Material
 {
+    adt::String sName {};
     PbrMetallicRoughness pbrMetallicRoughness {};
     NormalTextureInfo normalTexture {};
 };
@@ -282,7 +289,83 @@ inline ssize
 formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Channel::Target::PATH_TYPE x)
 {
     constexpr adt::String aMap[] {
-        "TRANSLATION", "ROTATION", "SCALE", "WEIGHTS"
+        "TRANSLATION", "ROTATION", "SCALE", "WEIGHTS",
+    };
+
+    return formatToContext(ctx, fmtArgs, aMap[static_cast<int>(x)]);
+}
+
+inline ssize
+formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Sampler::INTERPOLATION_TYPE x)
+{
+    constexpr adt::String aMap[] {
+        "LINEAR", "STEP", "CUBICSPLINE",
+    };
+
+    return formatToContext(ctx, fmtArgs, aMap[static_cast<int>(x)]);
+}
+
+inline ssize
+formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Node::TRANSFORMATION_TYPE x)
+{
+    constexpr adt::String aMap[] {
+        "NONE", "MATRIX", "ANIMATION",
+    };
+
+    return formatToContext(ctx, fmtArgs, aMap[static_cast<int>(x)]);
+}
+
+inline ssize
+formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::COMPONENT_TYPE x)
+{
+    const char* nts;
+    switch (x)
+    {
+        default: nts = "UNKNOWN"; break;
+
+        case gltf::COMPONENT_TYPE::BYTE: nts = "BYTE"; break;
+        case gltf::COMPONENT_TYPE::UNSIGNED_BYTE: nts = "UNSIGNED_BYTE"; break;
+        case gltf::COMPONENT_TYPE::SHORT: nts = "SHORT"; break;
+        case gltf::COMPONENT_TYPE::UNSIGNED_SHORT: nts = "UNSIGNED_SHORT"; break;
+        case gltf::COMPONENT_TYPE::UNSIGNED_INT: nts = "UNSIGNED_INT"; break;
+        case gltf::COMPONENT_TYPE::FLOAT: nts = "FLOAT"; break;
+    }
+
+    return formatToContext(ctx, fmtArgs, nts);
+}
+
+
+inline ssize
+formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::TARGET x)
+{
+    const char* nts;
+    switch (x)
+    {
+        default: nts = "UNKNOWN"; break;
+
+        case gltf::TARGET::NONE: nts = "NONE"; break;
+        case gltf::TARGET::ARRAY_BUFFER: nts = "ARRAY_BUFFER"; break;
+        case gltf::TARGET::ELEMENT_ARRAY_BUFFER: nts = "ELEMENT_ARRAY_BUFFER"; break;
+    }
+
+    return formatToContext(ctx, fmtArgs, nts);
+}
+
+inline ssize
+formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::ACCESSOR_TYPE x)
+{
+    constexpr adt::String aMap[] {
+        "SCALAR", "VEC2", "VEC3", "VEC4", "MAT2", "MAT3", "MAT4"
+    };
+
+    return formatToContext(ctx, fmtArgs, aMap[static_cast<int>(x)]);
+}
+
+inline ssize
+formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::PRIMITIVE_TYPE x)
+{
+    constexpr adt::String aMap[] {
+        "POINTS", "LINES", "LINE_LOOP", "LINE_STRIP", "TRIANGLES", "TRIANGLE_STRIP", "TRIANGLE_FAN",
     };
 
     return formatToContext(ctx, fmtArgs, aMap[static_cast<int>(x)]);

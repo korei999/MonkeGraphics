@@ -100,10 +100,11 @@ assignUnionType(json::Object* obj, int n)
     union Type type;
 
     for (int i = 0; i < n; i++)
+    {
         if (arr[i].tagVal.eTag == json::TAG::LONG)
             type.MAT4.d[i] = f32(json::getLong(&arr[i]));
-        else
-            type.MAT4.d[i] = f32(json::getDouble(&arr[i]));
+        else type.MAT4.d[i] = f32(json::getDouble(&arr[i]));
+    }
 
     return type;
 }
@@ -182,11 +183,11 @@ AnimationSamplerStringToPATH_TYPE(const String svPath)
 }
 
 bool
-Model::read(IAllocator* pAlloc, const json::Parser& parser, const String svPath)
+Model::read(IAllocator* pAlloc, const json::Parser& parsed, const String svPath)
 {
     m_sPath = svPath.clone(pAlloc);
 
-    procToplevelObjs(pAlloc, parser);
+    procToplevelObjs(pAlloc, parsed);
 
     if (!procAsset(pAlloc)) return false;
     if (!procRootScene(pAlloc)) return false;
@@ -202,7 +203,7 @@ Model::read(IAllocator* pAlloc, const json::Parser& parser, const String svPath)
     if (!procAnimations(pAlloc)) return false;
 
     /* nullify potentially dangling pointers */
-    m_jsonObjs = {};
+    m_toplevelObjs = {};
 
     return true;
 }
@@ -216,63 +217,63 @@ Model::procToplevelObjs(IAllocator*, const json::Parser& parser)
         switch (hash::func(node.svKey))
         {
             case usize(HASH_CODE::asset):
-            m_jsonObjs.pAsset = &node;
+            m_toplevelObjs.pAsset = &node;
             break;
 
             case usize(HASH_CODE::scene):
-            m_jsonObjs.pScene = &node;
+            m_toplevelObjs.pScene = &node;
             break;
 
             case usize(HASH_CODE::scenes):
-            m_jsonObjs.pScenes = &node;
+            m_toplevelObjs.pScenes = &node;
             break;
 
             case usize(HASH_CODE::nodes):
-            m_jsonObjs.pNodes = &node;
+            m_toplevelObjs.pNodes = &node;
             break;
 
             case usize(HASH_CODE::meshes):
-            m_jsonObjs.pMeshes = &node;
+            m_toplevelObjs.pMeshes = &node;
             break;
 
             case usize(HASH_CODE::cameras):
-            m_jsonObjs.pCameras = &node;
+            m_toplevelObjs.pCameras = &node;
             break;
 
             case usize(HASH_CODE::buffers):
-            m_jsonObjs.pBuffers = &node;
+            m_toplevelObjs.pBuffers = &node;
             break;
 
             case usize(HASH_CODE::bufferViews):
-            m_jsonObjs.pBufferViews = &node;
+            m_toplevelObjs.pBufferViews = &node;
             break;
 
             case usize(HASH_CODE::accessors):
-            m_jsonObjs.pAccessors = &node;
+            m_toplevelObjs.pAccessors = &node;
             break;
 
             case usize(HASH_CODE::materials):
-            m_jsonObjs.pMaterials = &node;
+            m_toplevelObjs.pMaterials = &node;
             break;
 
             case usize(HASH_CODE::textures):
-            m_jsonObjs.pTextures = &node;
+            m_toplevelObjs.pTextures = &node;
             break;
 
             case usize(HASH_CODE::images):
-            m_jsonObjs.pImages = &node;
+            m_toplevelObjs.pImages = &node;
             break;
 
             case usize(HASH_CODE::samplers):
-            m_jsonObjs.pSamplers = &node;
+            m_toplevelObjs.pSamplers = &node;
             break;
 
             case usize(HASH_CODE::skins):
-            m_jsonObjs.pSkins = &node;
+            m_toplevelObjs.pSkins = &node;
             break;
 
             case usize(HASH_CODE::animations):
-            m_jsonObjs.pAnimations = &node;
+            m_toplevelObjs.pAnimations = &node;
             break;
         }
     }
@@ -283,10 +284,10 @@ Model::procToplevelObjs(IAllocator*, const json::Parser& parser)
 bool
 Model::procAsset(adt::IAllocator* pAlloc)
 {
-    if (!m_jsonObjs.pAsset)
+    if (!m_toplevelObjs.pAsset)
         return false;
 
-    const auto& assetObj = json::getObject(m_jsonObjs.pAsset);
+    const auto& assetObj = json::getObject(m_toplevelObjs.pAsset);
     auto* pVersion = json::searchObject(assetObj, "version");
     if (!pVersion)
     {
@@ -314,13 +315,13 @@ Model::procAsset(adt::IAllocator* pAlloc)
 bool
 Model::procRootScene(adt::IAllocator*)
 {
-    if (!m_jsonObjs.pScene)
+    if (!m_toplevelObjs.pScene)
     {
         LOG_BAD("'scene' object not found\n");
         return false;
     }
 
-    m_defaultScene.nodeI = json::getLong(m_jsonObjs.pScene);
+    m_defaultScene.nodeI = json::getLong(m_toplevelObjs.pScene);
 
     return true;
 }
@@ -328,7 +329,7 @@ Model::procRootScene(adt::IAllocator*)
 bool
 Model::procScenes(IAllocator* pAlloc)
 {
-    auto scenes = m_jsonObjs.pScenes;
+    auto scenes = m_toplevelObjs.pScenes;
     auto& arr = json::getArray(scenes);
     for (auto& e : arr)
     {
@@ -360,7 +361,7 @@ Model::procScenes(IAllocator* pAlloc)
 bool
 Model::procBuffers(IAllocator* pAlloc)
 {
-    auto buffers = m_jsonObjs.pBuffers;
+    auto buffers = m_toplevelObjs.pBuffers;
     auto& arr = json::getArray(buffers);
     for (auto& e : arr)
     {
@@ -406,7 +407,7 @@ Model::procBuffers(IAllocator* pAlloc)
 bool
 Model::procBufferViews(IAllocator* pAlloc)
 {
-    auto bufferViews = m_jsonObjs.pBufferViews;
+    auto bufferViews = m_toplevelObjs.pBufferViews;
     auto& arr = json::getArray(bufferViews);
     for (auto& e : arr)
     {
@@ -435,7 +436,7 @@ Model::procBufferViews(IAllocator* pAlloc)
 bool
 Model::procAccessors(IAllocator* pAlloc)
 {
-    auto accessors = m_jsonObjs.pAccessors;
+    auto accessors = m_toplevelObjs.pAccessors;
     auto& arr = json::getArray(accessors);
     for (auto& e : arr)
     {
@@ -471,7 +472,7 @@ Model::procAccessors(IAllocator* pAlloc)
 bool
 Model::procMeshes(IAllocator* pAlloc)
 {
-    auto meshes = m_jsonObjs.pMeshes;
+    auto meshes = m_toplevelObjs.pMeshes;
     auto& arr = json::getArray(meshes);
     for (auto& e : arr)
     {
@@ -510,7 +511,7 @@ Model::procMeshes(IAllocator* pAlloc)
                 },
                 .indicesI = pIndices ? (i32)(json::getLong(pIndices)) : -1,
                 .materialI = pMaterial ? (i32)(json::getLong(pMaterial)) : -1,
-                .eMode = pMode ? static_cast<decltype(Primitive::eMode)>(json::getLong(pMode)) : PRIMITIVES::TRIANGLES,
+                .eMode = pMode ? static_cast<decltype(Primitive::eMode)>(json::getLong(pMode)) : PRIMITIVE_TYPE::TRIANGLES,
             });
         }
  
@@ -523,7 +524,7 @@ Model::procMeshes(IAllocator* pAlloc)
 bool
 Model::procTexures(IAllocator* pAlloc)
 {
-    auto textures = m_jsonObjs.pTextures;
+    auto textures = m_toplevelObjs.pTextures;
     if (!textures)
         return true;
 
@@ -547,35 +548,49 @@ Model::procTexures(IAllocator* pAlloc)
 bool
 Model::procMaterials(IAllocator* pAlloc)
 {
-    auto materials = m_jsonObjs.pMaterials;
-    if (!materials)
+    auto* pMaterials = m_toplevelObjs.pMaterials;
+    if (!pMaterials)
         return true;
 
-    auto& arr = json::getArray(materials);
+    auto& arr = json::getArray(pMaterials);
     for (auto& mat : arr)
     {
         auto& obj = json::getObject(&mat);
 
-        TextureInfo texInfo {};
+        Material newMaterial {};
+
+        auto pName = json::searchObject(obj, "name");
+        if (pName)
+            newMaterial.sName = json::getString(pName).clone(pAlloc);
 
         auto pPbrMetallicRoughness = json::searchObject(obj, "pbrMetallicRoughness");
         if (pPbrMetallicRoughness)
         {
             auto& oPbr = json::getObject(pPbrMetallicRoughness);
 
-            auto pBaseColorTexture = json::searchObject(oPbr, "baseColorTexture");
-            if (pBaseColorTexture)
             {
-                auto& objBct = json::getObject(pBaseColorTexture);
+                auto pBaseColorTexture = json::searchObject(oPbr, "baseColorTexture");
+                if (pBaseColorTexture)
+                {
+                    auto& objBct = json::getObject(pBaseColorTexture);
 
-                auto pIndex = json::searchObject(objBct, "index");
-                if (!pIndex) LOG_FATAL("index field is required\n");
+                    auto pIndex = json::searchObject(objBct, "index");
+                    if (!pIndex)
+                    {
+                        LOG_BAD("index field is required\n");
+                        return false;
+                    }
 
-                texInfo.index = json::getLong(pIndex);
+                    newMaterial.pbrMetallicRoughness.baseColorTexture.index = json::getLong(pIndex);
+                }
+            }
+
+            {
+                auto pBaseColorFactor = json::searchObject(oPbr, "baseColorFactor");
+                if (pBaseColorFactor)
+                    newMaterial.pbrMetallicRoughness.baseColorFactor = assignUnionType(pBaseColorFactor, 4).VEC4;
             }
         }
-
-        NormalTextureInfo normTexInfo {};
 
         auto pNormalTexture = json::searchObject(obj, "normalTexture");
         if (pNormalTexture)
@@ -584,15 +599,10 @@ Model::procMaterials(IAllocator* pAlloc)
             auto pIndex = json::searchObject(objNT, "index");
             if (!pIndex) LOG_FATAL("index filed is required\n");
 
-            normTexInfo.index = json::getLong(pIndex);
+            newMaterial.normalTexture.index = json::getLong(pIndex);
         }
 
-        m_vMaterials.push(pAlloc, {
-            .pbrMetallicRoughness {
-                .baseColorTexture = texInfo,
-            },
-            .normalTexture = normTexInfo
-        });
+        m_vMaterials.push(pAlloc, newMaterial);
     }
 
     return true;
@@ -601,7 +611,7 @@ Model::procMaterials(IAllocator* pAlloc)
 bool
 Model::procImages(IAllocator* pAlloc)
 {
-    auto imgs = m_jsonObjs.pImages;
+    auto imgs = m_toplevelObjs.pImages;
     if (!imgs)
         return true;
 
@@ -625,7 +635,7 @@ Model::procImages(IAllocator* pAlloc)
 bool
 Model::procNodes(IAllocator* pAlloc)
 {
-    auto nodes = m_jsonObjs.pNodes;
+    auto nodes = m_toplevelObjs.pNodes;
     auto& arr = json::getArray(nodes);
     for (auto& node : arr)
     {
@@ -691,10 +701,10 @@ Model::procNodes(IAllocator* pAlloc)
 bool
 Model::procAnimations(adt::IAllocator* pAlloc)
 {
-    if (!m_jsonObjs.pAnimations)
+    if (!m_toplevelObjs.pAnimations)
         return true;
 
-    const auto* pAnimations = m_jsonObjs.pAnimations;
+    const auto* pAnimations = m_toplevelObjs.pAnimations;
     const auto& aAnimations = json::getArray(pAnimations); /* usually an array of one object */
 
     for (auto& animation : aAnimations)

@@ -13,17 +13,17 @@ using namespace adt;
 namespace asset
 {
 
-Pool<Object, 128> g_objects(adt::INIT);
-static Map<String, PoolHnd> s_mapStringToObjects(OsAllocatorGet(), g_objects.getCap());
+Pool<Object, 128> g_aObjects(adt::INIT);
+static Map<String, PoolHnd> s_mapStringToObjects(OsAllocatorGet(), g_aObjects.getCap());
 
 void
 Object::destroy()
 {
-    LOG_NOTIFY("hnd: {}, mappedWith: '{}'\n", g_objects.idx(this), m_sMappedWith);
+    LOG_NOTIFY("hnd: {}, mappedWith: '{}'\n", g_aObjects.idx(this), m_sMappedWith);
 
     s_mapStringToObjects.tryRemove(m_sMappedWith);
     m_arena.freeAll();
-    g_objects.giveBack(this);
+    g_aObjects.giveBack(this);
 
     *this = {};
 }
@@ -44,9 +44,9 @@ loadBMP([[maybe_unused]] const String svPath, const String sFile)
         img.swapRedBlue();
 
     nObj.m_uData.img = img;
-    nObj.m_eType = TYPE::IMAGE;
+    nObj.m_eType = Object::TYPE::IMAGE;
 
-    PoolHnd hnd = g_objects.push(nObj);
+    PoolHnd hnd = g_aObjects.push(nObj);
 
     return hnd;
 }
@@ -73,9 +73,9 @@ loadGLTF(const String svPath, const String sFile)
     }
 
     nObj.m_uData.model = gltfModel;
-    nObj.m_eType = TYPE::MODEL;
+    nObj.m_eType = Object::TYPE::MODEL;
 
-    PoolHnd hnd = g_objects.push(nObj);
+    PoolHnd hnd = g_aObjects.push(nObj);
 
     for (const auto& image : gltfModel.m_vImages)
     {
@@ -118,7 +118,7 @@ load(const adt::String svPath)
 
     if (oRetHnd)
     {
-        auto& obj = g_objects[oRetHnd.value()];
+        auto& obj = g_aObjects[oRetHnd.value()];
         obj.m_sMappedWith = svPath.clone(&obj.m_arena);
         [[maybe_unused]] auto mapRes = s_mapStringToObjects.insert(obj.m_sMappedWith, oRetHnd.value());
         LOG_GOOD("hnd: {}, type: '{}', mappedWith: '{}', hash: {}\n",
@@ -134,13 +134,13 @@ load(const adt::String svPath)
 }
 
 Object*
-search(const adt::String svKey, TYPE eType)
+search(const adt::String svKey, Object::TYPE eType)
 {
     auto f = s_mapStringToObjects.search(svKey);
 
     if (f)
     {
-        auto r = &g_objects[f.data().val];
+        auto r = &g_aObjects[f.data().val];
         if (r->m_eType != eType)
         {
             LOG_WARN("sKey: '{}', types don't match, got {}, asked for {}\n",
@@ -160,7 +160,7 @@ search(const adt::String svKey, TYPE eType)
 Image*
 searchImage(const adt::String svKey)
 {
-    auto* f = search(svKey, TYPE::IMAGE);
+    auto* f = search(svKey, Object::TYPE::IMAGE);
     if (f)
         return &f->m_uData.img;
     else return nullptr;
@@ -169,7 +169,7 @@ searchImage(const adt::String svKey)
 gltf::Model*
 searchModel(const adt::String svKey)
 {
-    auto* f = search(svKey, TYPE::MODEL);
+    auto* f = search(svKey, Object::TYPE::MODEL);
     if (f)
         return &f->m_uData.model;
     else return nullptr;

@@ -74,44 +74,44 @@ struct Shader
     void use() const { glUseProgram(m_id); }
     
     void 
-    setM3(adt::String name, const adt::math::M3& m)
+    setM3(const char* ntsUnifromVar, const adt::math::M3& m)
     {
-        GLint ul = glGetUniformLocation(m_id, name.data());
+        GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
         glUniformMatrix3fv(ul, 1, GL_FALSE, (GLfloat*)m.e);
     }
     
     void 
-    setM4(adt::String name, const adt::math::M4& m)
+    setM4(const char* ntsUnifromVar, const adt::math::M4& m)
     {
-        GLint ul = glGetUniformLocation(m_id, name.data());
+        GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
         glUniformMatrix4fv(ul, 1, GL_FALSE, (GLfloat*)m.e);
     }
     
     void
-    setV3(adt::String name, const adt::math::V3& v)
+    setV3(const char* ntsUnifromVar, const adt::math::V3& v)
     {
-        GLint ul = glGetUniformLocation(m_id, name.data());
+        GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
         glUniform3fv(ul, 1, (GLfloat*)v.e);
     }
     
     void
-    setV4(adt::String name, const adt::math::V4& v)
+    setV4(const char* ntsUnifromVar, const adt::math::V4& v)
     {
-        GLint ul = glGetUniformLocation(m_id, name.data());
+        GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
         glUniform4fv(ul, 1, (GLfloat*)v.e);
     }
     
     void
-    setI(const char* ntsUniform, const GLint i)
+    setI(const char* ntsUniformVar, const GLint i)
     {
-        GLint ul = glGetUniformLocation(m_id, ntsUniform);
+        GLint ul = glGetUniformLocation(m_id, ntsUniformVar);
         glUniform1i(ul, i);
     }
     
     void
-    setF(adt::String name, const adt::f32 f)
+    setF(const char* ntsUnifromVar, const adt::f32 f)
     {
-        GLint ul = glGetUniformLocation(m_id, name.data());
+        GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
         glUniform1f(ul, f);
     }
 
@@ -139,6 +139,7 @@ struct Quad
 [[nodiscard]] Shader* searchShader(const adt::String svKey);
 void init();
 void loadShaders();
+void loadAssetObjects();
 
 #ifndef NDEBUG
 void debugCallback(
@@ -152,6 +153,6 @@ void debugCallback(
 );
 #endif
 
-extern adt::Pool<Shader, 128> g_shaders;
+extern adt::Pool<Shader, 128> g_aShaders;
 
 } /* namespace render::gl */

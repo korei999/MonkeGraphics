@@ -9,6 +9,16 @@ using namespace adt;
 namespace platform::wayland
 {
 
+#if defined __clang__
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wmissing-field-initializers"
+#endif
+
+#if defined __GNUC__
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#endif
+
 static const wl_registry_listener s_registryListener {
     .global = reinterpret_cast<decltype(wl_registry_listener::global)>(methodPointer(&Client::global)),
     .global_remove = reinterpret_cast<decltype(wl_registry_listener::global_remove)>(methodPointer(&Client::globalRemove)),
@@ -47,16 +57,6 @@ static const wl_keyboard_listener s_keyboardListener {
     .repeat_info = reinterpret_cast<decltype(wl_keyboard_listener::repeat_info)>(methodPointer(&Client::keyboardRepeatInfo)),
 };
 
-#if defined __clang__
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wmissing-field-initializers"
-#endif
-
-#if defined __GNUC__
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-#endif
-
 static const wl_pointer_listener s_pointerListener {
     .enter = reinterpret_cast<decltype(wl_pointer_listener::enter)>(methodPointer(&Client::pointerEnter)),
     .leave = reinterpret_cast<decltype(wl_pointer_listener::leave)>(methodPointer(&Client::pointerLeave)),
@@ -71,14 +71,6 @@ static const wl_pointer_listener s_pointerListener {
     /*.axis_relative_direction = reinterpret_cast<decltype(wl_pointer_listener::axis_relative_direction)>(methodPointer(&Client::pointerAxisRelativeDirection)),*/
 };
 
-#if defined __clang__
-    #pragma clang diagnostic pop
-#endif
-
-#if defined __GNUC__
-    #pragma GCC diagnostic pop
-#endif
-
 static const wl_output_listener s_outputListener {
     .geometry = reinterpret_cast<decltype(wl_output_listener::geometry)>(methodPointer(&Client::outputGeometry)),
     .mode = reinterpret_cast<decltype(wl_output_listener::mode)>(methodPointer(&Client::outputMode)),
@@ -91,6 +83,14 @@ static const wl_output_listener s_outputListener {
 static const zwp_relative_pointer_v1_listener s_relativePointerListener {
     .relative_motion = reinterpret_cast<decltype(zwp_relative_pointer_v1_listener::relative_motion)>(methodPointer(&Client::relativePointerMotion))
 };
+
+#if defined __clang__
+    #pragma clang diagnostic pop
+#endif
+
+#if defined __GNUC__
+    #pragma GCC diagnostic pop
+#endif
 
 Client::Client(adt::IAllocator* pAlloc, const char* ntsName)
     : IWindow(pAlloc, ntsName)
@@ -337,44 +337,47 @@ Client::global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, 
 {
     LOG("interface: '{}', version: {}, name: {}\n", ntsInterface, version, name);
 
-    String sInterface = String(ntsInterface);
+    /* TODO: chosing the latest version doesn't actually work,
+     * since some distros (debian) ship older libwayland version */
 
-    if (sInterface == wl_compositor_interface.name)
+    String svInterface = String(ntsInterface);
+
+    if (svInterface == wl_compositor_interface.name)
     {
         m_pCompositor = static_cast<wl_compositor*>(wl_registry_bind(pRegistry, name, &wl_compositor_interface, version));
     }
-    else if (sInterface ==  wl_shm_interface.name)
+    else if (svInterface ==  wl_shm_interface.name)
     {
         m_pShm = static_cast<wl_shm*>(wl_registry_bind(pRegistry, name, &wl_shm_interface, version));
     }
-    else if (sInterface == xdg_wm_base_interface.name)
+    else if (svInterface == xdg_wm_base_interface.name)
     {
         m_pXdgWmBase = static_cast<xdg_wm_base*>(wl_registry_bind(pRegistry, name, &xdg_wm_base_interface, version));
         xdg_wm_base_add_listener(m_pXdgWmBase, &s_xdgWmBaseListener, this);
     }
-    else if (sInterface == wl_seat_interface.name)
+    else if (svInterface == wl_seat_interface.name)
     {
-        m_pSeat = static_cast<wl_seat*>(wl_registry_bind(pRegistry, name, &wl_seat_interface, version));
+        m_pSeat = static_cast<wl_seat*>(wl_registry_bind(pRegistry, name, &wl_seat_interface, 8));
         wl_seat_add_listener(m_pSeat, &s_seatListener, this);
     }
-    else if (sInterface == wl_output_interface.name)
+    else if (svInterface == wl_output_interface.name)
     {
         m_vOutputs.push(m_pAlloc,
             static_cast<wl_output*>(wl_registry_bind(pRegistry, name, &wl_output_interface, version))
         );
         wl_output_add_listener(m_vOutputs.last(), &s_outputListener, this);
     }
-    else if (sInterface == wp_viewporter_interface.name)
+    else if (svInterface == wp_viewporter_interface.name)
     {
         m_pViewporter = static_cast<wp_viewporter*>(wl_registry_bind(pRegistry, name, &wp_viewporter_interface, version));
     }
-    else if (sInterface == zwp_relative_pointer_manager_v1_interface.name)
+    else if (svInterface == zwp_relative_pointer_manager_v1_interface.name)
     {
         m_pRelPointerMgr = static_cast<zwp_relative_pointer_manager_v1*>(wl_registry_bind(pRegistry, name, &zwp_relative_pointer_manager_v1_interface, version));
         if (!m_pRelPointerMgr)
             throw RuntimeException("failed to bind `zwp_relative_pointer_manager_v1_interface`");
     }
-    else if (sInterface == zwp_pointer_constraints_v1_interface.name)
+    else if (svInterface == zwp_pointer_constraints_v1_interface.name)
     {
         m_pPointerConstraints = static_cast<zwp_pointer_constraints_v1*>(wl_registry_bind(pRegistry, name, &zwp_pointer_constraints_v1_interface, version));
         if (!m_pPointerConstraints)

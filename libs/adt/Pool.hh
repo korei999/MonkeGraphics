@@ -54,6 +54,7 @@ struct Pool
     void giveBack(T* hnd);
     ssize getCap() const { return CAP; }
     ssize getSize() const { return m_nOccupied; }
+    bool empty() const { return getSize() == 0; }
 
     /* */
 

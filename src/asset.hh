@@ -11,13 +11,12 @@
 namespace asset
 {
 
-enum TYPE : adt::u8
-{
-    NONE, IMAGE, MODEL
-};
-
 struct Object
 {
+    enum class TYPE : adt::u8 { NONE, IMAGE, MODEL };
+
+    /* */
+
     union
     {
         Image img;
@@ -39,11 +38,11 @@ struct Object
 };
 
 adt::Opt<adt::PoolHnd> load(const adt::String svFilePath);
-[[nodiscard]] Object* search(const adt::String svKey, TYPE eType); /* may be null */
+[[nodiscard]] Object* search(const adt::String svKey, Object::TYPE eType); /* may be null */
 [[nodiscard]] Image* searchImage(const adt::String svKey);
 [[nodiscard]] gltf::Model* searchModel(const adt::String svKey);
 
-extern adt::Pool<Object, 128> g_objects;
+extern adt::Pool<Object, 128> g_aObjects;
 
 } /* namespace asset */
 
@@ -51,7 +50,7 @@ namespace adt::print
 {
 
 [[maybe_unused]] static ssize
-formatToContext(Context ctx, FormatArgs, const asset::TYPE e)
+formatToContext(Context ctx, FormatArgs, const asset::Object::TYPE e)
 {
     ctx.fmt = "{}";
     ctx.fmtIdx = 0;
@@ -60,7 +59,7 @@ formatToContext(Context ctx, FormatArgs, const asset::TYPE e)
         "NONE", "IMAGE", "MODEL"
     };
 
-    return printArgs(ctx, asMap[e]);
+    return printArgs(ctx, asMap[static_cast<int>(e)]);
 }
 
 } /* namespace adt::print */

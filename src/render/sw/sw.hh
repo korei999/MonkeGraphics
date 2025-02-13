@@ -11,6 +11,4 @@ struct Renderer : public IRenderer
     virtual void drawEntities(adt::Arena* pArena) override;
 };
 
-void drawEntities(adt::Arena* pAlloc);
-
 } /* namespace render::sw */

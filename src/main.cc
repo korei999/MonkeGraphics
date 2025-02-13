@@ -40,7 +40,7 @@ parseArgs(int argc, char** argv)
 
         if (svArg.beginsWith("--"))
         {
-            if (svArg == "--wayland")
+            if (svArg == "--wayland-shm")
             {
                 app::g_eWindowType = app::WINDOW_TYPE::WAYLAND;
                 app::g_eRendererType = app::RENDERER_TYPE::SW;
@@ -64,10 +64,12 @@ static int
 startup(int argc, char** argv)
 {
 #ifdef __linux__
-    app::g_eWindowType = app::WINDOW_TYPE::WAYLAND;
+    app::g_eWindowType = app::WINDOW_TYPE::WAYLAND_GL;
 #elif defined _WIN32
     app::g_eWindowType = app::WINDOW_TYPE::WINDOWS;
 #endif
+
+    app::g_eRendererType = app::RENDERER_TYPE::OPEN_GL;
 
     parseArgs(argc, argv);
 
@@ -91,7 +93,7 @@ startup(int argc, char** argv)
             reinterpret_cast<void*>(app::g_pRenderer)
         );
 
-        app::g_pWindow->start(640, 480);
+        app::g_pWindow->start(1920, 1080);
         defer( app::g_pWindow->destroy() );
 
         frame::start();
