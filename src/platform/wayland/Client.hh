@@ -90,10 +90,6 @@ struct Client : public IWindow
 
     /* */
 
-    virtual void adjustViewportSize(adt::i32* pWidth, adt::i32* pHeight) {};
-
-    /* */
-
     void global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, uint32_t version);
     void globalRemove(wl_registry* pRegistry, uint32_t name);
 

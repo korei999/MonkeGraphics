@@ -82,16 +82,6 @@ ClientGL::destroy()
 }
 
 void
-ClientGL::adjustViewportSize(adt::i32* pWidth, adt::i32* pHeight)
-{
-    if (pWidth && pHeight)
-    {
-        f32 f = static_cast<f32>(m_stride) / static_cast<f32>(m_width);
-        *pWidth *= f;
-    }
-}
-
-void
 ClientGL::initGL()
 {
     EGLD( m_eglDisplay = eglGetDisplay(m_pDisplay) );

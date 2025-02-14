@@ -36,10 +36,6 @@ struct ClientGL : public Client
 
     /* */
 
-    virtual void adjustViewportSize(adt::i32* pWidth, adt::i32* pHeight) override;
-
-    /* */
-
     void initGL();
 };
 
