@@ -14,8 +14,6 @@ struct Window : public IWindow
     WNDCLASSEXW m_windowClass;
     RAWINPUTDEVICE m_rawInputDevices[2];
 
-    adt::VecBase<ImagePixelRGBA> m_vSurfaceBuffer {};
-
     /* */
 
     Window() = default;
@@ -40,8 +38,6 @@ struct Window : public IWindow
     virtual void destroy() override;
     virtual void bindContext() override;
     virtual void unbindContext() override;
-    virtual adt::Span2D<ImagePixelRGBA> surfaceBuffer() override;
-    virtual void scheduleFrame() override;
 
     /* */
 

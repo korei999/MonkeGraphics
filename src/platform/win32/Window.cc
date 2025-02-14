@@ -1,6 +1,6 @@
 #include "Window.hh"
 
-#include "gl/glfunc.hh"
+#include "render/gl/glfunc.hh"
 #include "wglext.h"
 
 #include "control.hh"
@@ -159,14 +159,10 @@ windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
         case WM_SIZE:
         {
-            s->m_winHeight = LOWORD(lParam);
-            s->m_winWidth = HIWORD(lParam);
-            LOG("WM_SIZE: [{}, {}]\n", s->m_winHeight, s->m_winWidth);
-
-            f32 fStride = static_cast<f32>(s->m_stride) / static_cast<f32>(s->m_width);
-            f32 aspect = 16.0f / 9.0f;
-
-            glViewport(0, 0, s->m_winWidth * aspect * fStride, s->m_winHeight);
+            s->m_winWidth = LOWORD(lParam);
+            s->m_winHeight = HIWORD(lParam);
+            LOG("WM_SIZE: [{}, {}]\n", s->m_winWidth, s->m_winHeight);
+            glViewport(0, 0, s->m_winWidth, s->m_winHeight);
         }
         break;
 
@@ -349,9 +345,6 @@ Window::start(int width, int height)
 
     unbindContext();
 
-    m_vDepthBuffer.setSize(m_pAlloc, m_stride * m_height);
-    m_vSurfaceBuffer.setSize(m_pAlloc, m_stride * m_height);
-
     m_bPointerRelativeMode = false;
     m_bPaused = false;
     m_bRunning = true;
@@ -481,18 +474,6 @@ void
 Window::unbindContext()
 {
     wglMakeCurrent(nullptr, nullptr);
-}
-
-Span2D<ImagePixelRGBA>
-Window::surfaceBuffer()
-{
-    return {reinterpret_cast<ImagePixelRGBA*>(m_vSurfaceBuffer.data()), m_width, m_height, m_stride};
-}
-
-void
-Window::scheduleFrame()
-{
-    LOG_WARN("noop\n");
 }
 
 } /* namespace platform::win32 */
