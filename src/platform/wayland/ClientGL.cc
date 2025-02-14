@@ -72,6 +72,16 @@ ClientGL::unbindContext()
 }
 
 void
+ClientGL::destroy()
+{
+    Client::destroy();
+
+    if (!eglDestroySurface(m_eglDisplay, m_eglSurface)) LOG_BAD("!eglDestroySurface\n");
+    if (!eglDestroyContext(m_eglDisplay, m_eglContext)) LOG_BAD("!eglDestroyContext\n");
+    if (!eglTerminate(m_eglDisplay)) LOG_BAD("!eglTerminate\n");
+}
+
+void
 ClientGL::adjustViewportSize(adt::i32* pWidth, adt::i32* pHeight)
 {
     if (pWidth && pHeight)
@@ -146,11 +156,6 @@ ClientGL::initGL()
 
     m_eglWindow = wl_egl_window_create(m_pSurface, m_width, m_height);
     EGLD( m_eglSurface = eglCreateWindowSurface(m_eglDisplay, eglConfig, (EGLNativeWindowType)(m_eglWindow), nullptr) );
-
-    /* create some texture buffer to draw into */
-    m_vDepthBuffer.setSize(m_pAlloc, m_stride * m_height);
-    m_vSurfaceBuffer.setSize(m_pAlloc, m_stride * m_height);
-    m_pSurfaceBufferBind = reinterpret_cast<u8*>(m_vSurfaceBuffer.data());
 
     LOG_GOOD("wayland egl client started...\n");
 }

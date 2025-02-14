@@ -83,17 +83,19 @@ startup(int argc, char** argv)
         app::g_pWindow = app::allocWindow(&allocator, ntsName);
         app::g_pRenderer = app::allocRenderer(&allocator);
 
-        ADT_ASSERT_ALWAYS(
-            app::g_pWindow, "allocWindow() failed: app::g_pWindow: %p",
-            reinterpret_cast<void*>(app::g_pWindow)
-        );
+        if (!app::g_pWindow)
+        {
+            CERR("failed to create platform window\n");
+            return 1;
+        }
 
-        ADT_ASSERT_ALWAYS(
-            app::g_pRenderer, "allocRenderer() failed: app::g_pWindow: %p",
-            reinterpret_cast<void*>(app::g_pRenderer)
-        );
+        if (!app::g_pRenderer)
+        {
+            CERR("failed to create renderer\n");
+            return 1;
+        }
 
-        app::g_pWindow->start(1920, 1080);
+        app::g_pWindow->start(1280, 720);
         defer( app::g_pWindow->destroy() );
 
         frame::start();

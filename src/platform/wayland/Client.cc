@@ -159,12 +159,6 @@ Client::start(int width, int height)
     initShm();
 }
 
-Span2D<ImagePixelRGBA>
-Client::surfaceBuffer()
-{
-    return {reinterpret_cast<ImagePixelRGBA*>(m_pSurfaceBufferBind), m_width, m_height, m_stride};
-}
-
 void
 Client::disableRelativeMode()
 {
@@ -278,24 +272,15 @@ Client::destroy()
     if (m_pXdgWmBase) xdg_wm_base_destroy(m_pXdgWmBase);
     if (m_pXdgSurface) xdg_surface_destroy(m_pXdgSurface);
     if (m_pXdgToplevel) xdg_toplevel_destroy(m_pXdgToplevel);
+#ifdef OPT_SW
     if (m_pCallBack) wl_callback_destroy(m_pCallBack);
+#endif
     if (m_pViewporter) wp_viewporter_destroy(m_pViewporter);
     if (m_pViewport) wp_viewport_destroy(m_pViewport);
     if (m_pDisplay) wl_display_disconnect(m_pDisplay);
     if (m_pPoolData) munmap(m_pPoolData, m_poolSize);
 
     *this = {};
-}
-
-void
-Client::scheduleFrame()
-{
-    m_pCallBack = wl_surface_frame(m_pSurface);
-    static const wl_callback_listener s_callbackListener {
-        .done = reinterpret_cast<decltype(wl_callback_listener::done)>(methodPointer(&Client::callbackDone)),
-    };
-    wl_callback_add_listener(m_pCallBack, &s_callbackListener, this);
-    updateSurface();
 }
 
 void
@@ -308,6 +293,25 @@ void
 Client::unbindContext()
 {
     LOG_WARN("noop\n");
+}
+
+#ifdef OPT_SW
+
+Span2D<ImagePixelRGBA>
+Client::surfaceBuffer()
+{
+    return {reinterpret_cast<ImagePixelRGBA*>(m_pSurfaceBufferBind), m_width, m_height, m_stride};
+}
+
+void
+Client::scheduleFrame()
+{
+    m_pCallBack = wl_surface_frame(m_pSurface);
+    static const wl_callback_listener s_callbackListener {
+        .done = reinterpret_cast<decltype(wl_callback_listener::done)>(methodPointer(&Client::callbackDone)),
+    };
+    wl_callback_add_listener(m_pCallBack, &s_callbackListener, this);
+    updateSurface();
 }
 
 void
@@ -331,6 +335,8 @@ Client::updateSurface()
     wl_surface_damage(m_pSurface, 0, 0, m_winWidth, m_winHeight);
     wl_surface_commit(m_pSurface);
 }
+
+#endif
 
 void
 Client::global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, uint32_t version)
@@ -560,7 +566,10 @@ Client::callbackDone(
 )
 {
     wl_callback_destroy(pCallback);
+
+#ifdef OPT_SW
     update();
+#endif
 }
 
 void
@@ -577,8 +586,6 @@ Client::initShm()
     if (!m_pPoolData)
         throw RuntimeException("mmap() failed");
 
-    m_vDepthBuffer.setSize(m_pAlloc, m_stride * m_height);
-
     m_pShmPool = wl_shm_create_pool(m_pShm, fd, shmPoolSize);
     if (!m_pShmPool)
         throw RuntimeException("wl_shm_create_pool() failed");
@@ -587,8 +594,11 @@ Client::initShm()
     if (!m_pBuffer)
         throw RuntimeException("wl_shm_pool_create_buffer() failed");
 
-    m_pSurfaceBufferBind = m_pPoolData;
+#ifdef OPT_SW
     m_vTempBuff.setSize(m_pAlloc, surfaceBuffer().getStride());
+    m_vDepthBuffer.setSize(m_pAlloc, m_stride * m_height);
+    m_pSurfaceBufferBind = m_pPoolData;
+#endif
 
     LOG_GOOD("wayland shm client started...\n");
 }

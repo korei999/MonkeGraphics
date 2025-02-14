@@ -12,7 +12,6 @@ struct IWindow
 {
     adt::IAllocator* m_pAlloc {};
     const char* m_ntsName {};
-    adt::VecBase<adt::f32> m_vDepthBuffer {};
 
     int m_width {};
     int m_height {};
@@ -40,6 +39,10 @@ struct IWindow
     void (*m_pfnUpdateCB)(void*) {};
     void* m_pDrawArg {};
 
+#ifdef OPT_SW
+    adt::VecBase<adt::f32> m_vDepthBuffer {};
+#endif
+
     /* */
 
     IWindow() = default;
@@ -65,6 +68,8 @@ struct IWindow
     virtual void destroy() = 0;
     virtual void bindContext() = 0;
     virtual void unbindContext() = 0;
+
+#ifdef OPT_SW
     virtual adt::Span2D<ImagePixelRGBA> surfaceBuffer() = 0;
     virtual void scheduleFrame() = 0;
 
@@ -131,4 +136,6 @@ struct IWindow
         m_pfnUpdateCB(m_pDrawArg);
         scheduleFrame();
     }
+
+#endif
 };

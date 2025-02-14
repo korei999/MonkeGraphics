@@ -49,6 +49,8 @@ refresh(void* pArg)
 static void
 eventLoop()
 {
+#ifdef OPT_SW
+
     auto& win = app::window();
     auto& renderer = app::renderer();
 
@@ -70,6 +72,8 @@ eventLoop()
         frameArena.shrinkToFirstBlock();
         frameArena.reset();
     }
+
+#endif
 }
 
 static void

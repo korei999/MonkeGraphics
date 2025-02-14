@@ -68,9 +68,7 @@ drawGLTFNode(gltf::Model* pModel, gltf::Node* pNode, math::M4 trm)
              * But current gltf parser only reads the 0th. */
             gltf::Accessor accUV {};
             if (primitive.attributes.TEXCOORD_0 != -1)
-            {
                 accUV = pModel->m_vAccessors[primitive.attributes.TEXCOORD_0];
-            }
 
             Shader* pSh = searchShader("SimpleColor");
             pSh->use();

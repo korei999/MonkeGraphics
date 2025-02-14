@@ -44,14 +44,8 @@ struct Client : public IWindow
     int m_newWidth {};
     int m_newHeight {};
 
-    wl_callback* m_pCallBack {};
-
     wp_viewporter* m_pViewporter {};
     wp_viewport* m_pViewport {};
-
-    adt::u8* m_pSurfaceBufferBind {};
-
-    adt::VecBase<ImagePixelRGBA> m_vTempBuff {};
 
     /* */
 
@@ -61,7 +55,6 @@ struct Client : public IWindow
     /* */
 
     virtual void start(int width, int height) override;
-    virtual adt::Span2D<ImagePixelRGBA> surfaceBuffer() override;
     virtual void disableRelativeMode() override;
     virtual void enableRelativeMode() override;
     virtual void togglePointerRelativeMode() override;
@@ -76,17 +69,30 @@ struct Client : public IWindow
     virtual void procEvents() override;
     virtual void showWindow() override;
     virtual void destroy() override;
-    virtual void scheduleFrame() override;
     virtual void bindContext() override;
     virtual void unbindContext() override;
+
+    /* */
+
+#ifdef OPT_SW
+    wl_callback* m_pCallBack {};
+    adt::u8* m_pSurfaceBufferBind {};
+    adt::VecBase<ImagePixelRGBA> m_vTempBuff {};
+
+
+    virtual adt::Span2D<ImagePixelRGBA> surfaceBuffer() override;
+    virtual void scheduleFrame() override;
+
+    /* */
+
+    void updateSurface();
+#endif
 
     /* */
 
     virtual void adjustViewportSize(adt::i32* pWidth, adt::i32* pHeight) {};
 
     /* */
-
-    void updateSurface();
 
     void global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, uint32_t version);
     void globalRemove(wl_registry* pRegistry, uint32_t name);
@@ -136,7 +142,6 @@ struct Client : public IWindow
     /* */
 
     void callbackDone(wl_callback* pCallback, uint32_t callbackData);
-
     void initShm();
 };
 

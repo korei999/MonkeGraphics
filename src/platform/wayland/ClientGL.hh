@@ -32,6 +32,7 @@ struct ClientGL : public Client
     virtual void toggleVSync() override;
     virtual void bindContext() override;
     virtual void unbindContext() override;
+    virtual void destroy() override;
 
     /* */
 

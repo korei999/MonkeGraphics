@@ -179,13 +179,14 @@ add_executable(
 )
 
 if (OPT_SW)
+    add_definitions("-DOPT_SW")
+
     target_sources(
         ${CMAKE_PROJECT_NAME} PRIVATE
         src/render/sw/sw.cc
         src/render/sw/clip.cc
     )
 endif()
-
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     find_package(PkgConfig REQUIRED)
@@ -249,6 +250,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
 
         if (WAYLAND_GL_FOUND)
             message(STATUS "WAYLAND_GL_FOUND: '${WAYLAND_GL_FOUND}'")
+            add_definitions("-DOPT_WAYLAND_GL")
 
             include_directories(BEFORE ${WAYLAND_GL_INCLUDE_DIRS})
             target_link_libraries(
