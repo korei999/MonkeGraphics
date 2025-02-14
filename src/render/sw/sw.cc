@@ -795,7 +795,7 @@ Renderer::drawEntities(Arena* pArena)
 
             game::EntityBind entity = game::g_aEntites[ game::Entity{.i = entityI} ];
 
-            M4 trm = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
+            M4 trm = M4Pers(toRad(camera.m_fov), aspectRatio, 0.01f, 1000.0f) *
                 camera.m_trm *
                 M4TranslationFrom(entity.pos) *
                 QtRot(entity.rot) *

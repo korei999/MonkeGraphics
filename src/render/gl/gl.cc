@@ -193,7 +193,7 @@ Renderer::drawEntities([[maybe_unused]] Arena* pArena)
 
                 case asset::Object::TYPE::MODEL:
                 {
-                    M4 trm = M4Pers(toRad(60.0f), aspectRatio, 0.01f, 1000.0f) *
+                    M4 trm = M4Pers(toRad(camera.m_fov), aspectRatio, 0.01f, 1000.0f) *
                         camera.m_trm *
                         M4TranslationFrom(entity.pos) *
                         QtRot(entity.rot) *
@@ -213,13 +213,13 @@ ShaderMapping::ShaderMapping(const String svVert, const String svFrag, const Str
 Texture::Texture(int width, int height)
     : m_width(width), m_height(height)
 {
-    glGenTextures(1, &m_id);
-    glBindTexture(GL_TEXTURE_2D, m_id);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    loadRGBA(nullptr);
+}
 
-    glBindTexture(GL_TEXTURE_2D, 0);
+Texture::Texture(const adt::Span2D<ImagePixelRGBA> spImg)
+    : m_width(spImg.getWidth()), m_height(spImg.getHeight())
+{
+    loadRGBA(spImg.data());
 }
 
 void
@@ -238,6 +238,18 @@ Texture::subImage(const Span2D<ImagePixelRGBA> spImg)
 void
 Texture::destroy()
 {
+}
+
+void
+Texture::loadRGBA(const ImagePixelRGBA* pData)
+{
+    glGenTextures(1, &m_id);
+    glBindTexture(GL_TEXTURE_2D, m_id);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pData);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 Shader::Shader(const adt::String sVertexShader, const adt::String sFragmentShader, const adt::String svMapTo)
@@ -483,12 +495,9 @@ loadImage(Image* pImage)
     }
 
     auto& obj = *reinterpret_cast<asset::Object*>(pImage);
-
     LOG_GOOD("loading image '{}'...\n", obj.m_sMappedWith);
 
-    auto tex = Texture(pImage->m_width, pImage->m_height);
-    tex.subImage(pImage->getSpanARGB());
-    obj.pExtraData = obj.m_arena.alloc<Texture>(tex);
+    obj.pExtraData = obj.m_arena.alloc<Texture>(pImage->getSpanRGBA());
 }
 
 static void

@@ -46,8 +46,8 @@ struct Texture
     /* */
 
     Texture() = default;
-
     [[nodiscard]] Texture(int width, int height);
+    [[nodiscard]] Texture(const adt::Span2D<ImagePixelRGBA> spImg);
 
     /* */
 
@@ -55,6 +55,9 @@ struct Texture
     void bind(GLint activeTexture) { glActiveTexture(activeTexture); bind(); }
     void subImage(const adt::Span2D<ImagePixelRGBA> spImg);
     void destroy();
+
+private:
+    void loadRGBA(const ImagePixelRGBA* pData);
 };
 
 struct Shader

@@ -35,6 +35,8 @@ struct Camera
     adt::f32 m_speed {};
     adt::f32 m_lastBoost = 1.0f;
 
+    adt::f32 m_fov = 60.0f;
+
     /* */
 
     void

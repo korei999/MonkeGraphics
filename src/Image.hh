@@ -46,7 +46,7 @@ struct Image
     }
 
     const adt::Span2D<ImagePixelRGBA>
-    getSpanARGB() const
+    getSpanRGBA() const
     {
         ADT_ASSERT(m_eType == TYPE::RGBA, " ");
         return {m_uData.pRGBA, m_width, m_height, m_width};
