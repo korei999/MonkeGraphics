@@ -385,13 +385,8 @@ Model::procBuffers(IAllocator* pAlloc)
 
             rsBin = file::load(pAlloc, sNewPath);
             if (!rsBin)
-            {
                 LOG_WARN("error opening file: '{}'\n", sNewPath);
-            }
-            else
-            {
-                aBin = rsBin.value();
-            }
+            else aBin = rsBin.value();
         }
 
         m_vBuffers.push(pAlloc, {
@@ -413,11 +408,24 @@ Model::procBufferViews(IAllocator* pAlloc)
     {
         auto& obj = json::getObject(&e);
 
+        BufferView newView {};
+
         auto pBuffer = json::searchObject(obj, "buffer");
-        if (!pBuffer) LOG_FATAL("'buffer' field is required\n");
+        if (!pBuffer)
+        {
+            LOG_BAD("'buffer' field is required\n");
+            return false;
+        }
+
         auto pByteOffset = json::searchObject(obj, "byteOffset");
         auto pByteLength = json::searchObject(obj, "byteLength");
-        if (!pByteLength) LOG_FATAL("'byteLength' field is required\n");
+
+        if (!pByteLength)
+        {
+            LOG_BAD("'byteLength' field is required\n");
+            return false;
+        }
+
         auto pByteStride = json::searchObject(obj, "byteStride");
         auto pTarget = json::searchObject(obj, "target");
 
@@ -445,13 +453,29 @@ Model::procAccessors(IAllocator* pAlloc)
         auto pBufferView = json::searchObject(obj, "bufferView");
         auto pByteOffset = json::searchObject(obj, "byteOffset");
         auto pComponentType = json::searchObject(obj, "componentType");
-        if (!pComponentType) LOG_FATAL("'componentType' field is required\n");
+
+        if (!pComponentType)
+        {
+            LOG_BAD("'componentType' field is required\n");
+            return false;
+        }
+
         auto pCount = json::searchObject(obj, "count");
-        if (!pCount) LOG_FATAL("'count' field is required\n");
+        if (!pCount)
+        {
+            LOG_BAD("'count' field is required\n");
+            return false;
+        }
+
         auto pMax = json::searchObject(obj, "max");
         auto pMin = json::searchObject(obj, "min");
         auto pType = json::searchObject(obj, "type");
-        if (!pType) LOG_FATAL("'type' field is required\n");
+
+        if (!pType)
+        {
+            LOG_BAD("'type' field is required\n");
+            return false;
+        }
  
         enum ACCESSOR_TYPE type = stringToAccessorType(json::getString(pType));
  
@@ -479,7 +503,11 @@ Model::procMeshes(IAllocator* pAlloc)
         auto& obj = json::getObject(&e);
  
         auto pPrimitives = json::searchObject(obj, "primitives");
-        if (!pPrimitives) LOG_FATAL("'primitives' field is required\n");
+        if (!pPrimitives)
+        {
+            LOG_BAD("'primitives' field is required\n");
+            return false;
+        }
  
         VecBase<Primitive> aPrimitives(pAlloc);
         auto pName = json::searchObject(obj, "name");
@@ -489,30 +517,47 @@ Model::procMeshes(IAllocator* pAlloc)
         for (auto& p : aPrim)
         {
             auto& op = json::getObject(&p);
+
+            Primitive newPrimitive {};
+
+            auto pIndices = json::searchObject(op, "indices");
+            if (pIndices)
+                newPrimitive.indicesI = static_cast<int>(json::getLong(pIndices));
+
+            auto pMode = json::searchObject(op, "mode");
+            if (pMode)
+                newPrimitive.eMode = static_cast<Primitive::TYPE>(json::getLong(pMode));
+
+            auto pMaterial = json::searchObject(op, "material");
+            if (pMaterial)
+                newPrimitive.materialI = static_cast<int>(json::getLong(pMaterial));
  
             auto pAttributes = json::searchObject(op, "attributes");
+            if (!pAttributes)
+            {
+                LOG_BAD("'attributes' field is required\n");
+                return false;
+            }
+
             auto& oAttr = json::getObject(pAttributes);
+
             auto pNORMAL = json::searchObject(oAttr, "NORMAL");
+            if (pNORMAL)
+                newPrimitive.attributes.NORMAL = static_cast<int>(json::getLong(pNORMAL));
             auto pTANGENT = json::searchObject(oAttr, "TANGENT");
+
+            if (pTANGENT)
+                newPrimitive.attributes.TANGENT = static_cast<int>(json::getLong(pTANGENT));
             auto pPOSITION = json::searchObject(oAttr, "POSITION");
-            /* TODO: parse every TEXCOORD_* field */
+
+            if (pPOSITION)
+                newPrimitive.attributes.POSITION = static_cast<int>(json::getLong(pPOSITION));
+
             auto pTEXCOORD_0 = json::searchObject(oAttr, "TEXCOORD_0");
+            if (pTEXCOORD_0)
+                newPrimitive.attributes.TEXCOORD_0 = static_cast<int>(json::getLong(pTEXCOORD_0));
  
-            auto pIndices = json::searchObject(op, "indices");
-            auto pMode = json::searchObject(op, "mode");
-            auto pMaterial = json::searchObject(op, "material");
- 
-            aPrimitives.push(pAlloc, {
-                .attributes {
-                    .NORMAL = pNORMAL ? (i32)(json::getLong(pNORMAL)) : -1,
-                    .POSITION = pPOSITION ? (i32)(json::getLong(pPOSITION)) : -1,
-                    .TEXCOORD_0 = pTEXCOORD_0 ? (i32)(json::getLong(pTEXCOORD_0)) : -1,
-                    .TANGENT = pTANGENT ? (i32)(json::getLong(pTANGENT)) : -1,
-                },
-                .indicesI = pIndices ? (i32)(json::getLong(pIndices)) : -1,
-                .materialI = pMaterial ? (i32)(json::getLong(pMaterial)) : -1,
-                .eMode = pMode ? static_cast<decltype(Primitive::eMode)>(json::getLong(pMode)) : PRIMITIVE_TYPE::TRIANGLES,
-            });
+            aPrimitives.push(pAlloc, newPrimitive);
         }
  
         m_vMeshes.push(pAlloc, {.vPrimitives = aPrimitives, .sName = name});
@@ -597,7 +642,11 @@ Model::procMaterials(IAllocator* pAlloc)
         {
             auto& objNT = json::getObject(pNormalTexture);
             auto pIndex = json::searchObject(objNT, "index");
-            if (!pIndex) LOG_FATAL("index filed is required\n");
+            if (!pIndex)
+            {
+                LOG_BAD("index filed is required\n");
+                return false;
+            }
 
             newMaterial.normalTexture.index = json::getLong(pIndex);
         }

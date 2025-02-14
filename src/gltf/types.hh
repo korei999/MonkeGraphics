@@ -122,10 +122,7 @@ struct Node
     } uTransformation {};
     int meshI = adt::NPOS; /* The index of the mesh in this node. */
 
-    struct
-    {
-        adt::f32 currTime = 0.0f;
-    } extras {}; /* Application-specific data. */
+    adt::f32 currTime = 0.0f;
 };
 
 struct Animation
@@ -211,35 +208,37 @@ struct Image
     adt::String sUri {};
 };
 
-/* match real gl macros */
-enum class PRIMITIVE_TYPE
-{
-    POINTS = 0,
-    LINES = 1,
-    LINE_LOOP = 2,
-    LINE_STRIP = 3,
-    TRIANGLES = 4,
-    TRIANGLE_STRIP = 5,
-    TRIANGLE_FAN = 6
-};
-
 struct Primitive
 {
+    /* match real gl macros */
+    enum class TYPE : adt::u8
+    {
+        POINTS = 0,
+        LINES = 1,
+        LINE_LOOP = 2,
+        LINE_STRIP = 3,
+        TRIANGLES = 4,
+        TRIANGLE_STRIP = 5,
+        TRIANGLE_FAN = 6
+    };
+
+    /* */
+
     struct
     {
+        /* TODO: could be TEXCOORD_0, TEXCOORD_1... etc */
         int NORMAL = -1;
         int POSITION = -1;
-        int TEXCOORD_0 = -1;
         int TANGENT = -1;
+        int TEXCOORD_0 = -1;
+        int JOINTS_0 = -1;
+        int WEIGHTS_0 = -1;
     } attributes {}; /* each value is the index of the accessor containing attribute’s data. */
     int indicesI = -1; /* The index of the accessor that contains the vertex indices, drawElements() when defined and drawArrays() otherwise. */
     int materialI = -1; /* The index of the material to apply to this primitive when rendering */
-    PRIMITIVE_TYPE eMode = PRIMITIVE_TYPE::TRIANGLES;
+    TYPE eMode = TYPE::TRIANGLES;
 
-    struct
-    {
-        void* pData {};
-    } extras {};
+    void* pData {};
 };
 
 /* A mesh primitive defines the geometry data of the object using its attributes dictionary.
@@ -362,7 +361,7 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::ACCESSOR_TYPE x)
 }
 
 inline ssize
-formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::PRIMITIVE_TYPE x)
+formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Primitive::TYPE x)
 {
     constexpr adt::String aMap[] {
         "POINTS", "LINES", "LINE_LOOP", "LINE_STRIP", "TRIANGLES", "TRIANGLE_STRIP", "TRIANGLE_FAN",

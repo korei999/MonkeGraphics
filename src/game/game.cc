@@ -22,7 +22,6 @@ EntityPoolSOA<128> g_aEntites(adt::INIT);
 static const String s_aAssetsToLoad[] {
     "assets/duck/Duck.gltf",
     "assets/BoxAnimated/BoxAnimated.gltf",
-    "/home/korei/Documents/capo.gltf",
 };
 
 void
@@ -47,7 +46,7 @@ loadStuff()
         auto hTest = g_aEntites.makeDefault();
         auto bind = g_aEntites[hTest];
 
-        auto* pObj = asset::search("/home/korei/Documents/capo.gltf", asset::Object::TYPE::MODEL);
+        auto* pObj = asset::search("assets/duck/Duck.gltf", asset::Object::TYPE::MODEL);
         auto idx = asset::g_aObjects.idx(pObj);
         bind.assetI = idx;
     }

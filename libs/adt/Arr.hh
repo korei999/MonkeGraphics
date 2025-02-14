@@ -20,7 +20,10 @@ struct Arr
     /* */
 
     constexpr Arr() = default;
-    constexpr Arr(ssize size) : m_size(size) {}
+
+    template<typename ...ARGS> requires(std::is_constructible_v<T, ARGS...>)
+        constexpr Arr(ssize size, ARGS&&... args);
+
     constexpr Arr(std::initializer_list<T> list);
 
     /* */
@@ -207,6 +210,18 @@ constexpr const T&
 Arr<T, CAP>::last() const
 {
     return operator[](m_size - 1);
+}
+
+template<typename T, ssize CAP> requires(CAP > 0)
+template<typename ...ARGS> requires(std::is_constructible_v<T, ARGS...>)
+inline constexpr
+Arr<T, CAP>::Arr(ssize size, ARGS&&... args)
+    : m_size(size)
+{
+    ADT_ASSERT(size <= CAP, " ");
+
+    for (ssize i = 0; i < size; ++i)
+        new(m_aData + i) T(std::forward<ARGS>(args)...);
 }
 
 template<typename T, ssize CAP> requires(CAP > 0)

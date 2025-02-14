@@ -36,6 +36,8 @@ static Map<String, PoolHnd> s_mapStringToShaders(OsAllocatorGet(), g_aShaders.ge
 static u8 s_aScratchMem[SIZE_1K] {};
 static ScratchBuffer s_scratch(s_aScratchMem);
 
+static Texture s_texDefault;
+
 static const ShaderMapping s_aShadersToLoad[] {
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"},
     {shaders::glsl::ntsSimpleColorVert, shaders::glsl::ntsSimpleColorFrag, "SimpleColor"},
@@ -59,6 +61,8 @@ Renderer::init()
 
     loadShaders();
     loadAssetObjects();
+
+    s_texDefault = Texture(common::g_spDefaultTexture);
 };
 
 static void
@@ -127,15 +131,15 @@ drawGLTFNode(gltf::Model* pModel, gltf::Node* pNode, math::M4 trm)
             else
             {
 defaultShader:
-                pSh = searchShader("SimpleColor");
+                pSh = searchShader("SimpleTexture");
                 pSh->use();
-                pSh->setV4("u_color", V4From(colors::get(colors::IDX::PINK), 1.0f));
+                s_texDefault.bind(GL_TEXTURE0);
             }
 
             if (pSh)
                 pSh->setM4("u_trm", trm);
 
-            auto* pPrimitiveData = reinterpret_cast<PrimitiveData*>(primitive.extras.pData);
+            auto* pPrimitiveData = reinterpret_cast<PrimitiveData*>(primitive.pData);
             if (pPrimitiveData)
                 glBindVertexArray(pPrimitiveData->vao);
 
@@ -501,7 +505,7 @@ loadImage(Image* pImage)
 }
 
 static void
-loadModel(gltf::Model* pModel)
+loadGLTF(gltf::Model* pModel)
 {
     if (!pModel)
     {
@@ -535,28 +539,29 @@ loadModel(gltf::Model* pModel)
             LOG_GOOD("loading mesh: '{}'...\n", mesh.sName);
             for (auto& primitive : mesh.vPrimitives)
             {
-                ADT_ASSERT(primitive.indicesI != -1, "TODO: deal with non non indexed arrays");
+                PrimitiveData newPrimitiveData {};
 
-                auto& accInd = pModel->m_vAccessors[primitive.indicesI];
-                auto& viewInd = pModel->m_vBufferViews[accInd.bufferViewI];
-                auto& buffInd = pModel->m_vBuffers[viewInd.bufferI];
+                glGenVertexArrays(1, &newPrimitiveData.vao);
+                glBindVertexArray(newPrimitiveData.vao);
+                defer( glBindVertexArray(0) );
 
-                PrimitiveData primitiveData {};
-
-                glGenVertexArrays(1, &primitiveData.vao);
-                glBindVertexArray(primitiveData.vao);
-
+                if (primitive.indicesI != -1)
                 {
-                    /* NOTE: we are duplicating index buffer here.
-                     * we can try glBufferStorage (4.4) */
-                    glGenBuffers(1, &primitiveData.ebo);
-                    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, primitiveData.ebo);
-                    glBufferData(
-                        GL_ELEMENT_ARRAY_BUFFER,
-                        viewInd.byteLength,
-                        &buffInd.sBin[accInd.byteOffset + viewInd.byteOffset],
-                        GL_STATIC_DRAW
-                    );
+                    auto& accInd = pModel->m_vAccessors[primitive.indicesI];
+                    auto& viewInd = pModel->m_vBufferViews[accInd.bufferViewI];
+                    auto& buffInd = pModel->m_vBuffers[viewInd.bufferI];
+
+                    {
+                        /* NOTE: we are duplicating index buffer here */
+                        glGenBuffers(1, &newPrimitiveData.ebo);
+                        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, newPrimitiveData.ebo);
+                        glBufferData(
+                            GL_ELEMENT_ARRAY_BUFFER,
+                            viewInd.byteLength,
+                            &buffInd.sBin[accInd.byteOffset + viewInd.byteOffset],
+                            GL_STATIC_DRAW
+                        );
+                    }
                 }
 
                 {
@@ -565,8 +570,8 @@ loadModel(gltf::Model* pModel)
                     auto& viewPos = pModel->m_vBufferViews[accPos.bufferViewI];
                     auto& buffPos = pModel->m_vBufferViews[viewPos.bufferI];
 
-                    primitiveData.vbo = vVBOs[buffPos.bufferI];
-                    glBindBuffer(GL_ARRAY_BUFFER, primitiveData.vbo);
+                    newPrimitiveData.vbo = vVBOs[buffPos.bufferI];
+                    glBindBuffer(GL_ARRAY_BUFFER, newPrimitiveData.vbo);
 
                     /* positions */
                     glEnableVertexAttribArray(0);
@@ -598,7 +603,7 @@ loadModel(gltf::Model* pModel)
                     );
                 }
 
-                primitive.extras.pData = obj.m_arena.alloc<PrimitiveData>(primitiveData);
+                primitive.pData = obj.m_arena.alloc<PrimitiveData>(newPrimitiveData);
             }
         }
     }
@@ -615,7 +620,7 @@ loadAssetObjects()
         switch (obj.m_eType)
         {
             case asset::Object::TYPE::MODEL:
-            loadModel(&obj.m_uData.model);
+            loadGLTF(&obj.m_uData.model);
             break;
 
             case asset::Object::TYPE::IMAGE:

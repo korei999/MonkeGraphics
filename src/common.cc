@@ -7,6 +7,8 @@ using namespace adt;
 namespace common
 {
 
+const Span2D<ImagePixelRGBA> g_spDefaultTexture = createDefaultTexture();
+
 void
 updateModelNode(gltf::Model* pModel, gltf::Node* pNode, adt::math::M4* pTrm)
 {
@@ -14,7 +16,7 @@ updateModelNode(gltf::Model* pModel, gltf::Node* pNode, adt::math::M4* pTrm)
 
     const ssize nodeI = pModel->m_vNodes.idx(pNode);
 
-    pNode->extras.currTime += frame::g_frameTime;
+    pNode->currTime += frame::g_frameTime;
 
     if (pNode->eTransformationType == gltf::Node::TRANSFORMATION_TYPE::MATRIX)
     {
@@ -59,9 +61,9 @@ updateModelNode(gltf::Model* pModel, gltf::Node* pNode, adt::math::M4* pTrm)
 
                 ADT_ASSERT(spTimeStamps.getSize() >= 2, " ");
 
-                pNode->extras.currTime = std::fmod(pNode->extras.currTime, globalMaxTime);
+                pNode->currTime = std::fmod(pNode->currTime, globalMaxTime);
 
-                if (pNode->extras.currTime >= accTimeStamps.min.SCALAR && pNode->extras.currTime <= accTimeStamps.max.SCALAR)
+                if (pNode->currTime >= accTimeStamps.min.SCALAR && pNode->currTime <= accTimeStamps.max.SCALAR)
                 {
                     f32 prevTime = -INFINITY;
                     f32 nextTime {};
@@ -69,7 +71,7 @@ updateModelNode(gltf::Model* pModel, gltf::Node* pNode, adt::math::M4* pTrm)
                     int prevTimeI = 0;
                     for (auto& timeStamp : spTimeStamps)
                     {
-                        if (timeStamp < pNode->extras.currTime && timeStamp > prevTime)
+                        if (timeStamp < pNode->currTime && timeStamp > prevTime)
                             prevTimeI = spTimeStamps.idx(&timeStamp);
                     }
 
@@ -77,7 +79,7 @@ updateModelNode(gltf::Model* pModel, gltf::Node* pNode, adt::math::M4* pTrm)
                     nextTime = spTimeStamps[prevTimeI + 1];
 
                     ADT_ASSERT(nextTime - prevTime != 0.0f, " ");
-                    const f32 interpolationValue = (pNode->extras.currTime - prevTime) / (nextTime - prevTime);
+                    const f32 interpolationValue = (pNode->currTime - prevTime) / (nextTime - prevTime);
 
                     const auto& accOutput = pModel->m_vAccessors[sampler.outputI];
                     const auto& viewOutput = pModel->m_vBufferViews[accOutput.bufferViewI];
@@ -121,6 +123,33 @@ updateModelNode(gltf::Model* pModel, gltf::Node* pNode, adt::math::M4* pTrm)
                 M4ScaleFrom(currScale);
         }
     }
+}
+
+Span2D<ImagePixelRGBA>
+createDefaultTexture()
+{
+    const int width = 8;
+    const int height = 8;
+
+    static ImagePixelRGBA aPixels[width * height] {};
+
+    Span2D sp(aPixels, width, height, width);
+    for (int y = 0; y < sp.getHeight(); ++y)
+    {
+        for (int x = 0; x < sp.getWidth(); ++x)
+        {
+            u32 colorChannel = 255 * ((x + (y % 2)) % 2);
+            ImagePixelRGBA p;
+            p.r = 128;
+            p.g = static_cast<u8>(colorChannel);
+            p.b = 0;
+            p.a = 255;
+
+            sp(x, y) = p;
+        }
+    }
+
+    return sp;
 }
 
 } /* namespace common */

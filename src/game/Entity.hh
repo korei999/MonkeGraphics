@@ -59,7 +59,7 @@ struct EntityPoolSOA
 
     /* */
 
-    EntityPoolSOA() = default;
+    ADT_WARN_INIT EntityPoolSOA() = default;
     EntityPoolSOA(adt::INIT_FLAG);
 
     /* */
