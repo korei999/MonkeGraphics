@@ -55,6 +55,7 @@ Renderer::init()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+    glCullFace(GL_FRONT);
 
     loadShaders();
     loadAssetObjects();
@@ -128,7 +129,7 @@ drawGLTFNode(gltf::Model* pModel, gltf::Node* pNode, math::M4 trm)
 defaultShader:
                 pSh = searchShader("SimpleColor");
                 pSh->use();
-                pSh->setV4("u_color", V4From(colors::get(colors::IDX::CYAN), 1.0f));
+                pSh->setV4("u_color", V4From(colors::get(colors::IDX::PINK), 1.0f));
             }
 
             if (pSh)
@@ -531,21 +532,6 @@ loadModel(gltf::Model* pModel)
                 auto& viewInd = pModel->m_vBufferViews[accInd.bufferViewI];
                 auto& buffInd = pModel->m_vBuffers[viewInd.bufferI];
 
-                ADT_ASSERT(primitive.attributes.POSITION != -1, " ");
-                auto& accPos = pModel->m_vAccessors[primitive.attributes.POSITION];
-                auto& viewPos = pModel->m_vBufferViews[accPos.bufferViewI];
-                auto& buffPos = pModel->m_vBufferViews[viewPos.bufferI];
-
-                gltf::Accessor accUV {};
-                gltf::BufferView viewUV {};
-                gltf::Buffer buffUV {};
-                if (primitive.attributes.TEXCOORD_0 != -1)
-                {
-                    accUV = pModel->m_vAccessors[primitive.attributes.TEXCOORD_0];
-                    viewUV = pModel->m_vBufferViews[accUV.bufferViewI];
-                    buffUV = pModel->m_vBuffers[viewUV.bufferI];
-                }
-
                 PrimitiveData primitiveData {};
 
                 glGenVertexArrays(1, &primitiveData.vao);
@@ -564,30 +550,41 @@ loadModel(gltf::Model* pModel)
                     );
                 }
 
-                primitiveData.vbo = vVBOs[buffPos.bufferI];
-                glBindBuffer(GL_ARRAY_BUFFER, primitiveData.vbo);
+                {
+                    ADT_ASSERT(primitive.attributes.POSITION != -1, " ");
+                    auto& accPos = pModel->m_vAccessors[primitive.attributes.POSITION];
+                    auto& viewPos = pModel->m_vBufferViews[accPos.bufferViewI];
+                    auto& buffPos = pModel->m_vBufferViews[viewPos.bufferI];
 
-                /* positions */
-                glEnableVertexAttribArray(0);
-                glVertexAttribPointer(
-                    0, /* enabled index */
-                    3, /* positions are 3 f32s */
-                    static_cast<GLenum>(accPos.eComponentType),
-                    false,
-                    viewPos.byteStride,
-                    reinterpret_cast<void*>(accPos.byteOffset + viewPos.byteOffset)
-                );
+                    primitiveData.vbo = vVBOs[buffPos.bufferI];
+                    glBindBuffer(GL_ARRAY_BUFFER, primitiveData.vbo);
+
+                    /* positions */
+                    glEnableVertexAttribArray(0);
+                    glVertexAttribPointer(
+                        0, /* enabled index */
+                        3, /* positions are 3 f32s */
+                        static_cast<GLenum>(accPos.eComponentType),
+                        false,
+                        viewPos.byteStride,
+                        reinterpret_cast<void*>(accPos.byteOffset + viewPos.byteOffset)
+                    );
+                }
 
                 /* uv's */
                 if (primitive.attributes.TEXCOORD_0 != -1)
                 {
+                    gltf::Accessor accUV = pModel->m_vAccessors[primitive.attributes.TEXCOORD_0];
+                    gltf::BufferView viewUV = pModel->m_vBufferViews[accUV.bufferViewI];
+                    gltf::Buffer buffUV  = pModel->m_vBuffers[viewUV.bufferI];
+
                     glEnableVertexAttribArray(1);
                     glVertexAttribPointer(
                         1, /* enabled index */
                         2, /* uv's are 2 f32s */
                         static_cast<GLenum>(accUV.eComponentType),
                         false,
-                        viewPos.byteStride,
+                        viewUV.byteStride,
                         reinterpret_cast<void*>(accUV.byteOffset + viewUV.byteOffset)
                     );
                 }
