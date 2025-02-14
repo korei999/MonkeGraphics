@@ -39,7 +39,7 @@ struct ShaderMapping
 
 struct Texture
 {
-    GLuint m_texture {};
+    GLuint m_id {};
     int m_width {};
     int m_height {};
 
@@ -47,11 +47,11 @@ struct Texture
 
     Texture() = default;
 
-    Texture(int width, int height);
+    [[nodiscard]] Texture(int width, int height);
 
     /* */
 
-    void bind() { glBindTexture(GL_TEXTURE_2D, m_texture); }
+    void bind() { glBindTexture(GL_TEXTURE_2D, m_id); }
     void bind(GLint activeTexture) { glActiveTexture(activeTexture); bind(); }
     void subImage(const adt::Span2D<ImagePixelRGBA> spImg);
     void destroy();
@@ -137,9 +137,6 @@ struct Quad
 };
 
 [[nodiscard]] Shader* searchShader(const adt::String svKey);
-void init();
-void loadShaders();
-void loadAssetObjects();
 
 #ifndef NDEBUG
 void debugCallback(

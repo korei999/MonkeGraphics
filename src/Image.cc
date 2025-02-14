@@ -13,14 +13,14 @@ Image::cloneToRGBA(adt::IAllocator* pAlloc)
         .m_uData {},
         .m_width = m_width,
         .m_height = m_height,
-        .m_eType = IMAGE_TYPE::RGBA,
+        .m_eType = Image::TYPE::RGBA,
     };
 
     nImg.m_uData.pRGBA = pAlloc->zallocV<ImagePixelRGBA>(m_width * m_height);
 
     switch (m_eType)
     {
-        case IMAGE_TYPE::RGB:
+        case Image::TYPE::RGB:
         {
             for (ssize i = 0; i < m_width * m_height; ++i)
             {
@@ -37,7 +37,7 @@ Image::cloneToRGBA(adt::IAllocator* pAlloc)
         }
         break;
 
-        case IMAGE_TYPE::RGBA:
+        case Image::TYPE::RGBA:
         {
             utils::copy(nImg.m_uData.pRGBA, m_uData.pRGBA, m_width * m_height);
         }
@@ -54,7 +54,7 @@ Image::swapRedBlue()
 
     switch (m_eType)
     {
-        case IMAGE_TYPE::RGBA:
+        case Image::TYPE::RGBA:
         {
             const ssize size = m_width * m_height;
             ssize i = 0;
@@ -96,7 +96,7 @@ Image::swapRedBlue()
         }
         break;
 
-        case IMAGE_TYPE::RGB:
+        case Image::TYPE::RGB:
         {
             const ssize size = m_width * m_height;
             for (ssize i = 0; i < size; ++i)
@@ -111,7 +111,7 @@ Image::flipVertically(adt::IAllocator* pAlloc)
 {
     switch (m_eType)
     {
-        case IMAGE_TYPE::RGBA:
+        case Image::TYPE::RGBA:
         {
             auto* pTemp = pAlloc->mallocV<ImagePixelRGBA>(m_width * m_height);
             defer( pAlloc->free(pTemp) );
@@ -128,7 +128,7 @@ Image::flipVertically(adt::IAllocator* pAlloc)
         }
         break;
 
-        case IMAGE_TYPE::RGB:
+        case Image::TYPE::RGB:
         {
             auto* pTemp = pAlloc->mallocV<ImagePixelRGB>(m_width * m_height);
             defer( pAlloc->free(pTemp) );

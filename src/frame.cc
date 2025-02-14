@@ -15,7 +15,7 @@ namespace frame
 
 f64 g_time {};
 f64 g_frameTime {};
-constexpr f64 g_dt = FIXED_DELTA_TIME;
+const f64 g_dt = FIXED_DELTA_TIME;
 f64 g_gameTime {};
 
 static void
@@ -59,7 +59,7 @@ eventLoop()
 
     win.regUpdateCB(refresh, &frameArena);
 
-    // win.setFullscreen();
+    win.setFullscreen();
     win.enableRelativeMode();
     win.update(); /* get events */
 
@@ -86,10 +86,11 @@ mainLoop()
     defer( frameArena.freeAll() );
 
     win.showWindow();
-    win.swapBuffers(); /* trigger events */
+    win.swapBuffers(); /* start events */
 
     win.togglePointerRelativeMode();
     win.toggleVSync();
+    // win.toggleFullscreen();
 
     g_time = utils::timeNowS();
 
@@ -142,7 +143,7 @@ start()
 
     switch (app::g_eWindowType)
     {
-        case app::WINDOW_TYPE::WAYLAND:
+        case app::WINDOW_TYPE::WAYLAND_SHM:
         /* wayland event loop is not a normal render loop */
         eventLoop();
         break;

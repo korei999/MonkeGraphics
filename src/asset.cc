@@ -40,7 +40,7 @@ loadBMP([[maybe_unused]] const String svPath, const String sFile)
     Image img = reader.getImage();
 
     img = img.cloneToRGBA(&nObj.m_arena);
-    if (app::g_eWindowType != app::WINDOW_TYPE::WAYLAND)
+    if (app::g_eWindowType != app::WINDOW_TYPE::WAYLAND_SHM)
         img.swapRedBlue();
 
     nObj.m_uData.img = img;

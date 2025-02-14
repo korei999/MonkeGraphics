@@ -110,7 +110,7 @@ Reader::getImage()
                 .m_uData {.pRGB = reinterpret_cast<ImagePixelRGB*>(&m_sBMP[m_header.offset])},
                 .m_width = static_cast<i16>(m_bmInfoHeader.width),
                 .m_height = static_cast<i16>(m_bmInfoHeader.height),
-                .m_eType = IMAGE_TYPE::RGB,
+                .m_eType = Image::TYPE::RGB,
             };
         }
         break;
@@ -121,7 +121,7 @@ Reader::getImage()
                 .m_uData {.pRGBA = reinterpret_cast<ImagePixelRGBA*>(&m_sBMP[m_header.offset])},
                 .m_width = static_cast<i16>(m_bmInfoHeader.width),
                 .m_height = static_cast<i16>(m_bmInfoHeader.height),
-                .m_eType = IMAGE_TYPE::RGBA,
+                .m_eType = Image::TYPE::RGBA,
             };
         }
         break;

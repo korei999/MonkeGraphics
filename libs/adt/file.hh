@@ -51,10 +51,23 @@ getPathEnding(String sPath)
 inline String
 replacePathEnding(IAllocator* pAlloc, String sPath, String sEnding)
 {
+    ADT_ASSERT(pAlloc != nullptr, " ");
+
     ssize lastSlash = sPath.lastOf('/');
     String sNoEnding = {&sPath[0], lastSlash + 1};
     String r = StringCat(pAlloc, sNoEnding, sEnding);
     return r;
+}
+
+inline void
+replacePathEnding(Span<char>* pSpBuff, String sPath, String sEnding)
+{
+    ADT_ASSERT(pSpBuff != nullptr, " ");
+
+    ssize lastSlash = sPath.lastOf('/');
+    String sNoEnding = {&sPath[0], lastSlash + 1};
+    ssize n = print::toSpan(*pSpBuff, "{}{}", sNoEnding, sEnding);
+    pSpBuff->m_size = n;
 }
 
 } /* namespace file */

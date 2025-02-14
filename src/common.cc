@@ -1,4 +1,5 @@
 #include "common.hh"
+
 #include "frame.hh"
 
 using namespace adt;

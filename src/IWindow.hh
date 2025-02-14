@@ -36,13 +36,6 @@ struct IWindow
     adt::f32 m_relMotionX {};
     adt::f32 m_relMotionY {};
 
-    void (*m_pfnUpdateCB)(void*) {};
-    void* m_pDrawArg {};
-
-#ifdef OPT_SW
-    adt::VecBase<adt::f32> m_vDepthBuffer {};
-#endif
-
     /* */
 
     IWindow() = default;
@@ -70,6 +63,12 @@ struct IWindow
     virtual void unbindContext() = 0;
 
 #ifdef OPT_SW
+    void (*m_pfnUpdateCB)(void*) {};
+    void* m_pDrawArg {};
+    adt::VecBase<adt::f32> m_vDepthBuffer {};
+
+    /* */
+
     virtual adt::Span2D<ImagePixelRGBA> surfaceBuffer() = 0;
     virtual void scheduleFrame() = 0;
 

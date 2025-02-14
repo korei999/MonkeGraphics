@@ -38,7 +38,7 @@ allocWindow(IAllocator* pAlloc, const char* ntsName)
         default: break;
 
 #ifdef __linux__
-        case WINDOW_TYPE::WAYLAND:
+        case WINDOW_TYPE::WAYLAND_SHM:
         return pAlloc->alloc<platform::wayland::Client>(pAlloc, ntsName);
 
     #if defined OPT_GL

@@ -27,6 +27,8 @@ struct Object
     adt::Arena m_arena {};
     adt::String m_sMappedWith {};
 
+    void* pExtraData {};
+
     /* */
 
     Object() = default;

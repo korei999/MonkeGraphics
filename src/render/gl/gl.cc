@@ -1,5 +1,6 @@
 #include "gl.hh"
 
+#include "app.hh"
 #include "asset.hh"
 #include "common.hh"
 #include "control.hh"
@@ -10,7 +11,8 @@
 #include "adt/Map.hh"
 #include "adt/OsAllocator.hh"
 #include "adt/logs.hh"
-#include "app.hh"
+#include "adt/ScratchBuffer.hh"
+#include "adt/file.hh"
 
 using namespace adt;
 
@@ -25,18 +27,35 @@ struct PrimitiveData
     GLuint ebo {};
 };
 
+static void loadShaders();
+static void loadAssetObjects();
+
 Pool<Shader, 128> g_aShaders(adt::INIT);
 static Map<String, PoolHnd> s_mapStringToShaders(OsAllocatorGet(), g_aShaders.getCap());
+
+static u8 s_aScratchMem[SIZE_8K] {};
+static ScratchBuffer s_scratch(s_aScratchMem);
 
 static const ShaderMapping s_aShadersToLoad[] {
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"},
     {shaders::glsl::ntsSimpleColorVert, shaders::glsl::ntsSimpleColorFrag, "SimpleColor"},
+    {shaders::glsl::ntsSimpleTextureVert, shaders::glsl::ntsSimpleTextureFrag, "SimpleTexture"},
 };
 
 void
 Renderer::init()
 {
-    gl::init();
+#ifndef NDEBUG
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageCallbackARB(gl::debugCallback, app::g_pWindow);
+#endif
+
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+
     loadShaders();
     loadAssetObjects();
 };
@@ -54,6 +73,8 @@ drawGLTFNode(gltf::Model* pModel, gltf::Node* pNode, math::M4 trm)
         drawGLTFNode(pModel, &childNode, trm);
     }
 
+    auto* pModelObj = reinterpret_cast<asset::Object*>(pModel);
+
     if (pNode->meshI != -1)
     {
         auto& mesh = pModel->m_vMeshes[pNode->meshI];
@@ -63,6 +84,8 @@ drawGLTFNode(gltf::Model* pModel, gltf::Node* pNode, math::M4 trm)
             if (primitive.indicesI != -1)
                 accIndices = pModel->m_vAccessors[primitive.indicesI];
 
+            Shader* pSh {};
+
             /* TODO: there might be any number of TEXCOORD_*,
              * which would be specified in baseColorTexture.texCoord.
              * But current gltf parser only reads the 0th. */
@@ -70,15 +93,46 @@ drawGLTFNode(gltf::Model* pModel, gltf::Node* pNode, math::M4 trm)
             if (primitive.attributes.TEXCOORD_0 != -1)
                 accUV = pModel->m_vAccessors[primitive.attributes.TEXCOORD_0];
 
-            Shader* pSh = searchShader("SimpleColor");
-            pSh->use();
-            pSh->setM4("u_trm", trm);
-
             if (primitive.materialI != -1)
             {
                 auto& mat = pModel->m_vMaterials[primitive.materialI];
-                pSh->setV4("u_color", mat.pbrMetallicRoughness.baseColorFactor);
+
+                if (mat.pbrMetallicRoughness.baseColorTexture.index != -1)
+                {
+                    auto& tex = pModel->m_vTextures[mat.pbrMetallicRoughness.baseColorTexture.index];
+                    auto& img = pModel->m_vImages[tex.sourceI];
+
+                    Span sp = s_scratch.nextMemZero<char>(img.sUri.getSize() + 300);
+                    file::replacePathEnding(&sp, pModelObj->m_sMappedWith, img.sUri);
+
+                    auto* pObj = asset::search({sp.data(), sp.getSize()}, asset::Object::TYPE::IMAGE);
+                    auto* pTex = reinterpret_cast<Texture*>(pObj->pExtraData);
+
+                    if (pTex)
+                    {
+                        pSh = searchShader("SimpleTexture");
+                        pSh->use();
+                        pTex->bind(GL_TEXTURE0);
+                    }
+                    else goto defaultShader;
+                }
+                else
+                {
+                    pSh = searchShader("SimpleColor");
+                    pSh->use();
+                    pSh->setV4("u_color", mat.pbrMetallicRoughness.baseColorFactor);
+                }
             }
+            else
+            {
+defaultShader:
+                pSh = searchShader("SimpleColor");
+                pSh->use();
+                pSh->setV4("u_color", V4From(colors::get(colors::IDX::CYAN), 1.0f));
+            }
+
+            if (pSh)
+                pSh->setM4("u_trm", trm);
 
             auto* pPrimitiveData = reinterpret_cast<PrimitiveData*>(primitive.extras.pData);
             if (pPrimitiveData)
@@ -158,8 +212,8 @@ ShaderMapping::ShaderMapping(const String svVert, const String svFrag, const Str
 Texture::Texture(int width, int height)
     : m_width(width), m_height(height)
 {
-    glGenTextures(1, &m_texture);
-    glBindTexture(GL_TEXTURE_2D, m_texture);
+    glGenTextures(1, &m_id);
+    glBindTexture(GL_TEXTURE_2D, m_id);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -368,21 +422,6 @@ searchShader(const adt::String svKey)
 }
 
 void
-init()
-{
-#ifndef NDEBUG
-    glEnable(GL_DEBUG_OUTPUT);
-    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    glDebugMessageCallbackARB(gl::debugCallback, app::g_pWindow);
-#endif
-
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-}
-
-void
 loadShaders()
 {
     for (const auto& shader : s_aShadersToLoad)
@@ -441,6 +480,14 @@ loadImage(Image* pImage)
         LOG_WARN("pImage: {}\n", pImage);
         return;
     }
+
+    auto& obj = *reinterpret_cast<asset::Object*>(pImage);
+
+    LOG_GOOD("loading image '{}'...\n", obj.m_sMappedWith);
+
+    auto tex = Texture(pImage->m_width, pImage->m_height);
+    tex.subImage(pImage->getSpanARGB());
+    obj.pExtraData = obj.m_arena.alloc<Texture>(tex);
 }
 
 static void

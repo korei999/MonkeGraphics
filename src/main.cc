@@ -42,7 +42,7 @@ parseArgs(int argc, char** argv)
         {
             if (svArg == "--wayland-shm")
             {
-                app::g_eWindowType = app::WINDOW_TYPE::WAYLAND;
+                app::g_eWindowType = app::WINDOW_TYPE::WAYLAND_SHM;
                 app::g_eRendererType = app::RENDERER_TYPE::SW;
             }
             else if (svArg == "--wayland-gl")
