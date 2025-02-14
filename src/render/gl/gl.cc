@@ -105,7 +105,7 @@ drawGLTFNode(gltf::Model* pModel, gltf::Node* pNode, math::M4 trm)
                     Span sp = s_scratch.nextMemZero<char>(img.sUri.getSize() + 300);
                     file::replacePathEnding(&sp, pModelObj->m_sMappedWith, img.sUri);
 
-                    auto* pObj = asset::search({sp.data(), sp.getSize()}, asset::Object::TYPE::IMAGE);
+                    auto* pObj = asset::search(sp, asset::Object::TYPE::IMAGE);
                     auto* pTex = reinterpret_cast<Texture*>(pObj->pExtraData);
 
                     if (pTex)

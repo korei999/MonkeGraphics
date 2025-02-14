@@ -2,6 +2,7 @@
 
 #include "IAllocator.hh"
 #include "hash.hh"
+#include "Span.hh"
 
 #include <cstring>
 #include <cstdlib>
@@ -54,6 +55,9 @@ struct String
 
     constexpr String(char* pStr, ssize len)
         : m_pData(pStr), m_size(len) {}
+
+    constexpr String(Span<char> sp)
+        : String(sp.data(), sp.getSize()) {}
 
     /* */
 

@@ -2,8 +2,6 @@
 
 #include "types.hh"
 
-#include <cassert>
-
 namespace adt
 {
 
