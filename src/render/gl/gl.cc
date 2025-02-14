@@ -30,10 +30,10 @@ struct PrimitiveData
 static void loadShaders();
 static void loadAssetObjects();
 
-Pool<Shader, 128> g_aShaders(adt::INIT);
+Pool<Shader, 128> g_aShaders(INIT);
 static Map<String, PoolHnd> s_mapStringToShaders(OsAllocatorGet(), g_aShaders.getCap());
 
-static u8 s_aScratchMem[SIZE_8K] {};
+static u8 s_aScratchMem[SIZE_1K] {};
 static ScratchBuffer s_scratch(s_aScratchMem);
 
 static const ShaderMapping s_aShadersToLoad[] {

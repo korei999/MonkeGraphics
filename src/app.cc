@@ -53,7 +53,7 @@ allocWindow(IAllocator* pAlloc, const char* ntsName)
 #endif
     }
 
-    return nullptr;
+    throw RuntimeException("failed to create a window");
 }
 
 render::IRenderer*
@@ -74,7 +74,7 @@ allocRenderer(IAllocator* pAlloc)
 #endif
     }
 
-    return nullptr;
+    throw RuntimeException("failed to create a renderer");
 }
 
 } /* namespace app */;

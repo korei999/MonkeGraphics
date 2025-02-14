@@ -32,7 +32,7 @@ struct Pool
 
     /* */
 
-    Pool() = default;
+    ADT_WARN_INIT Pool() = default;
     Pool(INIT_FLAG) : m_mtx(MUTEX_TYPE::PLAIN) {}
 
     /* */

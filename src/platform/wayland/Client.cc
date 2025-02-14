@@ -96,34 +96,28 @@ Client::Client(adt::IAllocator* pAlloc, const char* ntsName)
     : IWindow(pAlloc, ntsName)
 {
     m_pDisplay = wl_display_connect(nullptr);
-    if (!m_pDisplay)
-        throw RuntimeException("wl_display_connect() failed");
+    ADT_ASSERT_ALWAYS(m_pDisplay, "wl_display_connect() failed");
 
     m_pRegistry = wl_display_get_registry(m_pDisplay);
-    if (!m_pRegistry)
-        throw RuntimeException("wl_display_get_registry() failed");
+    ADT_ASSERT_ALWAYS(m_pRegistry, "wl_display_get_registry() failed");
 
     wl_registry_add_listener(m_pRegistry, &s_registryListener, this);
     /* proc all the interfaces */
     wl_display_roundtrip(m_pDisplay);
 
     m_pSurface = wl_compositor_create_surface(m_pCompositor);
-    if (!m_pSurface)
-        throw RuntimeException("wl_compositor_create_surface() failed");
+    ADT_ASSERT_ALWAYS(m_pSurface, "wl_compositor_create_surface() failed");
 
     m_pViewport = wp_viewporter_get_viewport(m_pViewporter, m_pSurface);
-    if (!m_pViewport)
-        throw RuntimeException("wp_viewporter_get_viewport() failed");
+    ADT_ASSERT_ALWAYS(m_pViewport, "wp_viewporter_get_viewport() failed");
 
     m_pXdgSurface = xdg_wm_base_get_xdg_surface(m_pXdgWmBase, m_pSurface);
-    if (!m_pXdgSurface)
-        throw RuntimeException("xdg_wm_base_get_xdg_surface() failed");
+    ADT_ASSERT_ALWAYS(m_pXdgSurface, "xdg_wm_base_get_xdg_surface() failed");
 
     xdg_surface_add_listener(m_pXdgSurface, &s_xdgSurfaceListerer, this);
 
     m_pXdgToplevel = xdg_surface_get_toplevel(m_pXdgSurface);
-    if (!m_pXdgToplevel)
-        throw RuntimeException("xdg_surface_get_toplevel() failed");
+    ADT_ASSERT_ALWAYS(m_pXdgToplevel, "xdg_surface_get_toplevel() failed");
 
     xdg_toplevel_add_listener(m_pXdgToplevel, &s_xdgTopLevelListener, this);
     xdg_toplevel_set_title(m_pXdgToplevel, m_ntsName);
@@ -135,8 +129,7 @@ Client::Client(adt::IAllocator* pAlloc, const char* ntsName)
         ;
 
     m_pRelPointer = zwp_relative_pointer_manager_v1_get_relative_pointer(m_pRelPointerMgr, m_pPointer);
-    if (!m_pRelPointer)
-        throw RuntimeException("zwp_relative_pointer_manager_v1_get_relative_pointer() failed");
+    ADT_ASSERT_ALWAYS(m_pRelPointer, "zwp_relative_pointer_manager_v1_get_relative_pointer() failed");
 
     zwp_relative_pointer_v1_add_listener(m_pRelPointer, &s_relativePointerListener, this);
 
@@ -243,8 +236,8 @@ Client::swapBuffers()
 void
 Client::procEvents()
 {
-    if (wl_display_dispatch(m_pDisplay) == -1)
-        throw RuntimeException("wl_display_dispatch() failed");
+    int ok = wl_display_dispatch(m_pDisplay);
+    ADT_ASSERT_ALWAYS(ok != -1, "wl_display_dispatch() failed");
 }
 
 void
@@ -380,14 +373,12 @@ Client::global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, 
     else if (svInterface == zwp_relative_pointer_manager_v1_interface.name)
     {
         m_pRelPointerMgr = static_cast<zwp_relative_pointer_manager_v1*>(wl_registry_bind(pRegistry, name, &zwp_relative_pointer_manager_v1_interface, version));
-        if (!m_pRelPointerMgr)
-            throw RuntimeException("failed to bind `zwp_relative_pointer_manager_v1_interface`");
+        ADT_ASSERT_ALWAYS(m_pRelPointerMgr, "failed to bind `zwp_relative_pointer_manager_v1_interface`");
     }
     else if (svInterface == zwp_pointer_constraints_v1_interface.name)
     {
         m_pPointerConstraints = static_cast<zwp_pointer_constraints_v1*>(wl_registry_bind(pRegistry, name, &zwp_pointer_constraints_v1_interface, version));
-        if (!m_pPointerConstraints)
-            throw RuntimeException("failed to bind `zwp_pointer_constraints_v1_interface`");
+        ADT_ASSERT_ALWAYS(m_pPointerConstraints, "failed to bind `zwp_pointer_constraints_v1_interface`");
     }
 }
 
@@ -581,16 +572,13 @@ Client::initShm()
     int fd = shm::allocFile(shmPoolSize);
     m_pPoolData = static_cast<u8*>(mmap(nullptr, shmPoolSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
     m_poolSize = shmPoolSize;
-    if (!m_pPoolData)
-        throw RuntimeException("mmap() failed");
+    ADT_ASSERT_ALWAYS(m_pPoolData, "mmap() failed");
 
     m_pShmPool = wl_shm_create_pool(m_pShm, fd, shmPoolSize);
-    if (!m_pShmPool)
-        throw RuntimeException("wl_shm_create_pool() failed");
+    ADT_ASSERT_ALWAYS(m_pShmPool, "wl_shm_create_pool() failed");
 
     m_pBuffer = wl_shm_pool_create_buffer(m_pShmPool, 0, m_width, m_height, stride, WL_SHM_FORMAT_ARGB8888);
-    if (!m_pBuffer)
-        throw RuntimeException("wl_shm_pool_create_buffer() failed");
+    ADT_ASSERT_ALWAYS(m_pBuffer, "wl_shm_pool_create_buffer() failed");
 
 #ifdef OPT_SW
     m_vTempBuff.setSize(m_pAlloc, surfaceBuffer().getStride());

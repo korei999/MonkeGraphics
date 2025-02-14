@@ -77,16 +77,16 @@ procKeybinds(Arr<bool, MAX_KEYBINDS>* paPressOnceMap, const Arr<Keybind, MAX_KEY
             }
             else
             {
-                if (!(*paPressOnceMap)[idx])
+                if (!paPressOnceMap->operator[](idx))
                 {
-                    (*paPressOnceMap)[idx] = true;
+                    paPressOnceMap->operator[](idx) = true;
                     com.pfn();
                 }
             }
         }
         else
         {
-            (*paPressOnceMap)[idx] = false;
+            paPressOnceMap->operator[](idx) = false;
         }
     }
 }

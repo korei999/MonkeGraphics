@@ -183,6 +183,7 @@ copy(T* pDest, const T* const pSrc, ssize size)
     memcpy(pDest, pSrc, size * sizeof(T));
 }
 
+/* typed memmove (don't mistake for std::move) */
 template<typename T>
 inline void
 move(T* pDest, const T* const pSrc, ssize size)

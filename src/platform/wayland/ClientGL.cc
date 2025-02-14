@@ -1,7 +1,6 @@
 #include "ClientGL.hh"
 
-#include "adt/OsAllocator.hh"
-#include "adt/defer.hh"
+#include "adt/Arr.hh"
 #include "adt/logs.hh"
 
 #include <EGL/eglext.h>
@@ -99,6 +98,8 @@ ClientGL::initGL()
 
     LOG_OK("egl: major: {}, minor: {}\n", major, minor);
 
+    constexpr ssize MAX_COUNT = 100;
+
     EGLint count;
     EGLD( eglGetConfigs(m_eglDisplay, nullptr, 0, &count) );
 
@@ -121,15 +122,14 @@ ClientGL::initGL()
     };
 
     EGLint n = 0;
-    Vec<EGLConfig> configs(OsAllocatorGet(), count);
-    defer( configs.destroy() );
-    configs.setSize(count);
+    Arr<EGLConfig, MAX_COUNT> aConfigs {};
+    ssize maxCount = utils::min(MAX_COUNT, static_cast<ssize>(count));
+    aConfigs.setSize(maxCount);
 
-    EGLD( eglChooseConfig(m_eglDisplay, configAttribs, configs.data(), count, &n) );
-    if (n == 0)
-        LOG_FATAL("Failed to choose an EGL config\n");
+    EGLD( eglChooseConfig(m_eglDisplay, configAttribs, aConfigs.data(), maxCount, &n) );
+    ADT_ASSERT_ALWAYS(n != 0, "Failed to choose an EGL config\n");
 
-    EGLConfig eglConfig = configs[0];
+    EGLConfig eglConfig = aConfigs[0];
 
     EGLint contextAttribs[] {
         // EGL_CONTEXT_CLIENT_VERSION, 3,

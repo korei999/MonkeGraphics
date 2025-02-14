@@ -75,6 +75,10 @@ using null = decltype(nullptr);
 using INIT_FLAG = bool;
 constexpr INIT_FLAG INIT = true;
 
+#define ADT_WARN_INIT [[deprecated("warning: should be initialized with (INIT)")]]
+#define ADT_WARN_DONT_USE [[deprecated("warning: don't use!")]]
+#define ADT_WARN_IMPOSSIBLE_OPERATION [[deprecated("warning: imposibble operation")]]
+
 #if defined __clang__ || __GNUC__
     #define ADT_NO_UB __attribute__((no_sanitize("undefined")))
     #define ADT_LOGS_FILE __FILE_NAME__

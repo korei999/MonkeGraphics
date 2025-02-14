@@ -23,6 +23,8 @@ constexpr ssize SIZE_8M = SIZE_1M * 8;
 constexpr ssize SIZE_1G = SIZE_1M * SIZE_1K;
 constexpr ssize SIZE_8G = SIZE_1G * 8;
 
+#define ADT_WARN_LEAK [[deprecated("warning: memory leak")]]
+
 struct IAllocator
 {
     template<typename T, typename ...ARGS> requires(std::is_constructible_v<T, ARGS...>)
