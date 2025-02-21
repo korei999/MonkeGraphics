@@ -5,7 +5,7 @@
 namespace adt
 {
 
-/* Span with byteStride. */
+/* Span with byteStride. byteStride of Zero means tightly packed. */
 template<typename T>
 struct View
 {
@@ -25,12 +25,12 @@ struct View
 
     ssize getSize() const { return m_size; }
     ssize getStride() const { return m_byteStride; }
-    ssize idx(const T* pElement);
-    u8* u8Data() { return (u8*)(m_pData); }
-    const u8* u8Data() const { return (const u8*)(m_pData); }
+    ssize idx(const T* pElement) const; /* NOTE: requires division (slow), for i loops should be preferred instead. */
 
 private:
     T& at(ssize i) const;
+    u8* u8Data() { return (u8*)(m_pData); }
+    const u8* u8Data() const { return (const u8*)(m_pData); }
 
     /* */
 public:
@@ -42,7 +42,7 @@ public:
 
         /* */
 
-        It(const View* _self, ssize _i) : pView(const_cast<View*>(_self)), i(_i) {}
+        It(const View* self, ssize _i) : pView(const_cast<View*>(self)), i(_i) {}
 
         /* */
 
@@ -71,9 +71,11 @@ public:
 
 template<typename T>
 View<T>::View(const T* pData, ssize size, ssize stride)
-    : m_pData(const_cast<T*>(pData)), m_size(size), m_byteStride(stride)
+    : m_pData(const_cast<T*>(pData)), m_size(size)
 {
-    ADT_ASSERT(m_byteStride > 0, " ");
+    if (stride == 0)
+        m_byteStride = (sizeof(T));
+    else m_byteStride = stride;
 }
 
 template<typename T>
@@ -89,7 +91,7 @@ View<T>::at(ssize i) const
 
 template<typename T>
 inline ssize
-View<T>::idx(const T* pElement)
+View<T>::idx(const T* pElement) const
 {
     auto* p = reinterpret_cast<const u8*>(pElement);
     pdiff absIdx = p - u8Data();

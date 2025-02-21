@@ -61,7 +61,7 @@ formatToContext(Context ctx, FormatArgs, const asset::Object::TYPE e)
     ctx.fmt = "{}";
     ctx.fmtIdx = 0;
     
-    const StringView asMap[] {
+    constexpr StringView asMap[] {
         "NONE", "IMAGE", "MODEL"
     };
 

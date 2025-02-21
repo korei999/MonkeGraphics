@@ -98,7 +98,7 @@ struct MapBase
 
     [[nodiscard]] ssize nextI(ssize i) const;
 
-    [[nodiscard]] f32 loadFactor() const;
+    [[nodiscard]] f32 getLoadFactor() const;
 
     MapResult<K, V> insert(IAllocator* p, const K& key, const V& val);
 
@@ -210,7 +210,7 @@ MapBase<K, V, FN_HASH>::nextI(ssize i) const
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline f32
-MapBase<K, V, FN_HASH>::loadFactor() const
+MapBase<K, V, FN_HASH>::getLoadFactor() const
 {
     return f32(m_nOccupied) / f32(m_aBuckets.getCap());
 }
@@ -221,7 +221,7 @@ MapBase<K, V, FN_HASH>::insert(IAllocator* p, const K& key, const V& val)
 {
     if (m_aBuckets.getCap() == 0)
         *this = {p};
-    else if (loadFactor() >= m_maxLoadFactor)
+    else if (getLoadFactor() >= m_maxLoadFactor)
         rehash(p, m_aBuckets.getCap() * 2);
 
     usize keyHash = FN_HASH(key);
@@ -236,7 +236,7 @@ MapBase<K, V, FN_HASH>::emplace(IAllocator* p, const K& key, ARGS&&... args)
 {
     if (m_aBuckets.getCap() == 0)
         *this = {p};
-    else if (loadFactor() >= m_maxLoadFactor)
+    else if (getLoadFactor() >= m_maxLoadFactor)
         rehash(p, m_aBuckets.getCap() * 2);
 
     usize keyHash = FN_HASH(key);
@@ -483,7 +483,7 @@ struct Map
 
     [[nodiscard]] ssize nextI(ssize i) const { return base.nextI(i); }
 
-    [[nodiscard]] f32 loadFactor() const { return base.loadFactor(); }
+    [[nodiscard]] f32 getLoadFactor() const { return base.getLoadFactor(); }
 
     MapResult<K, V> insert(const K& key, const V& val) { return base.insert(m_pAlloc, key, val); }
 

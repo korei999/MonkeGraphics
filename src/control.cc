@@ -31,20 +31,20 @@ bool g_abPressed[MAX_KEY_VALUE] {};
 MOD_STATE g_ePressedMods {};
 
 Arr<Keybind, MAX_KEYBINDS> g_aKeybinds {
-    {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_F,        toggleFullscreen     },
-    {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_R,        toggleRelativePointer},
-    {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_V,        toggleVSync          },
-    {REPEAT::ONCE,       EXEC_ON::RELEASE, MOD_STATE::NONE,  KEY_Q,        quit                 },
-    {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_ESC,      quit                 },
+    {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_F,        toggleFullscreen     },
+    {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_R,        toggleRelativePointer},
+    {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_V,        toggleVSync          },
+    {REPEAT::ONCE,       EXEC_ON::RELEASE, MOD_STATE::ANY,   KEY_Q,        quit                 },
+    {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_ESC,      quit                 },
 
-    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_W,        cameraForward        },
+    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_W,        cameraForward        },
     {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::SHIFT, 0,            cameraBoost          },
     {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::ALT,   0,            cameraDeboost        },
-    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_S,        cameraBack           },
-    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_A,        cameraLeft           },
-    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_D,        cameraRight          },
-    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_SPACE,    cameraUp             },
-    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::NONE,  KEY_LEFTCTRL, cameraDown           },
+    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_S,        cameraBack           },
+    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_A,        cameraLeft           },
+    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_D,        cameraRight          },
+    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_SPACE,    cameraUp             },
+    {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_LEFTCTRL, cameraDown           },
 };
 
 static void
@@ -60,13 +60,13 @@ procKeybinds(Arr<bool, MAX_KEYBINDS>* paPressOnceMap, const Arr<Keybind, MAX_KEY
         if (com.eExecOn == EXEC_ON::PRESS)
         {
             bKey = com.key == 0 ? true : g_abPressed[com.key];
-            bMod = com.eMod == MOD_STATE::NONE ? true : static_cast<bool>(com.eMod & g_ePressedMods);
+            bMod = com.eMod == MOD_STATE::ANY ? true : !!(com.eMod & g_ePressedMods);
         }
         else
         {
             bKey = g_abPrevPressed[com.key] && !g_abPressed[com.key];
             /* NOTE: not using `ePrevMods` */
-            bMod = com.eMod == MOD_STATE::NONE ? true : com.eMod == g_ePressedMods;
+            bMod = com.eMod == MOD_STATE::ANY ? true : com.eMod == g_ePressedMods;
         }
 
         if (bKey && bMod)

@@ -1,6 +1,5 @@
 #include "gl.hh"
 
-#include "adt/ReverseIt.hh"
 #include "app.hh"
 #include "Model.hh"
 #include "asset.hh"
@@ -49,6 +48,7 @@ static const ShaderMapping s_aShadersToLoad[] {
     {shaders::glsl::ntsSimpleColorVert, shaders::glsl::ntsSimpleColorFrag, "SimpleColor"},
     {shaders::glsl::ntsSimpleTextureVert, shaders::glsl::ntsSimpleTextureFrag, "SimpleTexture"},
     {shaders::glsl::ntsSkinTestVert, shaders::glsl::ntsSimpleColorFrag, "SkinTest"},
+    {shaders::glsl::ntsSkinTestVert, shaders::glsl::ntsInterpolatedColorFrag, "SkinTestColors"},
 };
 
 void
@@ -68,6 +68,8 @@ Renderer::init()
     glDisable(GL_CULL_FACE);
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+
+    /*glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);*/
 
     loadShaders();
     loadAssetObjects();
@@ -98,8 +100,6 @@ drawGLTFNode(Model* pModel, const gltf::Node& node, math::M4 globalTrm)
         auto& mesh = gltfModel.m_vMeshes[node.meshI];
         for (const auto& primitive : mesh.vPrimitives)
         {
-            const gltf::Accessor& accIndices = gltfModel.m_vAccessors[primitive.indicesI];
-
             Shader* pSh {};
 
             /* TODO: there might be any number of TEXCOORD_*,
@@ -113,7 +113,8 @@ drawGLTFNode(Model* pModel, const gltf::Node& node, math::M4 globalTrm)
             {
                 ADT_ASSERT(primitive.attributes.WEIGHTS_0 != -1, "must have");
 
-                pSh = searchShader("SkinTest");
+                /*pSh = searchShader("SkinTest");*/
+                pSh = searchShader("SkinTestColors");
                 ADT_ASSERT(pSh != nullptr, " ");
                 pSh->use();
                 pSh->setM4("u_view", trmView);
@@ -122,7 +123,7 @@ drawGLTFNode(Model* pModel, const gltf::Node& node, math::M4 globalTrm)
                 const auto& vTrms = pModel->m_vJointsTrms;
                 /*LOG_BAD("size: {}, {}\n", vTrms.getSize(), vTrms);*/
                 pSh->setM4("u_a2TrmJoints", {const_cast<M4*>(vTrms.data()), vTrms.getSize()});
-                pSh->setV4("u_color", {0.0f, 1.0f, 1.0f, 1.0f});
+                /*pSh->setV4("u_color", {0.0f, 1.0f, 1.0f, 1.0f});*/
             }
             else if (primitive.materialI != -1)
             {
@@ -170,6 +171,8 @@ defaultShader:
 
             if (primitive.indicesI != -1)
             {
+                const gltf::Accessor& accIndices = gltfModel.m_vAccessors[primitive.indicesI];
+
                 glDrawElements(
                     static_cast<GLenum>(primitive.eMode),
                     accIndices.count,
@@ -193,8 +196,11 @@ drawGLTF(Model* pModel, math::M4 trm)
     auto& scene = gltfModel.m_vScenes[gltfModel.m_defaultScene.nodeI];
 
     pModel->updateAnimations();
-    pModel->updateGlobalTransforms(0, trm);
-    pModel->updateJointTransforms();
+    if (!pModel->m_vJoints.empty())
+    {
+        pModel->updateGlobalTransforms(pModel->m_rootJointI, trm);
+        pModel->updateJointTransforms();
+    }
 
     for (auto& nodeI : scene.vNodes)
         drawGLTFNode(pModel, gltfModel.m_vNodes[nodeI], trm);
@@ -538,7 +544,8 @@ bufferViewConvert(
 {
     ADT_ASSERT(pVbo != nullptr, " ");
 
-    Span<B> spB = s_scratch.nextMem<B>(accessorCount);
+    Span<B> spB(OsAllocatorGet()->zallocV<B>(accessorCount), accessorCount);
+    defer( OsAllocatorGet()->free(spB.data()) );
     ADT_ASSERT(spB.getSize() == accessorCount, "sp.size: %lld, acc.count: %d", spB.getSize(), accessorCount);
 
     ssize maxSize = utils::min(spB.getSize(), spA.getSize());
@@ -548,10 +555,10 @@ bufferViewConvert(
         spB[spI] = B(elementA);
     }
 
-    LOG_GOOD("spB:\n");
-    for (const auto& e : spB)
-        CERR("#{}: [{}]\n", spB.idx(&e), e);
-    CERR("\n");
+    // LOG_GOOD("spB:\n");
+    // for (const auto& e : spB)
+    //     CERR("#{}: [{}]\n", spB.idx(&e), e);
+    // CERR("\n");
 
     glGenBuffers(1, pVbo);
     glBindBuffer(GL_ARRAY_BUFFER, *pVbo);
@@ -699,7 +706,15 @@ loadGLTF(gltf::Model* pModel)
 
                         case gltf::COMPONENT_TYPE::UNSIGNED_BYTE:
                         {
-                            ADT_ASSERT(false, "IMPLEMENT\n");
+                            View<math::IV4u8> vwU8(
+                                reinterpret_cast<const math::IV4u8*>(&buffJoints.sBin[accJoints.byteOffset + viewJoints.byteOffset]),
+                                accJoints.count,
+                                viewJoints.byteStride
+                            );
+
+                            bufferViewConvert<math::IV4u8, math::V4>(
+                                vwU8, accJoints.count, shaders::glsl::JOINT_LOCATION, 4, GL_FLOAT, &newPrimitiveData.vboJoints
+                            );
                         }
                         break;
 

@@ -87,7 +87,7 @@ struct VecBase
 
     [[nodiscard]] VecBase<T> clone(IAllocator* pAlloc) const;
 
-    [[nodiscard]] bool contains(const T& x) const;
+    [[nodiscard]] bool search(const T& x) const;
 
     /* */
 
@@ -329,7 +329,7 @@ VecBase<T>::clone(IAllocator* pAlloc) const
 
 template<typename T>
 inline bool
-VecBase<T>::contains(const T& x) const
+VecBase<T>::search(const T& x) const
 {
     for (const auto& el : *this)
         if (el == x)
@@ -431,7 +431,7 @@ struct Vec
         return nVec;
     }
 
-    [[nodiscard]] bool contains(const T& x) const { return base.contains(x); }
+    [[nodiscard]] bool search(const T& x) const { return base.search(x); }
 
     /* */
 

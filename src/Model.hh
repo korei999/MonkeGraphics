@@ -21,11 +21,14 @@ struct Model
     /* */
 
     adt::Arena m_arena {};
-    adt::i16 m_modelAssetI {};
     adt::MapBase<int, int, adt::hash::dumbFunc> m_mapNodeIToJointI {};
     adt::VecBase<Joint> m_vJoints {};
     adt::VecBase<adt::math::M4> m_vJointsTrms {};
     adt::f64 m_time {};
+    adt::f64 m_globalMinTime {};
+    adt::f64 m_globalMaxTime {};
+    adt::i16 m_modelAssetI {};
+    adt::i16 m_rootJointI = -1;
 
     /* */
 

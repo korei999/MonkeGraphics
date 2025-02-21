@@ -24,6 +24,7 @@ static const StringView s_aAssetsToLoad[] {
     "assets/duck/Duck.gltf",
     "assets/BoxAnimated/BoxAnimated.gltf",
     "assets/SimpleSkin/glTF/SimpleSkin.gltf",
+    "assets/Fox/Fox.gltf",
 };
 
 void
@@ -35,23 +36,27 @@ loadStuff()
             LOG_BAD("failed to load: '{}'\n", sPath);
     }
 
-    // {
-    //     auto hTest = g_aEntites.makeDefault();
-    //     auto bind = g_aEntites[hTest];
+    {
+        auto hTest = g_poolEntites.makeDefault();
+        auto bind = g_poolEntites[hTest];
 
-    //     if (auto* pObj = asset::search("assets/BoxAnimated/BoxAnimated.gltf", asset::Object::TYPE::MODEL))
-    //     {
-    //         auto idx = asset::g_aObjects.idx(pObj);
-    //         bind.assetI = idx;
-    //     }
-    // }
+        if (auto* pObj = asset::search("assets/BoxAnimated/BoxAnimated.gltf", asset::Object::TYPE::MODEL))
+        {
+            auto idx = asset::g_poolObjects.idx(pObj);
+            bind.assetI = idx;
+
+            auto hModel = Model::makeHandle(bind.assetI);
+            bind.modelI = hModel.i;
+        }
+    }
 
     {
         auto hTest = g_poolEntites.makeDefault();
         auto bind = g_poolEntites[hTest];
 
         /*if (auto* pObj = asset::search("assets/BoxAnimated/BoxAnimated.gltf", asset::Object::TYPE::MODEL))*/
-        if (auto* pObj = asset::search("assets/SimpleSkin/glTF/SimpleSkin.gltf", asset::Object::TYPE::MODEL))
+        /*if (auto* pObj = asset::search("assets/SimpleSkin/glTF/SimpleSkin.gltf", asset::Object::TYPE::MODEL))*/
+        if (auto* pObj = asset::search("assets/Fox/Fox.gltf", asset::Object::TYPE::MODEL))
         {
             auto idx = asset::g_poolObjects.idx(pObj);
             bind.assetI = idx;
@@ -69,11 +74,11 @@ updateState(adt::Arena*)
 
     g_camera.updatePos();
 
-    // auto what = g_aEntites[{0}];
-    // what.pos = {std::sinf(frame::g_time) * 3.0f, 0.0f, std::cosf(frame::g_time) * 3.0f};
+    auto what = g_poolEntites[{0}];
+    what.pos = {std::sinf(frame::g_time) * 4.0f, 0.0f, std::cosf(frame::g_time) * 4.0f};
 
-    /*auto what1 = g_aEntites[{1}];*/
-    /*what1.pos = {std::cosf(frame::g_time) * 3.0f, 0.0f, std::sinf(frame::g_time) * 3.0f};*/
+    auto what1 = g_poolEntites[{1}];
+    what1.scale = {0.1f, 0.1f, 0.1f};
 
     // for (ssize i = 0; i < g_poolEntites.m_size; ++i)
     // {

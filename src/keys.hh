@@ -6,7 +6,7 @@
 /* wayland(xkb) codes */
 enum class MOD_STATE : adt::u8
 {
-    NONE = 0, 
+    ANY = 0, 
     SHIFT = 1,
     CTRL = 1 << 2,
     ALT = 1 << 3,

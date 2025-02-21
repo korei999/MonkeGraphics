@@ -65,7 +65,7 @@ main()
 )"
 ;
 
-static const char* ntsSimpleColorFrag = 
+static const char* ntsSimpleColorFrag =
 R"(/* ntsSimpleColorFrag */
 
 #version 300 es
@@ -135,9 +135,11 @@ layout(location = 0) in vec3 a_pos;
 layout(location = 2) in vec4 a_joint;
 layout(location = 3) in vec4 a_weight;
 
+out vec4 vs_pos;
+
 uniform mat4 u_view;
 uniform mat4 u_projection;
-uniform mat4 u_a2TrmJoints[2];
+uniform mat4 u_a2TrmJoints[100];
 
 void
 main()
@@ -149,7 +151,29 @@ main()
         a_weight.w * u_a2TrmJoints[int(a_joint.w)];
 
     vec4 worldPos = trmSkin * vec4(a_pos, 1.0);
+
     gl_Position = u_projection * u_view * worldPos;
+
+    vs_pos = vec4(a_pos, 1.0f);
+}
+)"
+;
+
+static const char* ntsInterpolatedColorFrag =
+R"(/* ntsInterpolatedColorFrag */
+
+#version 300 es
+
+precision mediump float;
+
+in vec4 vs_pos;
+
+out vec4 fs_fragColor;
+
+void
+main()
+{
+    fs_fragColor = vs_pos;
 }
 )"
 ;

@@ -154,6 +154,34 @@ union IV4
     }
 };
 
+union IV4u8
+{
+    u8 e[4];
+    struct { u8 x, y, z, w; };
+
+    /* */
+
+    constexpr explicit operator IV4() const
+    {
+        return {
+            static_cast<i32>(x),
+            static_cast<i32>(y),
+            static_cast<i32>(z),
+            static_cast<i32>(w)
+        };
+    }
+
+    constexpr explicit operator V4() const
+    {
+        return {
+            static_cast<f32>(x),
+            static_cast<f32>(y),
+            static_cast<f32>(z),
+            static_cast<f32>(w)
+        };
+    }
+};
+
 union IV4u16
 {
     u16 e[4];

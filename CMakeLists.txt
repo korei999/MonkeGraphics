@@ -26,6 +26,8 @@ endif()
 
 # add_compile_options(-ftime-trace)
 
+option(OPT_MIMALLOC "" OFF)
+
 option(OPT_SSE4_2 "" ON)
 option(OPT_AVX2 "" OFF)
 option(OPT_MARCH_NATIVE "" OFF)
@@ -177,6 +179,28 @@ add_executable(
 
     src/game/game.cc
 )
+
+if (OPT_MIMALLOC)
+    include(FetchContent)
+    FetchContent_Declare(
+        MIMALLOC
+        GIT_REPOSITORY https://github.com/microsoft/mimalloc.git
+        GIT_TAG dev3
+    )
+    FetchContent_MakeAvailable(MIMALLOC)
+    FetchContent_GetProperties(MIMALLOC
+        SOURCE_DIR MIMALLOC_SOURCE_DIR
+        BINARY_DIR MIMALLOC_BINARY_DIR
+    )
+    include_directories(${MIMALLOC_SOURCE_DIR}/include)
+    message(STATUS "MIMALLOC_SOURCE_DIR: '${MIMALLOC_SOURCE_DIR}'")
+
+    add_definitions("-DADT_USE_MIMALLOC")
+    # target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE mimalloc-static)
+    target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+        ${MIMALLOC_SOURCE_DIR}/src/static.c
+    )
+endif()
 
 if (OPT_SW)
     add_definitions("-DOPT_SW")
