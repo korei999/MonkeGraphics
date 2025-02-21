@@ -27,7 +27,7 @@ struct Window : public IWindow
     virtual void togglePointerRelativeMode() override;
     virtual void toggleFullscreen() override;
     virtual void hideCursor(bool bHide) override;
-    virtual void setCursorImage(adt::String cursorType) override;
+    virtual void setCursorImage(adt::StringView svCursorType) override;
     virtual void setFullscreen() override;
     virtual void unsetFullscreen() override;
     virtual void setSwapInterval(int interval) override;

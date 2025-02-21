@@ -385,7 +385,7 @@ Window::hideCursor(bool bHide)
 }
 
 void
-Window::setCursorImage(adt::String cursorType)
+Window::setCursorImage(adt::StringView svCursorType)
 {
 }
 
