@@ -57,11 +57,15 @@ public:
         friend constexpr bool operator!=(const It& l, const It& r) noexcept { return l.i != r.i; }
     };
 
-    It begin() noexcept { return {this, 0}; }
-    It end()   noexcept { return {this, m_size}; }
+    It begin()  noexcept { return {this, 0}; }
+    It end()    noexcept { return {this, m_size}; }
+    It rbegin() noexcept { return {this, m_size - 1}; }
+    It rend()   noexcept { return {this, NPOS}; }
 
-    const It begin() const noexcept { return {this, 0}; }
-    const It end()   const noexcept { return {this, m_size}; }
+    const It begin()  const noexcept { return {this, 0}; }
+    const It end()    const noexcept { return {this, m_size}; }
+    const It rbegin() const noexcept { return {this, m_size - 1}; }
+    const It rend()   const noexcept { return {this, NPOS}; }
 };
 
 

@@ -1,5 +1,6 @@
 #include "gl.hh"
 
+#include "adt/ReverseIt.hh"
 #include "app.hh"
 #include "Model.hh"
 #include "asset.hh"
@@ -704,14 +705,14 @@ loadGLTF(gltf::Model* pModel)
 
                         case gltf::COMPONENT_TYPE::UNSIGNED_SHORT:
                         {
-                            const View<math::IV4u16> viewU16(
+                            View<math::IV4u16> vwU16(
                                 reinterpret_cast<const math::IV4u16*>(&buffJoints.sBin[accJoints.byteOffset + viewJoints.byteOffset]),
                                 accJoints.count,
                                 viewJoints.byteStride
                             );
 
                             bufferViewConvert<math::IV4u16, math::V4>(
-                                viewU16, accJoints.count, shaders::glsl::JOINT_LOCATION, 4, GL_FLOAT, &newPrimitiveData.vboJoints
+                                vwU16, accJoints.count, shaders::glsl::JOINT_LOCATION, 4, GL_FLOAT, &newPrimitiveData.vboJoints
                             );
                         }
                         break;
@@ -740,28 +741,28 @@ loadGLTF(gltf::Model* pModel)
 
                         case gltf::COMPONENT_TYPE::UNSIGNED_SHORT:
                         {
-                            const View<math::IV4u16> spU16(
+                            const View<math::IV4u16> vwU16(
                                 reinterpret_cast<math::IV4u16*>(&buffWeights.sBin[accWeights.byteOffset + viewWeights.byteOffset]),
                                 accWeights.count,
                                 viewWeights.byteStride
                             );
 
                             bufferViewConvert<math::IV4u16, math::V4>(
-                                spU16, accWeights.count, shaders::glsl::WEIGHT_LOCATION, 4, GL_FLOAT, &newPrimitiveData.vboWeights
+                                vwU16, accWeights.count, shaders::glsl::WEIGHT_LOCATION, 4, GL_FLOAT, &newPrimitiveData.vboWeights
                             );
                         }
                         break;
 
                         case gltf::COMPONENT_TYPE::FLOAT:
                         {
-                            const View<math::V4> spV4(
+                            const View<math::V4> vwV4(
                                 reinterpret_cast<math::V4*>(&buffWeights.sBin[accWeights.byteOffset + viewWeights.byteOffset]),
                                 accWeights.count,
                                 viewWeights.byteStride
                             );
 
                             bufferViewConvert<math::V4, math::V4>(
-                                spV4, accWeights.count,
+                                vwV4, accWeights.count,
                                 shaders::glsl::WEIGHT_LOCATION, 4, static_cast<GLenum>(accWeights.eComponentType),
                                 &newPrimitiveData.vboWeights
                             );

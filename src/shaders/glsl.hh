@@ -150,12 +150,6 @@ main()
 
     vec4 worldPos = trmSkin * vec4(a_pos, 1.0);
     gl_Position = u_projection * u_view * worldPos;
-
-    // gl_Position = u_projection * u_view *
-    //     (u_a2TrmJoints[int(a_joint.x)] * vec4(a_pos, 1.0f) * a_weight.x +
-    //      u_a2TrmJoints[int(a_joint.y)] * vec4(a_pos, 1.0f) * a_weight.y +
-    //      u_a2TrmJoints[int(a_joint.z)] * vec4(a_pos, 1.0f) * a_weight.z +
-    //      u_a2TrmJoints[int(a_joint.w)] * vec4(a_pos, 1.0f) * a_weight.w);
 }
 )"
 ;
