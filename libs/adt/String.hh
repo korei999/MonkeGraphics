@@ -58,7 +58,7 @@ struct StringView
 
     /* */
 
-    constexpr operator bool() const { return getSize() > 0; }
+    explicit constexpr operator bool() const { return getSize() > 0; }
 
     /* */
 

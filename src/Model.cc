@@ -40,6 +40,18 @@ Model::Model(adt::i16 modelAssetI)
 
         auto& j = m_vJoints[jointI];
         j.parentI = -1;
+
+        const auto& node = model.m_vNodes[nodeI];
+        if (node.eTransformationType == gltf::Node::TRANSFORMATION_TYPE::ANIMATION)
+        {
+            j.translation = node.uTransformation.animation.translation;
+            j.rotation = node.uTransformation.animation.rotation;
+            j.scale = node.uTransformation.animation.scale;
+        }
+        else
+        {
+            j.bindTrm = node.uTransformation.matrix;
+        }
     }
 
     for (ssize parentNodeI = 0; parentNodeI < model.m_vNodes.getSize(); ++parentNodeI)

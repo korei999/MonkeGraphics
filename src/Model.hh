@@ -10,6 +10,7 @@ struct Model
     struct Joint
     {
         adt::math::M4 globalTrm = adt::math::M4Iden();
+        adt::math::M4 bindTrm = adt::math::M4Iden();
         adt::math::V3 translation {};
         adt::math::Qt rotation = adt::math::QtIden();
         adt::math::V3 scale {1.0f, 1.0f, 1.0f};

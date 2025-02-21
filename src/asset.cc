@@ -7,8 +7,6 @@
 #include "adt/file.hh"
 #include "adt/OsAllocator.hh"
 #include "adt/Pool.hh"
-#include "adt/Opt.hh"
-
 
 using namespace adt;
 
@@ -98,12 +96,10 @@ load(const adt::StringView svPath)
         return found.value();
     }
 
-    Opt<StringView> osFile = file::load(OsAllocatorGet(), svPath);
-    if (!osFile)
-        return {};
+    String sFile = file::load(OsAllocatorGet(), svPath);
+    if (!sFile) return {};
 
     /* WARNING: must clone sFile contents */
-    StringView sFile = osFile.value();
     defer( sFile.destroy(OsAllocatorGet()) );
 
     PoolHandle<Object> retHnd {};
