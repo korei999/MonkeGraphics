@@ -106,7 +106,6 @@ mainLoop()
             win.procEvents();
 
             refresh(&frameArena);
-            renderer.drawEntities(&frameArena);
 
             frameArena.shrinkToFirstBlock();
             frameArena.reset();
