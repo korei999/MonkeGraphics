@@ -30,6 +30,7 @@ Model::Model(adt::i16 modelAssetI)
     m_vJointsTrms.setSize(&m_arena, joints.getSize());
 
     for (auto& joint : m_vJoints) joint = {}; /* default init */
+    for (auto& trm : m_vJointsTrms) trm = math::M4Iden();
 
     for (ssize jointI = 0; jointI < joints.getSize(); ++jointI)
     {
@@ -39,7 +40,6 @@ Model::Model(adt::i16 modelAssetI)
 
         auto& j = m_vJoints[jointI];
         j.parentI = -1;
-        /* TODO: load local transforms */
     }
 
     for (ssize parentNodeI = 0; parentNodeI < model.m_vNodes.getSize(); ++parentNodeI)
@@ -78,11 +78,6 @@ Model::updateGlobalTransforms(adt::i16 jointI, const adt::math::M4& parentTrm)
          math::QtRot(joint.rotation) *
          math::M4ScaleFrom(joint.scale));
 
-    /*joint.globalTrm = parentTrm * */
-    /*    (math::M4ScaleFrom(joint.scale) **/
-    /*     math::QtRot(joint.rotation) **/
-    /*     math::M4TranslationFrom(joint.translation));*/
-
     for (int childI : joint.vChildren)
         updateGlobalTransforms(childI, joint.globalTrm);
 }
@@ -104,6 +99,8 @@ Model::updateAnimations()
         globalMaxTime = utils::max(globalMaxTime, static_cast<f64>(accTimeStamps.uMax.SCALAR));
     }
 
+    m_time = std::fmod(m_time + frame::g_frameTime, globalMaxTime);
+
     for (const auto& channel : animation.vChannels)
     {
         const auto& sampler = animation.vSamplers[channel.samplerI];
@@ -123,9 +120,7 @@ Model::updateAnimations()
 
             ADT_ASSERT(spTimeStamps.getSize() >= 2, " ");
 
-            joint.time = std::fmod(joint.time + frame::g_frameTime, globalMaxTime);
-
-            if (joint.time >= accTimeStamps.uMin.SCALAR && joint.time <= accTimeStamps.uMax.SCALAR)
+            if (m_time >= accTimeStamps.uMin.SCALAR && m_time <= accTimeStamps.uMax.SCALAR)
             {
                 f32 prevTime = -INFINITY;
                 f32 nextTime {};
@@ -133,7 +128,7 @@ Model::updateAnimations()
                 int prevTimeI = 0;
                 for (auto& timeStamp : spTimeStamps)
                 {
-                    if (timeStamp < joint.time && timeStamp > prevTime)
+                    if (timeStamp < m_time && timeStamp > prevTime)
                         prevTimeI = spTimeStamps.idx(&timeStamp);
                 }
 
@@ -141,7 +136,7 @@ Model::updateAnimations()
                 nextTime = spTimeStamps[prevTimeI + 1];
 
                 ADT_ASSERT(nextTime - prevTime != 0.0f, " ");
-                const f32 interpolationValue = (joint.time - prevTime) / (nextTime - prevTime);
+                const f32 interpolationValue = (m_time - prevTime) / (nextTime - prevTime);
 
                 const auto& accOutput = model.m_vAccessors[sampler.outputI];
                 const auto& viewOutput = model.m_vBufferViews[accOutput.bufferViewI];
@@ -196,7 +191,7 @@ Model::updateJointTransforms()
         (math::M4*)(&buffInv.sBin[accInv.byteOffset + viewInv.byteOffset]),
         accInv.count
     );
-    LOG_GOOD("spInv: {}\n", spInv);
+    /*LOG_GOOD("spInv: {}\n", spInv);*/
 
     ADT_ASSERT(m_vJoints.getSize() == spInv.getSize() && m_vJointsTrms.getSize() == spInv.getSize(),
         "%lld, %lld, %lld", m_vJoints.getSize(), spInv.getSize(), m_vJointsTrms.getSize()

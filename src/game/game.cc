@@ -24,6 +24,7 @@ static const StringView s_aAssetsToLoad[] {
     "assets/duck/Duck.gltf",
     "assets/BoxAnimated/BoxAnimated.gltf",
     "/home/korei/source/glTF-Sample-Assets/Models/SimpleSkin/glTF/SimpleSkin.gltf",
+    "assets/SimpleSkin/glTF/SimpleSkin.gltf",
 };
 
 void
@@ -51,7 +52,7 @@ loadStuff()
         auto bind = g_poolEntites[hTest];
 
         /*if (auto* pObj = asset::search("assets/BoxAnimated/BoxAnimated.gltf", asset::Object::TYPE::MODEL))*/
-        if (auto* pObj = asset::search("/home/korei/source/glTF-Sample-Assets/Models/SimpleSkin/glTF/SimpleSkin.gltf", asset::Object::TYPE::MODEL))
+        if (auto* pObj = asset::search("assets/SimpleSkin/glTF/SimpleSkin.gltf", asset::Object::TYPE::MODEL))
         {
             auto idx = asset::g_poolObjects.idx(pObj);
             bind.assetI = idx;

@@ -120,7 +120,7 @@ drawGLTFNode(Model* pModel, const gltf::Node& node, math::M4 globalTrm)
                 pSh->setM4("u_projection", trmProj);
 
                 const auto& vTrms = pModel->m_vJointsTrms;
-                LOG_BAD("size: {}, {}\n", vTrms.getSize(), vTrms);
+                /*LOG_BAD("size: {}, {}\n", vTrms.getSize(), vTrms);*/
                 pSh->setM4("u_a2TrmJoints", {const_cast<M4*>(vTrms.data()), vTrms.getSize()});
                 pSh->setV4("u_color", {0.0f, 1.0f, 1.0f, 1.0f});
             }

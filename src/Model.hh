@@ -13,7 +13,6 @@ struct Model
         adt::math::V3 translation {};
         adt::math::Qt rotation = adt::math::QtIden();
         adt::math::V3 scale {1.0f, 1.0f, 1.0f};
-        adt::f64 time {};
         adt::i16 parentI = -1;
         adt::VecBase<adt::i16> vChildren {};
     };
@@ -22,10 +21,10 @@ struct Model
 
     adt::Arena m_arena {};
     adt::i16 m_modelAssetI {};
-    adt::MapBase<int, int, adt::hash::dumbFunc> m_mapNodeToAnimation {};
     adt::MapBase<int, int, adt::hash::dumbFunc> m_mapNodeIToJointI {};
     adt::VecBase<Joint> m_vJoints {};
     adt::VecBase<adt::math::M4> m_vJointsTrms {};
+    adt::f64 m_time {};
 
     /* */
 
