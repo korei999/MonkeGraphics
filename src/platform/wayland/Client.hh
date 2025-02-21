@@ -7,6 +7,8 @@
 #include "wayland-protocols/relative-pointer-unstable-v1.h"
 #include "wayland-protocols/pointer-constraints-unstable-v1.h"
 
+#include "adt/Vec.hh"
+
 namespace platform::wayland
 {
 
@@ -60,7 +62,7 @@ struct Client : public IWindow
     virtual void togglePointerRelativeMode() override;
     virtual void toggleFullscreen() override;
     virtual void hideCursor(bool bHide) override;
-    virtual void setCursorImage(adt::String cursorType) override;
+    virtual void setCursorImage(adt::StringView cursorType) override;
     virtual void setFullscreen() override;
     virtual void unsetFullscreen() override;
     virtual void setSwapInterval(int interval) override;

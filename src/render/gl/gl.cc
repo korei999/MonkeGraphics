@@ -1,6 +1,7 @@
 #include "gl.hh"
 
 #include "app.hh"
+#include "Model.hh"
 #include "asset.hh"
 #include "common.hh"
 #include "control.hh"
@@ -10,6 +11,7 @@
 #include "adt/defer.hh"
 #include "adt/Map.hh"
 #include "adt/OsAllocator.hh"
+#include "adt/View.hh"
 #include "adt/logs.hh"
 #include "adt/ScratchBuffer.hh"
 #include "adt/file.hh"
@@ -24,16 +26,19 @@ struct PrimitiveData
 {
     GLuint vao {};
     GLuint vbo {};
+    GLuint vboJoints {};
+    GLuint vboWeights {};
     GLuint ebo {};
+
 };
 
 static void loadShaders();
 static void loadAssetObjects();
 
-Pool<Shader, 128> g_aShaders(INIT);
-static Map<String, PoolHnd> s_mapStringToShaders(OsAllocatorGet(), g_aShaders.getCap());
+Pool<Shader, 128> g_poolShaders(INIT);
+static Map<StringView, PoolHandle<Shader>> s_mapStringToShaders(OsAllocatorGet(), g_poolShaders.getCap());
 
-static u8 s_aScratchMem[SIZE_1K] {};
+static u8 s_aScratchMem[SIZE_8K] {};
 static ScratchBuffer s_scratch(s_aScratchMem);
 
 static Texture s_texDefault;
@@ -42,6 +47,7 @@ static const ShaderMapping s_aShadersToLoad[] {
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"},
     {shaders::glsl::ntsSimpleColorVert, shaders::glsl::ntsSimpleColorFrag, "SimpleColor"},
     {shaders::glsl::ntsSimpleTextureVert, shaders::glsl::ntsSimpleTextureFrag, "SimpleTexture"},
+    {shaders::glsl::ntsSkinTestVert, shaders::glsl::ntsSimpleColorFrag, "SkinTest"},
 };
 
 void
@@ -53,11 +59,14 @@ Renderer::init()
     glDebugMessageCallbackARB(gl::debugCallback, app::g_pWindow);
 #endif
 
-    glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
+
+    /*glEnable(GL_CULL_FACE);*/
+    /*glCullFace(GL_FRONT);*/
+    glDisable(GL_CULL_FACE);
+
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-    glCullFace(GL_FRONT);
 
     loadShaders();
     loadAssetObjects();
@@ -66,28 +75,29 @@ Renderer::init()
 };
 
 static void
-drawGLTFNode(gltf::Model* pModel, gltf::Node* pNode, math::M4 trm)
+drawGLTFNode(Model* pModel, const gltf::Node& node, math::M4 globalTrm)
 {
     using namespace adt::math;
 
-    common::updateModelNode(pModel, pNode, &trm);
+    const auto& win = app::window();
+    const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
+    const auto& camera = control::g_camera;
+    const M4 trmProj = M4Pers(toRad(camera.m_fov), aspectRatio, 0.01f, 1000.0f);
+    const M4& trmView = camera.m_trm;
+    const auto& gltfModel = asset::g_poolObjects[{pModel->m_modelAssetI}].m_uData.model;
 
-    for (auto& children : pNode->vChildren)
+    for (auto& children : node.vChildren)
     {
-        auto& childNode = pModel->m_vNodes[children];
-        drawGLTFNode(pModel, &childNode, trm);
+        auto& childNode = gltfModel.m_vNodes[children];
+        drawGLTFNode(pModel, childNode, globalTrm);
     }
 
-    auto* pModelObj = reinterpret_cast<asset::Object*>(pModel);
-
-    if (pNode->meshI != -1)
+    if (node.meshI != -1)
     {
-        auto& mesh = pModel->m_vMeshes[pNode->meshI];
+        auto& mesh = gltfModel.m_vMeshes[node.meshI];
         for (const auto& primitive : mesh.vPrimitives)
         {
-            gltf::Accessor& accIndices = pModel->m_vAccessors[primitive.indicesI];
-            if (primitive.indicesI != -1)
-                accIndices = pModel->m_vAccessors[primitive.indicesI];
+            const gltf::Accessor& accIndices = gltfModel.m_vAccessors[primitive.indicesI];
 
             Shader* pSh {};
 
@@ -96,28 +106,44 @@ drawGLTFNode(gltf::Model* pModel, gltf::Node* pNode, math::M4 trm)
              * But current gltf parser only reads the 0th. */
             gltf::Accessor accUV {};
             if (primitive.attributes.TEXCOORD_0 != -1)
-                accUV = pModel->m_vAccessors[primitive.attributes.TEXCOORD_0];
+                accUV = gltfModel.m_vAccessors[primitive.attributes.TEXCOORD_0];
 
-            if (primitive.materialI != -1)
+            if (primitive.attributes.JOINTS_0 != -1)
             {
-                auto& mat = pModel->m_vMaterials[primitive.materialI];
+                ADT_ASSERT(primitive.attributes.WEIGHTS_0 != -1, "must have");
+
+                pSh = searchShader("SkinTest");
+                ADT_ASSERT(pSh != nullptr, " ");
+                pSh->use();
+                pSh->setM4("u_view", trmView);
+                pSh->setM4("u_projection", trmProj);
+
+                const auto& vTrms = pModel->m_vJointsTrms;
+                LOG_BAD("size: {}, {}\n", vTrms.getSize(), vTrms);
+                pSh->setM4("u_a2TrmJoints", {const_cast<M4*>(vTrms.data()), vTrms.getSize()});
+                pSh->setV4("u_color", {0.0f, 1.0f, 1.0f, 1.0f});
+            }
+            else if (primitive.materialI != -1)
+            {
+                auto& mat = gltfModel.m_vMaterials[primitive.materialI];
 
                 if (mat.pbrMetallicRoughness.baseColorTexture.index != -1)
                 {
-                    auto& tex = pModel->m_vTextures[mat.pbrMetallicRoughness.baseColorTexture.index];
-                    auto& img = pModel->m_vImages[tex.sourceI];
+                    auto& tex = gltfModel.m_vTextures[mat.pbrMetallicRoughness.baseColorTexture.index];
+                    auto& img = gltfModel.m_vImages[tex.sourceI];
 
-                    Span sp = s_scratch.nextMemZero<char>(img.sUri.getSize() + 300);
-                    file::replacePathEnding(&sp, pModelObj->m_sMappedWith, img.sUri);
+                    Span<char> sp = s_scratch.nextMemZero<char>(img.sUri.getSize() + 300);
+                    file::replacePathEnding(sp, reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri);
 
                     auto* pObj = asset::search(sp, asset::Object::TYPE::IMAGE);
-                    auto* pTex = reinterpret_cast<Texture*>(pObj->pExtraData);
+                    auto* pTex = reinterpret_cast<Texture*>(pObj->m_pExtraData);
 
                     if (pTex)
                     {
                         pSh = searchShader("SimpleTexture");
                         pSh->use();
                         pTex->bind(GL_TEXTURE0);
+                        pSh->setM4("u_trm", trmProj * trmView * globalTrm);
                     }
                     else goto defaultShader;
                 }
@@ -126,6 +152,7 @@ drawGLTFNode(gltf::Model* pModel, gltf::Node* pNode, math::M4 trm)
                     pSh = searchShader("SimpleColor");
                     pSh->use();
                     pSh->setV4("u_color", mat.pbrMetallicRoughness.baseColorFactor);
+                    pSh->setM4("u_trm", trmProj * trmView * globalTrm);
                 }
             }
             else
@@ -134,14 +161,11 @@ defaultShader:
                 pSh = searchShader("SimpleTexture");
                 pSh->use();
                 s_texDefault.bind(GL_TEXTURE0);
+                pSh->setM4("u_trm", trmProj * trmView * globalTrm);
             }
 
-            if (pSh)
-                pSh->setM4("u_trm", trm);
-
             auto* pPrimitiveData = reinterpret_cast<PrimitiveData*>(primitive.pData);
-            if (pPrimitiveData)
-                glBindVertexArray(pPrimitiveData->vao);
+            if (pPrimitiveData) glBindVertexArray(pPrimitiveData->vao);
 
             if (primitive.indicesI != -1)
             {
@@ -154,7 +178,7 @@ defaultShader:
             }
             else
             {
-                const auto& accPos = pModel->m_vAccessors[primitive.attributes.POSITION];
+                const auto& accPos = gltfModel.m_vAccessors[primitive.attributes.POSITION];
                 glDrawArrays(static_cast<GLenum>(primitive.eMode), 0, accPos.count);
             }
         }
@@ -162,11 +186,17 @@ defaultShader:
 }
 
 static void
-drawModel(gltf::Model* pModel, math::M4 trm)
+drawGLTF(Model* pModel, math::M4 trm)
 {
-    auto& scene = pModel->m_vScenes[pModel->m_defaultScene.nodeI];
+    const auto& gltfModel = asset::g_poolObjects[{pModel->m_modelAssetI}].m_uData.model;
+    auto& scene = gltfModel.m_vScenes[gltfModel.m_defaultScene.nodeI];
+
+    pModel->updateAnimations();
+    pModel->updateGlobalTransforms(0, trm);
+    pModel->updateJointTransforms();
+
     for (auto& nodeI : scene.vNodes)
-        drawGLTFNode(pModel, &pModel->m_vNodes[nodeI], trm);
+        drawGLTFNode(pModel, gltfModel.m_vNodes[nodeI], trm);
 }
 
 void
@@ -182,28 +212,29 @@ Renderer::drawEntities([[maybe_unused]] Arena* pArena)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     {
-        for (int entityI = 0; entityI < game::g_aEntites.m_size; ++entityI)
+        for (int entityI = 0; entityI < game::g_poolEntites.m_size; ++entityI)
         {
-            const auto& arrays = game::g_aEntites.m_arrays;
-            if (arrays.abDead[entityI] || arrays.priv.abFree[entityI])
+            const auto& arrays = game::g_poolEntites.m_arrays;
+            if (arrays.abInvisible[entityI] || arrays.priv.abFree[entityI])
                 continue;
 
-            game::EntityBind entity = game::g_aEntites[ game::Entity{.i = entityI} ];
+            game::EntityBind entity = game::g_poolEntites[ game::Entity{.i = entityI} ];
 
-            auto& obj = asset::g_aObjects[entity.assetI];
+            auto& obj = asset::g_poolObjects[PoolHandle<asset::Object>(entity.assetI)];
+
             switch (obj.m_eType)
             {
                 default: break;
 
                 case asset::Object::TYPE::MODEL:
                 {
-                    M4 trm = M4Pers(toRad(camera.m_fov), aspectRatio, 0.01f, 1000.0f) *
-                        camera.m_trm *
+                    Model& model = Model::fromI(entity.modelI);
+
+                    drawGLTF(&model,
                         M4TranslationFrom(entity.pos) *
                         QtRot(entity.rot) *
-                        M4ScaleFrom(entity.scale);
-
-                    drawModel(&obj.m_uData.model, trm);
+                        M4ScaleFrom(entity.scale)
+                    );
                 }
                 break;
             }
@@ -211,7 +242,7 @@ Renderer::drawEntities([[maybe_unused]] Arena* pArena)
     }
 }
 
-ShaderMapping::ShaderMapping(const String svVert, const String svFrag, const String svMappedTo)
+ShaderMapping::ShaderMapping(const StringView svVert, const StringView svFrag, const StringView svMappedTo)
     : m_svVert(svVert), m_svFrag(svFrag), m_svMappedTo(svMappedTo), m_eType(TYPE::VS_FS) {}
 
 Texture::Texture(int width, int height)
@@ -256,7 +287,7 @@ Texture::loadRGBA(const ImagePixelRGBA* pData)
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-Shader::Shader(const adt::String sVertexShader, const adt::String sFragmentShader, const adt::String svMapTo)
+Shader::Shader(const adt::StringView sVertexShader, const adt::StringView sFragmentShader, const adt::StringView svMapTo)
 {
     GLint linked {};
     GLuint vertex = loadOne(GL_VERTEX_SHADER, sVertexShader);
@@ -291,11 +322,11 @@ Shader::Shader(const adt::String sVertexShader, const adt::String sFragmentShade
     glDeleteShader(vertex);
     glDeleteShader(fragment);
 
-    s_mapStringToShaders.insert(svMapTo, g_aShaders.push(*this));
+    s_mapStringToShaders.insert(svMapTo, g_poolShaders.push(*this));
 }
 
 GLuint
-Shader::loadOne(GLenum type, adt::String sShader)
+Shader::loadOne(GLenum type, adt::StringView sShader)
 {
     GLuint shader = glCreateShader(type);
     if (!shader)
@@ -317,8 +348,9 @@ Shader::loadOne(GLenum type, adt::String sShader)
         if (infoLen > 1)
         {
             char aBuff[512] {};
-            glGetShaderInfoLog(shader, infoLen, nullptr, aBuff);
-            LOG_BAD("error compiling shader:\n{}\n", aBuff);
+            GLsizei len {};
+            glGetShaderInfoLog(shader, infoLen, &len, aBuff);
+            LOG_BAD("error compiling shader:\n{}\n", StringView{aBuff, len});
             exit(1);
         }
         glDeleteShader(shader);
@@ -344,7 +376,7 @@ Shader::queryActiveUniforms()
     {
         GLint size {};
         GLenum type {};
-        String typeName {};
+        StringView typeName {};
 
         glGetActiveUniform(m_id, i, maxUniformLen, nullptr, &size, &type, uniformName);
         switch (type)
@@ -394,7 +426,7 @@ Shader::destroy()
     *this = {};
 }
 
-Quad::Quad(adt::INIT_FLAG)
+Quad::Quad(adt::InitFlag)
 {
     const f32 aVertices[] = {
         /* pos(0, 1)      uv(2, 3) */
@@ -426,7 +458,7 @@ Quad::Quad(adt::INIT_FLAG)
 }
 
 Shader*
-searchShader(const adt::String svKey)
+searchShader(const adt::StringView svKey)
 {
     auto res = s_mapStringToShaders.search(svKey);
     if (!res)
@@ -435,7 +467,7 @@ searchShader(const adt::String svKey)
         return {};
     }
 
-    return &g_aShaders[res.value()];
+    return &g_poolShaders[res.value()];
 }
 
 void
@@ -479,6 +511,9 @@ componentByteSize(gltf::COMPONENT_TYPE eType)
         case gltf::COMPONENT_TYPE::SHORT:
         return static_cast<int>(sizeof(GLshort));
 
+        case gltf::COMPONENT_TYPE::INT:
+        return static_cast<int>(sizeof(GLint));
+
         case gltf::COMPONENT_TYPE::FLOAT:
         return static_cast<int>(sizeof(GLfloat));
     }
@@ -487,6 +522,49 @@ componentByteSize(gltf::COMPONENT_TYPE eType)
     print::toSpan(aBuff, "invalid component type: '{}'", eType);
     ADT_ASSERT(false, "%s", aBuff);
     return 0;
+}
+
+template<typename A, typename B>
+static void
+bufferViewConvert(
+    const View<A> spA,
+    const int accessorCount,
+    const int attrLocation,
+    GLint size,
+    GLenum eType,
+    GLuint* pVbo
+)
+{
+    ADT_ASSERT(pVbo != nullptr, " ");
+
+    Span<B> spB = s_scratch.nextMem<B>(accessorCount);
+    ADT_ASSERT(spB.getSize() == accessorCount, "sp.size: %lld, acc.count: %d", spB.getSize(), accessorCount);
+
+    ssize maxSize = utils::min(spB.getSize(), spA.getSize());
+    for (ssize spI = 0; spI < maxSize; ++spI)
+    {
+        auto& elementA = spA[spI];
+        spB[spI] = B(elementA);
+    }
+
+    LOG_GOOD("spB:\n");
+    for (const auto& e : spB)
+        CERR("#{}: [{}]\n", spB.idx(&e), e);
+    CERR("\n");
+
+    glGenBuffers(1, pVbo);
+    glBindBuffer(GL_ARRAY_BUFFER, *pVbo);
+    glBufferData(GL_ARRAY_BUFFER, spB.getSize()*sizeof(*spB.data()), spB.data(), GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(attrLocation);
+    glVertexAttribPointer(
+        attrLocation, /* enabled index */
+        size,
+        eType,
+        false,
+        0,
+        0
+    );
 }
 
 static void
@@ -501,7 +579,7 @@ loadImage(Image* pImage)
     auto& obj = *reinterpret_cast<asset::Object*>(pImage);
     LOG_GOOD("loading image '{}'...\n", obj.m_sMappedWith);
 
-    obj.pExtraData = obj.m_arena.alloc<Texture>(pImage->getSpanRGBA());
+    obj.m_pExtraData = obj.m_arena.alloc<Texture>(pImage->getSpanRGBA());
 }
 
 static void
@@ -564,6 +642,7 @@ loadGLTF(gltf::Model* pModel)
                     }
                 }
 
+                /* positions */
                 {
                     ADT_ASSERT(primitive.attributes.POSITION != -1, " ");
                     auto& accPos = pModel->m_vAccessors[primitive.attributes.POSITION];
@@ -573,7 +652,6 @@ loadGLTF(gltf::Model* pModel)
                     newPrimitiveData.vbo = vVBOs[buffPos.bufferI];
                     glBindBuffer(GL_ARRAY_BUFFER, newPrimitiveData.vbo);
 
-                    /* positions */
                     glEnableVertexAttribArray(0);
                     glVertexAttribPointer(
                         0, /* enabled index */
@@ -603,6 +681,95 @@ loadGLTF(gltf::Model* pModel)
                     );
                 }
 
+                /* NOTE:
+                 * JOINTS_n: unsigned byte or unsigned short
+                 * WEIGHTS_n: float, or normalized unsigned byte, or normalized unsigned short */
+
+                /* joints */
+                if (primitive.attributes.JOINTS_0 != -1)
+                {
+                    gltf::Accessor accJoints = pModel->m_vAccessors[primitive.attributes.JOINTS_0];
+                    gltf::BufferView viewJoints = pModel->m_vBufferViews[accJoints.bufferViewI];
+                    gltf::Buffer buffJoints = pModel->m_vBuffers[viewJoints.bufferI];
+
+                    switch (accJoints.eComponentType)
+                    {
+                        default: LOG_BAD("unexpected component type\n"); break;
+
+                        case gltf::COMPONENT_TYPE::UNSIGNED_BYTE:
+                        {
+                            ADT_ASSERT(false, "IMPLEMENT\n");
+                        }
+                        break;
+
+                        case gltf::COMPONENT_TYPE::UNSIGNED_SHORT:
+                        {
+                            const View<math::IV4u16> viewU16(
+                                reinterpret_cast<const math::IV4u16*>(&buffJoints.sBin[accJoints.byteOffset + viewJoints.byteOffset]),
+                                accJoints.count,
+                                viewJoints.byteStride
+                            );
+
+                            bufferViewConvert<math::IV4u16, math::V4>(
+                                viewU16, accJoints.count, shaders::glsl::JOINT_LOCATION, 4, GL_FLOAT, &newPrimitiveData.vboJoints
+                            );
+                        }
+                        break;
+                    }
+                }
+
+                /* weights */
+                if (primitive.attributes.JOINTS_0 != -1 && primitive.attributes.WEIGHTS_0 == -1)
+                {
+                    LOG_BAD("Skinned nodes must contain WEIGHTS_*\n");
+                }
+                else if (primitive.attributes.JOINTS_0 != -1 && primitive.attributes.WEIGHTS_0 != -1)
+                {
+                    gltf::Accessor accWeights = pModel->m_vAccessors[primitive.attributes.WEIGHTS_0];
+                    gltf::BufferView viewWeights = pModel->m_vBufferViews[accWeights.bufferViewI];
+                    gltf::Buffer buffWeights = pModel->m_vBuffers[viewWeights.bufferI];
+
+                    switch (accWeights.eComponentType)
+                    {
+                        default: LOG_BAD("unhandled component type\n"); break;
+
+                        case gltf::COMPONENT_TYPE::UNSIGNED_BYTE:
+                        {
+                        }
+                        break;
+
+                        case gltf::COMPONENT_TYPE::UNSIGNED_SHORT:
+                        {
+                            const View<math::IV4u16> spU16(
+                                reinterpret_cast<math::IV4u16*>(&buffWeights.sBin[accWeights.byteOffset + viewWeights.byteOffset]),
+                                accWeights.count,
+                                viewWeights.byteStride
+                            );
+
+                            bufferViewConvert<math::IV4u16, math::V4>(
+                                spU16, accWeights.count, shaders::glsl::WEIGHT_LOCATION, 4, GL_FLOAT, &newPrimitiveData.vboWeights
+                            );
+                        }
+                        break;
+
+                        case gltf::COMPONENT_TYPE::FLOAT:
+                        {
+                            const View<math::V4> spV4(
+                                reinterpret_cast<math::V4*>(&buffWeights.sBin[accWeights.byteOffset + viewWeights.byteOffset]),
+                                accWeights.count,
+                                viewWeights.byteStride
+                            );
+
+                            bufferViewConvert<math::V4, math::V4>(
+                                spV4, accWeights.count,
+                                shaders::glsl::WEIGHT_LOCATION, 4, static_cast<GLenum>(accWeights.eComponentType),
+                                &newPrimitiveData.vboWeights
+                            );
+                        }
+                        break;
+                    }
+                }
+
                 primitive.pData = obj.m_arena.alloc<PrimitiveData>(newPrimitiveData);
             }
         }
@@ -612,10 +779,10 @@ loadGLTF(gltf::Model* pModel)
 void
 loadAssetObjects()
 {
-    if (asset::g_aObjects.empty())
-        LOG_WARN("asset::g_aObjects.empty(): {}\n", asset::g_aObjects.empty());
+    if (asset::g_poolObjects.empty())
+        LOG_WARN("asset::g_aObjects.empty(): {}\n", asset::g_poolObjects.empty());
 
-    for (auto& obj : asset::g_aObjects)
+    for (auto& obj : asset::g_poolObjects)
     {
         switch (obj.m_eType)
         {

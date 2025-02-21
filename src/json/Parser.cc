@@ -10,7 +10,7 @@ namespace json
 #define OK_OR_RET(RES) if (!RES) return false;
 
 bool
-Parser::parse(IAllocator* pAlloc, String sJson)
+Parser::parse(IAllocator* pAlloc, StringView sJson)
 {
     m_pAlloc = pAlloc;
     m_lex = Lexer(sJson);
@@ -89,7 +89,7 @@ Parser::expectNot(TOKEN_TYPE t)
 }
 
 bool
-Parser::parseNode(Object* pNode)
+Parser::parseNode(Node* pNode)
 {
     switch (m_tCurr.eType)
     {
@@ -166,10 +166,10 @@ Parser::parseFloat(TagVal* pTV)
 }
 
 bool
-Parser::parseObject(Object* pNode)
+Parser::parseObject(Node* pNode)
 {
     pNode->tagVal.eTag = TAG::OBJECT;
-    pNode->tagVal.val.o = VecBase<Object>(m_pAlloc);
+    pNode->tagVal.val.o = VecBase<Node>(m_pAlloc);
     auto& aObjs = getObject(pNode);
 
     while (m_tCurr.eType != TOKEN_TYPE::R_BRACE)
@@ -206,10 +206,10 @@ Parser::parseObject(Object* pNode)
 }
 
 bool
-Parser::parseArray(Object* pNode)
+Parser::parseArray(Node* pNode)
 {
     pNode->tagVal.eTag = TAG::ARRAY;
-    pNode->tagVal.val.a = VecBase<Object>(m_pAlloc);
+    pNode->tagVal.val.a = VecBase<Node>(m_pAlloc);
     auto& aTVs = getArray(pNode);
 
     /* collect each key/value pair inside array */
@@ -261,7 +261,7 @@ Parser::parseArray(Object* pNode)
 void
 Parser::destroy()
 {
-    auto fn = +[](Object* p, void* a) -> bool {
+    auto fn = +[](Node* p, void* a) -> bool {
         auto* pAlloc = (IAllocator*)a;
 
         if (p->tagVal.eTag == TAG::ARRAY || p->tagVal.eTag == TAG::OBJECT)
@@ -285,9 +285,9 @@ Parser::print(FILE* fp)
 }
 
 void
-printNode(FILE* fp, Object* pNode, String sEnd, int depth)
+printNode(FILE* fp, Node* pNode, StringView sEnd, int depth)
 {
-    String key = pNode->svKey;
+    StringView key = pNode->svKey;
 
     switch (pNode->tagVal.eTag)
     {
@@ -296,7 +296,7 @@ printNode(FILE* fp, Object* pNode, String sEnd, int depth)
         case TAG::OBJECT:
         {
             auto& obj = getObject(pNode);
-            String q0, q1, objName0, objName1;
+            StringView q0, q1, objName0, objName1;
 
             if (key.getSize() == 0)
             {
@@ -312,7 +312,7 @@ printNode(FILE* fp, Object* pNode, String sEnd, int depth)
             print::toFILE(fp, "{:{}}{}{}{}{}{\n", depth, "", q0, objName0, q1, objName1);
             for (u32 i = 0; i < obj.getSize(); i++)
             {
-                String slE = (i == obj.getSize() - 1) ? "\n" : ",\n";
+                StringView slE = (i == obj.getSize() - 1) ? "\n" : ",\n";
                 printNode(fp, &obj[i], slE, depth + 2);
             }
             print::toFILE(fp, "{:{}}}{}", depth, "", sEnd);
@@ -322,7 +322,7 @@ printNode(FILE* fp, Object* pNode, String sEnd, int depth)
         case TAG::ARRAY:
         {
             auto& arr = getArray(pNode);
-            String q0, q1, arrName0, arrName1;
+            StringView q0, q1, arrName0, arrName1;
 
             if (key.getSize() == 0)
             {
@@ -346,14 +346,14 @@ printNode(FILE* fp, Object* pNode, String sEnd, int depth)
             print::toFILE(fp, "{}{}{}{}[\n", q0, arrName0, q1, arrName1);
             for (u32 i = 0; i < arr.getSize(); i++)
             {
-                String slE = (i == arr.getSize() - 1) ? "\n" : ",\n";
+                StringView slE = (i == arr.getSize() - 1) ? "\n" : ",\n";
 
                 switch (arr[i].tagVal.eTag)
                 {
                     default:
                     case TAG::STRING:
                     {
-                        String sl = getString(&arr[i]);
+                        StringView sl = getString(&arr[i]);
                         print::toFILE(fp, "{:{}}\"{}\"{}", depth + 2, "", sl, slE);
                     }
                     break;
@@ -412,7 +412,7 @@ printNode(FILE* fp, Object* pNode, String sEnd, int depth)
 
         case TAG::STRING:
         {
-            String sl = getString(pNode);
+            StringView sl = getString(pNode);
             print::toFILE(fp, "{:{}}\"{}\": \"{}\"{}", depth, "", key, sl, sEnd);
         }
         break;
@@ -427,7 +427,7 @@ printNode(FILE* fp, Object* pNode, String sEnd, int depth)
 }
 
 static void
-traverseNodePRE(Object* pNode, bool (*pfn)(Object* p, void* pFnArgs), void* pArgs)
+traverseNodePRE(Node* pNode, bool (*pfn)(Node* p, void* pFnArgs), void* pArgs)
 {
     if (pfn(pNode, pArgs))
         return;
@@ -457,7 +457,7 @@ traverseNodePRE(Object* pNode, bool (*pfn)(Object* p, void* pFnArgs), void* pArg
 }
 
 static void
-traverseNodePOST(Object* pNode, bool (*pfn)(Object* p, void* pFnArgs), void* pArgs)
+traverseNodePOST(Node* pNode, bool (*pfn)(Node* p, void* pFnArgs), void* pArgs)
 {
     switch (pNode->tagVal.eTag)
     {
@@ -487,7 +487,7 @@ traverseNodePOST(Object* pNode, bool (*pfn)(Object* p, void* pFnArgs), void* pAr
 }
 
 void
-traverseNode(Object* pNode, bool (*pfn)(Object* p, void* pFnArgs), void* pArgs, TRAVERSAL_ORDER eOrder)
+traverseNode(Node* pNode, bool (*pfn)(Node* p, void* pFnArgs), void* pArgs, TRAVERSAL_ORDER eOrder)
 {
     switch (eOrder)
     {
@@ -501,7 +501,7 @@ traverseNode(Object* pNode, bool (*pfn)(Object* p, void* pFnArgs), void* pArgs, 
     }
 }
 
-VecBase<Object>&
+VecBase<Node>&
 Parser::getRoot()
 {
     ADT_ASSERT(m_aObjects.getSize() > 0, "empty");
@@ -511,7 +511,7 @@ Parser::getRoot()
     else return m_aObjects;
 }
 
-const VecBase<Object>&
+const VecBase<Node>&
 Parser::getRoot() const
 {
     ADT_ASSERT(m_aObjects.getSize() > 0, "empty");
@@ -522,7 +522,7 @@ Parser::getRoot() const
 }
 
 void
-Parser::traverse(bool (*pfn)(Object* p, void* pFnArgs), void* pArgs, TRAVERSAL_ORDER eOrder)
+Parser::traverse(bool (*pfn)(Node* p, void* pFnArgs), void* pArgs, TRAVERSAL_ORDER eOrder)
 {
     switch (eOrder)
     {

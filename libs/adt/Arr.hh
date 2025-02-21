@@ -22,7 +22,7 @@ struct Arr
     constexpr Arr() = default;
 
     template<typename ...ARGS> requires(std::is_constructible_v<T, ARGS...>)
-        constexpr Arr(ssize size, ARGS&&... args);
+    constexpr Arr(ssize size, ARGS&&... args);
 
     constexpr Arr(std::initializer_list<T> list);
 

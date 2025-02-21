@@ -15,9 +15,6 @@ struct ClientGL : public Client
     EGLContext m_eglContext {};
     EGLSurface m_eglSurface {};
 
-    adt::VecBase<ImagePixelRGBA> m_vSurfaceBuffer {};
-    adt::VecBase<ImagePixelRGBA> m_vTempBuff {};
-
     /* */
 
     ClientGL() = default;

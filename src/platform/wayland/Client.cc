@@ -196,7 +196,7 @@ Client::hideCursor([[maybe_unused]] bool bHide)
 }
 
 void
-Client::setCursorImage([[maybe_unused]] String cursorType)
+Client::setCursorImage([[maybe_unused]] StringView cursorType)
 {
 }
 
@@ -339,7 +339,7 @@ Client::global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, 
     /* TODO: chosing the latest version doesn't actually work,
      * since some distros (debian) ship older libwayland version */
 
-    String svInterface = String(ntsInterface);
+    StringView svInterface = StringView(ntsInterface);
 
     if (svInterface == wl_compositor_interface.name)
     {

@@ -49,7 +49,7 @@ ThreadPool::ThreadPool(IAllocator* pAlloc, int nThreads)
     : m_pAlloc(pAlloc),
       m_qTasks(pAlloc, nThreads * 2),
       m_spThreads(pAlloc->zallocV<Thread>(nThreads), nThreads),
-      m_mtxQ(MUTEX_TYPE::PLAIN),
+      m_mtxQ(Mutex::TYPE::PLAIN),
       m_cndQ(INIT),
       m_cndWait(INIT),
       m_bDone(false)

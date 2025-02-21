@@ -11,24 +11,7 @@ namespace gltf
 
 struct Model
 {
-    struct
-    {
-        json::Object* pAsset;
-        json::Object* pScene;
-        json::Object* pScenes;
-        json::Object* pNodes;
-        json::Object* pMeshes;
-        json::Object* pCameras;
-        json::Object* pBuffers;
-        json::Object* pBufferViews;
-        json::Object* pAccessors;
-        json::Object* pMaterials;
-        json::Object* pTextures;
-        json::Object* pImages;
-        json::Object* pSamplers;
-        json::Object* pSkins;
-        json::Object* pAnimations;
-    } m_toplevelObjs {};
+    adt::StringView m_sPath {};
     Asset m_asset {}; /* REQUIRED */
     DefaultScene m_defaultScene {};
     adt::VecBase<Scene> m_vScenes {};
@@ -41,8 +24,7 @@ struct Model
     adt::VecBase<Image> m_vImages {};
     adt::VecBase<Node> m_vNodes {};
     adt::VecBase<Animation> m_vAnimations {};
-
-    adt::String m_sPath {};
+    adt::VecBase<Skin> m_vSkins {};
 
     /* */
 
@@ -50,11 +32,30 @@ struct Model
 
     /* */
 
-    bool read(adt::IAllocator* pAlloc, const json::Parser& parsed, const adt::String svPath); /* clones uri */
+    bool read(adt::IAllocator* pAlloc, const json::Parser& parsed, const adt::StringView svPath); /* clones uri */
 
     /* */
 
 private:
+    struct
+    {
+        json::Node* pAsset;
+        json::Node* pScene;
+        json::Node* pScenes;
+        json::Node* pNodes;
+        json::Node* pMeshes;
+        json::Node* pCameras;
+        json::Node* pBuffers;
+        json::Node* pBufferViews;
+        json::Node* pAccessors;
+        json::Node* pMaterials;
+        json::Node* pTextures;
+        json::Node* pImages;
+        json::Node* pSamplers;
+        json::Node* pSkins;
+        json::Node* pAnimations;
+    } m_toplevelObjs {};
+
     bool procToplevelObjs(adt::IAllocator* pAlloc, const json::Parser& parser);
     bool procAsset(adt::IAllocator* pAlloc);
     bool procRootScene(adt::IAllocator* pAlloc);
@@ -62,6 +63,7 @@ private:
     bool procBuffers(adt::IAllocator* pAlloc);
     bool procBufferViews(adt::IAllocator* pAlloc);
     bool procAccessors(adt::IAllocator* pAlloc);
+    bool procSkins(adt::IAllocator* pAlloc);
     bool procMeshes(adt::IAllocator* pAlloc);
     bool procTexures(adt::IAllocator* pAlloc);
     bool procMaterials(adt::IAllocator* pAlloc);

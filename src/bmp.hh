@@ -64,7 +64,7 @@ struct Header
 
 struct Reader
 {
-    adt::String m_sBMP {};
+    adt::StringView m_sBMP {};
     Header m_header {};
     BitmapInfoHeader m_bmInfoHeader {};
 
@@ -74,7 +74,7 @@ struct Reader
 
     /* */
 
-    [[nodiscard]] bool read(adt::String sBMP);
+    [[nodiscard]] bool read(adt::StringView sBMP);
     Image getImage();
 
 private:
@@ -82,7 +82,7 @@ private:
 };
 
 inline bool
-Reader::read(adt::String sBMP)
+Reader::read(adt::StringView sBMP)
 {
     using namespace adt;
 

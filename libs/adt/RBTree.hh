@@ -142,7 +142,7 @@ RBPrintNodes(
     IAllocator* pA,
     const RBNode<T>* pNode,
     FILE* pF,
-    const String sPrefix = "",
+    const StringView sPrefix = "",
     bool bLeft = false
 );
 
@@ -645,7 +645,7 @@ RBPrintNodes(
     IAllocator* pA,
     const RBNode<T>* pNode,
     FILE* pF,
-    const String sPrefix,
+    const StringView sPrefix,
     bool bLeft
 )
 {

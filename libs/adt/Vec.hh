@@ -13,6 +13,8 @@ namespace adt
 #define ADT_VEC_FOREACH_I(A, I) for (ssize I = 0; I < (A)->size; ++I)
 #define ADT_VEC_FOREACH_I_REV(A, I) for (ssize I = (A)->size - 1; I != -1U ; --I)
 
+/* TODO: overflow checks are pretty naive */
+
 /* Dynamic array (aka Vector) */
 template<typename T>
 struct VecBase
@@ -84,6 +86,8 @@ struct VecBase
     void zeroOut() noexcept; /* set size to zero and memset */
 
     [[nodiscard]] VecBase<T> clone(IAllocator* pAlloc) const;
+
+    [[nodiscard]] bool contains(const T& x) const;
 
     /* */
 
@@ -324,6 +328,16 @@ VecBase<T>::clone(IAllocator* pAlloc) const
 }
 
 template<typename T>
+inline bool
+VecBase<T>::contains(const T& x) const
+{
+    for (const auto& el : *this)
+        if (el == x)
+            return true;
+    return false;
+}
+
+template<typename T>
 inline void
 VecBase<T>::grow(IAllocator* p, ssize newCapacity)
 {
@@ -416,6 +430,8 @@ struct Vec
         nVec.m_pAlloc = pAlloc;
         return nVec;
     }
+
+    [[nodiscard]] bool contains(const T& x) const { return base.contains(x); }
 
     /* */
 

@@ -10,6 +10,6 @@ namespace game
 void loadStuff();
 void updateState(adt::Arena* pArena);
 
-extern EntityPoolSOA<128> g_aEntites;
+extern EntityPoolSOA<128> g_poolEntites;
 
 } /* namespace game */

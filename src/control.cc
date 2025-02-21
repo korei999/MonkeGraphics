@@ -22,7 +22,7 @@ static void cameraLeft() { g_camera.m_lastMove -= g_camera.m_right; }
 static void cameraUp() { g_camera.m_lastMove += CAMERA_UP; }
 static void cameraDown() { g_camera.m_lastMove -= CAMERA_UP; }
 static void cameraBoost() { g_camera.m_lastBoost *= 2.0f; }
-static void cameraDeboost() { g_camera.m_lastBoost *= 0.5f; }
+static void cameraDeboost() { g_camera.m_lastBoost *= 0.25f; }
 
 Camera g_camera {.m_pos {0, 0, -3}, .m_lastMove {}, .m_sens = 0.05f, .m_speed = 4.0f};
 Mouse g_mouse {};

@@ -36,7 +36,7 @@ parseArgs(int argc, char** argv)
 {
     for (ssize i = 1; i < argc; ++i)
     {
-        const String svArg = argv[i];
+        const StringView svArg = argv[i];
 
         if (svArg.beginsWith("--"))
         {

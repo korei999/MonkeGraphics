@@ -3,6 +3,11 @@
 namespace shaders::glsl
 {
 
+constexpr int POS_LOCATION = 0;
+constexpr int TEX_LOCATION = 1;
+constexpr int JOINT_LOCATION = 2;
+constexpr int WEIGHT_LOCATION = 3;
+
 static const char* ntsQuadTexVert =
 R"(/* ntsQuadTexVert */
 
@@ -68,7 +73,6 @@ R"(/* ntsSimpleColorFrag */
 precision mediump float;
 
 out vec4 fs_fragColor;
-in vec2 vs_texCoords;
 
 uniform vec4 u_color;
 
@@ -118,6 +122,40 @@ void
 main()
 {
     fs_fragColor = texture(u_tex0, vs_texCoords);
+}
+)"
+;
+
+static const char* ntsSkinTestVert =
+R"(/* ntsSkinTestVert */
+
+#version 300 es
+
+layout(location = 0) in vec3 a_pos;
+layout(location = 2) in vec4 a_joint;
+layout(location = 3) in vec4 a_weight;
+
+uniform mat4 u_view;
+uniform mat4 u_projection;
+uniform mat4 u_a2TrmJoints[2];
+
+void
+main()
+{
+    mat4 trmSkin =
+        a_weight.x * u_a2TrmJoints[int(a_joint.x)] +
+        a_weight.y * u_a2TrmJoints[int(a_joint.y)] +
+        a_weight.z * u_a2TrmJoints[int(a_joint.z)] +
+        a_weight.w * u_a2TrmJoints[int(a_joint.w)];
+
+    vec4 worldPos = trmSkin * vec4(a_pos, 1.0);
+    gl_Position = u_projection * u_view * worldPos;
+
+    // gl_Position = u_projection * u_view *
+    //     (u_a2TrmJoints[int(a_joint.x)] * vec4(a_pos, 1.0f) * a_weight.x +
+    //      u_a2TrmJoints[int(a_joint.y)] * vec4(a_pos, 1.0f) * a_weight.y +
+    //      u_a2TrmJoints[int(a_joint.z)] * vec4(a_pos, 1.0f) * a_weight.z +
+    //      u_a2TrmJoints[int(a_joint.w)] * vec4(a_pos, 1.0f) * a_weight.w);
 }
 )"
 ;

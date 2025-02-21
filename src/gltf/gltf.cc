@@ -34,67 +34,37 @@ enum class HASH_CODE : usize
     MAT4 = hash::func("MAT4")
 };
 
-#ifdef D_GLTF
-
-static String
-getTargetString(enum TARGET t)
-{
-    switch (t)
-    {
-        default:
-        case TARGET::NONE:
-        return "NONE";
-
-        case TARGET::ARRAY_BUFFER:
-        return "ARRAY_BUFFER";
-
-        case TARGET::ELEMENT_ARRAY_BUFFER:
-        return "ELEMENT_ARRAY_BUFFER";
-    }
-}
-
-static String
-accessorTypeToString(enum ACCESSOR_TYPE t)
-{
-    const char* ss[] {
-        "SCALAR", "VEC2", "VEC3", "VEC4", "MAT2", "MAT3", "MAT4"
-    };
-    return ss[(int)(t)];
-}
-
-#endif
-
-static enum ACCESSOR_TYPE
-stringToAccessorType(String sv)
+static Accessor::TYPE
+stringToAccessorType(StringView sv)
 {
     switch (hash::func(sv))
     {
         default:
         case usize(HASH_CODE::SCALAR):
-        return ACCESSOR_TYPE::SCALAR;
+        return Accessor::TYPE::SCALAR;
 
         case usize(HASH_CODE::VEC2):
-        return ACCESSOR_TYPE::VEC2;
+        return Accessor::TYPE::VEC2;
 
         case usize(HASH_CODE::VEC3):
-        return ACCESSOR_TYPE::VEC3;
+        return Accessor::TYPE::VEC3;
 
         case usize(HASH_CODE::VEC4):
-        return ACCESSOR_TYPE::VEC4;
+        return Accessor::TYPE::VEC4;
 
         case usize(HASH_CODE::MAT2):
-        return ACCESSOR_TYPE::MAT3;
+        return Accessor::TYPE::MAT3;
 
         case usize(HASH_CODE::MAT3):
-        return ACCESSOR_TYPE::MAT3;
+        return Accessor::TYPE::MAT3;
 
         case usize(HASH_CODE::MAT4):
-        return ACCESSOR_TYPE::MAT4;
+        return Accessor::TYPE::MAT4;
     }
 }
 
 static union Type
-assignUnionType(json::Object* obj, int n)
+assignUnionType(json::Node* obj, int n)
 {
     auto& arr = json::getArray(obj);
     union Type type;
@@ -110,14 +80,14 @@ assignUnionType(json::Object* obj, int n)
 }
 
 static union Type
-accessorTypeToUnionType(enum ACCESSOR_TYPE t, json::Object* obj)
+accessorTypeToUnionType(Accessor::TYPE eType, json::Node* obj)
 {
     union Type type;
 
-    switch (t)
+    switch (eType)
     {
         default:
-        case ACCESSOR_TYPE::SCALAR:
+        case Accessor::TYPE::SCALAR:
         {
             auto& arr = json::getArray(obj);
             if (arr[0].tagVal.eTag == json::TAG::LONG)
@@ -125,27 +95,27 @@ accessorTypeToUnionType(enum ACCESSOR_TYPE t, json::Object* obj)
             else type.SCALAR = f64(json::getDouble(&arr[0]));
         } break;
 
-        case ACCESSOR_TYPE::VEC2:
+        case Accessor::TYPE::VEC2:
         type = assignUnionType(obj, 2);
         break;
 
-        case ACCESSOR_TYPE::VEC3:
+        case Accessor::TYPE::VEC3:
         type = assignUnionType(obj, 3);
         break;
 
-        case ACCESSOR_TYPE::VEC4:
+        case Accessor::TYPE::VEC4:
         type = assignUnionType(obj, 4);
         break;
 
-        case ACCESSOR_TYPE::MAT2:
+        case Accessor::TYPE::MAT2:
         type = assignUnionType(obj, 2*2);
         break;
 
-        case ACCESSOR_TYPE::MAT3:
+        case Accessor::TYPE::MAT3:
         type = assignUnionType(obj, 3*3);
         break;
 
-        case ACCESSOR_TYPE::MAT4:
+        case Accessor::TYPE::MAT4:
         type = assignUnionType(obj, 4*4);
         break;
     }
@@ -154,7 +124,7 @@ accessorTypeToUnionType(enum ACCESSOR_TYPE t, json::Object* obj)
 }
 
 static Animation::Channel::Target::PATH_TYPE
-AnimationChannelTargetPathTypeStringToPATH_TYPE(const String svPath)
+AnimationChannelTargetPathTypeStringToPATH_TYPE(const StringView svPath)
 {
     if (svPath == "translation")
         return Animation::Channel::Target::PATH_TYPE::TRANSLATION;
@@ -170,7 +140,7 @@ AnimationChannelTargetPathTypeStringToPATH_TYPE(const String svPath)
 }
 
 static Animation::Sampler::INTERPOLATION_TYPE
-AnimationSamplerStringToPATH_TYPE(const String svPath)
+AnimationSamplerStringToPATH_TYPE(const StringView svPath)
 {
     if (svPath == "LINEAR")
         return Animation::Sampler::INTERPOLATION_TYPE::LINEAR;
@@ -183,9 +153,9 @@ AnimationSamplerStringToPATH_TYPE(const String svPath)
 }
 
 bool
-Model::read(IAllocator* pAlloc, const json::Parser& parsed, const String svPath)
+Model::read(IAllocator* pAlloc, const json::Parser& parsed, const StringView svPath)
 {
-    m_sPath = svPath.clone(pAlloc);
+    m_sPath = String(pAlloc, svPath);
 
     procToplevelObjs(pAlloc, parsed);
 
@@ -195,6 +165,7 @@ Model::read(IAllocator* pAlloc, const json::Parser& parsed, const String svPath)
     if (!procBuffers(pAlloc)) return false;
     if (!procBufferViews(pAlloc)) return false;
     if (!procAccessors(pAlloc)) return false;
+    if (!procSkins(pAlloc)) return false;
     if (!procMeshes(pAlloc)) return false;
     if (!procTexures(pAlloc)) return false;
     if (!procMaterials(pAlloc)) return false;
@@ -282,38 +253,38 @@ Model::procToplevelObjs(IAllocator*, const json::Parser& parser)
 }
 
 bool
-Model::procAsset(adt::IAllocator* pAlloc)
+Model::procAsset(IAllocator* pAlloc)
 {
     if (!m_toplevelObjs.pAsset)
         return false;
 
     const auto& assetObj = json::getObject(m_toplevelObjs.pAsset);
-    auto* pVersion = json::searchObject(assetObj, "version");
+    auto* pVersion = json::searchNode(assetObj, "version");
     if (!pVersion)
     {
         LOG_BAD("'version' string is required\n");
         return false;
     }
 
-    m_asset.sVersion = json::getString(pVersion).clone(pAlloc);
+    m_asset.sVersion = String(pAlloc, json::getString(pVersion));
 
-    auto* pCopyright = json::searchObject(assetObj, "copyright");
+    auto* pCopyright = json::searchNode(assetObj, "copyright");
     if (pCopyright)
-        m_asset.sCopyright = json::getString(pCopyright).clone(pAlloc);
+        m_asset.sCopyright = String(pAlloc, json::getString(pCopyright));
 
-    auto* pGenerator = json::searchObject(assetObj, "generator");
+    auto* pGenerator = json::searchNode(assetObj, "generator");
     if (pGenerator)
-        m_asset.sGenerator = json::getString(pGenerator).clone(pAlloc);
+        m_asset.sGenerator = String(pAlloc, json::getString(pGenerator));
 
-    auto* pMinVersion = json::searchObject(assetObj, "minVersion");
+    auto* pMinVersion = json::searchNode(assetObj, "minVersion");
     if (pMinVersion)
-        m_asset.sMinVersion = json::getString(pMinVersion).clone(pAlloc);
+        m_asset.sMinVersion = String(pAlloc, json::getString(pMinVersion));
 
     return true;
 }
 
 bool
-Model::procRootScene(adt::IAllocator*)
+Model::procRootScene(IAllocator*)
 {
     if (!m_toplevelObjs.pScene)
     {
@@ -337,7 +308,7 @@ Model::procScenes(IAllocator* pAlloc)
 
         Scene newScene {};
 
-        auto pNodes = json::searchObject(obj, "nodes");
+        auto pNodes = json::searchNode(obj, "nodes");
         if (pNodes)
         {
             auto& vNodes = json::getArray(pNodes);
@@ -348,9 +319,9 @@ Model::procScenes(IAllocator* pAlloc)
             newScene.vNodes = vNewNodes;
         }
 
-        auto pName = json::searchObject(obj, "name");
+        auto pName = json::searchNode(obj, "name");
         if (pName)
-            newScene.sName = json::getString(pName).clone(pAlloc);
+            newScene.sName = String(pAlloc, json::getString(pName));
 
         m_vScenes.push(pAlloc, newScene);
     }
@@ -366,8 +337,8 @@ Model::procBuffers(IAllocator* pAlloc)
     for (auto& e : arr)
     {
         auto& obj = json::getObject(&e);
-        auto pByteLength = json::searchObject(obj, "byteLength");
-        auto pUri = json::searchObject(obj, "uri");
+        auto pByteLength = json::searchNode(obj, "byteLength");
+        auto pUri = json::searchNode(obj, "uri");
         if (!pByteLength)
         {
             LOG_BAD("'byteLength' is required\n");
@@ -375,18 +346,16 @@ Model::procBuffers(IAllocator* pAlloc)
         }
 
         String svUri;
-        Opt<String> rsBin;
         String aBin;
 
         if (pUri)
         {
-            svUri = json::getString(pUri).clone(pAlloc);
+            svUri = String(pAlloc, json::getString(pUri));
             auto sNewPath = file::replacePathEnding(pAlloc, m_sPath, svUri);
 
-            rsBin = file::load(pAlloc, sNewPath);
-            if (!rsBin)
+            aBin = file::load(pAlloc, sNewPath);
+            if (!aBin)
                 LOG_WARN("error opening file: '{}'\n", sNewPath);
-            else aBin = rsBin.value();
         }
 
         m_vBuffers.push(pAlloc, {
@@ -410,15 +379,15 @@ Model::procBufferViews(IAllocator* pAlloc)
 
         BufferView newView {};
 
-        auto pBuffer = json::searchObject(obj, "buffer");
+        auto pBuffer = json::searchNode(obj, "buffer");
         if (!pBuffer)
         {
             LOG_BAD("'buffer' field is required\n");
             return false;
         }
 
-        auto pByteOffset = json::searchObject(obj, "byteOffset");
-        auto pByteLength = json::searchObject(obj, "byteLength");
+        auto pByteOffset = json::searchNode(obj, "byteOffset");
+        auto pByteLength = json::searchNode(obj, "byteLength");
 
         if (!pByteLength)
         {
@@ -426,8 +395,8 @@ Model::procBufferViews(IAllocator* pAlloc)
             return false;
         }
 
-        auto pByteStride = json::searchObject(obj, "byteStride");
-        auto pTarget = json::searchObject(obj, "target");
+        auto pByteStride = json::searchNode(obj, "byteStride");
+        auto pTarget = json::searchNode(obj, "target");
 
         m_vBufferViews.push(pAlloc, {
             .bufferI = static_cast<int>(json::getLong(pBuffer)),
@@ -450,9 +419,9 @@ Model::procAccessors(IAllocator* pAlloc)
     {
         auto& obj = json::getObject(&e);
  
-        auto pBufferView = json::searchObject(obj, "bufferView");
-        auto pByteOffset = json::searchObject(obj, "byteOffset");
-        auto pComponentType = json::searchObject(obj, "componentType");
+        auto pBufferView = json::searchNode(obj, "bufferView");
+        auto pByteOffset = json::searchNode(obj, "byteOffset");
+        auto pComponentType = json::searchNode(obj, "componentType");
 
         if (!pComponentType)
         {
@@ -460,16 +429,16 @@ Model::procAccessors(IAllocator* pAlloc)
             return false;
         }
 
-        auto pCount = json::searchObject(obj, "count");
+        auto pCount = json::searchNode(obj, "count");
         if (!pCount)
         {
             LOG_BAD("'count' field is required\n");
             return false;
         }
 
-        auto pMax = json::searchObject(obj, "max");
-        auto pMin = json::searchObject(obj, "min");
-        auto pType = json::searchObject(obj, "type");
+        auto pMax = json::searchNode(obj, "max");
+        auto pMin = json::searchNode(obj, "min");
+        auto pType = json::searchNode(obj, "type");
 
         if (!pType)
         {
@@ -477,17 +446,64 @@ Model::procAccessors(IAllocator* pAlloc)
             return false;
         }
  
-        enum ACCESSOR_TYPE type = stringToAccessorType(json::getString(pType));
+        Accessor::TYPE eType = stringToAccessorType(json::getString(pType));
  
         m_vAccessors.push(pAlloc, {
             .bufferViewI = pBufferView ? static_cast<int>(json::getLong(pBufferView)) : 0,
             .byteOffset = pByteOffset ? static_cast<int>(json::getLong(pByteOffset)) : 0,
             .eComponentType = (COMPONENT_TYPE)(json::getLong(pComponentType)),
             .count = static_cast<int>(json::getLong(pCount)),
-            .max = pMax ? accessorTypeToUnionType(type, pMax) : Type{},
-            .min = pMin ? accessorTypeToUnionType(type, pMin) : Type{},
-            .eType = type
+            .uMax = pMax ? accessorTypeToUnionType(eType, pMax) : Type{},
+            .uMin = pMin ? accessorTypeToUnionType(eType, pMin) : Type{},
+            .eType = eType
         });
+    }
+
+    return true;
+}
+
+bool
+Model::procSkins(IAllocator* pAlloc)
+{
+    if (!m_toplevelObjs.pSkins)
+        return true;
+
+    auto& skinsArray = json::getArray(m_toplevelObjs.pSkins);
+
+    for (auto& skin : skinsArray)
+    {
+        auto& skinObj = json::getObject(&skin);
+
+        Skin newSkin {};
+
+        auto* pJoints = json::searchNode(skinObj, "joints");
+        if (!pJoints)
+        {
+            LOG_BAD("'joints' are required\n");
+            return false;
+        }
+
+        auto& jointsArr = json::getArray(pJoints);
+        for (auto joint : jointsArr)
+        {
+            newSkin.vJoints.push(pAlloc,
+                static_cast<int>(json::getLong(&joint))
+            );
+        }
+
+        auto* pName = json::searchNode(skinObj, "name");
+        if (pName)
+            newSkin.sName = String(pAlloc, json::getString(pName));
+
+        auto* pInverseBindMatrices = json::searchNode(skinObj, "inverseBindMatrices");
+        if (pInverseBindMatrices)
+            newSkin.inverseBindMatricesI = static_cast<int>(json::getLong(pInverseBindMatrices));
+
+        auto* pSkeleton = json::searchNode(skinObj, "skeleton");
+        if (pSkeleton)
+            newSkin.skeleton = static_cast<int>(json::getLong(pSkeleton));
+
+        m_vSkins.push(pAlloc, newSkin);
     }
 
     return true;
@@ -502,7 +518,7 @@ Model::procMeshes(IAllocator* pAlloc)
     {
         auto& obj = json::getObject(&e);
  
-        auto pPrimitives = json::searchObject(obj, "primitives");
+        auto pPrimitives = json::searchNode(obj, "primitives");
         if (!pPrimitives)
         {
             LOG_BAD("'primitives' field is required\n");
@@ -510,8 +526,8 @@ Model::procMeshes(IAllocator* pAlloc)
         }
  
         VecBase<Primitive> aPrimitives(pAlloc);
-        auto pName = json::searchObject(obj, "name");
-        auto name = pName ? json::getString(pName).clone(pAlloc) : "";
+        auto pName = json::searchNode(obj, "name");
+        String sName = pName ? String(pAlloc, json::getString(pName)) : String{};
  
         auto& aPrim = json::getArray(pPrimitives);
         for (auto& p : aPrim)
@@ -520,19 +536,19 @@ Model::procMeshes(IAllocator* pAlloc)
 
             Primitive newPrimitive {};
 
-            auto pIndices = json::searchObject(op, "indices");
+            auto pIndices = json::searchNode(op, "indices");
             if (pIndices)
                 newPrimitive.indicesI = static_cast<int>(json::getLong(pIndices));
 
-            auto pMode = json::searchObject(op, "mode");
+            auto pMode = json::searchNode(op, "mode");
             if (pMode)
                 newPrimitive.eMode = static_cast<Primitive::TYPE>(json::getLong(pMode));
 
-            auto pMaterial = json::searchObject(op, "material");
+            auto pMaterial = json::searchNode(op, "material");
             if (pMaterial)
                 newPrimitive.materialI = static_cast<int>(json::getLong(pMaterial));
  
-            auto pAttributes = json::searchObject(op, "attributes");
+            auto pAttributes = json::searchNode(op, "attributes");
             if (!pAttributes)
             {
                 LOG_BAD("'attributes' field is required\n");
@@ -541,26 +557,34 @@ Model::procMeshes(IAllocator* pAlloc)
 
             auto& oAttr = json::getObject(pAttributes);
 
-            auto pNORMAL = json::searchObject(oAttr, "NORMAL");
+            auto pNORMAL = json::searchNode(oAttr, "NORMAL");
             if (pNORMAL)
                 newPrimitive.attributes.NORMAL = static_cast<int>(json::getLong(pNORMAL));
-            auto pTANGENT = json::searchObject(oAttr, "TANGENT");
 
+            auto pTANGENT = json::searchNode(oAttr, "TANGENT");
             if (pTANGENT)
                 newPrimitive.attributes.TANGENT = static_cast<int>(json::getLong(pTANGENT));
-            auto pPOSITION = json::searchObject(oAttr, "POSITION");
 
+            auto pPOSITION = json::searchNode(oAttr, "POSITION");
             if (pPOSITION)
                 newPrimitive.attributes.POSITION = static_cast<int>(json::getLong(pPOSITION));
 
-            auto pTEXCOORD_0 = json::searchObject(oAttr, "TEXCOORD_0");
+            auto pTEXCOORD_0 = json::searchNode(oAttr, "TEXCOORD_0");
             if (pTEXCOORD_0)
                 newPrimitive.attributes.TEXCOORD_0 = static_cast<int>(json::getLong(pTEXCOORD_0));
+
+            auto* pJOINTS_0 = json::searchNode(oAttr, "JOINTS_0");
+            if (pJOINTS_0)
+                newPrimitive.attributes.JOINTS_0 = static_cast<int>(json::getLong(pJOINTS_0));
+
+            auto* pWEIGHTS_0 = json::searchNode(oAttr, "WEIGHTS_0");
+            if (pWEIGHTS_0)
+                newPrimitive.attributes.WEIGHTS_0 = static_cast<int>(json::getLong(pWEIGHTS_0));
  
             aPrimitives.push(pAlloc, newPrimitive);
         }
  
-        m_vMeshes.push(pAlloc, {.vPrimitives = aPrimitives, .sName = name});
+        m_vMeshes.push(pAlloc, {.vPrimitives = aPrimitives, .sName = sName});
     }
 
     return true;
@@ -578,12 +602,12 @@ Model::procTexures(IAllocator* pAlloc)
     {
         auto& obj = json::getObject(&tex);
 
-        auto pSource = json::searchObject(obj, "source");
-        auto pSampler = json::searchObject(obj, "sampler");
+        auto pSource = json::searchNode(obj, "source");
+        auto pSampler = json::searchNode(obj, "sampler");
 
         m_vTextures.push(pAlloc, {
-            .sourceI = pSource ? (i32)(json::getLong(pSource)) : -1,
-            .samplerI = pSampler ? (i32)(json::getLong(pSampler)) : -1
+            .sourceI = pSource ? static_cast<i32>(json::getLong(pSource)) : -1,
+            .samplerI = pSampler ? static_cast<i32>(json::getLong(pSampler)) : -1
         });
     }
 
@@ -604,22 +628,22 @@ Model::procMaterials(IAllocator* pAlloc)
 
         Material newMaterial {};
 
-        auto pName = json::searchObject(obj, "name");
+        auto pName = json::searchNode(obj, "name");
         if (pName)
-            newMaterial.sName = json::getString(pName).clone(pAlloc);
+            newMaterial.sName = String(pAlloc, json::getString(pName));
 
-        auto pPbrMetallicRoughness = json::searchObject(obj, "pbrMetallicRoughness");
+        auto pPbrMetallicRoughness = json::searchNode(obj, "pbrMetallicRoughness");
         if (pPbrMetallicRoughness)
         {
             auto& oPbr = json::getObject(pPbrMetallicRoughness);
 
             {
-                auto pBaseColorTexture = json::searchObject(oPbr, "baseColorTexture");
+                auto pBaseColorTexture = json::searchNode(oPbr, "baseColorTexture");
                 if (pBaseColorTexture)
                 {
                     auto& objBct = json::getObject(pBaseColorTexture);
 
-                    auto pIndex = json::searchObject(objBct, "index");
+                    auto pIndex = json::searchNode(objBct, "index");
                     if (!pIndex)
                     {
                         LOG_BAD("index field is required\n");
@@ -631,17 +655,17 @@ Model::procMaterials(IAllocator* pAlloc)
             }
 
             {
-                auto pBaseColorFactor = json::searchObject(oPbr, "baseColorFactor");
+                auto pBaseColorFactor = json::searchNode(oPbr, "baseColorFactor");
                 if (pBaseColorFactor)
                     newMaterial.pbrMetallicRoughness.baseColorFactor = assignUnionType(pBaseColorFactor, 4).VEC4;
             }
         }
 
-        auto pNormalTexture = json::searchObject(obj, "normalTexture");
+        auto pNormalTexture = json::searchNode(obj, "normalTexture");
         if (pNormalTexture)
         {
             auto& objNT = json::getObject(pNormalTexture);
-            auto pIndex = json::searchObject(objNT, "index");
+            auto pIndex = json::searchNode(objNT, "index");
             if (!pIndex)
             {
                 LOG_BAD("index filed is required\n");
@@ -669,13 +693,9 @@ Model::procImages(IAllocator* pAlloc)
     {
         auto& obj = json::getObject(&img);
 
-        auto pUri = json::searchObject(obj, "uri");
+        auto pUri = json::searchNode(obj, "uri");
         if (pUri)
-        {
-            m_vImages.push(pAlloc,
-                {json::getString(pUri).clone(pAlloc)}
-            );
-        }
+            m_vImages.push(pAlloc, {.sUri = String(pAlloc, json::getString(pUri))});
     }
 
     return true;
@@ -692,14 +712,15 @@ Model::procNodes(IAllocator* pAlloc)
 
         Node newNode {};
 
-        auto pName = json::searchObject(obj, "name");
+        auto pName = json::searchNode(obj, "name");
         if (pName)
-            newNode.sName = json::getString(pName);
+            newNode.sName = String(pAlloc, json::getString(pName));
 
-        auto pCamera = json::searchObject(obj, "camera");
-        if (pCamera) newNode.camera = static_cast<int>(json::getLong(pCamera));
+        auto pCamera = json::searchNode(obj, "camera");
+        if (pCamera)
+            newNode.cameraI = static_cast<int>(json::getLong(pCamera));
 
-        auto pChildren = json::searchObject(obj, "children");
+        auto pChildren = json::searchNode(obj, "children");
         if (pChildren)
         {
             auto& arrChil = json::getArray(pChildren);
@@ -707,17 +728,22 @@ Model::procNodes(IAllocator* pAlloc)
                 newNode.vChildren.push(pAlloc, static_cast<int>(json::getLong(&c)));
         }
 
-        auto pMatrix = json::searchObject(obj, "matrix");
+        auto pMatrix = json::searchNode(obj, "matrix");
         if (pMatrix)
         {
             newNode.uTransformation.matrix = assignUnionType(pMatrix, 4*4).MAT4;
             newNode.eTransformationType = Node::TRANSFORMATION_TYPE::MATRIX;
         }
 
-        auto pMesh = json::searchObject(obj, "mesh");
-        if (pMesh) newNode.meshI = static_cast<int>(json::getLong(pMesh));
+        auto pMesh = json::searchNode(obj, "mesh");
+        if (pMesh)
+            newNode.meshI = static_cast<int>(json::getLong(pMesh));
 
-        auto pTranslation = json::searchObject(obj, "translation");
+        auto pSkin = json::searchNode(obj, "skin");
+        if (pSkin)
+            newNode.skinI = static_cast<int>(json::getLong(pSkin));
+
+        auto pTranslation = json::searchNode(obj, "translation");
         if (pTranslation)
         {
             auto ut = assignUnionType(pTranslation, 3);
@@ -725,7 +751,7 @@ Model::procNodes(IAllocator* pAlloc)
             newNode.eTransformationType = Node::TRANSFORMATION_TYPE::ANIMATION;
         }
 
-        auto pRotation = json::searchObject(obj, "rotation");
+        auto pRotation = json::searchNode(obj, "rotation");
         if (pRotation)
         {
             auto ut = assignUnionType(pRotation, 4);
@@ -733,7 +759,7 @@ Model::procNodes(IAllocator* pAlloc)
             newNode.eTransformationType = Node::TRANSFORMATION_TYPE::ANIMATION;
         }
 
-        auto pScale = json::searchObject(obj, "scale");
+        auto pScale = json::searchNode(obj, "scale");
         if (pScale)
         {
             auto ut = assignUnionType(pScale, 3);
@@ -748,7 +774,7 @@ Model::procNodes(IAllocator* pAlloc)
 }
 
 bool
-Model::procAnimations(adt::IAllocator* pAlloc)
+Model::procAnimations(IAllocator* pAlloc)
 {
     if (!m_toplevelObjs.pAnimations)
         return true;
@@ -762,11 +788,11 @@ Model::procAnimations(adt::IAllocator* pAlloc)
 
         Animation newAnim {};
 
-        auto* pName = json::searchObject(obj, "name");
+        auto* pName = json::searchNode(obj, "name");
         if (pName)
-            newAnim.sName = json::getString(pName).clone(pAlloc);
+            newAnim.sName = String(pAlloc, json::getString(pName));
 
-        auto* pChannelsObj = json::searchObject(obj, "channels");
+        auto* pChannelsObj = json::searchNode(obj, "channels");
         if (!pChannelsObj)
         {
             LOG_BAD("'channels' object is required\n");
@@ -780,7 +806,7 @@ Model::procAnimations(adt::IAllocator* pAlloc)
 
             Animation::Channel newChannel {};
 
-            auto* pSampler = json::searchObject(channelObj, "sampler");
+            auto* pSampler = json::searchNode(channelObj, "sampler");
             if (!pSampler)
             {
                 LOG_BAD("'sampler' object is required\n");
@@ -790,7 +816,7 @@ Model::procAnimations(adt::IAllocator* pAlloc)
             auto sampler = json::getLong(pSampler);
             newChannel.samplerI = sampler;
 
-            auto* pTarget = json::searchObject(channelObj, "target");
+            auto* pTarget = json::searchNode(channelObj, "target");
             if (!pTarget)
             {
                 LOG_BAD("'target' object is required\n");
@@ -801,13 +827,13 @@ Model::procAnimations(adt::IAllocator* pAlloc)
 
             Animation::Channel::Target newTarget {};
 
-            auto pNode = json::searchObject(targetObj, "node");
+            auto pNode = json::searchNode(targetObj, "node");
             if (pNode)
             {
                 newTarget.nodeI = static_cast<int>(json::getLong(pNode));
             }
 
-            auto pPath = json::searchObject(targetObj, "path");
+            auto pPath = json::searchNode(targetObj, "path");
             if (!pPath)
             {
                 LOG_BAD("'path' object is required\n");
@@ -821,7 +847,7 @@ Model::procAnimations(adt::IAllocator* pAlloc)
             newAnim.vChannels.push(pAlloc, newChannel);
         }
 
-        auto* pSamplers = json::searchObject(obj, "samplers");
+        auto* pSamplers = json::searchNode(obj, "samplers");
         if (!pSamplers)
         {
             LOG_BAD("'samplers' objects is required\n");
@@ -835,7 +861,7 @@ Model::procAnimations(adt::IAllocator* pAlloc)
 
             Animation::Sampler newSampler {};
 
-            auto* pInput = json::searchObject(samplerObj, "input");
+            auto* pInput = json::searchNode(samplerObj, "input");
             if (!pInput)
             {
                 LOG_BAD("'input' is required\n");
@@ -844,11 +870,11 @@ Model::procAnimations(adt::IAllocator* pAlloc)
 
             newSampler.inputI = static_cast<int>(json::getLong(pInput));
 
-            auto* pInterpolation = json::searchObject(samplerObj, "interpolation");
+            auto* pInterpolation = json::searchNode(samplerObj, "interpolation");
             if (pInterpolation)
                 newSampler.eInterpolation = AnimationSamplerStringToPATH_TYPE(json::getString(pInterpolation));
 
-            auto* pOutput = json::searchObject(samplerObj, "output");
+            auto* pOutput = json::searchNode(samplerObj, "output");
             if (!pOutput)
             {
                 LOG_BAD("'output' field is required\n");

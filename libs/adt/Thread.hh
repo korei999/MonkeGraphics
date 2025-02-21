@@ -214,15 +214,14 @@ Thread::win32Detach()
 }
 
 #endif
-
-enum MUTEX_TYPE : u8
-{
-    PLAIN = 0,
-    RECURSIVE = 1,
-};
-
 struct Mutex
 {
+    enum TYPE : u8
+    {
+        PLAIN = 0,
+        RECURSIVE = 1,
+    };
+
 #ifdef ADT_USE_PTHREAD
 
     pthread_mutex_t m_mtx {};
@@ -237,7 +236,7 @@ struct Mutex
     /* */
 
     Mutex() = default;
-    Mutex(MUTEX_TYPE eType);
+    explicit Mutex(TYPE eType);
 
     /* */
 
@@ -249,7 +248,7 @@ struct Mutex
 private:
 #ifdef ADT_USE_PTHREAD
 
-    int pthreadAttrType(MUTEX_TYPE eType) { return (int)eType; }
+    int pthreadAttrType(TYPE eType) { return (int)eType; }
 
 #elif defined ADT_USE_WIN32THREAD
 
@@ -257,7 +256,7 @@ private:
 };
 
 inline
-Mutex::Mutex([[maybe_unused]] MUTEX_TYPE eType)
+Mutex::Mutex([[maybe_unused]] TYPE eType)
 {
 #ifdef ADT_USE_PTHREAD
 
@@ -346,7 +345,7 @@ struct CndVar
     /* */
 
     CndVar() = default;
-    CndVar(INIT_FLAG);
+    explicit CndVar(InitFlag);
 
     /* */
 
@@ -358,7 +357,7 @@ struct CndVar
 };
 
 inline
-CndVar::CndVar(INIT_FLAG)
+CndVar::CndVar(InitFlag)
 {
 #ifdef ADT_USE_PTHREAD
 
@@ -468,7 +467,7 @@ struct CallOnce
     /* */
 
     CallOnce() = default;
-    CallOnce(INIT_FLAG);
+    explicit CallOnce(InitFlag);
 
     /* */
 
@@ -476,7 +475,7 @@ struct CallOnce
 };
 
 inline
-CallOnce::CallOnce(INIT_FLAG)
+CallOnce::CallOnce(InitFlag)
 {
 #ifdef ADT_USE_PTHREAD
 

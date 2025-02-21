@@ -41,28 +41,36 @@ struct MapResult
     usize hash {};
     MAP_RESULT_STATUS eStatus {};
 
-    constexpr operator bool() const
+    explicit constexpr operator bool() const
     {
         return pData != nullptr;
     }
 
-    constexpr const KeyVal<K, V>&
+    [[nodiscard]] constexpr const KeyVal<K, V>&
     data() const
     {
         ADT_ASSERT(eStatus != MAP_RESULT_STATUS::NOT_FOUND, "not found");
         return *(KeyVal<K, V>*)pData;
     }
 
-    constexpr const K&
+    [[nodiscard]] constexpr const K&
     key() const
     {
         return data().key;
     }
 
-    constexpr const V&
+    [[nodiscard]] constexpr const V&
     value() const
     {
         return data().val;
+    }
+
+    [[nodiscard]] constexpr const V&
+    valueOr(V&& v) const
+    {
+        if (eStatus != MAP_RESULT_STATUS::NOT_FOUND)
+            return value();
+        else return std::forward<V>(v);
     }
 };
 
@@ -513,11 +521,11 @@ namespace print
 {
 
 inline ssize
-formatToContext(Context ctx, [[maybe_unused]] FormatArgs fmtArgs, MAP_RESULT_STATUS eStatus)
+formatToContext(Context ctx, FormatArgs, MAP_RESULT_STATUS eStatus)
 {
     ctx.fmt = "{}";
     ctx.fmtIdx = 0;
-    constexpr String map[] {
+    constexpr StringView map[] {
         "FOUND", "NOT_FOUND", "INSERTED"
     };
 
@@ -528,7 +536,7 @@ formatToContext(Context ctx, [[maybe_unused]] FormatArgs fmtArgs, MAP_RESULT_STA
 
 template<typename K, typename V>
 inline ssize
-formatToContext(Context ctx, [[maybe_unused]] FormatArgs fmtArgs, const MapBucket<K, V>& x)
+formatToContext(Context ctx, FormatArgs, const MapBucket<K, V>& x)
 {
     ctx.fmt = "[{}, {}]";
     ctx.fmtIdx = 0;
@@ -537,7 +545,7 @@ formatToContext(Context ctx, [[maybe_unused]] FormatArgs fmtArgs, const MapBucke
 
 template<typename K, typename V>
 inline ssize
-formatToContext(Context ctx, [[maybe_unused]] FormatArgs fmtArgs, const KeyVal<K, V>& x)
+formatToContext(Context ctx, FormatArgs, const KeyVal<K, V>& x)
 {
     ctx.fmt = "[{}, {}]";
     ctx.fmtIdx = 0;

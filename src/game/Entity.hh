@@ -11,9 +11,13 @@ namespace game
  /* idx in the pool */
 struct Entity
 {
-    int i {};
+    int i = -1;
+
+    /* */
 
     explicit operator int() const { return i; }
+
+    operator bool() const { return i != -1; }
 };
 
 struct EntityBind
@@ -24,8 +28,9 @@ struct EntityBind
 
     adt::math::V3& vel;
 
-    adt::u16& assetI;
-    adt::u16& shaderI;
+    adt::i16& assetI;
+    adt::i16& shaderI;
+    adt::i16& modelI;
 
     bool& bDead;
 };
@@ -41,10 +46,11 @@ struct EntityPoolSOA
 
         adt::math::V3 aVel[CAP] {};
 
-        adt::u16 aAssetI[CAP] {};
-        adt::u16 aShaderI[CAP] {};
+        adt::i16 aAssetI[CAP] {};
+        adt::i16 aShaderI[CAP] {};
+        adt::i16 aModels[CAP] {};
 
-        bool abDead[CAP] {};
+        bool abInvisible[CAP] {};
 
         struct
         {
@@ -60,7 +66,7 @@ struct EntityPoolSOA
     /* */
 
     ADT_WARN_INIT EntityPoolSOA() = default;
-    EntityPoolSOA(adt::INIT_FLAG);
+    explicit EntityPoolSOA(adt::InitFlag);
 
     /* */
 
@@ -76,7 +82,7 @@ private:
 };
 
 template<int CAP> 
-EntityPoolSOA<CAP>::EntityPoolSOA(adt::INIT_FLAG)
+EntityPoolSOA<CAP>::EntityPoolSOA(adt::InitFlag)
 {
     for (auto& bFree : m_arrays.priv.abFree)
         bFree = true;
@@ -107,9 +113,13 @@ EntityPoolSOA<CAP>::makeDefault()
     bind.pos = {};
     bind.rot = adt::math::QtIden();
     bind.scale = {1.0f, 1.0f, 1.0f};
+
     bind.vel = {};
+
     bind.assetI = -1;
     bind.shaderI = -1;
+    bind.modelI = -1;
+
     bind.bDead = false;
 
     return h;
@@ -142,8 +152,9 @@ EntityPoolSOA<CAP>::bind(Entity h)
 
         .assetI = m_arrays.aAssetI[h.i],
         .shaderI = m_arrays.aShaderI[h.i],
+        .modelI = m_arrays.aModels[h.i],
 
-        .bDead = m_arrays.abDead[h.i],
+        .bDead = m_arrays.abInvisible[h.i],
     };
 }
 

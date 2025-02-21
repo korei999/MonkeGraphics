@@ -24,17 +24,17 @@ struct ShaderMapping
 
     /* */
 
-    adt::String m_svVert {};
-    adt::String m_svGeom {};
-    adt::String m_svFrag {};
-    adt::String m_svMappedTo {};
+    adt::StringView m_svVert {};
+    adt::StringView m_svGeom {};
+    adt::StringView m_svFrag {};
+    adt::StringView m_svMappedTo {};
 
     TYPE m_eType {};
 
     /* */
 
     ShaderMapping() = default;
-    ShaderMapping(const adt::String svVertPath, const adt::String svFragPath, const adt::String svMappedTo);
+    ShaderMapping(const adt::StringView svVertPath, const adt::StringView svFragPath, const adt::StringView svMappedTo);
 };
 
 struct Texture
@@ -67,7 +67,7 @@ struct Shader
     /* */
 
     Shader() = default;
-    Shader(const adt::String sVertexShader, const adt::String sFragmentShader, const adt::String svMapTo);
+    Shader(const adt::StringView sVertexShader, const adt::StringView sFragmentShader, const adt::StringView svMapTo);
 
     /* */
 
@@ -80,28 +80,35 @@ struct Shader
     setM3(const char* ntsUnifromVar, const adt::math::M3& m)
     {
         GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
-        glUniformMatrix3fv(ul, 1, GL_FALSE, (GLfloat*)m.e);
+        glUniformMatrix3fv(ul, 1, GL_FALSE, reinterpret_cast<const GLfloat*>(m.e));
     }
     
     void 
     setM4(const char* ntsUnifromVar, const adt::math::M4& m)
     {
         GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
-        glUniformMatrix4fv(ul, 1, GL_FALSE, (GLfloat*)m.e);
+        glUniformMatrix4fv(ul, 1, GL_FALSE, reinterpret_cast<const GLfloat*>(m.e));
+    }
+
+    void 
+    setM4(const char* ntsUnifromVar, const adt::Span<adt::math::M4> sp)
+    {
+        GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
+        glUniformMatrix4fv(ul, sp.getSize(), GL_FALSE, reinterpret_cast<const GLfloat*>(sp.data()));
     }
     
     void
     setV3(const char* ntsUnifromVar, const adt::math::V3& v)
     {
         GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
-        glUniform3fv(ul, 1, (GLfloat*)v.e);
+        glUniform3fv(ul, 1, reinterpret_cast<const GLfloat*>(v.e));
     }
     
     void
     setV4(const char* ntsUnifromVar, const adt::math::V4& v)
     {
         GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
-        glUniform4fv(ul, 1, (GLfloat*)v.e);
+        glUniform4fv(ul, 1, reinterpret_cast<const GLfloat*>(v.e));
     }
     
     void
@@ -119,8 +126,8 @@ struct Shader
     }
 
 private:
-    void load(const adt::String svVertexPath, const adt::String svFragmentPath);
-    static GLuint loadOne(GLenum type, adt::String path);
+    void load(const adt::StringView svVertexPath, const adt::StringView svFragmentPath);
+    static GLuint loadOne(GLenum type, adt::StringView path);
 };
 
 struct Quad
@@ -131,7 +138,7 @@ struct Quad
     /* */
 
     Quad() = default;
-    Quad(adt::INIT_FLAG);
+    Quad(adt::InitFlag);
 
     /* */
 
@@ -139,7 +146,7 @@ struct Quad
     void draw() { glDrawArrays(GL_TRIANGLES, 0, 6); }
 };
 
-[[nodiscard]] Shader* searchShader(const adt::String svKey);
+[[nodiscard]] Shader* searchShader(const adt::StringView svKey);
 
 #ifndef NDEBUG
 void debugCallback(
@@ -153,6 +160,6 @@ void debugCallback(
 );
 #endif
 
-extern adt::Pool<Shader, 128> g_aShaders;
+extern adt::Pool<Shader, 128> g_poolShaders;
 
 } /* namespace render::gl */

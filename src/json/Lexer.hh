@@ -26,14 +26,14 @@ ADT_ENUM_BITWISE_OPERATORS(TOKEN_TYPE);
 struct Token
 {
     TOKEN_TYPE eType {};
-    adt::String sLiteral {};
+    adt::StringView sLiteral {};
     adt::u32 row {};
     adt::u32 column {};
 };
 
 class Lexer
 {
-    adt::String m_sJson {};
+    adt::StringView m_sJson {};
     adt::u32 m_pos {};
     adt::u32 m_row = 1;
     adt::u32 m_column = 1;
@@ -42,7 +42,7 @@ class Lexer
 
 public:
     Lexer() = default;
-    Lexer(adt::String sJson) : m_sJson(sJson), m_row(1), m_column(1) {}
+    Lexer(adt::StringView sJson) : m_sJson(sJson), m_row(1), m_column(1) {}
 
     /* */
 

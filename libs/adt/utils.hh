@@ -299,4 +299,13 @@ search(const CON_T<T>& c, LAMBDA f)
     return NPOS;
 }
 
+template<typename T>
+[[nodiscard]] inline T
+exchange(T* pDest, T&& newVal)
+{
+    T old = *pDest;
+    *pDest = std::forward<T>(newVal);
+    return old;
+}
+
 } /* namespace adt::utils */

@@ -25,6 +25,7 @@ enum class COMPONENT_TYPE : adt::u32
     UNSIGNED_BYTE = 5121,
     SHORT = 5122,
     UNSIGNED_SHORT = 5123,
+    INT = 5124,
     UNSIGNED_INT = 5125,
     FLOAT = 5126
 };
@@ -58,17 +59,6 @@ struct Buffer
     adt::String sBin {};
 };
 
-enum class ACCESSOR_TYPE
-{
-    SCALAR,
-    VEC2,
-    VEC3,
-    VEC4,
-    MAT2,
-    MAT3,
-    MAT4
-};
-
 union Type
 {
     adt::f32 SCALAR;
@@ -85,13 +75,17 @@ union Type
  * The raw data of a buffer is structured using bufferView objects and is augmented with data type information using accessor objects.*/
 struct Accessor
 {
-    int bufferViewI {};
+    enum class TYPE { SCALAR, VEC2, VEC3, VEC4, MAT2, MAT3, MAT4 };
+
+    /* */
+
+    int bufferViewI {}; /* The index of the bufferView. */
     int byteOffset {}; /* The offset relative to the start of the buffer view in bytes. This MUST be a multiple of the size of the component datatype. */
-    COMPONENT_TYPE eComponentType {}; /* REQUIRED */
+    COMPONENT_TYPE eComponentType {}; /* REQUIRED. The datatype of the accessor’s components. */
     int count {}; /* REQUIRED The number of elements referenced by this accessor, not to be confused with the number of bytes or number of components. */
-    union Type max {};
-    union Type min {};
-    ACCESSOR_TYPE eType {}; /* REQUIRED */
+    Type uMax {}; /* number [1-16]. Maximum value of each component in this accessor. */
+    Type uMin {}; /* number [1-16]. Minimum value of each component in this accessor. */
+    TYPE eType {}; /* REQUIRED. Specifies if the accessor’s elements are scalars, vectors, or matrices. */
 };
 
 
@@ -104,9 +98,9 @@ struct Node
 
     /* */
 
-    adt::String sName {};
-    int camera {};
-    adt::VecBase<int> vChildren {};
+    adt::String sName {}; /* The user-defined name of this object. */
+    int cameraI {}; /* The index of the camera referenced by this node. */
+    adt::VecBase<int> vChildren {}; /* The indices of this node’s children. */
     /* each node can have a local transform.
      * This transform can be given either by the matrix property of the node or by using the translation, rotation, and scale (TRS) properties. */
     TRANSFORMATION_TYPE eTransformationType {};
@@ -120,9 +114,8 @@ struct Node
             adt::math::V3 scale {1.0f, 1.0f, 1.0f};
         } animation {};
     } uTransformation {};
-    int meshI = adt::NPOS; /* The index of the mesh in this node. */
-
-    adt::f32 currTime = 0.0f;
+    int meshI = -1; /* The index of the mesh in this node. */
+    int skinI = -1; /* The index of the skin referenced by this node. */
 };
 
 struct Animation
@@ -144,7 +137,6 @@ struct Animation
 
         int samplerI {}; /* REQUIRED. The index of a sampler in this animation used to compute the value for the target. */
         Target target {}; /* REQUIRED. The descriptor of the animated property. */
-        
     };
 
     struct Sampler
@@ -155,6 +147,8 @@ struct Animation
         INTERPOLATION_TYPE eInterpolation = INTERPOLATION_TYPE::LINEAR;
         int outputI {}; /* REQUIRED. The index of an accessor, containing keyframe output values. */
     };
+
+    /* */
 
     /* REQUIRED. An array of animation channels. An animation channel combines an animation sampler with a target property being animated.
      * Different channels of the same animation MUST NOT have the same targets. */
@@ -208,6 +202,7 @@ struct Image
     adt::String sUri {};
 };
 
+/* When the node contains skin, all mesh.primitives MUST contain JOINTS_0 and WEIGHTS_0 attributes.  */
 struct Primitive
 {
     /* match real gl macros */
@@ -226,7 +221,7 @@ struct Primitive
 
     struct
     {
-        /* TODO: could be TEXCOORD_0, TEXCOORD_1... etc */
+        /* TODO: could be TEXCOORD_0, TEXCOORD_1..., JOINTS_*, WEIGHTS_* ... */
         int NORMAL = -1;
         int POSITION = -1;
         int TANGENT = -1;
@@ -279,6 +274,14 @@ struct Material
     NormalTextureInfo normalTexture {};
 };
 
+struct Skin
+{
+    adt::VecBase<int> vJoints {}; /* REQUIRED. Indices of skeleton nodes, used as joints in this skin. */
+    adt::String sName {}; /* The user-defined name of this object. */
+    int inverseBindMatricesI = -1; /* The index of the accessor containing the floating-point 4x4 inverse-bind matrices. */
+    int skeleton = -1; /* The index of the node used as a skeleton root. */
+};
+
 } /* namespace gltf */
 
 namespace adt::print
@@ -287,7 +290,7 @@ namespace adt::print
 inline ssize
 formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Channel::Target::PATH_TYPE x)
 {
-    constexpr adt::String aMap[] {
+    constexpr adt::StringView aMap[] {
         "TRANSLATION", "ROTATION", "SCALE", "WEIGHTS",
     };
 
@@ -297,7 +300,7 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Channel:
 inline ssize
 formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Sampler::INTERPOLATION_TYPE x)
 {
-    constexpr adt::String aMap[] {
+    constexpr adt::StringView aMap[] {
         "LINEAR", "STEP", "CUBICSPLINE",
     };
 
@@ -307,7 +310,7 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Sampler:
 inline ssize
 formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Node::TRANSFORMATION_TYPE x)
 {
-    constexpr adt::String aMap[] {
+    constexpr adt::StringView aMap[] {
         "NONE", "MATRIX", "ANIMATION",
     };
 
@@ -351,9 +354,9 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::TARGET x)
 }
 
 inline ssize
-formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::ACCESSOR_TYPE x)
+formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Accessor::TYPE x)
 {
-    constexpr adt::String aMap[] {
+    constexpr adt::StringView aMap[] {
         "SCALAR", "VEC2", "VEC3", "VEC4", "MAT2", "MAT3", "MAT4"
     };
 
@@ -363,7 +366,7 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::ACCESSOR_TYPE x)
 inline ssize
 formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Primitive::TYPE x)
 {
-    constexpr adt::String aMap[] {
+    constexpr adt::StringView aMap[] {
         "POINTS", "LINES", "LINE_LOOP", "LINE_STRIP", "TRIANGLES", "TRIANGLE_STRIP", "TRIANGLE_FAN",
     };
 

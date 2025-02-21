@@ -18,26 +18,26 @@ enum class TAG : adt::u8
     BOOL
 };
 
-inline adt::String
+inline adt::StringView
 getTAGString(enum TAG t)
 {
-    constexpr adt::String TAGStrings[] {
+    constexpr adt::StringView TAGStrings[] {
         "NULL_", "STRING", "LONG", "DOUBLE", "ARRAY", "OBJECT", "BOOL"
     };
 
     return TAGStrings[static_cast<int>(t)];
 }
 
-struct Object;
+struct Node;
 
 union Val
 {
     adt::null n;
-    adt::String s;
+    adt::StringView s;
     adt::i64 l;
     adt::f64 d;
-    adt::VecBase<Object> a;
-    adt::VecBase<Object> o;
+    adt::VecBase<Node> a;
+    adt::VecBase<Node> o;
     bool b;
 };
 
@@ -47,9 +47,9 @@ struct TagVal
     union Val val {};
 };
 
-struct Object
+struct Node
 {
-    adt::String svKey {};
+    adt::StringView svKey {};
     TagVal tagVal {};
 
     /* */
@@ -60,7 +60,7 @@ struct Object
         pAlloc->free(tagVal.val.a.m_pData);
     }
 
-    Object&
+    Node&
     operator[](adt::u32 i)
     {
         ADT_ASSERT((tagVal.eTag == TAG::OBJECT || tagVal.eTag == TAG::ARRAY),
@@ -69,7 +69,7 @@ struct Object
         return tagVal.val.o[i];
     }
 
-    Object&
+    Node&
     first()
     {
         ADT_ASSERT((tagVal.eTag == TAG::OBJECT || tagVal.eTag == TAG::ARRAY),
@@ -78,7 +78,7 @@ struct Object
         return tagVal.val.o.first();
     }
 
-    Object&
+    Node&
     last()
     {
         ADT_ASSERT((tagVal.eTag == TAG::OBJECT || tagVal.eTag == TAG::ARRAY),
@@ -88,14 +88,14 @@ struct Object
     }
 
     adt::u32
-    pushToArray(adt::IAllocator* pAlloc, const Object& o)
+    pushToArray(adt::IAllocator* pAlloc, const Node& o)
     {
         ADT_ASSERT(tagVal.eTag == TAG::ARRAY, "not an ARRAY, tag is: '%s'", getTAGString(tagVal.eTag).data());
         return tagVal.val.a.push(pAlloc, o);
     }
 
     adt::u32
-    pushToObject(adt::IAllocator* pAlloc, const Object& o)
+    pushToObject(adt::IAllocator* pAlloc, const Node& o)
     {
         ADT_ASSERT(tagVal.eTag == TAG::OBJECT, "not an OBJECT, tag is: '%s'", getTAGString(tagVal.eTag).data());
         return tagVal.val.o.push(pAlloc, o);
@@ -109,7 +109,7 @@ class Parser
 {
     adt::IAllocator* m_pAlloc {};
     Lexer m_lex {};
-    adt::VecBase<Object> m_aObjects {};
+    adt::VecBase<Node> m_aObjects {};
     Token m_tCurr {};
     Token m_tNext {};
 
@@ -122,21 +122,21 @@ public:
 
     void destroy();
 
-    bool parse(adt::IAllocator* pAlloc, adt::String sJson);
+    bool parse(adt::IAllocator* pAlloc, adt::StringView sJson);
 
     void print(FILE* fp);
 
     /* if root json object consists of only one object return that, otherwise get array of root objects */
-    adt::VecBase<Object>& getRoot();
-    const adt::VecBase<Object>& getRoot() const;
+    adt::VecBase<Node>& getRoot();
+    const adt::VecBase<Node>& getRoot() const;
 
     /* pfn returns true for early return */
-    void traverse(bool (*pfn)(Object* p, void* pFnArgs), void* pArgs, TRAVERSAL_ORDER eOrder);
+    void traverse(bool (*pfn)(Node* p, void* pFnArgs), void* pArgs, TRAVERSAL_ORDER eOrder);
 
 private:
-    bool parseNode(Object* pNode);
-    bool parseObject(Object* pNode);
-    bool parseArray(Object* pNode); /* arrays are the same as objects */
+    bool parseNode(Node* pNode);
+    bool parseObject(Node* pNode);
+    bool parseArray(Node* pNode); /* arrays are the same as objects but with empty keys */
     void parseIdent(TagVal* pTV);
     void parseString(TagVal* pTV);
     void parseNumber(TagVal* pTV);
@@ -148,12 +148,12 @@ private:
 };
 
 /* pfn returns true for early return */
-void traverseNode(Object* pNode, bool (*pfn)(Object* pNode, void* pArgs), void* pArgs, TRAVERSAL_ORDER eOrder);
-void printNode(FILE* fp, Object* pNode, adt::String sEnd = "", int depth = 0);
+void traverseNode(Node* pNode, bool (*pfn)(Node* pNode, void* pArgs), void* pArgs, TRAVERSAL_ORDER eOrder);
+void printNode(FILE* fp, Node* pNode, adt::StringView sEnd = "", int depth = 0);
 
 /* Linear search inside JSON object. Returns nullptr if not found */
-[[nodiscard]] inline Object*
-searchObject(adt::VecBase<Object>& aObj, adt::String sKey)
+[[nodiscard]] inline Node*
+searchNode(adt::VecBase<Node>& aObj, adt::StringView sKey)
 {
     for (adt::u32 i = 0; i < aObj.getSize(); i++)
         if (aObj[i].svKey == sKey)
@@ -162,8 +162,8 @@ searchObject(adt::VecBase<Object>& aObj, adt::String sKey)
     return nullptr;
 }
 
-[[nodiscard]] inline const Object*
-searchObject(const adt::VecBase<Object>& aObj, adt::String sKey)
+[[nodiscard]] inline const Node*
+searchNode(const adt::VecBase<Node>& aObj, adt::StringView sKey)
 {
     for (adt::u32 i = 0; i < aObj.getSize(); i++)
         if (aObj[i].svKey == sKey)
@@ -172,64 +172,64 @@ searchObject(const adt::VecBase<Object>& aObj, adt::String sKey)
     return nullptr;
 }
 
-[[nodiscard]] inline adt::VecBase<Object>&
-getObject(Object* obj)
+[[nodiscard]] inline adt::VecBase<Node>&
+getObject(Node* obj)
 {
     ADT_ASSERT(obj->tagVal.eTag == TAG::OBJECT, " ");
     return obj->tagVal.val.o;
 }
 
-[[nodiscard]] inline const adt::VecBase<Object>&
-getObject(const Object* obj)
+[[nodiscard]] inline const adt::VecBase<Node>&
+getObject(const Node* obj)
 {
     ADT_ASSERT(obj->tagVal.eTag == TAG::OBJECT, " ");
     return obj->tagVal.val.o;
 }
 
-[[nodiscard]] inline adt::VecBase<Object>&
-getArray(Object* obj)
+[[nodiscard]] inline adt::VecBase<Node>&
+getArray(Node* obj)
 {
     ADT_ASSERT(obj->tagVal.eTag == TAG::ARRAY, " ");
     return obj->tagVal.val.a;
 }
 
-[[nodiscard]] inline const adt::VecBase<Object>&
-getArray(const Object* obj)
+[[nodiscard]] inline const adt::VecBase<Node>&
+getArray(const Node* obj)
 {
     ADT_ASSERT(obj->tagVal.eTag == TAG::ARRAY, " ");
     return obj->tagVal.val.a;
 }
 
 [[nodiscard]] inline adt::i64
-getLong(const Object* obj)
+getLong(const Node* obj)
 {
     ADT_ASSERT(obj->tagVal.eTag == TAG::LONG, " ");
     return obj->tagVal.val.l;
 }
 
 [[nodiscard]] inline double
-getDouble(const Object* obj)
+getDouble(const Node* obj)
 {
     ADT_ASSERT(obj->tagVal.eTag == TAG::DOUBLE, " ");
     return obj->tagVal.val.d;
 }
 
-[[nodiscard]] inline adt::String
-getString(const Object* obj)
+[[nodiscard]] inline adt::StringView
+getString(const Node* obj)
 {
     ADT_ASSERT(obj->tagVal.eTag == TAG::STRING, " ");
     return obj->tagVal.val.s;
 }
 
 [[nodiscard]] inline bool
-getBool(const Object* obj)
+getBool(const Node* obj)
 {
     ADT_ASSERT(obj->tagVal.eTag == TAG::BOOL, " ");
     return obj->tagVal.val.b;
 }
 
-[[nodiscard]] inline Object
-makeObject(adt::IAllocator* pAlloc, adt::String key)
+[[nodiscard]] inline Node
+makeObject(adt::IAllocator* pAlloc, adt::StringView key)
 {
     return {
         .svKey = key,
@@ -237,8 +237,8 @@ makeObject(adt::IAllocator* pAlloc, adt::String key)
     };
 }
 
-[[nodiscard]] inline Object
-makeArray(adt::IAllocator* pAlloc, adt::String key)
+[[nodiscard]] inline Node
+makeArray(adt::IAllocator* pAlloc, adt::StringView key)
 {
     return {
         .svKey = key,
@@ -246,8 +246,8 @@ makeArray(adt::IAllocator* pAlloc, adt::String key)
     };
 }
 
-[[nodiscard]] inline Object
-makeNumber(adt::String key, adt::i64 l)
+[[nodiscard]] inline Node
+makeNumber(adt::StringView key, adt::i64 l)
 {
     return {
         .svKey = key,
@@ -255,8 +255,8 @@ makeNumber(adt::String key, adt::i64 l)
     };
 }
 
-[[nodiscard]] inline Object
-makeFloat(adt::String key, adt::f64 d)
+[[nodiscard]] inline Node
+makeFloat(adt::StringView key, adt::f64 d)
 {
     return {
         .svKey = key,
@@ -264,8 +264,8 @@ makeFloat(adt::String key, adt::f64 d)
     };
 }
 
-[[nodiscard]] inline Object
-makeString(adt::String key, adt::String s)
+[[nodiscard]] inline Node
+makeString(adt::StringView key, adt::StringView s)
 {
     return {
         .svKey = key,
@@ -273,8 +273,8 @@ makeString(adt::String key, adt::String s)
     };
 }
 
-[[nodiscard]] inline Object
-makeBool(adt::String key, bool b)
+[[nodiscard]] inline Node
+makeBool(adt::StringView key, bool b)
 {
     return {
         .svKey = key,
@@ -282,8 +282,8 @@ makeBool(adt::String key, bool b)
     };
 }
 
-[[nodiscard]] inline Object
-makeNull(adt::String key)
+[[nodiscard]] inline Node
+makeNull(adt::StringView key)
 {
     return {
         .svKey = key,

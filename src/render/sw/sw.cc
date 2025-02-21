@@ -619,7 +619,7 @@ drawGLTFNode(Arena* pArena, gltf::Model& model, gltf::Node& node, math::M4 trm)
                 };
             }
 
-            ADT_ASSERT(accPos.eType == gltf::ACCESSOR_TYPE::VEC3, " ");
+            ADT_ASSERT(accPos.eType == gltf::Accessor::TYPE::VEC3, " ");
             const Span<V3> spPos {
                 (V3*)&buffPos.sBin[accPos.byteOffset + viewPos.byteOffset],
                 accPos.count
@@ -753,9 +753,9 @@ Renderer::drawEntities(Arena* pArena)
     const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
 
     {
-        for (int entityI = 0; entityI < game::g_aEntites.m_size; ++entityI)
+        for (int entityI = 0; entityI < game::g_poolEntites.m_size; ++entityI)
         {
-            const auto& arrays = game::g_aEntites.m_arrays;
+            const auto& arrays = game::g_poolEntites.m_arrays;
             if (arrays.abDead[entityI] || arrays.priv.abFree[entityI])
                 continue;
 
@@ -767,7 +767,7 @@ Renderer::drawEntities(Arena* pArena)
                 QtRot(entity.rot) *
                 M4ScaleFrom(entity.scale);
 
-            auto& obj = asset::g_aObjects[entity.assetI];
+            auto& obj = asset::g_poolObjects[entity.assetI];
             switch (obj.m_eType)
             {
                 default: break;

@@ -1,35 +1,37 @@
 #include "asset.hh"
 #include "app.hh"
 #include "bmp.hh"
+#include "gltf/gltf.hh"
 
 #include "adt/Map.hh"
 #include "adt/file.hh"
 #include "adt/OsAllocator.hh"
 #include "adt/Pool.hh"
-#include "gltf/gltf.hh"
+#include "adt/Opt.hh"
+
 
 using namespace adt;
 
 namespace asset
 {
 
-Pool<Object, 128> g_aObjects(adt::INIT);
-static Map<String, PoolHnd> s_mapStringToObjects(OsAllocatorGet(), g_aObjects.getCap());
+Pool<Object, 128> g_poolObjects(INIT);
+static Map<StringView, PoolHandle<Object>> s_mapStringToObjects(OsAllocatorGet(), g_poolObjects.getCap());
 
 void
 Object::destroy()
 {
-    LOG_NOTIFY("hnd: {}, mappedWith: '{}'\n", g_aObjects.idx(this), m_sMappedWith);
+    LOG_NOTIFY("hnd: {}, mappedWith: '{}'\n", g_poolObjects.idx(this), m_sMappedWith);
 
     s_mapStringToObjects.tryRemove(m_sMappedWith);
     m_arena.freeAll();
-    g_aObjects.giveBack(this);
+    g_poolObjects.giveBack(this);
 
     *this = {};
 }
 
-static Opt<PoolHnd>
-loadBMP([[maybe_unused]] const String svPath, const String sFile)
+static PoolHandle<Object>
+loadBMP([[maybe_unused]] const StringView svPath, const StringView sFile)
 {
     bmp::Reader reader {};
     if (!reader.read(sFile))
@@ -46,13 +48,13 @@ loadBMP([[maybe_unused]] const String svPath, const String sFile)
     nObj.m_uData.img = img;
     nObj.m_eType = Object::TYPE::IMAGE;
 
-    PoolHnd hnd = g_aObjects.push(nObj);
+    PoolHandle hnd = g_poolObjects.push(nObj);
 
     return hnd;
 }
 
-static Opt<PoolHnd>
-loadGLTF(const String svPath, const String sFile)
+static PoolHandle<Object>
+loadGLTF(const StringView svPath, const StringView sFile)
 {
     Object nObj(SIZE_1M);
     bool bSucces = false;
@@ -61,8 +63,7 @@ loadGLTF(const String svPath, const String sFile)
     bSucces = parser.parse(OsAllocatorGet(), sFile);
     defer( parser.destroy() );
 
-    if (!bSucces)
-        return {};
+    if (!bSucces) return {};
 
     gltf::Model gltfModel;
     bSucces = gltfModel.read(&nObj.m_arena, parser, svPath);
@@ -75,11 +76,11 @@ loadGLTF(const String svPath, const String sFile)
     nObj.m_uData.model = gltfModel;
     nObj.m_eType = Object::TYPE::MODEL;
 
-    PoolHnd hnd = g_aObjects.push(nObj);
+    PoolHandle hnd = g_poolObjects.push(nObj);
 
     for (const auto& image : gltfModel.m_vImages)
     {
-        String sPath = file::replacePathEnding(OsAllocatorGet(), svPath, image.sUri);
+        StringView sPath = file::replacePathEnding(OsAllocatorGet(), svPath, image.sUri);
         defer( sPath.destroy(OsAllocatorGet()) );
         load(sPath);
     }
@@ -87,8 +88,8 @@ loadGLTF(const String svPath, const String sFile)
     return hnd;
 }
 
-Opt<PoolHnd>
-load(const adt::String svPath)
+PoolHandle<Object>
+load(const adt::StringView svPath)
 {
     auto found = s_mapStringToObjects.search(svPath);
     if (found)
@@ -97,32 +98,32 @@ load(const adt::String svPath)
         return found.value();
     }
 
-    Opt<String> osFile = file::load(OsAllocatorGet(), svPath);
+    Opt<StringView> osFile = file::load(OsAllocatorGet(), svPath);
     if (!osFile)
         return {};
 
     /* WARNING: must clone sFile contents */
-    String sFile = osFile.value();
+    StringView sFile = osFile.value();
     defer( sFile.destroy(OsAllocatorGet()) );
 
-    Opt<PoolHnd> oRetHnd {};
+    PoolHandle<Object> retHnd {};
 
     if (svPath.endsWith(".bmp"))
     {
-        oRetHnd = loadBMP(svPath, sFile);
+        retHnd = loadBMP(svPath, sFile);
     }
     else if (svPath.endsWith(".gltf"))
     {
-        oRetHnd = loadGLTF(svPath, sFile);
+        retHnd = loadGLTF(svPath, sFile);
     }
 
-    if (oRetHnd)
+    if (retHnd)
     {
-        auto& obj = g_aObjects[oRetHnd.value()];
-        obj.m_sMappedWith = svPath.clone(&obj.m_arena);
-        [[maybe_unused]] auto mapRes = s_mapStringToObjects.insert(obj.m_sMappedWith, oRetHnd.value());
+        auto& obj = g_poolObjects[retHnd];
+        obj.m_sMappedWith = String(&obj.m_arena, svPath);
+        [[maybe_unused]] auto mapRes = s_mapStringToObjects.insert(obj.m_sMappedWith, retHnd);
         LOG_GOOD("hnd: {}, type: '{}', mappedWith: '{}', hash: {}\n",
-            oRetHnd.value(), obj.m_eType, obj.m_sMappedWith, mapRes.hash
+            retHnd, obj.m_eType, obj.m_sMappedWith, mapRes.hash
         );
     }
     else
@@ -130,17 +131,17 @@ load(const adt::String svPath)
         LOG_BAD("failed to load: '{}'\n", svPath);
     }
 
-    return oRetHnd;
+    return retHnd;
 }
 
 Object*
-search(const adt::String svKey, Object::TYPE eType)
+search(const adt::StringView svKey, Object::TYPE eType)
 {
     auto f = s_mapStringToObjects.search(svKey);
 
     if (f)
     {
-        auto r = &g_aObjects[f.data().val];
+        auto r = &g_poolObjects[f.data().val];
         if (r->m_eType != eType)
         {
             LOG_WARN("sKey: '{}', types don't match, got {}, asked for {}\n",
@@ -158,21 +159,39 @@ search(const adt::String svKey, Object::TYPE eType)
 }
 
 Image*
-searchImage(const adt::String svKey)
+searchImage(const adt::StringView svKey)
 {
     auto* f = search(svKey, Object::TYPE::IMAGE);
-    if (f)
-        return &f->m_uData.img;
+    if (f) return &f->m_uData.img;
     else return nullptr;
 }
 
 gltf::Model*
-searchModel(const adt::String svKey)
+searchModel(const adt::StringView svKey)
 {
     auto* f = search(svKey, Object::TYPE::MODEL);
-    if (f)
-        return &f->m_uData.model;
+    if (f) return &f->m_uData.model;
     else return nullptr;
+}
+
+Object*
+fromI(adt::i16 handleI, Object::TYPE eType)
+{
+    auto& ret = g_poolObjects[{handleI}];
+    ADT_ASSERT(ret.m_eType == eType, "types don't match");
+    return &ret;
+}
+
+Image*
+fromImageI(adt::i16 handleI)
+{
+    return &fromI(handleI, Object::TYPE::IMAGE)->m_uData.img;
+}
+
+gltf::Model*
+fromModelI(adt::i16 handleI)
+{
+    return &fromI(handleI, Object::TYPE::MODEL)->m_uData.model;
 }
 
 } /* namespace asset */

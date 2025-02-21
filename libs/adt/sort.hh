@@ -146,7 +146,7 @@ quick(T a[], ssize l, ssize r)
 {
     if (l < r)
     {
-        if ((r - l + 1) < 64)
+        if ((r - l + 1) <= 64)
         {
             insertion<T, FN_CMP>(a, l, r);
             return;

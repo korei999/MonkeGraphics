@@ -24,8 +24,7 @@ if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftime-trace")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftime-trace")
+# add_compile_options(-ftime-trace)
 
 option(OPT_SSE4_2 "" ON)
 option(OPT_AVX2 "" OFF)
@@ -169,6 +168,7 @@ add_executable(
     src/Image.cc
     src/asset.cc
     src/common.cc
+    src/Model.cc
 
     src/json/Parser.cc
     src/json/Lexer.cc

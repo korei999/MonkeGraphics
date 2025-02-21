@@ -6,7 +6,7 @@
 
 #include <cstring>
 #include <cstdlib>
-#include <immintrin.h>
+#include <new> /* IWYU pragma: keep */
 
 namespace adt
 {
@@ -15,70 +15,71 @@ namespace adt
 nullTermStringSize(const char* nts)
 {
     ssize i = 0;
-    if (!nts) return 0;
+    if (!nts)
+        return 0;
 
-    while (nts[i] != '\0') ++i;
+    while (nts[i] != '\0')
+        ++i;
 
     return i;
 }
 
+struct StringView;
 struct String;
 
-[[nodiscard]] inline bool operator==(const String& l, const String& r);
-[[nodiscard]] inline bool operator==(const String& l, const char* r);
-[[nodiscard]] inline bool operator!=(const String& l, const String& r);
-[[nodiscard]] inline i64 operator-(const String& l, const String& r);
+[[nodiscard]] inline bool operator==(const StringView& l, const StringView& r);
+[[nodiscard]] inline bool operator==(const StringView& l, const char* r);
+[[nodiscard]] inline bool operator!=(const StringView& l, const StringView& r);
+[[nodiscard]] inline i64 operator-(const StringView& l, const StringView& r);
 
-/* StringAlloc() inserts '\0' char */
-[[nodiscard]] inline String StringAlloc(IAllocator* p, const char* str, ssize size);
-[[nodiscard]] inline String StringAlloc(IAllocator* p, ssize size);
-[[nodiscard]] inline String StringAlloc(IAllocator* p, const char* nts);
-[[nodiscard]] inline String StringAlloc(IAllocator* p, const String s);
-
-[[nodiscard]] inline String StringCat(IAllocator* p, const String l, const String r);
+inline String StringCat(IAllocator* p, const StringView& l, const StringView& r);
 
 /* just pointer + size, no allocations */
-struct String
+struct StringView
 {
     char* m_pData {};
     ssize m_size {};
 
     /* */
 
-    constexpr String() = default;
+    constexpr StringView() = default;
 
-    constexpr String(char* sNullTerminated)
+    constexpr StringView(char* sNullTerminated)
         : m_pData(sNullTerminated), m_size(nullTermStringSize(sNullTerminated)) {}
 
-    constexpr String(const char* sNullTerminated)
+    constexpr StringView(const char* sNullTerminated)
         : m_pData(const_cast<char*>(sNullTerminated)), m_size(nullTermStringSize(sNullTerminated)) {}
 
-    constexpr String(char* pStr, ssize len)
+    constexpr StringView(char* pStr, ssize len)
         : m_pData(pStr), m_size(len) {}
 
-    constexpr String(Span<char> sp)
-        : String(sp.data(), sp.getSize()) {}
+    constexpr StringView(Span<char> sp)
+        : StringView(sp.data(), sp.getSize()) {}
+
+    /* */
+
+    constexpr operator bool() const { return getSize() > 0; }
 
     /* */
 
 #define ADT_RANGE_CHECK ADT_ASSERT(i >= 0 && i < m_size, "i: %lld, m_size: %lld", i, m_size);
 
-    char& operator[](ssize i)             { ADT_RANGE_CHECK; return m_pData[i]; }
-    const char& operator[](ssize i) const { ADT_RANGE_CHECK; return m_pData[i]; }
+    constexpr char& operator[](ssize i)             { ADT_RANGE_CHECK; return m_pData[i]; }
+    constexpr const char& operator[](ssize i) const { ADT_RANGE_CHECK; return m_pData[i]; }
 
 #undef ADT_RANGE_CHECK
 
-    const char* data() const { return m_pData; }
-    char* data() { return m_pData; }
-    ssize getSize() const { return m_size; }
-    [[nodiscard]] bool beginsWith(const String r) const;
-    [[nodiscard]] bool endsWith(const String r) const;
+    constexpr const char* data() const { return m_pData; }
+    constexpr char* data() { return m_pData; }
+    constexpr ssize getSize() const { return m_size; }
+    constexpr bool empty() const { return getSize() == 0; }
+    [[nodiscard]] bool beginsWith(const StringView r) const;
+    [[nodiscard]] bool endsWith(const StringView r) const;
     [[nodiscard]] ssize lastOf(char c) const;
     void destroy(IAllocator* p);
     void trimEnd();
     void removeNLEnd(); /* remove \r\n */
-    [[nodiscard]] bool contains(const String r) const;
-    [[nodiscard]] String clone(IAllocator* pAlloc) const;
+    [[nodiscard]] bool contains(const StringView r) const;
     [[nodiscard]] char& first();
     [[nodiscard]] const char& first() const;
     [[nodiscard]] char& last();
@@ -86,7 +87,7 @@ struct String
     [[nodiscard]] ssize nGlyphs() const;
 
     template<typename T>
-    [[nodiscard]] T reinterpret(ssize at) const;
+    T reinterpret(ssize at) const;
 
     /* */
 
@@ -122,11 +123,11 @@ struct String
 /* wchar_t iterator for mutlibyte strings */
 struct StringGlyphIt
 {
-    const String m_s;
+    const StringView m_s;
 
     /* */
 
-    StringGlyphIt(const String s) : m_s(s) {};
+    StringGlyphIt(const StringView s) : m_s(s) {};
 
     /* */
 
@@ -184,23 +185,23 @@ death:
 /* Separated by delimiter String iterator adapter */
 struct StringWordIt
 {
-    const String m_sv {};
-    const String m_svDelimiters {};
+    const StringView m_sv {};
+    const StringView m_svDelimiters {};
 
     /* */
 
-    StringWordIt(const String sv, const String svDelimiters = " ") : m_sv(sv), m_svDelimiters(svDelimiters) {}
+    StringWordIt(const StringView sv, const StringView svDelimiters = " ") : m_sv(sv), m_svDelimiters(svDelimiters) {}
 
     struct It
     {
-        String m_svCurrWord {};
-        const String m_svStr;
-        const String m_svSeps {};
+        StringView m_svCurrWord {};
+        const StringView m_svStr;
+        const StringView m_svSeps {};
         ssize m_i = 0;
 
         /* */
 
-        It(const String sv, ssize pos, const String svSeps)
+        It(const StringView sv, ssize pos, const StringView svSeps)
             : m_svStr(sv), m_svSeps(svSeps),  m_i(pos)
         {
             if (pos != NPOS)
@@ -254,7 +255,7 @@ struct StringWordIt
 };
 
 inline bool
-String::beginsWith(const String r) const
+StringView::beginsWith(const StringView r) const
 {
     const auto& l = *this;
 
@@ -269,7 +270,7 @@ String::beginsWith(const String r) const
 }
 
 inline bool
-String::endsWith(const String r) const
+StringView::endsWith(const StringView r) const
 {
     const auto& l = *this;
 
@@ -283,112 +284,8 @@ String::endsWith(const String r) const
     return true;
 }
 
-constexpr bool
-StringCmpSlow(const String l, const String r)
-{
-    if (l.m_size != r.m_size) return false;
-
-    for (ssize i = 0; i < l.m_size; ++i)
-        if (l[i] != r[i]) return false;
-
-    return true;
-}
-
-ADT_NO_UB inline bool
-StringCmpFast(const String& l, const String& r)
-{
-    if (l.m_size != r.m_size) return false;
-
-    const usize* p0 = (usize*)l.m_pData;
-    const usize* p1 = (usize*)r.m_pData;
-    ssize len = l.m_size / 8;
-
-    ssize i = 0;
-    for (; i < len; ++i)
-        if (p0[i] - p1[i] != 0) return false;
-
-    if (l.m_size > 8)
-    {
-        const usize* t0 = (usize*)&l.m_pData[l.m_size - 9];
-        const usize* t1 = (usize*)&r.m_pData[l.m_size - 9];
-        return *t0 == *t1;
-    }
-
-    ssize leftOver = l.m_size - i*8;
-    String nl(&l.m_pData[i*8], leftOver);
-    String nr(&r.m_pData[i*8], leftOver);
-
-    return StringCmpSlow(nl, nr);
-}
-
-#ifdef ADT_SSE4_2
 inline bool
-StringCmpSSE(const String& l, const String& r)
-{
-    if (l.getSize() != r.getSize()) return false;
-
-    const __m128i* p0 = (__m128i*)l.data();
-    const __m128i* p1 = (__m128i*)r.data();
-    ssize len = l.getSize() / 16;
-
-    ssize i = 0;
-    for (; i < len; ++i)
-    {
-        auto res = _mm_xor_si128(_mm_loadu_si128(&p0[i]), _mm_loadu_si128(&p1[i]));
-        if (_mm_testz_si128(res, res) != 1) return false;
-    }
-
-    if (l.getSize() > 16)
-    {
-        auto lv = _mm_loadu_si128((__m128i*)&l[l.getSize() - 17]);
-        auto rv = _mm_loadu_si128((__m128i*)&r[l.getSize() - 17]);
-        auto res = _mm_xor_si128(lv, rv);
-        return _mm_testz_si128(res, res) == 1;
-    }
-
-    ssize leftOver = l.getSize() - i*16;
-    String nl(const_cast<char*>(&l[i*16]), leftOver);
-    String nr(const_cast<char*>(&r[i*16]), leftOver);
-
-    return StringCmpFast(nl, nr);
-}
-#endif
-
-#ifdef ADT_AVX2
-inline bool
-StringCmpAVX2(const String& l, const String& r)
-{
-    if (l.getSize() != r.getSize()) return false;
-
-    const __m256i* p0 = (__m256i*)l.data();
-    const __m256i* p1 = (__m256i*)r.data();
-    ssize len = l.getSize() / 32;
-
-    ssize i = 0;
-    for (; i < len; ++i)
-    {
-        __m256i res = _mm256_xor_si256(_mm256_loadu_si256(&p0[i]), _mm256_loadu_si256(&p1[i]));
-        if (_mm256_testz_si256(res, res) != 1) return false;
-    }
-
-    if (l.getSize() > 32)
-    {
-        auto lv = _mm256_loadu_si256((__m256i*)&l[l.getSize() - 33]);
-        auto rv = _mm256_loadu_si256((__m256i*)&r[l.getSize() - 33]);
-        __m256i res = _mm256_xor_si256(lv, rv);
-        return _mm256_testz_si256(res, res) == 1;
-    }
-
-    ssize leftOver = l.getSize() - i*32;
-    String nl(const_cast<char*>(&l[i*32]), leftOver);
-    String nr(const_cast<char*>(&r[i*32]), leftOver);
-
-    return StringCmpSSE(nl, nr);
-}
-#endif
-
-inline bool
-operator==(const String& l, const String& r)
+operator==(const StringView& l, const StringView& r)
 {
     if (l.data() == r.data())
         return true;
@@ -400,20 +297,20 @@ operator==(const String& l, const String& r)
 }
 
 inline bool
-operator==(const String& l, const char* r)
+operator==(const StringView& l, const char* r)
 {
-    auto sr = String(r);
+    auto sr = StringView(r);
     return l == sr;
 }
 
 inline bool
-operator!=(const String& l, const String& r)
+operator!=(const StringView& l, const StringView& r)
 {
     return !(l == r);
 }
 
 inline i64
-operator-(const String& l, const String& r)
+operator-(const StringView& l, const StringView& r)
 {
     if (l.m_size < r.m_size) return -1;
     else if (l.m_size > r.m_size) return 1;
@@ -426,7 +323,7 @@ operator-(const String& l, const String& r)
 }
 
 inline ssize
-String::lastOf(char c) const
+StringView::lastOf(char c) const
 {
     for (int i = m_size - 1; i >= 0; i--)
         if ((*this)[i] == c)
@@ -435,75 +332,15 @@ String::lastOf(char c) const
     return NPOS;
 }
 
-inline String
-StringAlloc(IAllocator* p, const char* str, ssize size)
-{
-    if (str == nullptr || size <= 0) return {};
-
-    char* pData = (char*)p->zalloc(size + 1, sizeof(char));
-    strncpy(pData, str, size);
-    pData[size] = '\0';
-
-    String sNew {pData, size};
-    return sNew;
-}
-
-inline String
-StringAlloc(IAllocator* p, ssize size)
-{
-    if (size == 0) return {};
-
-    char* pData = (char*)p->zalloc(size + 1, sizeof(char));
-
-    String sNew {pData, size};
-    return sNew;
-}
-
-inline String
-StringAlloc(IAllocator* p, const char* nts)
-{
-    return StringAlloc(p, nts, nullTermStringSize(nts));
-}
-
-inline String
-StringAlloc(IAllocator* p, const String s)
-{
-    if (s.getSize() == 0) return {};
-
-    char* pData = (char*)p->zalloc(s.getSize() + 1, sizeof(char));
-    strncpy(pData, s.data(), s.getSize());
-    pData[s.getSize()] = '\0';
-
-    String sNew {pData, s.getSize()};
-    return sNew;
-}
-
 inline void
-String::destroy(IAllocator* p)
+StringView::destroy(IAllocator* p)
 {
     p->free(m_pData);
     *this = {};
 }
 
-inline String
-StringCat(IAllocator* p, const String l, const String r)
-{
-    ssize len = l.m_size + r.m_size;
-    char* ret = (char*)p->zalloc(len + 1, sizeof(char));
-
-    ssize pos = 0;
-    for (ssize i = 0; i < l.m_size; ++i, ++pos)
-        ret[pos] = l[i];
-    for (ssize i = 0; i < r.m_size; ++i, ++pos)
-        ret[pos] = r[i];
-
-    ret[len] = '\0';
-
-    return {ret, len};
-}
-
 inline void
-String::trimEnd()
+StringView::trimEnd()
 {
     auto isWhiteSpace = [&](int i) -> bool {
         char c = m_pData[i];
@@ -523,10 +360,10 @@ String::trimEnd()
 }
 
 inline void
-String::removeNLEnd()
+StringView::removeNLEnd()
 {
     auto oneOf = [&](const char c) -> bool {
-        constexpr String chars = "\r\n";
+        constexpr StringView chars = "\r\n";
         for (const char ch : chars)
             if (c == ch) return true;
         return false;
@@ -537,13 +374,13 @@ String::removeNLEnd()
 }
 
 inline bool
-String::contains(const String r) const
+StringView::contains(const StringView r) const
 {
     if (m_size < r.m_size || m_size == 0 || r.m_size == 0) return false;
 
     for (ssize i = 0; i < m_size - r.m_size + 1; ++i)
     {
-        const String sSub {const_cast<char*>(&(*this)[i]), r.m_size};
+        const StringView sSub {const_cast<char*>(&(*this)[i]), r.m_size};
         if (sSub == r)
             return true;
     }
@@ -551,38 +388,32 @@ String::contains(const String r) const
     return false;
 }
 
-inline String
-String::clone(IAllocator* pAlloc) const
-{
-    return StringAlloc(pAlloc, *this);
-}
-
 inline char&
-String::first()
+StringView::first()
 {
     return operator[](0);
 }
 
 inline const char&
-String::first() const
+StringView::first() const
 {
     return operator[](0);
 }
 
 inline char&
-String::last()
+StringView::last()
 {
     return operator[](m_size - 1);
 }
 
 inline const char&
-String::last() const
+StringView::last() const
 {
     return operator[](m_size - 1);
 }
 
 inline ssize
-String::nGlyphs() const
+StringView::nGlyphs() const
 {
     ssize n = 0;
     for (ssize i = 0; i < m_size; )
@@ -596,14 +427,73 @@ String::nGlyphs() const
 
 template<typename T>
 ADT_NO_UB inline T
-String::reinterpret(ssize at) const
+StringView::reinterpret(ssize at) const
 {
     return *(T*)(&operator[](at));
 }
 
+struct String : public StringView
+{
+    String() = default;
+    String(IAllocator* pAlloc, const char* pChars, ssize size);
+    String(IAllocator* pAlloc, const char* nts);
+    String(IAllocator* pAlloc, Span<char> spChars);
+    String(IAllocator* pAlloc, const StringView sv);
+
+    /* */
+
+    const StringView& view() const { return *this; }
+};
+
+inline
+String::String(IAllocator* pAlloc, const char* pChars, ssize size)
+{
+    if (pChars == nullptr || size <= 0)
+        return;
+
+    char* pNewData = pAlloc->mallocV<char>(size + 1);
+    strncpy(pNewData, pChars, size);
+    pNewData[size] = '\0';
+
+    m_pData = pNewData;
+    m_size = size;
+}
+
+inline
+String::String(IAllocator* pAlloc, const char* nts)
+    : String(pAlloc, nts, nullTermStringSize(nts)) {}
+
+inline
+String::String(IAllocator* pAlloc, Span<char> spChars)
+    : String(pAlloc, spChars.data(), spChars.getSize()) {}
+
+inline
+String::String(IAllocator* pAlloc, const StringView sv)
+    : String(pAlloc, sv.data(), sv.getSize()) {}
+
+inline String
+StringCat(IAllocator* p, const StringView& l, const StringView& r)
+{
+    ssize len = l.getSize() + r.getSize();
+    char* ret = (char*)p->zalloc(len + 1, sizeof(char));
+
+    ssize pos = 0;
+    for (ssize i = 0; i < l.getSize(); ++i, ++pos)
+        ret[pos] = l[i];
+    for (ssize i = 0; i < r.getSize(); ++i, ++pos)
+        ret[pos] = r[i];
+
+    ret[len] = '\0';
+
+    String sNew;
+    sNew.m_pData = ret;
+    sNew.m_size = len;
+    return sNew;
+}
+
 template<>
 inline usize
-hash::func(const String& str)
+hash::func(const StringView& str)
 {
     return hash::func(str.m_pData, str.getSize());
 }

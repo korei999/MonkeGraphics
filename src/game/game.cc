@@ -1,5 +1,6 @@
 #include "game.hh"
 #include "Entity.hh"
+#include "Model.hh"
 
 #include "asset.hh"
 #include "control.hh"
@@ -13,15 +14,16 @@ namespace game
 
 struct AssetMapping
 {
-    String svPath {};
-    String svMapTo {};
+    StringView svPath {};
+    StringView svMapTo {};
 };
 
-EntityPoolSOA<128> g_aEntites(adt::INIT);
+EntityPoolSOA<128> g_poolEntites(INIT);
 
-static const String s_aAssetsToLoad[] {
+static const StringView s_aAssetsToLoad[] {
     "assets/duck/Duck.gltf",
     "assets/BoxAnimated/BoxAnimated.gltf",
+    "/home/korei/source/glTF-Sample-Assets/Models/SimpleSkin/glTF/SimpleSkin.gltf",
 };
 
 void
@@ -33,22 +35,30 @@ loadStuff()
             LOG_BAD("failed to load: '{}'\n", sPath);
     }
 
+    // {
+    //     auto hTest = g_aEntites.makeDefault();
+    //     auto bind = g_aEntites[hTest];
+
+    //     if (auto* pObj = asset::search("assets/BoxAnimated/BoxAnimated.gltf", asset::Object::TYPE::MODEL))
+    //     {
+    //         auto idx = asset::g_aObjects.idx(pObj);
+    //         bind.assetI = idx;
+    //     }
+    // }
+
     {
-        auto hTest = g_aEntites.makeDefault();
-        auto bind = g_aEntites[hTest];
+        auto hTest = g_poolEntites.makeDefault();
+        auto bind = g_poolEntites[hTest];
 
-        auto* pObj = asset::search("assets/BoxAnimated/BoxAnimated.gltf", asset::Object::TYPE::MODEL);
-        auto idx = asset::g_aObjects.idx(pObj);
-        bind.assetI = idx;
-    }
+        /*if (auto* pObj = asset::search("assets/BoxAnimated/BoxAnimated.gltf", asset::Object::TYPE::MODEL))*/
+        if (auto* pObj = asset::search("/home/korei/source/glTF-Sample-Assets/Models/SimpleSkin/glTF/SimpleSkin.gltf", asset::Object::TYPE::MODEL))
+        {
+            auto idx = asset::g_poolObjects.idx(pObj);
+            bind.assetI = idx;
 
-    {
-        auto hTest = g_aEntites.makeDefault();
-        auto bind = g_aEntites[hTest];
-
-        auto* pObj = asset::search("assets/duck/Duck.gltf", asset::Object::TYPE::MODEL);
-        auto idx = asset::g_aObjects.idx(pObj);
-        bind.assetI = idx;
+            auto hModel = Model::makeHandle(bind.assetI);
+            bind.modelI = hModel.i;
+        }
     }
 }
 
@@ -59,11 +69,19 @@ updateState(adt::Arena*)
 
     g_camera.updatePos();
 
-    auto what = g_aEntites[{0}];
-    what.pos = {std::sinf(frame::g_time) * 3.0f, 0.0f, std::cosf(frame::g_time) * 3.0f};
+    // auto what = g_aEntites[{0}];
+    // what.pos = {std::sinf(frame::g_time) * 3.0f, 0.0f, std::cosf(frame::g_time) * 3.0f};
 
     /*auto what1 = g_aEntites[{1}];*/
     /*what1.pos = {std::cosf(frame::g_time) * 3.0f, 0.0f, std::sinf(frame::g_time) * 3.0f};*/
+
+    // for (ssize i = 0; i < g_poolEntites.m_size; ++i)
+    // {
+    //     if (g_poolEntites.m_arrays.priv.abFree[i])
+    //         continue;
+
+    //     EntityBind bind = g_poolEntites[Entity{.i = i}];
+    // }
 }
 
 } /* namespace game */

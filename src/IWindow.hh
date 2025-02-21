@@ -1,12 +1,23 @@
 #pragma once
 
-#include "adt/String.hh"
-#include "adt/Span2D.hh"
-#include "adt/Vec.hh"
-#include "adt/simd.hh"
+#include "adt/types.hh"
 
-#include "colors.hh"
-#include "Image.hh"
+#ifdef OPT_SW
+    #include "adt/Span2D.hh"
+    #include "adt/Vec.hh"
+    #include "adt/simd.hh"
+
+    #include "Image.hh"
+    #include "colors.hh"
+#endif
+
+namespace adt
+{
+
+struct IAllocator;
+struct StringView;
+
+}
 
 struct IWindow
 {
@@ -50,7 +61,7 @@ struct IWindow
     virtual void togglePointerRelativeMode() = 0;
     virtual void toggleFullscreen() = 0;
     virtual void hideCursor(bool bHide) = 0;
-    virtual void setCursorImage(adt::String cursorType) = 0;
+    virtual void setCursorImage(adt::StringView cursorType) = 0;
     virtual void setFullscreen() = 0;
     virtual void unsetFullscreen() = 0;
     virtual void setSwapInterval(int interval) = 0;

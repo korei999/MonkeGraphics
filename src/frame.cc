@@ -155,7 +155,7 @@ start()
 
 #ifndef NDEBUG
 
-    for (auto& asset : asset::g_aObjects)
+    for (auto& asset : asset::g_poolObjects)
         asset.destroy();
 
 #endif
