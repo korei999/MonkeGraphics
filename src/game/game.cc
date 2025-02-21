@@ -23,7 +23,6 @@ EntityPoolSOA<128> g_poolEntites(INIT);
 static const StringView s_aAssetsToLoad[] {
     "assets/duck/Duck.gltf",
     "assets/BoxAnimated/BoxAnimated.gltf",
-    "/home/korei/source/glTF-Sample-Assets/Models/SimpleSkin/glTF/SimpleSkin.gltf",
     "assets/SimpleSkin/glTF/SimpleSkin.gltf",
 };
 
