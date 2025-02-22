@@ -18,6 +18,10 @@ struct Model
         adt::VecBase<adt::i16> vChildren {};
     };
 
+    struct Joint2
+    {
+    };
+
     /* */
 
     adt::Arena m_arena {};
@@ -56,10 +60,10 @@ struct Model
 
     /* */
 
-    void updateGlobalTransforms(adt::i16 jointI, const adt::math::M4& parentTrm);
     void updateAnimations();
-    void updateJointTransforms();
+    void updateSkeletalTransofms(const adt::math::M4& trm);
 
 private:
-    /*adt::math::Qt interpolateQt(*/
+    void updateGlobalTransforms(adt::i16 jointI, const adt::math::M4& parentTrm);
+    void updateJointTransforms();
 };

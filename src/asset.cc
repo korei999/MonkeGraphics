@@ -170,24 +170,4 @@ searchModel(const adt::StringView svKey)
     else return nullptr;
 }
 
-Object*
-fromI(adt::i16 handleI, Object::TYPE eType)
-{
-    auto& ret = g_poolObjects[{handleI}];
-    ADT_ASSERT(ret.m_eType == eType, "types don't match");
-    return &ret;
-}
-
-Image*
-fromImageI(adt::i16 handleI)
-{
-    return &fromI(handleI, Object::TYPE::IMAGE)->m_uData.img;
-}
-
-gltf::Model*
-fromModelI(adt::i16 handleI)
-{
-    return &fromI(handleI, Object::TYPE::MODEL)->m_uData.model;
-}
-
 } /* namespace asset */

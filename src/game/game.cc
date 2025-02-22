@@ -78,7 +78,7 @@ updateState(adt::Arena*)
     what.pos = {std::sinf(frame::g_time) * 4.0f, 0.0f, std::cosf(frame::g_time) * 4.0f};
 
     auto what1 = g_poolEntites[{1}];
-    what1.scale = {0.1f, 0.1f, 0.1f};
+    what1.scale = {0.05f, 0.05f, 0.05f};
 
     // for (ssize i = 0; i < g_poolEntites.m_size; ++i)
     // {

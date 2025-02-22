@@ -34,7 +34,7 @@ struct String;
 
 inline String StringCat(IAllocator* p, const StringView& l, const StringView& r);
 
-/* just pointer + size, no allocations */
+/* Just pointer + size, no allocations, has to be cloned into String to store safely */
 struct StringView
 {
     char* m_pData {};

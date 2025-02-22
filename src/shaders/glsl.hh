@@ -137,6 +137,7 @@ layout(location = 3) in vec4 a_weight;
 
 out vec4 vs_pos;
 
+// uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
 uniform mat4 u_a2TrmJoints[100];
@@ -154,7 +155,31 @@ main()
 
     gl_Position = u_projection * u_view * worldPos;
 
-    vs_pos = vec4(a_pos, 1.0f);
+    vs_pos = a_weight;
+
+    // vec4 animatedPos = vec4(0.0f);
+    // mat4 jointTrm = mat4(0.0f);
+    // for (int i = 0; i < 4; ++i)
+    // {
+    //     if (a_weight[i] == 0.0f)
+    //         continue;
+
+    //     if (int(a_joint[i]) >= 100)
+    //     {
+    //         animatedPos = vec4(a_pos, 1.0f);
+    //         jointTrm = mat4(1.0f);
+    //         break;
+    //     }
+
+    //     mat4 jointMatrix = u_a2TrmJoints[int(a_joint[i])];
+
+    //     vec4 localPos = jointMatrix * vec4(a_pos, 1.0f);
+    //     animatedPos += localPos * a_weight[i];
+    //     jointTrm += jointMatrix * a_weight[i];
+    // }
+
+    // vec4 worldPos = u_model * animatedPos;
+    // gl_Position = u_projection * u_view * worldPos;
 }
 )"
 ;

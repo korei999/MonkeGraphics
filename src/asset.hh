@@ -10,7 +10,6 @@
 namespace asset
 {
 
-/* TODO: reference system */
 struct Object
 {
     enum class TYPE : adt::u8 { NONE, IMAGE, MODEL };
@@ -26,6 +25,7 @@ struct Object
 
     adt::Arena m_arena {};
     adt::String m_sMappedWith {};
+    // TODO: adt::VecBase<int> m_vObservers {}; /* array of pool handles that refer to this object */
 
     void* m_pExtraData {};
 
@@ -44,11 +44,27 @@ adt::PoolHandle<Object> load(const adt::StringView svFilePath);
 /* may be null */ [[nodiscard]] Image* searchImage(const adt::StringView svKey);
 /* may be null */ [[nodiscard]] gltf::Model* searchModel(const adt::StringView svKey);
 
-[[nodiscard]] Object* fromI(adt::i16 handleI, Object::TYPE eType);
-[[nodiscard]] Image* fromImageI(adt::i16 handleI);
-[[nodiscard]] gltf::Model* fromModelI(adt::i16 handleI);
-
 extern adt::Pool<Object, 128> g_poolObjects;
+
+[[nodiscard]] inline Object*
+fromI(adt::i16 handleI, Object::TYPE eType)
+{
+    auto& ret = g_poolObjects[{handleI}];
+    ADT_ASSERT(ret.m_eType == eType, "types don't match");
+    return &ret;
+}
+
+[[nodiscard]] inline Image*
+fromImageI(adt::i16 handleI)
+{
+    return &fromI(handleI, Object::TYPE::IMAGE)->m_uData.img;
+}
+
+[[nodiscard]] inline gltf::Model*
+fromModelI(adt::i16 handleI)
+{
+    return &fromI(handleI, Object::TYPE::MODEL)->m_uData.model;
+}
 
 } /* namespace asset */
 

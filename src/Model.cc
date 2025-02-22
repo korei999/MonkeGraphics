@@ -173,7 +173,7 @@ Model::updateAnimations()
                 if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::TRANSLATION)
                 {
                     const View<math::V3> spOutTranslations(
-                        (math::V3*)&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset],
+                        reinterpret_cast<const math::V3*>(&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset]),
                         accOutput.count, viewOutput.byteStride
                     );
 
@@ -182,7 +182,7 @@ Model::updateAnimations()
                 else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::ROTATION)
                 {
                     const View<math::Qt> vwOutRotations(
-                        (math::Qt*)&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset],
+                        reinterpret_cast<const math::Qt*>(&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset]),
                         accOutput.count, viewOutput.byteStride
                     );
 
@@ -194,7 +194,7 @@ Model::updateAnimations()
                 else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::SCALE)
                 {
                     const View<math::V3> spOutScales(
-                        (math::V3*)&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset],
+                        reinterpret_cast<const math::V3*>(&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset]),
                         accOutput.count, viewOutput.byteStride
                     );
 
@@ -203,6 +203,13 @@ Model::updateAnimations()
             }
         }
     }
+}
+
+void
+Model::updateSkeletalTransofms(const adt::math::M4& trm)
+{
+    updateGlobalTransforms(m_rootJointI, trm);
+    updateJointTransforms();
 }
 
 void

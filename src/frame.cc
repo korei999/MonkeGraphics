@@ -118,8 +118,7 @@ mainLoop()
         if (t1 > lastAvgFrameTimeUpdate + 1000.0)
         {
             f64 avg = 0;
-            for (f64 ft : vFrameTimes)
-                avg += ft;
+            for (f64 ft : vFrameTimes) avg += ft;
 
             CERR("FPS: {} | avg frame time: {} ms\n", vFrameTimes.getSize(), avg / vFrameTimes.getSize());
             vFrameTimes.setSize(0);

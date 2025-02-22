@@ -147,7 +147,7 @@ drawGLTFNode(Model* pModel, const gltf::Node& node, math::M4 globalTrm)
                         pTex->bind(GL_TEXTURE0);
                         pSh->setM4("u_trm", trmProj * trmView * globalTrm);
                     }
-                    else goto defaultShader;
+                    else goto GOTO_defaultShader;
                 }
                 else
                 {
@@ -159,7 +159,7 @@ drawGLTFNode(Model* pModel, const gltf::Node& node, math::M4 globalTrm)
             }
             else
             {
-defaultShader:
+GOTO_defaultShader:
                 pSh = searchShader("SimpleTexture");
                 pSh->use();
                 s_texDefault.bind(GL_TEXTURE0);
@@ -197,13 +197,13 @@ drawGLTF(Model* pModel, math::M4 trm)
 
     pModel->updateAnimations();
     if (!pModel->m_vJoints.empty())
-    {
-        pModel->updateGlobalTransforms(pModel->m_rootJointI, trm);
-        pModel->updateJointTransforms();
-    }
+        pModel->updateSkeletalTransofms(trm);
 
     for (auto& nodeI : scene.vNodes)
-        drawGLTFNode(pModel, gltfModel.m_vNodes[nodeI], trm);
+    {
+        auto& node = gltfModel.m_vNodes[nodeI];
+        drawGLTFNode(pModel, node, trm);
+    }
 }
 
 void
