@@ -14,7 +14,7 @@ namespace asset
 {
 
 Pool<Object, 128> g_poolObjects(INIT);
-static Map<StringView, PoolHandle<Object>> s_mapStringToObjects(OsAllocatorGet(), g_poolObjects.getCap());
+static MapManaged<StringView, PoolHandle<Object>> s_mapStringToObjects(OsAllocatorGet(), g_poolObjects.getCap());
 
 void
 Object::destroy()

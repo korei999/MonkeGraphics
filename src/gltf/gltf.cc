@@ -312,7 +312,7 @@ Model::procScenes(IAllocator* pAlloc)
         if (pNodes)
         {
             auto& vNodes = json::getArray(pNodes);
-            VecBase<int> vNewNodes {};
+            Vec<int> vNewNodes {};
             for (auto& node : vNodes)
                 vNewNodes.push(pAlloc, static_cast<int>(json::getLong(&node)));
 
@@ -525,7 +525,7 @@ Model::procMeshes(IAllocator* pAlloc)
             return false;
         }
  
-        VecBase<Primitive> aPrimitives(pAlloc);
+        Vec<Primitive> aPrimitives(pAlloc);
         auto pName = json::searchNode(obj, "name");
         String sName = pName ? String(pAlloc, json::getString(pName)) : String{};
  

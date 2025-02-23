@@ -26,12 +26,11 @@ endif()
 
 # add_compile_options(-ftime-trace)
 
-option(OPT_MIMALLOC "" OFF)
-
 option(OPT_SSE4_2 "" ON)
 option(OPT_AVX2 "" OFF)
 option(OPT_MARCH_NATIVE "" OFF)
 
+option(OPT_MIMALLOC "" OFF)
 option(OPT_SW "" OFF)
 option(OPT_GL "" ON)
 option(OPT_WAYLAND_GL "" ON)

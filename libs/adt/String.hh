@@ -6,7 +6,6 @@
 
 #include <cstring>
 #include <cstdlib>
-#include <new> /* IWYU pragma: keep */
 
 namespace adt
 {

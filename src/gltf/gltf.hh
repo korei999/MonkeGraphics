@@ -14,17 +14,17 @@ struct Model
     adt::StringView m_sPath {};
     Asset m_asset {}; /* REQUIRED */
     DefaultScene m_defaultScene {};
-    adt::VecBase<Scene> m_vScenes {};
-    adt::VecBase<Buffer> m_vBuffers {};
-    adt::VecBase<BufferView> m_vBufferViews {};
-    adt::VecBase<Accessor> m_vAccessors {};
-    adt::VecBase<Mesh> m_vMeshes {};
-    adt::VecBase<Texture> m_vTextures {};
-    adt::VecBase<Material> m_vMaterials {};
-    adt::VecBase<Image> m_vImages {};
-    adt::VecBase<Node> m_vNodes {};
-    adt::VecBase<Animation> m_vAnimations {};
-    adt::VecBase<Skin> m_vSkins {};
+    adt::Vec<Scene> m_vScenes {};
+    adt::Vec<Buffer> m_vBuffers {};
+    adt::Vec<BufferView> m_vBufferViews {};
+    adt::Vec<Accessor> m_vAccessors {};
+    adt::Vec<Mesh> m_vMeshes {};
+    adt::Vec<Texture> m_vTextures {};
+    adt::Vec<Material> m_vMaterials {};
+    adt::Vec<Image> m_vImages {};
+    adt::Vec<Node> m_vNodes {};
+    adt::Vec<Animation> m_vAnimations {};
+    adt::Vec<Skin> m_vSkins {};
 
     /* */
 

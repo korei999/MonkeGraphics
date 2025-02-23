@@ -137,7 +137,7 @@ layout(location = 3) in vec4 a_weight;
 
 out vec4 vs_pos;
 
-// uniform mat4 u_model;
+uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
 uniform mat4 u_a2TrmJoints[100];
@@ -153,7 +153,7 @@ main()
 
     vec4 worldPos = trmSkin * vec4(a_pos, 1.0);
 
-    gl_Position = u_projection * u_view * worldPos;
+    gl_Position = u_projection * u_view * u_model * worldPos;
 
     vs_pos = a_weight;
 

@@ -6,7 +6,7 @@
 namespace app
 {
 
-enum class WINDOW_TYPE : adt::u8 { WAYLAND_SHM, WAYLAND_GL, WINDOWS };
+enum class WINDOW_TYPE : adt::u8 { WAYLAND_SHM, WAYLAND_GL, WIN32 };
 enum class RENDERER_TYPE : adt::u8 { SW, OPEN_GL };
 
 extern WINDOW_TYPE g_eWindowType;
@@ -18,7 +18,7 @@ extern render::IRenderer* g_pRenderer;
 inline IWindow& window() { return *g_pWindow; }
 inline render::IRenderer& renderer() { return *g_pRenderer; }
 
-/* create window based on `g_eWindowType` */
+/* depend on global `g_eWindowType` and `g_eRendererType` */
 IWindow* allocWindow(adt::IAllocator* pAlloc, const char* ntsName);
 render::IRenderer* allocRenderer(adt::IAllocator* pAlloc);
 

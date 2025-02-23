@@ -169,7 +169,7 @@ bool
 Parser::parseObject(Node* pNode)
 {
     pNode->tagVal.eTag = TAG::OBJECT;
-    pNode->tagVal.val.o = VecBase<Node>(m_pAlloc);
+    pNode->tagVal.val.o = Vec<Node>(m_pAlloc);
     auto& aObjs = getObject(pNode);
 
     while (m_tCurr.eType != TOKEN_TYPE::R_BRACE)
@@ -209,7 +209,7 @@ bool
 Parser::parseArray(Node* pNode)
 {
     pNode->tagVal.eTag = TAG::ARRAY;
-    pNode->tagVal.val.a = VecBase<Node>(m_pAlloc);
+    pNode->tagVal.val.a = Vec<Node>(m_pAlloc);
     auto& aTVs = getArray(pNode);
 
     /* collect each key/value pair inside array */
@@ -501,7 +501,7 @@ traverseNode(Node* pNode, bool (*pfn)(Node* p, void* pFnArgs), void* pArgs, TRAV
     }
 }
 
-VecBase<Node>&
+Vec<Node>&
 Parser::getRoot()
 {
     ADT_ASSERT(m_aObjects.getSize() > 0, "empty");
@@ -511,7 +511,7 @@ Parser::getRoot()
     else return m_aObjects;
 }
 
-const VecBase<Node>&
+const Vec<Node>&
 Parser::getRoot() const
 {
     ADT_ASSERT(m_aObjects.getSize() > 0, "empty");

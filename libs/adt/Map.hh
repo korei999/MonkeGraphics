@@ -75,16 +75,16 @@ struct MapResult
 };
 
 template<typename K, typename V, usize (*FN_HASH)(const K&) = hash::func<K>>
-struct MapBase
+struct Map
 {
-    VecBase<MapBucket<K, V>> m_aBuckets {};
+    Vec<MapBucket<K, V>> m_aBuckets {};
     f32 m_maxLoadFactor {};
     ssize m_nOccupied {};
 
     /* */
 
-    MapBase() = default;
-    MapBase(IAllocator* pAllocator, ssize prealloc = SIZE_MIN);
+    Map() = default;
+    Map(IAllocator* pAllocator, ssize prealloc = SIZE_MIN);
 
     /* */
 
@@ -139,10 +139,10 @@ private:
 public:
     struct It
     {
-        MapBase* s {};
+        Map* s {};
         ssize i = 0;
 
-        It(MapBase* _s, ssize _i) : s(_s), i(_i) {}
+        It(Map* _s, ssize _i) : s(_s), i(_i) {}
 
         KeyVal<K, V>& operator*() { return *(KeyVal<K, V>*)&s->m_aBuckets[i]; }
         KeyVal<K, V>* operator->() { return (KeyVal<K, V>*)&s->m_aBuckets[i]; }
@@ -167,7 +167,7 @@ public:
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline ssize
-MapBase<K, V, FN_HASH>::idx(const KeyVal<K, V>* p) const
+Map<K, V, FN_HASH>::idx(const KeyVal<K, V>* p) const
 {
     ssize r = (MapBucket<K, V>*)p - &m_aBuckets[0];
     ADT_ASSERT(r >= 0 && r < m_aBuckets.getCap(), "out of range, r: %lld, cap: %lld", r, m_aBuckets.getCap());
@@ -176,7 +176,7 @@ MapBase<K, V, FN_HASH>::idx(const KeyVal<K, V>* p) const
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline ssize
-MapBase<K, V, FN_HASH>::idx(const MapResult<K, V> res) const
+Map<K, V, FN_HASH>::idx(const MapResult<K, V> res) const
 {
     ssize idx = res.pData - &m_aBuckets[0];
     ADT_ASSERT(idx >= 0 && idx < m_aBuckets.getCap(), "out of range, r: %lld, cap: %lld", idx, m_aBuckets.getCap());
@@ -185,7 +185,7 @@ MapBase<K, V, FN_HASH>::idx(const MapResult<K, V> res) const
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline ssize
-MapBase<K, V, FN_HASH>::firstI() const
+Map<K, V, FN_HASH>::firstI() const
 {
     ssize i = 0;
     while (i < m_aBuckets.getCap() && !m_aBuckets[i].bOccupied)
@@ -198,7 +198,7 @@ MapBase<K, V, FN_HASH>::firstI() const
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline ssize
-MapBase<K, V, FN_HASH>::nextI(ssize i) const
+Map<K, V, FN_HASH>::nextI(ssize i) const
 {
     do ++i;
     while (i < m_aBuckets.getCap() && !m_aBuckets[i].bOccupied);
@@ -210,14 +210,14 @@ MapBase<K, V, FN_HASH>::nextI(ssize i) const
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline f32
-MapBase<K, V, FN_HASH>::getLoadFactor() const
+Map<K, V, FN_HASH>::getLoadFactor() const
 {
     return f32(m_nOccupied) / f32(m_aBuckets.getCap());
 }
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline MapResult<K, V>
-MapBase<K, V, FN_HASH>::insert(IAllocator* p, const K& key, const V& val)
+Map<K, V, FN_HASH>::insert(IAllocator* p, const K& key, const V& val)
 {
     if (m_aBuckets.getCap() == 0)
         *this = {p};
@@ -232,7 +232,7 @@ MapBase<K, V, FN_HASH>::insert(IAllocator* p, const K& key, const V& val)
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 template<typename ...ARGS> requires(std::is_constructible_v<V, ARGS...>)
 inline MapResult<K, V>
-MapBase<K, V, FN_HASH>::emplace(IAllocator* p, const K& key, ARGS&&... args)
+Map<K, V, FN_HASH>::emplace(IAllocator* p, const K& key, ARGS&&... args)
 {
     if (m_aBuckets.getCap() == 0)
         *this = {p};
@@ -245,6 +245,7 @@ MapBase<K, V, FN_HASH>::emplace(IAllocator* p, const K& key, ARGS&&... args)
 
     new(&bucket.val) V(std::forward<ARGS>(args)...);
 
+    /* replace same key */
     if (bucket.key == key)
     {
         return {
@@ -270,7 +271,7 @@ MapBase<K, V, FN_HASH>::emplace(IAllocator* p, const K& key, ARGS&&... args)
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 [[nodiscard]] inline MapResult<K, V>
-MapBase<K, V, FN_HASH>::search(const K& key)
+Map<K, V, FN_HASH>::search(const K& key)
 {
     usize keyHash = FN_HASH(key);
     return searchHashed(key, keyHash);
@@ -278,7 +279,7 @@ MapBase<K, V, FN_HASH>::search(const K& key)
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline void
-MapBase<K, V, FN_HASH>::remove(ssize i)
+Map<K, V, FN_HASH>::remove(ssize i)
 {
     auto& bucket = m_aBuckets[i];
 
@@ -292,7 +293,7 @@ MapBase<K, V, FN_HASH>::remove(ssize i)
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline void
-MapBase<K, V, FN_HASH>::remove(const K& key)
+Map<K, V, FN_HASH>::remove(const K& key)
 {
     auto found = search(key);
     ADT_ASSERT(found, "not found");
@@ -301,7 +302,7 @@ MapBase<K, V, FN_HASH>::remove(const K& key)
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline bool
-MapBase<K, V, FN_HASH>::tryRemove(const K& key)
+Map<K, V, FN_HASH>::tryRemove(const K& key)
 {
     auto found = search(key);
     if (found)
@@ -317,7 +318,7 @@ MapBase<K, V, FN_HASH>::tryRemove(const K& key)
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline MapResult<K, V>
-MapBase<K, V, FN_HASH>::tryInsert(IAllocator* p, const K& key, const V& val)
+Map<K, V, FN_HASH>::tryInsert(IAllocator* p, const K& key, const V& val)
 {
     auto f = search(key);
     if (f)
@@ -330,28 +331,28 @@ MapBase<K, V, FN_HASH>::tryInsert(IAllocator* p, const K& key, const V& val)
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline void
-MapBase<K, V, FN_HASH>::destroy(IAllocator* p)
+Map<K, V, FN_HASH>::destroy(IAllocator* p)
 {
     m_aBuckets.destroy(p);
 }
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
-inline ssize MapBase<K, V, FN_HASH>::getCap() const
+inline ssize Map<K, V, FN_HASH>::getCap() const
 {
     return m_aBuckets.getCap();
 }
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
-inline ssize MapBase<K, V, FN_HASH>::getSize() const
+inline ssize Map<K, V, FN_HASH>::getSize() const
 {
     return m_nOccupied;
 }
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline void
-MapBase<K, V, FN_HASH>::rehash(IAllocator* p, ssize size)
+Map<K, V, FN_HASH>::rehash(IAllocator* p, ssize size)
 {
-    auto mNew = MapBase<K, V, FN_HASH>(p, size);
+    auto mNew = Map<K, V, FN_HASH>(p, size);
 
     for (const auto& [key, val] : *this)
         mNew.insert(p, key, val);
@@ -362,7 +363,7 @@ MapBase<K, V, FN_HASH>::rehash(IAllocator* p, ssize size)
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline MapResult<K, V>
-MapBase<K, V, FN_HASH>::insertHashed(const K& key, const V& val, usize keyHash)
+Map<K, V, FN_HASH>::insertHashed(const K& key, const V& val, usize keyHash)
 {
     const ssize idx = getInsertionIdx(keyHash, key);
     auto& bucket = m_aBuckets[idx];
@@ -394,11 +395,15 @@ MapBase<K, V, FN_HASH>::insertHashed(const K& key, const V& val, usize keyHash)
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 [[nodiscard]] inline MapResult<K, V>
-MapBase<K, V, FN_HASH>::searchHashed(const K& key, usize keyHash)
+Map<K, V, FN_HASH>::searchHashed(const K& key, usize keyHash)
 {
     MapResult<K, V> res {.eStatus = MAP_RESULT_STATUS::NOT_FOUND};
 
-    if (m_nOccupied == 0) return res;
+    if (m_nOccupied == 0)
+    {
+        print::err("Map::search: m_nOccupied: {}\n", m_nOccupied);
+        return res;
+    }
 
     auto& aBuckets = m_aBuckets;
 
@@ -424,7 +429,7 @@ MapBase<K, V, FN_HASH>::searchHashed(const K& key, usize keyHash)
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline void
-MapBase<K, V, FN_HASH>::zeroOut()
+Map<K, V, FN_HASH>::zeroOut()
 {
     m_aBuckets.zeroOut();
     m_nOccupied = 0;
@@ -432,7 +437,7 @@ MapBase<K, V, FN_HASH>::zeroOut()
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline ssize
-MapBase<K, V, FN_HASH>::getInsertionIdx(usize hash, const K& key) const
+Map<K, V, FN_HASH>::getInsertionIdx(usize hash, const K& key) const
 {
     ssize idx = ssize(hash % m_aBuckets.getCap());
 
@@ -450,7 +455,7 @@ MapBase<K, V, FN_HASH>::getInsertionIdx(usize hash, const K& key) const
 }
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
-MapBase<K, V, FN_HASH>::MapBase(IAllocator* pAllocator, ssize prealloc)
+Map<K, V, FN_HASH>::Map(IAllocator* pAllocator, ssize prealloc)
     : m_aBuckets(pAllocator, prealloc * MAP_DEFAULT_LOAD_FACTOR_INV),
       m_maxLoadFactor(MAP_DEFAULT_LOAD_FACTOR)
 {
@@ -459,9 +464,9 @@ MapBase<K, V, FN_HASH>::MapBase(IAllocator* pAllocator, ssize prealloc)
 }
 
 template<typename K, typename V, usize (*FN_HASH)(const K&) = hash::func<K>>
-struct Map
+struct MapManaged
 {
-    MapBase<K, V, FN_HASH> base {};
+    Map<K, V, FN_HASH> base {};
 
     /* */
 
@@ -469,8 +474,8 @@ struct Map
 
     /* */
 
-    Map() = default;
-    Map(IAllocator* _pAlloc, ssize prealloc = SIZE_MIN)
+    MapManaged() = default;
+    MapManaged(IAllocator* _pAlloc, ssize prealloc = SIZE_MIN)
         : base(_pAlloc, prealloc), m_pAlloc(_pAlloc) {}
 
     /* */
@@ -510,11 +515,11 @@ struct Map
 
     /* */
 
-    typename MapBase<K, V, FN_HASH>::It begin() { return base.begin(); }
-    typename MapBase<K, V, FN_HASH>::It end() { return base.end(); }
+    typename Map<K, V, FN_HASH>::It begin() { return base.begin(); }
+    typename Map<K, V, FN_HASH>::It end() { return base.end(); }
 
-    const typename MapBase<K, V, FN_HASH>::It begin() const { return base.begin(); }
-    const typename MapBase<K, V, FN_HASH>::It end() const { return base.end(); }
+    const typename Map<K, V, FN_HASH>::It begin() const { return base.begin(); }
+    const typename Map<K, V, FN_HASH>::It end() const { return base.end(); }
 };
 
 namespace print

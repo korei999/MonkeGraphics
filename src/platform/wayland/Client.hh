@@ -19,7 +19,7 @@ struct Client : public IWindow
     wl_compositor* m_pCompositor {};
     wl_surface* m_pSurface {};
 
-    adt::VecBase<wl_output*> m_vOutputs {};
+    adt::Vec<wl_output*> m_vOutputs {};
 
     wl_shm* m_pShm {};
     wl_shm_pool* m_pShmPool {};
@@ -79,7 +79,7 @@ struct Client : public IWindow
 #ifdef OPT_SW
     wl_callback* m_pCallBack {};
     adt::u8* m_pSurfaceBufferBind {};
-    adt::VecBase<ImagePixelRGBA> m_vTempBuff {};
+    adt::Vec<ImagePixelRGBA> m_vTempBuff {};
 
 
     virtual adt::Span2D<ImagePixelRGBA> surfaceBuffer() override;

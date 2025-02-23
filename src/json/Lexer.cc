@@ -112,6 +112,12 @@ Lexer::nextString()
     bool bEsc = false;
     for (; m_pos < m_sJson.getSize(); advanceOne())
     {
+        if (!bEsc && m_sJson[m_pos] == '\n')
+        {
+            /* just allow this */
+            ++m_row;
+        }
+
         if (!bEsc && m_sJson[m_pos] == '\\')
         {
             bEsc = true;

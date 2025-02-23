@@ -76,7 +76,7 @@ struct IWindow
 #ifdef OPT_SW
     void (*m_pfnUpdateCB)(void*) {};
     void* m_pDrawArg {};
-    adt::VecBase<adt::f32> m_vDepthBuffer {};
+    adt::Vec<adt::f32> m_vDepthBuffer {};
 
     /* */
 

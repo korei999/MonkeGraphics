@@ -143,7 +143,7 @@ procInput()
         static_cast<u64>(sizeof(g_abPrevPressed)), static_cast<u64>(sizeof(g_abPressed))
     );
 
-    defer( utils::copy(g_abPrevPressed, g_abPressed, utils::size(g_abPrevPressed)) );
+    defer( utils::memCopy(g_abPrevPressed, g_abPressed, utils::size(g_abPrevPressed)) );
 
     static Arr<bool, MAX_KEYBINDS> s_aPressedKeysOnceMap(MAX_KEYBINDS);
     procKeybinds(&s_aPressedKeysOnceMap, g_aKeybinds);

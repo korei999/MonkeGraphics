@@ -5,7 +5,6 @@
 
 #include <cstdio>
 #include <cassert>
-#include <utility>
 
 namespace adt
 {
@@ -56,8 +55,6 @@ struct Pool
 
     ssize idx(const PoolNode<T>* p) const;
     ssize idx(const T* p) const;
-
-    void destroy();
 
     [[nodiscard]] PoolHandle<T> getHandle();
     [[nodiscard]] PoolHandle<T> push(const T& value); /* push resource and get handle back */

@@ -1,11 +1,6 @@
 #pragma once
 
-namespace adt
-{
-
-struct Arena;
-
-}
+#include "adt/Arena.hh"
 
 namespace render
 {

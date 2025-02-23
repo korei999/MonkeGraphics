@@ -4,8 +4,6 @@
 #include "sort.hh"
 
 #include <initializer_list>
-#include <new> /* IWYU pragma: keep */
-#include <utility>
 
 namespace adt
 {
@@ -123,7 +121,7 @@ Arr<T, CAP>::emplace(ARGS&&... args)
 {
     ADT_ASSERT(getSize() < CAP, "pushing over capacity");
 
-    new(m_aData + m_size++) T(std::forward<ARGS>(args)...);
+    new(m_aData + m_size++) T(forward<ARGS>(args)...);
 
     return m_size - 1;
 }

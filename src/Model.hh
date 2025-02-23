@@ -2,8 +2,8 @@
 
 #include "adt/Pool.hh"
 #include "adt/Map.hh"
-#include "adt/Arena.hh"
 #include "adt/math.hh"
+#include "adt/Arena.hh"
 
 struct Model
 {
@@ -15,19 +15,24 @@ struct Model
         adt::math::Qt rotation = adt::math::QtIden();
         adt::math::V3 scale {1.0f, 1.0f, 1.0f};
         adt::i16 parentI = -1;
-        adt::VecBase<adt::i16> vChildren {};
-    };
+        adt::Vec<adt::i16> vChildren {};
 
-    struct Joint2
-    {
+        /* */
+
+        adt::math::M4 getTrm() const
+        {
+            return adt::math::M4TranslationFrom(translation) *
+                adt::math::QtRot(rotation) *
+                adt::math::M4ScaleFrom(scale);
+        }
     };
 
     /* */
 
     adt::Arena m_arena {};
-    adt::MapBase<int, int, adt::hash::dumbFunc> m_mapNodeIToJointI {};
-    adt::VecBase<Joint> m_vJoints {};
-    adt::VecBase<adt::math::M4> m_vJointsTrms {};
+    adt::Map<int, int, adt::hash::dumbFunc> m_mapNodeIToJointI {};
+    adt::Vec<Joint> m_vJoints {};
+    adt::Vec<adt::math::M4> m_vJointTrms {};
     adt::f64 m_time {};
     adt::f64 m_globalMinTime {};
     adt::f64 m_globalMaxTime {};
@@ -41,7 +46,7 @@ struct Model
     /* */
 
     Model() = default;
-    Model(adt::i16 modelAssetI);
+    Model(adt::i16 assetModelI);
 
     /* */
 
@@ -60,10 +65,13 @@ struct Model
 
     /* */
 
+    void loadJoint(adt::i16 gltfNodeI, adt::i16 parentJointI);
     void updateAnimations();
-    void updateSkeletalTransofms(const adt::math::M4& trm);
+    void update();
 
 private:
-    void updateGlobalTransforms(adt::i16 jointI, const adt::math::M4& parentTrm);
+    void updateJoint(adt::i16 jointI);
+    void updateSkeletalTransofms(adt::math::M4 trm);
+    void updateGlobalTransforms(adt::i16 jointI, adt::math::M4 parentTrm);
     void updateJointTransforms();
 };

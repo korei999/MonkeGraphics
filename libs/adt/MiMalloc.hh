@@ -80,6 +80,7 @@ struct MiHeap : IAllocator
     /* */
 
     MiHeap() = default;
+
     MiHeap(usize) : m_pHeap(mi_heap_new()) {}
 
     /* */

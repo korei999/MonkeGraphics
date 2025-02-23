@@ -53,13 +53,14 @@ private:
     usize m_blockSize {};
     IAllocator* m_pBackAlloc {};
     usize m_totalAllocated {};
-    RBTreeBase<FreeListData> m_tree {}; /* free nodes sorted by size */
+    RBTree<FreeListData> m_tree {}; /* free nodes sorted by size */
     FreeListBlock* m_pBlocks {};
 
     /* */
 
 public:
     FreeList() = default;
+
     FreeList(usize _blockSize, IAllocator* pBackAlloc = OsAllocatorGet()) noexcept(false)
         : m_blockSize(align8(_blockSize + sizeof(FreeListBlock) + sizeof(FreeList::Node))),
           m_pBackAlloc(pBackAlloc),

@@ -94,9 +94,9 @@ mainLoop()
 
     g_time = utils::timeNowS();
 
-    Vec<f64> vFrameTimes(OsAllocatorGet(), 1000);
+    VecManaged<f64> vFrameTimes(OsAllocatorGet(), 1000);
     defer( vFrameTimes.destroy() );
-    f64 lastAvgFrameTimeUpdate {};
+    f64 lastAvgFrameTimeUpdateTime {};
 
     while (win.m_bRunning)
     {
@@ -115,14 +115,14 @@ mainLoop()
         const f64 t1 = utils::timeNowMS();
         vFrameTimes.push(t1 - t0);
 
-        if (t1 > lastAvgFrameTimeUpdate + 1000.0)
+        if (t1 > lastAvgFrameTimeUpdateTime + 1000.0)
         {
             f64 avg = 0;
             for (f64 ft : vFrameTimes) avg += ft;
 
             CERR("FPS: {} | avg frame time: {} ms\n", vFrameTimes.getSize(), avg / vFrameTimes.getSize());
             vFrameTimes.setSize(0);
-            lastAvgFrameTimeUpdate = t1;
+            lastAvgFrameTimeUpdateTime = t1;
         }
     }
 }

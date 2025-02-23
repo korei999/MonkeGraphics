@@ -19,7 +19,7 @@ struct ThreadPoolTask
 struct ThreadPool
 {
     IAllocator* m_pAlloc {};
-    QueueBase<ThreadPoolTask> m_qTasks {};
+    Queue<ThreadPoolTask> m_qTasks {};
     Span<Thread> m_spThreads {};
     Mutex m_mtxQ {};
     CndVar m_cndQ {};

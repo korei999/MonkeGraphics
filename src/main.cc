@@ -52,7 +52,7 @@ parseArgs(int argc, char** argv)
             }
             else if (svArg == "--windows")
             {
-                app::g_eWindowType = app::WINDOW_TYPE::WINDOWS;
+                app::g_eWindowType = app::WINDOW_TYPE::WIN32;
                 app::g_eRendererType = app::RENDERER_TYPE::OPEN_GL;
             }
         }
@@ -63,10 +63,10 @@ parseArgs(int argc, char** argv)
 static int
 startup(int argc, char** argv)
 {
-#ifdef __linux__
+#if defined __linux__
     app::g_eWindowType = app::WINDOW_TYPE::WAYLAND_GL;
 #elif defined _WIN32
-    app::g_eWindowType = app::WINDOW_TYPE::WINDOWS;
+    app::g_eWindowType = app::WINDOW_TYPE::WIN32;
 #endif
 
     app::g_eRendererType = app::RENDERER_TYPE::OPEN_GL;
@@ -80,6 +80,7 @@ startup(int argc, char** argv)
 
         const char* ntsName = "MonkeGraphics";
 
+        /* polymorphic singletons */
         app::g_pWindow = app::allocWindow(&allocator, ntsName);
         app::g_pRenderer = app::allocRenderer(&allocator);
 

@@ -45,7 +45,7 @@ struct DefaultScene
 
 struct Scene
 {
-    adt::VecBase<int> vNodes {};
+    adt::Vec<int> vNodes {};
     adt::String sName {};
 };
 
@@ -100,7 +100,7 @@ struct Node
 
     adt::String sName {}; /* The user-defined name of this object. */
     int cameraI {}; /* The index of the camera referenced by this node. */
-    adt::VecBase<int> vChildren {}; /* The indices of this node’s children. */
+    adt::Vec<int> vChildren {}; /* The indices of this node’s children. */
     /* each node can have a local transform.
      * This transform can be given either by the matrix property of the node or by using the translation, rotation, and scale (TRS) properties. */
     TRANSFORMATION_TYPE eTransformationType {};
@@ -152,10 +152,10 @@ struct Animation
 
     /* REQUIRED. An array of animation channels. An animation channel combines an animation sampler with a target property being animated.
      * Different channels of the same animation MUST NOT have the same targets. */
-    adt::VecBase<Channel> vChannels {};
+    adt::Vec<Channel> vChannels {};
     /* REQUIRED. An array of animation samplers.
      * An animation sampler combines timestamps with a sequence of output values and defines an interpolation algorithm. */
-    adt::VecBase<Sampler> vSamplers {};
+    adt::Vec<Sampler> vSamplers {};
     adt::String sName {}; /* The user-defined name of this object. */
 };
 
@@ -240,7 +240,7 @@ struct Primitive
  * This geometry data is given by references to accessor objects that contain the data of vertex attributes. */
 struct Mesh
 {
-    adt::VecBase<Primitive> vPrimitives {}; /* REQUIRED */
+    adt::Vec<Primitive> vPrimitives {}; /* REQUIRED */
     adt::String sName {};
 };
 
@@ -276,7 +276,7 @@ struct Material
 
 struct Skin
 {
-    adt::VecBase<int> vJoints {}; /* REQUIRED. Indices of skeleton nodes, used as joints in this skin. */
+    adt::Vec<int> vJoints {}; /* REQUIRED. Indices of skeleton nodes, used as joints in this skin. */
     adt::String sName {}; /* The user-defined name of this object. */
     int inverseBindMatricesI = -1; /* The index of the accessor containing the floating-point 4x4 inverse-bind matrices. */
     int skeleton = -1; /* The index of the node used as a skeleton root. */

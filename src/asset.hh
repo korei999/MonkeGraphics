@@ -25,7 +25,7 @@ struct Object
 
     adt::Arena m_arena {};
     adt::String m_sMappedWith {};
-    // TODO: adt::VecBase<int> m_vObservers {}; /* array of pool handles that refer to this object */
+    // TODO: adt::Vec<int> m_vObservers {}; /* array of pool handles that refer to this object */
 
     void* m_pExtraData {};
 

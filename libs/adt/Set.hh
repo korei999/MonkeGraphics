@@ -51,14 +51,14 @@ struct SetResult
 
 /* Like hash map but key is also a value. */
 template<typename T, usize (*FN_HASH)(const T&) = hash::func<T>>
-struct SetBase
+struct Set
 {
-    VecBase<SetBucket<T>> m_vBuckets {};
+    Vec<SetBucket<T>> m_vBuckets {};
 
     /* */
 
-    SetBase() = default;
-    SetBase(IAllocator* pAllocator, ssize prealloc = SIZE_MIN);
+    Set() = default;
+    Set(IAllocator* pAllocator, ssize prealloc = SIZE_MIN);
 
     /* */
 };

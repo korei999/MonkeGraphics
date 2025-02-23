@@ -1,5 +1,7 @@
 #include "app.hh"
 
+#include "adt/defer.hh"
+
 #if defined __linux__
     #include "platform/wayland/Client.hh"
     #if defined OPT_GL
@@ -33,6 +35,10 @@ render::IRenderer* g_pRenderer {};
 IWindow*
 allocWindow(IAllocator* pAlloc, const char* ntsName)
 {
+    static bool s_bAllocated = false;
+    ADT_ASSERT_ALWAYS(s_bAllocated == false, "must not allocWindow() more than once");
+    defer( s_bAllocated = true );
+
     switch (g_eWindowType)
     {
         default: break;
@@ -59,6 +65,10 @@ allocWindow(IAllocator* pAlloc, const char* ntsName)
 render::IRenderer*
 allocRenderer(IAllocator* pAlloc)
 {
+    static bool s_bAllocated = false;
+    ADT_ASSERT_ALWAYS(s_bAllocated == false, "must not allocRenderer() more than once");
+    defer( s_bAllocated = true );
+
     switch (g_eRendererType)
     {
         default: break;

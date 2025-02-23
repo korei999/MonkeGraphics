@@ -14,6 +14,7 @@ struct MutexArena : IAllocator
     /* */
 
     MutexArena() = default;
+
     MutexArena(ssize blockCap, IAllocator* pBackAlloc = OsAllocatorGet())
         : m_arena(blockCap, pBackAlloc), m_mtx(Mutex::TYPE::PLAIN) {}
 

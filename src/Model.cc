@@ -10,12 +10,12 @@ using namespace adt;
 
 Pool<Model, 128> Model::s_poolModels(INIT);
 
-Model::Model(adt::i16 modelAssetI)
-    : m_modelAssetI(modelAssetI)
+Model::Model(adt::i16 assetModelI)
+    : m_modelAssetI(assetModelI)
 {
     const gltf::Model& model = *asset::fromModelI(m_modelAssetI);
 
-    LOG_BAD("skins.size: {}\n", model.m_vSkins.getSize());
+    /*LOG_BAD("skins.size: {}\n", model.m_vSkins.getSize());*/
     if (model.m_vSkins.empty())
         return;
 
@@ -28,16 +28,18 @@ Model::Model(adt::i16 modelAssetI)
     const auto& joints = skin.vJoints;
 
     m_vJoints.setSize(&m_arena, joints.getSize());
-    m_vJointsTrms.setSize(&m_arena, joints.getSize());
+    m_vJointTrms.setSize(&m_arena, joints.getSize());
     m_mapNodeIToJointI = {&m_arena, model.m_vNodes.getSize()};
 
     for (auto& joint : m_vJoints) joint = {}; /* default init */
-    for (auto& trm : m_vJointsTrms) trm = math::M4Iden();
+    for (auto& trm : m_vJointTrms) trm = math::M4Iden();
 
     for (ssize jointI = 0; jointI < joints.getSize(); ++jointI)
     {
         int nodeI = skin.vJoints[jointI];
         m_mapNodeIToJointI.insert(&m_arena, nodeI, jointI);
+        LOG_GOOD("insert: nodeI: {}, jointI: {}\n", nodeI, jointI);
+        ADT_ASSERT(m_mapNodeIToJointI.search(nodeI).eStatus != MAP_RESULT_STATUS::NOT_FOUND, " ");
 
         auto& j = m_vJoints[jointI];
         j.parentI = -1;
@@ -48,6 +50,7 @@ Model::Model(adt::i16 modelAssetI)
             j.translation = node.uTransformation.animation.translation;
             j.rotation = node.uTransformation.animation.rotation;
             j.scale = node.uTransformation.animation.scale;
+            LOG_WARN("jointI: [{}], tr: [{}], ro: [{}], sc: [{}]\n", jointI, j.translation, j.rotation, j.scale);
         }
         else if (node.eTransformationType == gltf::Node::TRANSFORMATION_TYPE::MATRIX)
         {
@@ -55,24 +58,24 @@ Model::Model(adt::i16 modelAssetI)
         }
     }
 
-    for (ssize parentNodeI = 0; parentNodeI < model.m_vNodes.getSize(); ++parentNodeI)
-    {
-        const gltf::Node& node = model.m_vNodes[parentNodeI];
-        for (const auto& childI : node.vChildren)
-        {
-            /* TODO: implement unordered_set */
-            /* if this child is a joint and if nodeI is also a joint, set relationship */
-            if (joints.search(childI) && joints.search(parentNodeI))
-            {
-                int childJointI = m_mapNodeIToJointI.search(childI).valueOr(-1);
-                int parentJointI = m_mapNodeIToJointI.search(parentNodeI).valueOr(-1);
-                ADT_ASSERT(childJointI != -1 && parentJointI != -1, " ");
+    // for (ssize parentNodeI = 0; parentNodeI < model.m_vNodes.getSize(); ++parentNodeI)
+    // {
+    //     const gltf::Node& node = model.m_vNodes[parentNodeI];
+    //     for (const auto& childI : node.vChildren)
+    //     {
+    //         /* TODO: implement unordered_set */
+    //         /* if this child is a joint and if nodeI is also a joint, set relationship */
+    //         if (joints.search(childI) && joints.search(parentNodeI))
+    //         {
+    //             int childJointI = m_mapNodeIToJointI.search(childI).valueOr(-1);
+    //             int parentJointI = m_mapNodeIToJointI.search(parentNodeI).valueOr(-1);
+    //             ADT_ASSERT(childJointI != -1 && parentJointI != -1, " ");
 
-                m_vJoints[childJointI].parentI = parentJointI;
-                m_vJoints[parentJointI].vChildren.push(&m_arena, childJointI);
-            }
-        }
-    }
+    //             m_vJoints[childJointI].parentI = parentJointI;
+    //             m_vJoints[parentJointI].vChildren.push(&m_arena, childJointI);
+    //         }
+    //     }
+    // }
 
     for (auto& animation : model.m_vAnimations)
     {
@@ -84,29 +87,32 @@ Model::Model(adt::i16 modelAssetI)
         }
     }
 
-    if (skin.skeleton >= 0)
-        m_rootJointI = m_mapNodeIToJointI.search(skin.skeleton).valueOr(-1);
+    // if (skin.skeleton >= 0)
+    //     m_rootJointI = m_mapNodeIToJointI.search(skin.skeleton).valueOr(-1);
+    // else m_rootJointI = 0;
 
-    if (m_rootJointI == -1)
-    {
-        for (ssize i = 0; i < m_vJoints.getSize(); ++i)
-        {
-            if (m_vJoints[i].parentI == -1)
-            {
-                m_rootJointI = static_cast<i16>(i);
-                break;
-            }
-        }
-    }
+    m_rootJointI = skin.vJoints[0];
+    loadJoint(m_rootJointI, -1);
+
+    // if (m_rootJointI == -1)
+    // {
+    //     for (ssize i = 0; i < m_vJoints.getSize(); ++i)
+    //     {
+    //         if (m_vJoints[i].parentI == -1)
+    //         {
+    //             m_rootJointI = static_cast<i16>(i);
+    //             break;
+    //         }
+    //     }
+    // }
 
     LOG_BAD("m_rootJointI: {}\n", m_rootJointI);
 }
 
 void
-Model::updateGlobalTransforms(adt::i16 jointI, const adt::math::M4& parentTrm)
+Model::updateGlobalTransforms(adt::i16 jointI, adt::math::M4 parentTrm)
 {
-    const gltf::Model& model = *asset::fromModelI(m_modelAssetI);
-
+    LOG_GOOD("jointI: {}\n", jointI);
     Joint& joint = m_vJoints[jointI];
     joint.globalTrm = parentTrm * 
         (math::M4TranslationFrom(joint.translation) *
@@ -118,6 +124,27 @@ Model::updateGlobalTransforms(adt::i16 jointI, const adt::math::M4& parentTrm)
 }
 
 void
+Model::loadJoint(adt::i16 gltfNodeI, adt::i16 parentJointI)
+{
+    const gltf::Model& model = *asset::fromModelI(m_modelAssetI);
+
+    int currJointI = m_mapNodeIToJointI.search(gltfNodeI).valueOr(-1);
+    ADT_ASSERT(currJointI != -1, " ");
+    auto& joint = m_vJoints[currJointI];
+
+    joint.parentI = parentJointI;
+    ssize nChildren = model.m_vNodes[gltfNodeI].vChildren.getSize();
+    joint.vChildren.setSize(&m_arena, nChildren);
+    for (ssize childI = 0; childI < nChildren; ++childI)
+    {
+        int gltfNodeIForChild = model.m_vNodes[gltfNodeI].vChildren[childI];
+        joint.vChildren[childI] = m_mapNodeIToJointI.search(gltfNodeIForChild).valueOr(-1);
+        ADT_ASSERT(joint.vChildren[childI] != -1, " ");
+        loadJoint(gltfNodeIForChild, currJointI);
+    }
+}
+
+void
 Model::updateAnimations()
 {
     const gltf::Model& model = *asset::fromModelI(m_modelAssetI);
@@ -126,6 +153,7 @@ Model::updateAnimations()
 
     m_time = std::fmod(m_time + frame::g_frameTime, m_globalMaxTime);
 
+    int count {};
     for (const auto& channel : animation.vChannels)
     {
         const auto& sampler = animation.vSamplers[channel.samplerI];
@@ -134,6 +162,9 @@ Model::updateAnimations()
         if (jointI >= 0 && jointI < m_vJoints.getSize())
         {
             Joint& joint = m_vJoints[jointI];
+            ++count;
+
+            /*LOG_BAD("nodeI: {}, jointI: {}, path: {}\n", channel.target.nodeI, jointI, channel.target.ePath);*/
 
             const gltf::Accessor& accTimeStamps = model.m_vAccessors[sampler.inputI];
             const gltf::BufferView& viewTimeStamps = model.m_vBufferViews[accTimeStamps.bufferViewI];
@@ -203,13 +234,60 @@ Model::updateAnimations()
             }
         }
     }
+    /*LOG_BAD("count: {}\n", count);*/
+    /*CERR("\n");*/
 }
 
 void
-Model::updateSkeletalTransofms(const adt::math::M4& trm)
+Model::updateSkeletalTransofms(adt::math::M4 trm)
 {
     updateGlobalTransforms(m_rootJointI, trm);
+    CERR("\n");
     updateJointTransforms();
+}
+
+void
+Model::update()
+{
+    if (m_vJoints.empty()) return;
+
+    for (ssize jointI = 0; jointI < m_vJoints.getSize(); ++jointI)
+        m_vJointTrms[jointI] = m_vJoints[jointI].getTrm();
+
+    updateJoint(0);
+
+    const gltf::Model& model = *asset::fromModelI(m_modelAssetI);
+
+    const auto& skin = model.m_vSkins[0];
+    const auto& accInv = model.m_vAccessors[skin.inverseBindMatricesI];
+    const auto& viewInv = model.m_vBufferViews[accInv.bufferViewI];
+    const auto& buffInv = model.m_vBuffers[viewInv.bufferI];
+
+    const View<math::M4> vwInv(
+        reinterpret_cast<const math::M4*>(&buffInv.sBin[accInv.byteOffset + viewInv.byteOffset]),
+        accInv.count, viewInv.byteStride
+    );
+
+    ADT_ASSERT(m_vJoints.getSize() == vwInv.getSize() && m_vJointTrms.getSize() == vwInv.getSize(),
+        "%lld, %lld, %lld", m_vJoints.getSize(), vwInv.getSize(), m_vJointTrms.getSize()
+    );
+
+    for (ssize i = 0; i < m_vJoints.getSize(); ++i)
+        m_vJointTrms[i] *= vwInv[i];
+}
+
+void
+Model::updateJoint(adt::i16 jointI)
+{
+    LOG_BAD("jointI: {}, root: {}\n", jointI, m_rootJointI);
+    auto& joint = m_vJoints[jointI];
+
+    auto parentJointI = joint.parentI;
+    if (parentJointI != -1)
+        m_vJointTrms[jointI] = m_vJointTrms[parentJointI] * m_vJointTrms[jointI];
+
+    for (ssize childI = 0; childI < joint.vChildren.getSize(); ++childI)
+        updateJoint(joint.vChildren[childI]);
 }
 
 void
@@ -227,10 +305,10 @@ Model::updateJointTransforms()
         accInv.count, viewInv.byteStride
     );
 
-    ADT_ASSERT(m_vJoints.getSize() == vwInv.getSize() && m_vJointsTrms.getSize() == vwInv.getSize(),
-        "%lld, %lld, %lld", m_vJoints.getSize(), vwInv.getSize(), m_vJointsTrms.getSize()
+    ADT_ASSERT(m_vJoints.getSize() == vwInv.getSize() && m_vJointTrms.getSize() == vwInv.getSize(),
+        "%lld, %lld, %lld", m_vJoints.getSize(), vwInv.getSize(), m_vJointTrms.getSize()
     );
 
     for (ssize i = 0; i < m_vJoints.getSize(); ++i)
-        m_vJointsTrms[i] = m_vJoints[i].globalTrm * vwInv[i];
+        m_vJointTrms[i] = m_vJoints[i].globalTrm * vwInv[i];
 }
