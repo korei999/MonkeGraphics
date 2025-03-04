@@ -7,6 +7,7 @@
 #include "Vec.hh"
 #include "hash.hh"
 #include "print.hh"
+#include "defer.hh"
 
 namespace adt
 {
@@ -117,9 +118,9 @@ struct Map
 
     void destroy(IAllocator* p);
 
-    [[nodiscard]] ssize getCap() const;
+    [[nodiscard]] ssize cap() const;
 
-    [[nodiscard]] ssize getSize() const;
+    [[nodiscard]] ssize size() const;
 
     void rehash(IAllocator* p, ssize size);
 
@@ -170,7 +171,7 @@ inline ssize
 Map<K, V, FN_HASH>::idx(const KeyVal<K, V>* p) const
 {
     ssize r = (MapBucket<K, V>*)p - &m_aBuckets[0];
-    ADT_ASSERT(r >= 0 && r < m_aBuckets.getCap(), "out of range, r: %lld, cap: %lld", r, m_aBuckets.getCap());
+    ADT_ASSERT(r >= 0 && r < m_aBuckets.cap(), "out of range, r: %lld, cap: %lld", r, m_aBuckets.cap());
     return r;
 }
 
@@ -179,7 +180,7 @@ inline ssize
 Map<K, V, FN_HASH>::idx(const MapResult<K, V> res) const
 {
     ssize idx = res.pData - &m_aBuckets[0];
-    ADT_ASSERT(idx >= 0 && idx < m_aBuckets.getCap(), "out of range, r: %lld, cap: %lld", idx, m_aBuckets.getCap());
+    ADT_ASSERT(idx >= 0 && idx < m_aBuckets.cap(), "out of range, r: %lld, cap: %lld", idx, m_aBuckets.cap());
     return idx;
 }
 
@@ -188,10 +189,10 @@ inline ssize
 Map<K, V, FN_HASH>::firstI() const
 {
     ssize i = 0;
-    while (i < m_aBuckets.getCap() && !m_aBuckets[i].bOccupied)
+    while (i < m_aBuckets.cap() && !m_aBuckets[i].bOccupied)
         ++i;
 
-    if (i >= m_aBuckets.getCap()) i = NPOS;
+    if (i >= m_aBuckets.cap()) i = NPOS;
 
     return i;
 }
@@ -201,9 +202,9 @@ inline ssize
 Map<K, V, FN_HASH>::nextI(ssize i) const
 {
     do ++i;
-    while (i < m_aBuckets.getCap() && !m_aBuckets[i].bOccupied);
+    while (i < m_aBuckets.cap() && !m_aBuckets[i].bOccupied);
 
-    if (i >= m_aBuckets.getCap()) i = NPOS;
+    if (i >= m_aBuckets.cap()) i = NPOS;
 
     return i;
 }
@@ -212,17 +213,17 @@ template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline f32
 Map<K, V, FN_HASH>::getLoadFactor() const
 {
-    return f32(m_nOccupied) / f32(m_aBuckets.getCap());
+    return f32(m_nOccupied) / f32(m_aBuckets.cap());
 }
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline MapResult<K, V>
 Map<K, V, FN_HASH>::insert(IAllocator* p, const K& key, const V& val)
 {
-    if (m_aBuckets.getCap() == 0)
+    if (m_aBuckets.cap() == 0)
         *this = {p};
     else if (getLoadFactor() >= m_maxLoadFactor)
-        rehash(p, m_aBuckets.getCap() * 2);
+        rehash(p, m_aBuckets.cap() * 2);
 
     usize keyHash = FN_HASH(key);
 
@@ -234,10 +235,10 @@ template<typename ...ARGS> requires(std::is_constructible_v<V, ARGS...>)
 inline MapResult<K, V>
 Map<K, V, FN_HASH>::emplace(IAllocator* p, const K& key, ARGS&&... args)
 {
-    if (m_aBuckets.getCap() == 0)
+    if (m_aBuckets.cap() == 0)
         *this = {p};
     else if (getLoadFactor() >= m_maxLoadFactor)
-        rehash(p, m_aBuckets.getCap() * 2);
+        rehash(p, m_aBuckets.cap() * 2);
 
     usize keyHash = FN_HASH(key);
     ssize idx = getInsertionIdx(keyHash, key);
@@ -337,13 +338,13 @@ Map<K, V, FN_HASH>::destroy(IAllocator* p)
 }
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
-inline ssize Map<K, V, FN_HASH>::getCap() const
+inline ssize Map<K, V, FN_HASH>::cap() const
 {
-    return m_aBuckets.getCap();
+    return m_aBuckets.cap();
 }
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
-inline ssize Map<K, V, FN_HASH>::getSize() const
+inline ssize Map<K, V, FN_HASH>::size() const
 {
     return m_nOccupied;
 }
@@ -370,6 +371,11 @@ Map<K, V, FN_HASH>::insertHashed(const K& key, const V& val, usize keyHash)
 
     new(&bucket.val) V(val);
 
+    defer(
+        bucket.bOccupied = true;
+        bucket.bDeleted = false;
+    );
+
     if (bucket.key == key)
     {
         return {
@@ -380,9 +386,6 @@ Map<K, V, FN_HASH>::insertHashed(const K& key, const V& val, usize keyHash)
     }
 
     new(&bucket.key) K(key);
-
-    bucket.bOccupied = true;
-    bucket.bDeleted = false;
 
     ++m_nOccupied;
 
@@ -405,22 +408,20 @@ Map<K, V, FN_HASH>::searchHashed(const K& key, usize keyHash)
         return res;
     }
 
-    auto& aBuckets = m_aBuckets;
-
-    ssize idx = ssize(keyHash % usize(aBuckets.getCap()));
+    ssize idx = ssize(keyHash % usize(m_aBuckets.cap()));
     res.hash = keyHash;
 
-    while (aBuckets[idx].bOccupied || aBuckets[idx].bDeleted)
+    while (m_aBuckets[idx].bOccupied || m_aBuckets[idx].bDeleted)
     {
-        if (!aBuckets[idx].bDeleted && aBuckets[idx].key == key)
+        if (!m_aBuckets[idx].bDeleted && m_aBuckets[idx].key == key)
         {
-            res.pData = &aBuckets[idx];
+            res.pData = &m_aBuckets[idx];
             res.eStatus = MAP_RESULT_STATUS::FOUND;
             break;
         }
 
         ++idx;
-        if (idx >= aBuckets.getCap())
+        if (idx >= m_aBuckets.cap())
             idx = 0;
     }
 
@@ -439,7 +440,7 @@ template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline ssize
 Map<K, V, FN_HASH>::getInsertionIdx(usize hash, const K& key) const
 {
-    ssize idx = ssize(hash % m_aBuckets.getCap());
+    ssize idx = ssize(hash % m_aBuckets.cap());
 
     while (m_aBuckets[idx].bOccupied)
     {
@@ -447,7 +448,7 @@ Map<K, V, FN_HASH>::getInsertionIdx(usize hash, const K& key) const
             break;
 
         ++idx;
-        if (idx >= m_aBuckets.getCap())
+        if (idx >= m_aBuckets.cap())
             idx = 0;
     }
 
@@ -507,9 +508,9 @@ struct MapManaged
 
     void destroy() { base.destroy(m_pAlloc); }
 
-    [[nodiscard]] ssize getCap() const { return base.getCap(); }
+    [[nodiscard]] ssize cap() const { return base.cap(); }
 
-    [[nodiscard]] ssize getSize() const { return base.getSize(); }
+    [[nodiscard]] ssize size() const { return base.size(); }
 
     void zeroOut() { base.zeroOut(); }
 

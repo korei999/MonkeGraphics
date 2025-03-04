@@ -125,7 +125,7 @@ Reader::read64Rev()
 inline bool
 Reader::finished()
 {
-    return m_pos >= m_svFile.getSize();
+    return m_pos >= m_svFile.size();
 }
 
 } /* namespace adt::bin */

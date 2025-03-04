@@ -38,7 +38,10 @@ struct ThreadPool
     void destroy();
     void add(ThreadPoolTask task);
     void add(ThreadFn pfn, void* pArg);
-    template<typename LAMBDA> void add(LAMBDA t);
+    template<typename LAMBDA> void addLambda(LAMBDA& t);
+
+    template<typename LAMBDA> requires(std::is_rvalue_reference_v<LAMBDA&&>)
+    [[deprecated("rvalue lambdas cause use after free")]] void addLambda(LAMBDA&& t) = delete;
 
 private:
     THREAD_STATUS loop(void* pArg);
@@ -147,14 +150,14 @@ ThreadPool::add(ThreadFn pfn, void* pArg)
 
 template<typename LAMBDA>
 inline void
-ThreadPool::add(LAMBDA t)
+ThreadPool::addLambda(LAMBDA& t)
 {
     add(+[](void* pArg) -> THREAD_STATUS
         {
-            (*reinterpret_cast<decltype(t)*>(pArg))();
+            reinterpret_cast<LAMBDA*>(pArg)->operator()();
             return 0;
         },
-        &t
+        (void*)(&t)
     );
 }
 

@@ -14,7 +14,7 @@ namespace asset
 {
 
 Pool<Object, 128> g_poolObjects(INIT);
-static MapManaged<StringView, PoolHandle<Object>> s_mapStringToObjects(OsAllocatorGet(), g_poolObjects.getCap());
+static MapManaged<StringView, PoolHandle<Object>> s_mapStringToObjects(OsAllocatorGet(), g_poolObjects.cap());
 
 void
 Object::destroy()
@@ -35,7 +35,7 @@ loadBMP([[maybe_unused]] const StringView svPath, const StringView sFile)
     if (!reader.read(sFile))
         return {};
 
-    Object nObj(sFile.getSize() * 1.33);
+    Object nObj(sFile.size() * 1.33);
 
     Image img = reader.getImage();
 
@@ -78,7 +78,7 @@ loadGLTF(const StringView svPath, const StringView sFile)
 
     for (const auto& image : gltfModel.m_vImages)
     {
-        StringView sPath = file::replacePathEnding(OsAllocatorGet(), svPath, image.sUri);
+        String sPath = file::replacePathEnding(OsAllocatorGet(), svPath, image.sUri);
         defer( sPath.destroy(OsAllocatorGet()) );
         load(sPath);
     }

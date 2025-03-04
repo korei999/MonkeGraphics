@@ -6,6 +6,8 @@
 
 #include "json/Parser.hh"
 
+#include "adt/View.hh"
+
 namespace gltf
 {
 
@@ -13,7 +15,7 @@ struct Model
 {
     adt::StringView m_sPath {};
     Asset m_asset {}; /* REQUIRED */
-    DefaultScene m_defaultScene {};
+    int m_defaultSceneI {};
     adt::Vec<Scene> m_vScenes {};
     adt::Vec<Buffer> m_vBuffers {};
     adt::Vec<BufferView> m_vBufferViews {};
@@ -33,6 +35,20 @@ struct Model
     /* */
 
     bool read(adt::IAllocator* pAlloc, const json::Parser& parsed, const adt::StringView svPath); /* clones uri */
+
+    /* NOTE: (unsafe) make sure T is the correct type, and accessorI isn't out of bounds. */
+    template<typename T>
+    adt::View<T>
+    accessorView(int accessorI) const
+    {
+        auto& acc = m_vAccessors[accessorI];
+        auto& view = m_vBufferViews[acc.bufferViewI];
+        auto& buff = m_vBuffers[view.bufferI];
+    
+        return {reinterpret_cast<const T*>(&buff.sBin[acc.byteOffset + view.byteOffset]),
+            acc.count, view.byteStride
+        };
+    }
 
     /* */
 

@@ -162,7 +162,7 @@ template<typename T>
 inline usize
 func(const Span<T> sp)
 {
-    return xxh64::hash((const char*)sp.data(), sp.getSize() * sizeof(T), 0);
+    return xxh64::hash((const char*)sp.data(), sp.size() * sizeof(T), 0);
 }
 
 template<typename T>

@@ -120,7 +120,7 @@ mainLoop()
             f64 avg = 0;
             for (f64 ft : vFrameTimes) avg += ft;
 
-            CERR("FPS: {} | avg frame time: {} ms\n", vFrameTimes.getSize(), avg / vFrameTimes.getSize());
+            CERR("FPS: {} | avg frame time: {} ms\n", vFrameTimes.size(), avg / vFrameTimes.size());
             vFrameTimes.setSize(0);
             lastAvgFrameTimeUpdateTime = t1;
         }
@@ -155,6 +155,8 @@ start()
 
     for (auto& asset : asset::g_poolObjects)
         asset.destroy();
+
+    renderer.destroy();
 
 #endif
 }

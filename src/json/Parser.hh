@@ -155,7 +155,7 @@ void printNode(FILE* fp, Node* pNode, adt::StringView sEnd = "", int depth = 0);
 [[nodiscard]] inline Node*
 searchNode(adt::Vec<Node>& aObj, adt::StringView sKey)
 {
-    for (adt::u32 i = 0; i < aObj.getSize(); i++)
+    for (adt::u32 i = 0; i < aObj.size(); i++)
         if (aObj[i].svKey == sKey)
             return &aObj[i];
 
@@ -165,7 +165,7 @@ searchNode(adt::Vec<Node>& aObj, adt::StringView sKey)
 [[nodiscard]] inline const Node*
 searchNode(const adt::Vec<Node>& aObj, adt::StringView sKey)
 {
-    for (adt::u32 i = 0; i < aObj.getSize(); i++)
+    for (adt::u32 i = 0; i < aObj.size(); i++)
         if (aObj[i].svKey == sKey)
             return &aObj[i];
 

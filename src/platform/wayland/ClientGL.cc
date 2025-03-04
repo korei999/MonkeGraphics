@@ -1,24 +1,20 @@
 #include "ClientGL.hh"
 
-#include "adt/Arr.hh"
+#include "adt/Array.hh"
 #include "adt/logs.hh"
 
 #include <EGL/eglext.h>
 
 using namespace adt;
 
-[[maybe_unused]] static EGLint s_eglLastErrorCode = EGL_SUCCESS;
+static EGLint s_eglLastErrorCode = EGL_SUCCESS;
 
-#ifndef NDEBUG
-    #define EGLD(C)                                                                                                    \
-        {                                                                                                              \
-            C;                                                                                                         \
-            if ((s_eglLastErrorCode = eglGetError()) != EGL_SUCCESS)                                                   \
-                LOG_FATAL("eglLastErrorCode: {:#x}\n", s_eglLastErrorCode);                                            \
-        }
-#else
-    #define EGLD(C) C
-#endif
+#define EGLD(C)                                                                                                        \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        C;                                                                                                             \
+        ADT_ASSERT_ALWAYS(s_eglLastErrorCode == EGL_SUCCESS, "eglLastErrorCode: 0x%08x", s_eglLastErrorCode);          \
+    } while (0)
 
 namespace platform::wayland
 {
@@ -122,7 +118,7 @@ ClientGL::initGL()
     };
 
     EGLint n = 0;
-    Arr<EGLConfig, MAX_COUNT> aConfigs {};
+    Array<EGLConfig, MAX_COUNT> aConfigs {};
     ssize maxCount = utils::min(MAX_COUNT, static_cast<ssize>(count));
     aConfigs.setSize(maxCount);
 
@@ -133,9 +129,9 @@ ClientGL::initGL()
 
     EGLint contextAttribs[] {
         // EGL_CONTEXT_CLIENT_VERSION, 3,
-        // EGL_CONTEXT_MAJOR_VERSION, 3,
-        // EGL_CONTEXT_MINOR_VERSION, 3,
-        // EGL_CONTEXT_OPENGL_PROFILE_MASK, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT,
+        EGL_CONTEXT_MAJOR_VERSION, 3,
+        EGL_CONTEXT_MINOR_VERSION, 3,
+        EGL_CONTEXT_OPENGL_PROFILE_MASK, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT,
 #ifndef NDEBUG
         EGL_CONTEXT_OPENGL_DEBUG, EGL_TRUE,
 #endif

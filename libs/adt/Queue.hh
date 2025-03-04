@@ -51,7 +51,7 @@ struct Queue
     T* popFront();
     T* popBack();
     ssize idx(const T* pItem) const;
-    ssize getSize() const { return m_size; }
+    ssize size() const { return m_size; }
 
     /* */
 
@@ -220,7 +220,7 @@ struct QueueManaged
     T* popFront() { return base.popFront(); }
     T* popBack() { return base.popBack(); }
     ssize idx(const T* pItem) { return base.idx(pItem); }
-    ssize getSize() const { return base.getSize(); }
+    ssize size() const { return base.size(); }
 
     /* */
 

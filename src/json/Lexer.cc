@@ -11,7 +11,7 @@ Token
 Lexer::next()
 {
     skipWhitespace();
-    if (m_pos >= m_sJson.getSize()) return {};
+    if (m_pos >= m_sJson.size()) return {};
 
     Token tok {};
 
@@ -75,7 +75,7 @@ Lexer::skipWhitespace()
         return false;
     };
 
-    while (m_pos < m_sJson.getSize() && oneOf(m_sJson[m_pos]))
+    while (m_pos < m_sJson.size() && oneOf(m_sJson[m_pos]))
     {
         if (m_sJson[m_pos] == '\n')
         {
@@ -110,7 +110,7 @@ Lexer::nextString()
     auto fPos = m_pos;
 
     bool bEsc = false;
-    for (; m_pos < m_sJson.getSize(); advanceOne())
+    for (; m_pos < m_sJson.size(); advanceOne())
     {
         if (!bEsc && m_sJson[m_pos] == '\n')
         {
@@ -143,7 +143,7 @@ Lexer::nextStringNoQuotes()
 {
     auto fPos = m_pos;
 
-    while (m_pos < m_sJson.getSize() && isalnum(m_sJson[m_pos]))
+    while (m_pos < m_sJson.size() && isalnum(m_sJson[m_pos]))
         advanceOne();
 
     return {
@@ -170,7 +170,7 @@ Lexer::nextNumber()
     TOKEN_TYPE eType = TOKEN_TYPE::NUMBER;
 
     while (
-        m_pos < m_sJson.getSize() &&
+        m_pos < m_sJson.size() &&
         (isxdigit(m_sJson[m_pos])  ||
             m_sJson[m_pos] == '.' ||
             m_sJson[m_pos] == '+' ||

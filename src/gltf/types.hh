@@ -38,11 +38,6 @@ enum class TARGET
     ELEMENT_ARRAY_BUFFER = 34963
 };
 
-struct DefaultScene
-{
-    int nodeI {};
-};
-
 struct Scene
 {
     adt::Vec<int> vNodes {};

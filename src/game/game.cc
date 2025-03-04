@@ -6,6 +6,7 @@
 #include "control.hh"
 
 #include "adt/logs.hh"
+#include "adt/PoolSOA.hh"
 
 using namespace adt;
 
@@ -18,15 +19,18 @@ struct AssetMapping
     StringView svMapTo {};
 };
 
-EntityPoolSOA<128> g_poolEntites(INIT);
+PoolSOA<Entity, EntityBind, MAX_ENTITIES,
+    &Entity::pos, &Entity::rot, &Entity::scale,
+    &Entity::vel,
+    &Entity::assetI, &Entity::shaderI, &Entity::modelI,
+    &Entity::bInvisible
+> g_poolEntites {};
 
 static const StringView s_aAssetsToLoad[] {
     "assets/duck/Duck.gltf",
     "assets/BoxAnimated/BoxAnimated.gltf",
     "assets/SimpleSkin/glTF/SimpleSkin.gltf",
     "assets/Fox/Fox.gltf",
-    "/home/korei/source/glTF-Sample-Assets/Models/RiggedSimple/glTF/RiggedSimple.gltf",
-    "/home/korei/source/glTF-Sample-Assets/Models/RiggedFigure/glTF/RiggedFigure.gltf",
     "assets/Sphere/sphere.gltf",
 };
 
@@ -54,20 +58,21 @@ loadStuff()
     // }
 
     {
-        auto hTest = g_poolEntites.makeDefault();
+        PoolSOAHandle<Entity> hTest = g_poolEntites.make({});
         auto bind = g_poolEntites[hTest];
 
         /*if (auto* pObj = asset::search("assets/BoxAnimated/BoxAnimated.gltf", asset::Object::TYPE::MODEL))*/
         /*if (auto* pObj = asset::search("assets/SimpleSkin/glTF/SimpleSkin.gltf", asset::Object::TYPE::MODEL))*/
-        /*if (auto* pObj = asset::search("/home/korei/source/glTF-Sample-Assets/Models/RiggedSimple/glTF/RiggedSimple.gltf", asset::Object::TYPE::MODEL))*/
         if (auto* pObj = asset::search("assets/Fox/Fox.gltf", asset::Object::TYPE::MODEL))
         {
             auto idx = asset::g_poolObjects.idx(pObj);
             bind.assetI = idx;
 
-            auto hModel = Model::makeHandle(bind.assetI);
+            auto hModel = Model::make(bind.assetI);
             bind.modelI = hModel.i;
         }
+
+        LOG("entity #{}: {}\n", hTest.i, bind);
     }
 }
 

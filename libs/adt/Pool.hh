@@ -1,7 +1,6 @@
 #pragma once
 
-#include "types.hh"
-#include "Arr.hh"
+#include "Array.hh"
 
 #include <cstdio>
 #include <cassert>
@@ -34,8 +33,8 @@ struct PoolNode
 template<typename T, ssize CAP>
 struct Pool
 {
-    Arr<PoolNode<T>, CAP> m_aNodes {};
-    Arr<PoolHandle<T>, CAP> m_aFreeIdxs {};
+    Array<PoolNode<T>, CAP> m_aNodes {};
+    Array<PoolHandle<T>, CAP> m_aFreeIdxs {};
     ssize m_nOccupied {};
 
     /* */
@@ -65,10 +64,10 @@ struct Pool
     void giveBack(PoolHandle<T> hnd);
     void giveBack(T* hnd);
 
-    ssize getCap() const { return CAP; }
-    ssize getSize() const { return m_nOccupied; }
+    ssize cap() const { return CAP; }
+    ssize size() const { return m_nOccupied; }
 
-    bool empty() const { return getSize() == 0; }
+    bool empty() const { return size() == 0; }
 
     /* */
 
@@ -127,10 +126,10 @@ public:
     };
 
     It begin() { return {this, firstI()}; }
-    It end() { return {this, getSize() == 0 ? -1 : lastI() + 1}; }
+    It end() { return {this, size() == 0 ? -1 : lastI() + 1}; }
 
     const It begin() const { return {this, firstI()}; }
-    const It end() const { return {this, getSize() == 0 ? -1 : lastI() + 1}; }
+    const It end() const { return {this, size() == 0 ? -1 : lastI() + 1}; }
 };
 
 template<typename T, ssize CAP>
@@ -267,7 +266,7 @@ template<typename T, ssize CAP>
 inline T&
 Pool<T, CAP>::at(PoolHandle<T> h)
 {
-    ADT_ASSERT(h.i >= 0 && h.i < m_aNodes.getSize(), "i: %lld, size: %lld", h.i, m_aNodes.getSize());
+    ADT_ASSERT(h.i >= 0 && h.i < m_aNodes.size(), "i: %lld, size: %lld", h.i, m_aNodes.size());
     ADT_ASSERT(!m_aNodes[h.i].bDeleted, "trying to access deleted node");
     return m_aNodes[h.i].data;
 }
@@ -279,7 +278,7 @@ template<typename T, ssize CAP>
 inline ssize
 formatToContext(Context ctx, FormatArgs fmtArgs, const Pool<T, CAP>& x)
 {
-    return print::formatToContextTemplateSize(ctx, fmtArgs, x, x.getSize());
+    return print::formatToContextTemplateSize(ctx, fmtArgs, x, x.size());
 }
 
 template<typename T>

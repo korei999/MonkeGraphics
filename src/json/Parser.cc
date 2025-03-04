@@ -10,10 +10,10 @@ namespace json
 #define OK_OR_RET(RES) if (!RES) return false;
 
 bool
-Parser::parse(IAllocator* pAlloc, StringView sJson)
+Parser::parse(IAllocator* pAlloc, StringView svJson)
 {
     m_pAlloc = pAlloc;
-    m_lex = Lexer(sJson);
+    m_lex = Lexer(svJson);
 
     m_tCurr = m_lex.next();
     m_tNext = m_lex.next();
@@ -285,7 +285,7 @@ Parser::print(FILE* fp)
 }
 
 void
-printNode(FILE* fp, Node* pNode, StringView sEnd, int depth)
+printNode(FILE* fp, Node* pNode, StringView svEnd, int depth)
 {
     StringView key = pNode->svKey;
 
@@ -298,7 +298,7 @@ printNode(FILE* fp, Node* pNode, StringView sEnd, int depth)
             auto& obj = getObject(pNode);
             StringView q0, q1, objName0, objName1;
 
-            if (key.getSize() == 0)
+            if (key.size() == 0)
             {
                 q0 = q1 = objName1 = objName0 = "";
             }
@@ -310,12 +310,12 @@ printNode(FILE* fp, Node* pNode, StringView sEnd, int depth)
             }
 
             print::toFILE(fp, "{:{}}{}{}{}{}{\n", depth, "", q0, objName0, q1, objName1);
-            for (u32 i = 0; i < obj.getSize(); i++)
+            for (ssize i = 0; i < obj.size(); ++i)
             {
-                StringView slE = (i == obj.getSize() - 1) ? "\n" : ",\n";
-                printNode(fp, &obj[i], slE, depth + 2);
+                StringView svE = (i == obj.size() - 1) ? "\n" : ",\n";
+                printNode(fp, &obj[i], svE, depth + 2);
             }
-            print::toFILE(fp, "{:{}}}{}", depth, "", sEnd);
+            print::toFILE(fp, "{:{}}}{}", depth, "", svEnd);
         }
         break;
 
@@ -324,7 +324,7 @@ printNode(FILE* fp, Node* pNode, StringView sEnd, int depth)
             auto& arr = getArray(pNode);
             StringView q0, q1, arrName0, arrName1;
 
-            if (key.getSize() == 0)
+            if (key.size() == 0)
             {
                 q0 =  q1 = arrName1 = arrName0 = "";
             }
@@ -337,90 +337,90 @@ printNode(FILE* fp, Node* pNode, StringView sEnd, int depth)
 
             print::toFILE(fp, "{:{}}", depth, "");
 
-            if (arr.getSize() == 0)
+            if (arr.size() == 0)
             {
-                print::toFILE(fp, "{}{}{}{}[]{}", q0, arrName0, q1, arrName1, sEnd);
+                print::toFILE(fp, "{}{}{}{}[]{}", q0, arrName0, q1, arrName1, svEnd);
                 break;
             }
 
             print::toFILE(fp, "{}{}{}{}[\n", q0, arrName0, q1, arrName1);
-            for (u32 i = 0; i < arr.getSize(); i++)
+            for (ssize i = 0; i < arr.size(); ++i)
             {
-                StringView slE = (i == arr.getSize() - 1) ? "\n" : ",\n";
+                StringView svE = (i == arr.size() - 1) ? "\n" : ",\n";
 
                 switch (arr[i].tagVal.eTag)
                 {
                     default:
                     case TAG::STRING:
                     {
-                        StringView sl = getString(&arr[i]);
-                        print::toFILE(fp, "{:{}}\"{}\"{}", depth + 2, "", sl, slE);
+                        StringView sv = getString(&arr[i]);
+                        print::toFILE(fp, "{:{}}\"{}\"{}", depth + 2, "", sv, svE);
                     }
                     break;
 
                     case TAG::NULL_:
-                    print::toFILE(fp, "{:{}}{}{}", depth + 2, "", "null", slE);
+                    print::toFILE(fp, "{:{}}{}{}", depth + 2, "", "null", svE);
                     break;
 
                     case TAG::LONG:
                     {
                         long num = getLong(&arr[i]);
-                        print::toFILE(fp, "{:{}}{}{}", depth + 2, "", num, slE);
+                        print::toFILE(fp, "{:{}}{}{}", depth + 2, "", num, svE);
                     }
                     break;
 
                     case TAG::DOUBLE:
                     {
                         double dnum = getDouble(&arr[i]);
-                        print::toFILE(fp, "{:{}}{}{}", depth + 2, "", dnum, slE);
+                        print::toFILE(fp, "{:{}}{}{}", depth + 2, "", dnum, svE);
                     }
                     break;
 
                     case TAG::BOOL:
                     {
                         bool b = getBool(&arr[i]);
-                        print::toFILE(fp, "{:{}}{}{}", depth + 2, "", b ? "true" : "false", slE);
+                        print::toFILE(fp, "{:{}}{}{}", depth + 2, "", b ? "true" : "false", svE);
                     }
                     break;
 
                     case TAG::OBJECT:
-                    printNode(fp, &arr[i], slE, depth + 2);
+                    printNode(fp, &arr[i], svE, depth + 2);
                     break;
                 }
             }
-            print::toFILE(fp, "{:{}}]{}", depth, "", sEnd);
+            print::toFILE(fp, "{:{}}]{}", depth, "", svEnd);
         }
         break;
 
         case TAG::DOUBLE:
         {
             f64 f = getDouble(pNode);
-            print::toFILE(fp, "{:{}}\"{}\": {}{}", depth, "", key, f, sEnd);
+            print::toFILE(fp, "{:{}}\"{}\": {}{}", depth, "", key, f, svEnd);
         }
         break;
 
         case TAG::LONG:
         {
             long i = getLong(pNode);
-            print::toFILE(fp, "{:{}}\"{}\": {}{}", depth, "", key, i, sEnd);
+            print::toFILE(fp, "{:{}}\"{}\": {}{}", depth, "", key, i, svEnd);
         }
         break;
 
         case TAG::NULL_:
-        print::toFILE(fp, "{:{}}\"{}\": {}{}", depth, "", key, "null", sEnd);
+        print::toFILE(fp, "{:{}}\"{}\": {}{}", depth, "", key, "null", svEnd);
         break;
 
         case TAG::STRING:
         {
-            StringView sl = getString(pNode);
-            print::toFILE(fp, "{:{}}\"{}\": \"{}\"{}", depth, "", key, sl, sEnd);
+            StringView sv = getString(pNode);
+            print::toFILE(fp, "{:{}}\"{}\": \"{}\"{}", depth, "", key, sv, svEnd);
         }
         break;
 
         case TAG::BOOL:
         {
             bool b = getBool(pNode);
-            print::toFILE(fp, "{:{}}\"{}\": {}{}", depth, "", key, b ? "true" : "false", sEnd);
+            print::toFILE(fp, "{:{}}\"{}\": {}{}", depth, "", key, b ? "true" : "false", svEnd);
         }
         break;
     }
@@ -440,7 +440,7 @@ traverseNodePRE(Node* pNode, bool (*pfn)(Node* p, void* pFnArgs), void* pArgs)
         {
             auto& obj = getArray(pNode);
 
-            for (ssize i = 0; i < obj.getSize(); i++)
+            for (ssize i = 0; i < obj.size(); ++i)
                 traverseNodePRE(&obj[i], pfn, pArgs);
         }
         break;
@@ -449,7 +449,7 @@ traverseNodePRE(Node* pNode, bool (*pfn)(Node* p, void* pFnArgs), void* pArgs)
         {
             auto& obj = getObject(pNode);
 
-            for (ssize i = 0; i < obj.getSize(); i++)
+            for (ssize i = 0; i < obj.size(); ++i)
                 traverseNodePRE(&obj[i], pfn, pArgs);
         }
         break;
@@ -467,7 +467,7 @@ traverseNodePOST(Node* pNode, bool (*pfn)(Node* p, void* pFnArgs), void* pArgs)
         {
             auto& obj = getArray(pNode);
 
-            for (ssize i = 0; i < obj.getSize(); i++)
+            for (ssize i = 0; i < obj.size(); ++i)
                 traverseNodePOST(&obj[i], pfn, pArgs);
         }
         break;
@@ -476,7 +476,7 @@ traverseNodePOST(Node* pNode, bool (*pfn)(Node* p, void* pFnArgs), void* pArgs)
         {
             auto& obj = getObject(pNode);
 
-            for (ssize i = 0; i < obj.getSize(); i++)
+            for (ssize i = 0; i < obj.size(); ++i)
                 traverseNodePOST(&obj[i], pfn, pArgs);
         }
         break;
@@ -504,9 +504,9 @@ traverseNode(Node* pNode, bool (*pfn)(Node* p, void* pFnArgs), void* pArgs, TRAV
 Vec<Node>&
 Parser::getRoot()
 {
-    ADT_ASSERT(m_aObjects.getSize() > 0, "empty");
+    ADT_ASSERT(m_aObjects.size() > 0, "empty");
 
-    if (m_aObjects.getSize() == 1)
+    if (m_aObjects.size() == 1)
         return getObject(&m_aObjects.first());
     else return m_aObjects;
 }
@@ -514,9 +514,9 @@ Parser::getRoot()
 const Vec<Node>&
 Parser::getRoot() const
 {
-    ADT_ASSERT(m_aObjects.getSize() > 0, "empty");
+    ADT_ASSERT(m_aObjects.size() > 0, "empty");
 
-    if (m_aObjects.getSize() == 1)
+    if (m_aObjects.size() == 1)
         return getObject(&m_aObjects.first());
     else return m_aObjects;
 }

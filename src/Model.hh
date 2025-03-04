@@ -1,43 +1,78 @@
 #pragma once
 
+#include "gltf/gltf.hh"
+
 #include "adt/Pool.hh"
-#include "adt/Map.hh"
-#include "adt/math.hh"
 #include "adt/Arena.hh"
 
 struct Model
 {
-    struct Joint
+    static constexpr int MAX_JOINTS = 128;
+
+    struct Node;
+
+    struct Mesh
     {
-        adt::math::M4 globalTrm = adt::math::M4Iden();
-        adt::math::M4 bindTrm = adt::math::M4Iden();
-        adt::math::V3 translation {};
-        adt::math::Qt rotation = adt::math::QtIden();
-        adt::math::V3 scale {1.0f, 1.0f, 1.0f};
-        adt::i16 parentI = -1;
-        adt::Vec<adt::i16> vChildren {};
+        adt::math::M4 matrix = adt::math::M4Iden();
+        adt::Array<adt::math::M4, MAX_JOINTS> vJointMatrices {};
+    };
+
+    struct Skin
+    {
+        adt::StringView svName {};
+        adt::Vec<adt::math::M4> vInverseBindMatrices {};
+        adt::Vec<Node*> vJointNodes {};
+        adt::i16 skeletonRootI = -1; /* do we care? */
+    };
+
+    struct Node
+    {
+        Node* m_pParent {};
+        Mesh* m_pMesh {};
+        Skin* m_pSkin {};
+
+        adt::Vec<Node*> m_vChildren {};
+
+        adt::math::M4 m_matrix = adt::math::M4Iden();
+        adt::math::V3 m_translation {};
+        adt::math::Qt m_rotation = adt::math::QtIden();
+        adt::math::V3 m_scale {1.0f, 1.0f, 1.0f};
+
+        adt::StringView m_svName {};
+
+        adt::i16 m_meshI = -1;
+        adt::i16 m_skinI = -1;
+
+        adt::i16 m_idx = -1;
 
         /* */
 
-        adt::math::M4 getTrm() const
+        adt::math::M4 localMatrix() const
         {
-            return adt::math::M4TranslationFrom(translation) *
-                adt::math::QtRot(rotation) *
-                adt::math::M4ScaleFrom(scale);
+            return adt::math::M4TranslationFrom(m_translation) *
+                adt::math::QtRot(m_rotation) *
+                adt::math::M4ScaleFrom(m_scale) *
+                m_matrix;
         }
+
+        adt::math::M4 matrix() const;
+
+        void update();
     };
 
     /* */
 
     adt::Arena m_arena {};
-    adt::Map<int, int, adt::hash::dumbFunc> m_mapNodeIToJointI {};
-    adt::Vec<Joint> m_vJoints {};
-    adt::Vec<adt::math::M4> m_vJointTrms {};
+
+    adt::Vec<Node*> m_vNodes {};
+    adt::Vec<Node*> m_vAllNodes {};
+    adt::Vec<Skin*> m_vSkins {};
+    adt::Vec<Mesh> m_vMeshes {};
+
     adt::f64 m_time {};
     adt::f64 m_globalMinTime {};
     adt::f64 m_globalMaxTime {};
     adt::i16 m_modelAssetI {};
-    adt::i16 m_rootJointI = -1;
 
     /* */
 
@@ -52,7 +87,7 @@ struct Model
 
     template<typename ...ARGS>
     static adt::PoolHandle<Model>
-    makeHandle(ARGS&&... args)
+    make(ARGS&&... args)
     {
         return s_poolModels.push(std::forward<ARGS>(args)...);
     }
@@ -65,13 +100,15 @@ struct Model
 
     /* */
 
-    void loadJoint(adt::i16 gltfNodeI, adt::i16 parentJointI);
-    void updateAnimations();
-    void update();
+    void updateAnimations(int animationI);
+
+    gltf::Model& gltfModel() const;
+    gltf::Node& gltfNode(const Node* pNode) const;
 
 private:
-    void updateJoint(adt::i16 jointI);
-    void updateSkeletalTransofms(adt::math::M4 trm);
-    void updateGlobalTransforms(adt::i16 jointI, adt::math::M4 parentTrm);
-    void updateJointTransforms();
+    Node* findNode(const Node* pParent, int idx) const;
+    Node* nodeFromI(int idx) const;
+
+    void loadNode(Node* pParent, const gltf::Node& gltfNode, int nodeI);
+    void loadSkins();
 };

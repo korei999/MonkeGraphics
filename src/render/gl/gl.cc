@@ -29,7 +29,6 @@ struct PrimitiveData
     GLuint vboJoints {};
     GLuint vboWeights {};
     GLuint ebo {};
-
 };
 
 static void loadShaders();
@@ -37,7 +36,7 @@ static void loadAssetObjects();
 static void drawSkeleton(const Model& model);
 
 Pool<Shader, 128> g_poolShaders(INIT);
-static MapManaged<StringView, PoolHandle<Shader>> s_mapStringToShaders(OsAllocatorGet(), g_poolShaders.getCap());
+static MapManaged<StringView, PoolHandle<Shader>> s_mapStringToShaders(OsAllocatorGet(), g_poolShaders.cap());
 
 static u8 s_aScratchMem[SIZE_8K] {};
 static ScratchBuffer s_scratch(s_aScratchMem);
@@ -45,7 +44,7 @@ static ScratchBuffer s_scratch(s_aScratchMem);
 static Texture s_texDefault;
 
 static const ShaderMapping s_aShadersToLoad[] {
-    {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"},
+    // {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"}, /* FIXME: causes leak is mesa */
     {shaders::glsl::ntsSimpleColorVert, shaders::glsl::ntsSimpleColorFrag, "SimpleColor"},
     {shaders::glsl::ntsSimpleTextureVert, shaders::glsl::ntsSimpleTextureFrag, "SimpleTexture"},
     {shaders::glsl::ntsSkinTestVert, shaders::glsl::ntsSimpleColorFrag, "SkinTest"},
@@ -77,7 +76,7 @@ Renderer::init()
 };
 
 static void
-drawGLTFNode(const Model& model, const gltf::Node& node, math::M4 globalTrm, GLenum eOverrideMode)
+drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
 {
     using namespace adt::math;
 
@@ -86,29 +85,15 @@ drawGLTFNode(const Model& model, const gltf::Node& node, math::M4 globalTrm, GLe
     const auto& camera = control::g_camera;
     const M4 trmProj = M4Pers(toRad(camera.m_fov), aspectRatio, 0.01f, 1000.0f);
     const M4& trmView = camera.m_trm;
-    const auto& gltfModel = asset::g_poolObjects[{model.m_modelAssetI}].m_uData.model;
+    const auto& gltfModel = model.gltfModel();
 
-    if (node.eTransformationType == gltf::Node::TRANSFORMATION_TYPE::ANIMATION)
-    {
-        globalTrm *= (M4TranslationFrom(node.uTransformation.animation.translation) *
-            QtRot(node.uTransformation.animation.rotation) *
-            M4ScaleFrom(node.uTransformation.animation.scale));
-    }
-    else if (node.eTransformationType == gltf::Node::TRANSFORMATION_TYPE::MATRIX)
-    {
-        globalTrm *= node.uTransformation.matrix;
-    }
+    for (Model::Node* child : node.m_vChildren)
+        drawNode(model, *child, trm);
 
-    for (auto& children : node.vChildren)
+    if (node.m_pMesh)
     {
-        auto& childNode = gltfModel.m_vNodes[children];
-        drawGLTFNode(model, childNode, globalTrm, eOverrideMode);
-    }
-
-    if (node.meshI != -1)
-    {
-        auto& mesh = gltfModel.m_vMeshes[node.meshI];
-        for (const auto& primitive : mesh.vPrimitives)
+        auto& gltfMesh = gltfModel.m_vMeshes[node.m_meshI];
+        for (const auto& primitive : gltfMesh.vPrimitives)
         {
             Shader* pSh {};
 
@@ -127,13 +112,11 @@ drawGLTFNode(const Model& model, const gltf::Node& node, math::M4 globalTrm, GLe
                 pSh = searchShader("SkinTestColors");
                 ADT_ASSERT(pSh != nullptr, " ");
                 pSh->use();
-                pSh->setM4("u_model", globalTrm);
+                pSh->setM4("u_model", node.m_pMesh->matrix * trm);
                 pSh->setM4("u_view", trmView);
                 pSh->setM4("u_projection", trmProj);
 
-                const auto& vTrms = model.m_vJointTrms;
-                /*LOG_BAD("size: {}, {}\n", vTrms.getSize(), vTrms);*/
-                pSh->setM4("u_a2TrmJoints", {const_cast<M4*>(vTrms.data()), vTrms.getSize()});
+                pSh->setM4("u_a2TrmJoints", Span<M4>(node.m_pMesh->vJointMatrices));
                 /*pSh->setV4("u_color", {0.0f, 1.0f, 1.0f, 1.0f});*/
             }
             else if (primitive.materialI != -1)
@@ -145,7 +128,7 @@ drawGLTFNode(const Model& model, const gltf::Node& node, math::M4 globalTrm, GLe
                     auto& tex = gltfModel.m_vTextures[mat.pbrMetallicRoughness.baseColorTexture.index];
                     auto& img = gltfModel.m_vImages[tex.sourceI];
 
-                    Span<char> sp = s_scratch.nextMemZero<char>(img.sUri.getSize() + 300);
+                    Span<char> sp = s_scratch.nextMemZero<char>(img.sUri.size() + 300);
                     file::replacePathEnding(sp, reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri);
 
                     auto* pObj = asset::search(sp, asset::Object::TYPE::IMAGE);
@@ -156,7 +139,7 @@ drawGLTFNode(const Model& model, const gltf::Node& node, math::M4 globalTrm, GLe
                         pSh = searchShader("SimpleTexture");
                         pSh->use();
                         pTex->bind(GL_TEXTURE0);
-                        pSh->setM4("u_trm", trmProj * trmView * globalTrm);
+                        pSh->setM4("u_trm", trmProj * trmView * trm);
                     }
                     else goto GOTO_defaultShader;
                 }
@@ -165,7 +148,7 @@ drawGLTFNode(const Model& model, const gltf::Node& node, math::M4 globalTrm, GLe
                     pSh = searchShader("SimpleColor");
                     pSh->use();
                     pSh->setV4("u_color", mat.pbrMetallicRoughness.baseColorFactor);
-                    pSh->setM4("u_trm", trmProj * trmView * globalTrm);
+                    pSh->setM4("u_trm", trmProj * trmView * trm);
                 }
             }
             else
@@ -174,7 +157,7 @@ GOTO_defaultShader:
                 pSh = searchShader("SimpleTexture");
                 pSh->use();
                 s_texDefault.bind(GL_TEXTURE0);
-                pSh->setM4("u_trm", trmProj * trmView * globalTrm);
+                pSh->setM4("u_trm", trmProj * trmView * trm);
             }
 
             auto* pPrimitiveData = reinterpret_cast<PrimitiveData*>(primitive.pData);
@@ -185,7 +168,7 @@ GOTO_defaultShader:
                 const gltf::Accessor& accIndices = gltfModel.m_vAccessors[primitive.indicesI];
 
                 glDrawElements(
-                    static_cast<int>(eOverrideMode) == -1 ? static_cast<GLenum>(primitive.eMode) : eOverrideMode,
+                    static_cast<GLenum>(primitive.eMode),
                     accIndices.count,
                     static_cast<GLenum>(accIndices.eComponentType),
                     {}
@@ -196,7 +179,7 @@ GOTO_defaultShader:
                 const auto& accPos = gltfModel.m_vAccessors[primitive.attributes.POSITION];
 
                 glDrawArrays(
-                    static_cast<int>(eOverrideMode) == -1 ? static_cast<GLenum>(primitive.eMode) : eOverrideMode,
+                    static_cast<GLenum>(primitive.eMode),
                     0,
                     accPos.count
                 );
@@ -209,18 +192,12 @@ static void
 drawGLTF(Model* pModel, math::M4 trm)
 {
     const auto& gltfModel = asset::g_poolObjects[{pModel->m_modelAssetI}].m_uData.model;
-    auto& scene = gltfModel.m_vScenes[gltfModel.m_defaultScene.nodeI];
+    auto& scene = gltfModel.m_vScenes[gltfModel.m_defaultSceneI];
 
-    pModel->updateAnimations();
-    pModel->update();
+    pModel->updateAnimations(0);
 
-    for (auto& nodeI : scene.vNodes)
-    {
-        auto& node = gltfModel.m_vNodes[nodeI];
-        drawGLTFNode(*pModel, node, trm, GL_LINE_LOOP);
-    }
-
-    drawSkeleton(*pModel);
+    for (auto* node : pModel->m_vNodes)
+        drawNode(*pModel, *node, trm);
 }
 
 static void
@@ -232,30 +209,30 @@ drawSkeleton(const Model& model)
     defer( ball.m_arena.freeAll() );
 
     const auto& gltfModel = asset::g_poolObjects[{ball.m_modelAssetI}].m_uData.model;
-    auto& scene = gltfModel.m_vScenes[gltfModel.m_defaultScene.nodeI];
+    auto& scene = gltfModel.m_vScenes[gltfModel.m_defaultSceneI];
 
-    for (const auto& joint : model.m_vJoints)
-    {
-        // math::V3 translation = math::V3From(
-        //     joint.globalTrm.e[3][0], joint.globalTrm.e[3][1], joint.globalTrm.e[3][2]
-        // );
+    // for (const auto& joint : model.m_vJoints)
+    // {
+    //     // math::V3 translation = math::V3From(
+    //     //     joint.globalTrm.e[3][0], joint.globalTrm.e[3][1], joint.globalTrm.e[3][2]
+    //     // );
 
-        const auto& trm = model.m_vJointTrms[model.m_vJoints.idx(&joint)];
-        /*const auto& trm = joint.getTrm();*/
-        math::V3 translation = math::V3From(
-            trm.e[3][0], trm.e[3][1], trm.e[3][2]
-        );
-        /*math::V3 translation = math::V3From(*/
-        /*    trm.e[0][3], trm.e[1][3], trm.e[2][3]*/
-        /*);*/
-        LOG_GOOD("translation: {}\n", translation);
+    //     const auto& trm = model.m_vJointTrms[model.m_vJoints.idx(&joint)];
+    //     /*const auto& trm = joint.getTrm();*/
+    //     math::V3 translation = math::V3From(
+    //         trm.e[3][0], trm.e[3][1], trm.e[3][2]
+    //     );
+    //     /*math::V3 translation = math::V3From(*/
+    //     /*    trm.e[0][3], trm.e[1][3], trm.e[2][3]*/
+    //     /*);*/
+    //     /*LOG_GOOD("translation: {}\n", translation);*/
 
-        for (auto& nodeI : scene.vNodes)
-        {
-            auto& node = gltfModel.m_vNodes[nodeI];
-            drawGLTFNode(ball, node, math::M4TranslationFrom(translation) * math::M4ScaleFrom(0.05f), GL_LINE_LOOP);
-        }
-    }
+    //     for (auto& nodeI : scene.vNodes)
+    //     {
+    //         auto& node = gltfModel.m_vNodes[nodeI];
+    //         drawGLTFNode(ball, node, math::M4TranslationFrom(translation) * math::M4ScaleFrom(0.05f), GL_LINE_LOOP);
+    //     }
+    // }
 }
 
 void
@@ -273,11 +250,9 @@ Renderer::drawEntities([[maybe_unused]] Arena* pArena)
     {
         for (int entityI = 0; entityI < game::g_poolEntites.m_size; ++entityI)
         {
-            const auto& arrays = game::g_poolEntites.m_arrays;
-            if (arrays.abInvisible[entityI] || arrays.priv.abFree[entityI])
-                continue;
-
             game::EntityBind entity = game::g_poolEntites[{entityI}];
+            if (!game::g_poolEntites.m_aNonFree[entityI] || entity.bInvisible)
+                continue;
 
             auto& obj = asset::g_poolObjects[{entity.assetI}];
 
@@ -301,6 +276,13 @@ Renderer::drawEntities([[maybe_unused]] Arena* pArena)
     }
 }
 
+void
+Renderer::destroy()
+{
+    for (auto& shader : g_poolShaders)
+        shader.destroy();
+}
+
 ShaderMapping::ShaderMapping(const StringView svVert, const StringView svFrag, const StringView svMappedTo)
     : m_svVert(svVert), m_svFrag(svFrag), m_svMappedTo(svMappedTo), m_eType(TYPE::VS_FS) {}
 
@@ -311,7 +293,7 @@ Texture::Texture(int width, int height)
 }
 
 Texture::Texture(const adt::Span2D<ImagePixelRGBA> spImg)
-    : m_width(spImg.getWidth()), m_height(spImg.getHeight())
+    : m_width(spImg.width()), m_height(spImg.height())
 {
     loadRGBA(spImg.data());
 }
@@ -320,13 +302,13 @@ void
 Texture::subImage(const Span2D<ImagePixelRGBA> spImg)
 {
     ADT_ASSERT(
-        spImg.getStride() > 0 && m_width <= spImg.getStride() &&
-        spImg.getHeight() > 0 && m_height <= spImg.getHeight(),
+        spImg.stride() > 0 && m_width <= spImg.stride() &&
+        spImg.height() > 0 && m_height <= spImg.height(),
         "invalid spImg size"
     );
 
     bind();
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, spImg.getStride(), spImg.getHeight(), GL_RGBA, GL_UNSIGNED_BYTE, spImg.data());
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, spImg.stride(), spImg.height(), GL_RGBA, GL_UNSIGNED_BYTE, spImg.data());
 }
 
 void
@@ -598,9 +580,9 @@ bufferViewConvert(
 
     Span<B> spB(OsAllocatorGet()->zallocV<B>(accessorCount), accessorCount);
     defer( OsAllocatorGet()->free(spB.data()) );
-    ADT_ASSERT(spB.getSize() == accessorCount, "sp.size: %lld, acc.count: %d", spB.getSize(), accessorCount);
+    ADT_ASSERT(spB.size() == accessorCount, "sp.size: %lld, acc.count: %d", spB.size(), accessorCount);
 
-    ssize maxSize = utils::min(spB.getSize(), spA.getSize());
+    ssize maxSize = utils::min(spB.size(), spA.size());
     for (ssize spI = 0; spI < maxSize; ++spI)
     {
         auto& elementA = spA[spI];
@@ -614,7 +596,7 @@ bufferViewConvert(
 
     glGenBuffers(1, pVbo);
     glBindBuffer(GL_ARRAY_BUFFER, *pVbo);
-    glBufferData(GL_ARRAY_BUFFER, spB.getSize()*sizeof(*spB.data()), spB.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, spB.size()*sizeof(*spB.data()), spB.data(), GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(attrLocation);
     glVertexAttribPointer(

@@ -134,7 +134,7 @@ inline void
 Heap<T>::pushMin(IAllocator* pA, const T& x)
 {
     m_vec.push(pA, x);
-    minBubbleUp(m_vec.getSize() - 1);
+    minBubbleUp(m_vec.size() - 1);
 }
 
 template<typename T>
@@ -142,7 +142,7 @@ inline void
 Heap<T>::pushMax(IAllocator* pA, const T& x)
 {
     m_vec.push(pA, x);
-    maxBubbleUp(m_vec.getSize() - 1);
+    maxBubbleUp(m_vec.size() - 1);
 }
 
 template<typename T>

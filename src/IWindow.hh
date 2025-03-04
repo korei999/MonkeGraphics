@@ -121,12 +121,12 @@ struct IWindow
     {
 #ifdef ADT_AVX2
         adt::simd::f32Fillx8(
-            {m_vDepthBuffer.data(), m_vDepthBuffer.getSize()},
+            {m_vDepthBuffer.data(), m_vDepthBuffer.size()},
             std::numeric_limits<adt::f32>::max()
         );
 #else
         adt::simd::f32Fillx4(
-            {m_vDepthBuffer.data(), m_vDepthBuffer.getSize()},
+            {m_vDepthBuffer.data(), m_vDepthBuffer.size()},
             std::numeric_limits<adt::f32>::max()
         );
 #endif /* ADT_AVX2 */

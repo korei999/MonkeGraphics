@@ -35,15 +35,20 @@ option(OPT_SW "" OFF)
 option(OPT_GL "" ON)
 option(OPT_WAYLAND_GL "" ON)
 
-include_directories(BEFORE "libs")
-include_directories(BEFORE "src")
+if (OPT_MIMALLOC)
+    include(FetchContent)
+    FetchContent_Declare(
+        MIMALLOC
+        GIT_REPOSITORY https://github.com/microsoft/mimalloc.git
+        GIT_TAG dev3
+    )
+    FetchContent_MakeAvailable(MIMALLOC)
+    FetchContent_GetProperties(MIMALLOC
+        SOURCE_DIR MIMALLOC_SOURCE_DIR
+        BINARY_DIR MIMALLOC_BINARY_DIR
+    )
 
-add_definitions("-DADT_LOGS_LESS_TYPING")
-add_definitions("-DADT_DEFER_LESS_TYPING")
-
-if (CMAKE_SYSTEM_NAME MATCHES "Windows")
-    add_definitions("-D_CRT_SECURE_NO_WARNINGS")
-    add_definitions("-DADT_STD_TYPES")
+    add_definitions("-DADT_USE_MIMALLOC")
 endif()
 
 if (CMAKE_BUILD_TYPE MATCHES "DebugMingw" OR CMAKE_BUILD_TYPE MATCHES "ReleaseMingw")
@@ -63,6 +68,11 @@ if (CMAKE_BUILD_TYPE MATCHES "DebugMingw" OR CMAKE_BUILD_TYPE MATCHES "ReleaseMi
     else()
         set(CMAKE_BUILD_TYPE "Release")
     endif()
+endif()
+
+if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+    add_definitions("-D_CRT_SECURE_NO_WARNINGS")
+    add_definitions("-DADT_STD_TYPES")
 endif()
 
 if (OPT_MARCH_NATIVE)
@@ -91,6 +101,12 @@ if (OPT_AVX2)
         add_compile_options(-mavx2)
     endif()
 endif()
+
+include_directories(BEFORE "libs")
+include_directories(BEFORE "src")
+
+add_definitions("-DADT_LOGS_LESS_TYPING")
+add_definitions("-DADT_DEFER_LESS_TYPING")
 
 if (CMAKE_BUILD_TYPE MATCHES "DebugO1")
     if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -180,25 +196,7 @@ add_executable(
 )
 
 if (OPT_MIMALLOC)
-    include(FetchContent)
-    FetchContent_Declare(
-        MIMALLOC
-        GIT_REPOSITORY https://github.com/microsoft/mimalloc.git
-        GIT_TAG dev3
-    )
-    FetchContent_MakeAvailable(MIMALLOC)
-    FetchContent_GetProperties(MIMALLOC
-        SOURCE_DIR MIMALLOC_SOURCE_DIR
-        BINARY_DIR MIMALLOC_BINARY_DIR
-    )
-    include_directories(${MIMALLOC_SOURCE_DIR}/include)
-    message(STATUS "MIMALLOC_SOURCE_DIR: '${MIMALLOC_SOURCE_DIR}'")
-
-    add_definitions("-DADT_USE_MIMALLOC")
-    # target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE mimalloc-static)
-    target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-        ${MIMALLOC_SOURCE_DIR}/src/static.c
-    )
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE mimalloc-static)
 endif()
 
 if (OPT_SW)

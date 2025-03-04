@@ -1,23 +1,24 @@
 #pragma once
 
-#include "adt/Arr.hh"
 #include "adt/math.hh"
-
-#define ENTITY_POOL_SOA_RANGE_CHECK ADT_ASSERT(h.i >= 0 && h.i < CAP, "out of range: i: %d, CAP: %d", h.i, CAP)
+#include "adt/print.hh"
 
 namespace game
 {
 
- /* idx in the pool */
 struct Entity
 {
-    int i = -1;
+    adt::math::V3 pos {};
+    adt::math::Qt rot = adt::math::QtIden();
+    adt::math::V3 scale {1.0f, 1.0f, 1.0f};
 
-    /* */
+    adt::math::V3 vel {};
 
-    explicit operator int() const { return i; }
+    adt::i16 assetI = -1;
+    adt::i16 shaderI = -1;
+    adt::i16 modelI = -1;
 
-    operator bool() const { return i != -1; }
+    bool bInvisible = false;
 };
 
 struct EntityBind
@@ -32,132 +33,20 @@ struct EntityBind
     adt::i16& shaderI;
     adt::i16& modelI;
 
-    bool& bDead;
+    bool& bInvisible;
 };
-
-template<int CAP> 
-struct EntityPoolSOA
-{
-    struct
-    {
-        adt::math::V3 aPos[CAP] {};
-        adt::math::Qt aRot[CAP] {};
-        adt::math::V3 aScale[CAP] {};
-
-        adt::math::V3 aVel[CAP] {};
-
-        adt::i16 aAssetI[CAP] {};
-        adt::i16 aShaderI[CAP] {};
-        adt::i16 aModels[CAP] {};
-
-        bool abInvisible[CAP] {};
-
-        struct
-        {
-            bool abFree[CAP] {};
-        } priv {};
-    } m_arrays {};
-
-    adt::Arr<Entity, CAP> m_aFreeHandles {};
-    int m_size {};
-    int m_nOccupied {};
-
-
-    /* */
-
-    ADT_WARN_INIT EntityPoolSOA() = default;
-    explicit EntityPoolSOA(adt::InitFlag);
-
-    /* */
-
-    EntityBind operator[](Entity h) { return bind(h); }
-    const EntityBind operator[](Entity h) const { return bind(h); }
-
-    [[nodiscard]] Entity make();
-    [[nodiscard]] Entity makeDefault();
-    void giveBack(Entity h); /* return handle back */
-
-private:
-    EntityBind bind(Entity h);
-};
-
-template<int CAP> 
-EntityPoolSOA<CAP>::EntityPoolSOA(adt::InitFlag)
-{
-    for (auto& bFree : m_arrays.priv.abFree)
-        bFree = true;
-}
-
-template<int CAP> 
-inline Entity
-EntityPoolSOA<CAP>::make()
-{
-    Entity res {};
-
-    if (!m_aFreeHandles.empty())
-        res = *m_aFreeHandles.pop();
-    else res.i = m_size++;
-
-    m_arrays.priv.abFree[res.i] = false;
-    ++m_nOccupied;
-    return res;
-}
-
-template<int CAP> 
-inline Entity
-EntityPoolSOA<CAP>::makeDefault()
-{
-    Entity h = make();
-
-    EntityBind bind = operator[](h);
-    bind.pos = {};
-    bind.rot = adt::math::QtIden();
-    bind.scale = {1.0f, 1.0f, 1.0f};
-
-    bind.vel = {};
-
-    bind.assetI = -1;
-    bind.shaderI = -1;
-    bind.modelI = -1;
-
-    bind.bDead = false;
-
-    return h;
-}
-
-template<int CAP> 
-inline void
-EntityPoolSOA<CAP>::giveBack(Entity h)
-{
-    ADT_ASSERT(m_arrays.abFree[h.i] != true, "handle: %lld is already free", h.i);
-
-    m_arrays.priv.abFree[h.i] = true;
-    --m_nOccupied;
-    m_aFreeHandles.push(h);
-}
-
-template<int CAP> 
-inline EntityBind
-EntityPoolSOA<CAP>::bind(Entity h)
-{
-    ENTITY_POOL_SOA_RANGE_CHECK;
-    ADT_ASSERT(m_arrays.priv.abFree[h.i] == false, " ");
-
-    return {
-        .pos = m_arrays.aPos[h.i],
-        .rot = m_arrays.aRot[h.i],
-        .scale = m_arrays.aScale[h.i],
-
-        .vel = m_arrays.aVel[h.i],
-
-        .assetI = m_arrays.aAssetI[h.i],
-        .shaderI = m_arrays.aShaderI[h.i],
-        .modelI = m_arrays.aModels[h.i],
-
-        .bDead = m_arrays.abInvisible[h.i],
-    };
-}
 
 } /* namespace game */
 
-#undef ENTITY_POOL_SOA_RANGE_CHECK
+namespace adt::print
+{
+
+inline ssize
+formatToContext(Context ctx, FormatArgs, const game::EntityBind& x)
+{
+    ctx.fmt = "\n\tpos: [{}]\n\trot: [{}]\n\tscale: [{}]\n\tvel: [{}]\n\tassetI: {}\n\tshaderI: {}\n\tmodelI: {}\n\tbInvisible: {}";
+    ctx.fmtIdx = 0;
+    return printArgs(ctx, x.pos, x.rot, x.scale, x.vel, x.assetI, x.shaderI, x.modelI, x.bInvisible);
+}
+
+} /* namespace adt::print */

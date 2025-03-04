@@ -36,7 +36,7 @@ struct List
 
     /* */
 
-    [[nodiscard]] constexpr ssize getSize() const { return m_size; }
+    [[nodiscard]] constexpr ssize size() const { return m_size; }
 
     [[nodiscard]] constexpr bool empty() const { return m_size == 0; }
 
@@ -325,7 +325,7 @@ struct ListManaged
 
     /* */
 
-    [[nodiscard]] constexpr ssize getSize() const { return base.getSize(); }
+    [[nodiscard]] constexpr ssize size() const { return base.size(); }
 
     [[nodiscard]] constexpr bool empty() const { return base.empty(); }
 

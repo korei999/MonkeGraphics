@@ -96,7 +96,8 @@ loadGLFunctions()
 {
     HMODULE module = LoadLibraryA("opengl32.dll");
 
-    auto loadFunc = [&](auto& pfn, const char* ntsFnName) {
+    auto loadFunc = [&](auto& pfn, const char* ntsFnName) -> void
+    {
         void* p = (void*)wglGetProcAddress(ntsFnName);
 
         if (p == 0 || (p == (void*)0x1) || (p == (void*)0x2) || (p == (void*)0x3) || (p == (void*)-1))
@@ -324,7 +325,7 @@ Window::start(int width, int height)
     ADT_ASSERT_ALWAYS(ok, "Cannot set OpenGL selected pixel format");
 
     int attribContext[] {
-        WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
+        WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
         WGL_CONTEXT_MINOR_VERSION_ARB, 3,
         WGL_CONTEXT_PROFILE_MASK_ARB,  WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 #ifndef NDEBUG
@@ -336,7 +337,7 @@ Window::start(int width, int height)
     };
 
     m_hGlContext = wglCreateContextAttribsARB(m_hDeviceContext, nullptr, attribContext);
-    ADT_ASSERT_ALWAYS(m_hGlContext, "Cannot create OpenGL context! OpenGL version 4.5 is not supported");
+    ADT_ASSERT_ALWAYS(m_hGlContext, "Cannot create OpenGL context! OpenGL version 3.3 is not supported");
 
     bool okContext = wglMakeCurrent(m_hDeviceContext, m_hGlContext);
     ADT_ASSERT_ALWAYS(okContext, "wglMakeCurrent() failed");

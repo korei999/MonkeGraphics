@@ -1,10 +1,10 @@
 #include "Model.hh"
 
-#include "adt/View.hh"
+#include "frame.hh"
 #include "asset.hh"
 
 #include "adt/logs.hh"
-#include "frame.hh"
+#include "adt/View.hh"
 
 using namespace adt;
 
@@ -13,69 +13,27 @@ Pool<Model, 128> Model::s_poolModels(INIT);
 Model::Model(adt::i16 assetModelI)
     : m_modelAssetI(assetModelI)
 {
-    const gltf::Model& model = *asset::fromModelI(m_modelAssetI);
+    const gltf::Model& model = gltfModel();
 
-    /*LOG_BAD("skins.size: {}\n", model.m_vSkins.getSize());*/
-    if (model.m_vSkins.empty())
-        return;
+    m_arena = {SIZE_1M};
 
-    m_arena = {SIZE_1K};
-
-    if (model.m_vSkins.empty())
-        return;
-
-    const auto& skin = model.m_vSkins[0];
-    const auto& joints = skin.vJoints;
-
-    m_vJoints.setSize(&m_arena, joints.getSize());
-    m_vJointTrms.setSize(&m_arena, joints.getSize());
-    m_mapNodeIToJointI = {&m_arena, model.m_vNodes.getSize()};
-
-    for (auto& joint : m_vJoints) joint = {}; /* default init */
-    for (auto& trm : m_vJointTrms) trm = math::M4Iden();
-
-    for (ssize jointI = 0; jointI < joints.getSize(); ++jointI)
+    const gltf::Scene& scene = model.m_vScenes[model.m_defaultSceneI];
+    for (const int nodeI : scene.vNodes)
     {
-        int nodeI = skin.vJoints[jointI];
-        m_mapNodeIToJointI.insert(&m_arena, nodeI, jointI);
-        LOG_GOOD("insert: nodeI: {}, jointI: {}\n", nodeI, jointI);
-        ADT_ASSERT(m_mapNodeIToJointI.search(nodeI).eStatus != MAP_RESULT_STATUS::NOT_FOUND, " ");
-
-        auto& j = m_vJoints[jointI];
-        j.parentI = -1;
-
-        const auto& node = model.m_vNodes[nodeI];
-        if (node.eTransformationType == gltf::Node::TRANSFORMATION_TYPE::ANIMATION)
-        {
-            j.translation = node.uTransformation.animation.translation;
-            j.rotation = node.uTransformation.animation.rotation;
-            j.scale = node.uTransformation.animation.scale;
-            LOG_WARN("jointI: [{}], tr: [{}], ro: [{}], sc: [{}]\n", jointI, j.translation, j.rotation, j.scale);
-        }
-        else if (node.eTransformationType == gltf::Node::TRANSFORMATION_TYPE::MATRIX)
-        {
-            j.bindTrm = node.uTransformation.matrix;
-        }
+        const gltf::Node& node = model.m_vNodes[nodeI];
+        loadNode(nullptr, node, nodeI);
     }
 
-    // for (ssize parentNodeI = 0; parentNodeI < model.m_vNodes.getSize(); ++parentNodeI)
-    // {
-    //     const gltf::Node& node = model.m_vNodes[parentNodeI];
-    //     for (const auto& childI : node.vChildren)
-    //     {
-    //         /* TODO: implement unordered_set */
-    //         /* if this child is a joint and if nodeI is also a joint, set relationship */
-    //         if (joints.search(childI) && joints.search(parentNodeI))
-    //         {
-    //             int childJointI = m_mapNodeIToJointI.search(childI).valueOr(-1);
-    //             int parentJointI = m_mapNodeIToJointI.search(parentNodeI).valueOr(-1);
-    //             ADT_ASSERT(childJointI != -1 && parentJointI != -1, " ");
+    loadSkins();
 
-    //             m_vJoints[childJointI].parentI = parentJointI;
-    //             m_vJoints[parentJointI].vChildren.push(&m_arena, childJointI);
-    //         }
-    //     }
-    // }
+    for (auto node : m_vAllNodes)
+    {
+        if (node->m_skinI > -1)
+            node->m_pSkin = m_vSkins[node->m_skinI];
+
+        if (node->m_pMesh)
+            node->update();
+    }
 
     for (auto& animation : model.m_vAnimations)
     {
@@ -86,229 +44,252 @@ Model::Model(adt::i16 assetModelI)
             m_globalMaxTime = utils::max(m_globalMaxTime, static_cast<f64>(accTimeStamps.uMax.SCALAR));
         }
     }
-
-    // if (skin.skeleton >= 0)
-    //     m_rootJointI = m_mapNodeIToJointI.search(skin.skeleton).valueOr(-1);
-    // else m_rootJointI = 0;
-
-    m_rootJointI = skin.vJoints[0];
-    loadJoint(m_rootJointI, -1);
-
-    // if (m_rootJointI == -1)
-    // {
-    //     for (ssize i = 0; i < m_vJoints.getSize(); ++i)
-    //     {
-    //         if (m_vJoints[i].parentI == -1)
-    //         {
-    //             m_rootJointI = static_cast<i16>(i);
-    //             break;
-    //         }
-    //     }
-    // }
-
-    LOG_BAD("m_rootJointI: {}\n", m_rootJointI);
 }
 
 void
-Model::updateGlobalTransforms(adt::i16 jointI, adt::math::M4 parentTrm)
+Model::updateAnimations(int animationI)
 {
-    LOG_GOOD("jointI: {}\n", jointI);
-    Joint& joint = m_vJoints[jointI];
-    joint.globalTrm = parentTrm * 
-        (math::M4TranslationFrom(joint.translation) *
-         math::QtRot(joint.rotation) *
-         math::M4ScaleFrom(joint.scale));
+    const gltf::Model& model = gltfModel();
 
-    for (int childI : joint.vChildren)
-        updateGlobalTransforms(childI, joint.globalTrm);
-}
+    if (model.m_vAnimations.empty()) return;
 
-void
-Model::loadJoint(adt::i16 gltfNodeI, adt::i16 parentJointI)
-{
-    const gltf::Model& model = *asset::fromModelI(m_modelAssetI);
-
-    int currJointI = m_mapNodeIToJointI.search(gltfNodeI).valueOr(-1);
-    ADT_ASSERT(currJointI != -1, " ");
-    auto& joint = m_vJoints[currJointI];
-
-    joint.parentI = parentJointI;
-    ssize nChildren = model.m_vNodes[gltfNodeI].vChildren.getSize();
-    joint.vChildren.setSize(&m_arena, nChildren);
-    for (ssize childI = 0; childI < nChildren; ++childI)
-    {
-        int gltfNodeIForChild = model.m_vNodes[gltfNodeI].vChildren[childI];
-        joint.vChildren[childI] = m_mapNodeIToJointI.search(gltfNodeIForChild).valueOr(-1);
-        ADT_ASSERT(joint.vChildren[childI] != -1, " ");
-        loadJoint(gltfNodeIForChild, currJointI);
-    }
-}
-
-void
-Model::updateAnimations()
-{
-    const gltf::Model& model = *asset::fromModelI(m_modelAssetI);
     /* NOTE: using the first animation */
-    const auto& animation = model.m_vAnimations[0];
+    const auto& animation = model.m_vAnimations[animationI];
 
     m_time = std::fmod(m_time + frame::g_frameTime, m_globalMaxTime);
 
-    int count {};
     for (const auto& channel : animation.vChannels)
     {
         const auto& sampler = animation.vSamplers[channel.samplerI];
 
-        int jointI = m_mapNodeIToJointI.search(channel.target.nodeI).valueOr(-1);
-        if (jointI >= 0 && jointI < m_vJoints.getSize())
+        Node* joint = nodeFromI(channel.target.nodeI);
+
+        const gltf::Accessor& accTimeStamps = model.m_vAccessors[sampler.inputI];
+        const gltf::BufferView& viewTimeStamps = model.m_vBufferViews[accTimeStamps.bufferViewI];
+        const gltf::Buffer& buffTimeStamps = model.m_vBuffers[viewTimeStamps.bufferI];
+
+        const View<f32> vwTimeStamps(
+            (f32*)(&buffTimeStamps.sBin[accTimeStamps.byteOffset + viewTimeStamps.byteOffset]),
+            accTimeStamps.count,
+            viewTimeStamps.byteStride
+        );
+
+        ADT_ASSERT(vwTimeStamps.size() >= 2, " ");
+
+        if (m_time >= accTimeStamps.uMin.SCALAR && m_time <= accTimeStamps.uMax.SCALAR)
         {
-            Joint& joint = m_vJoints[jointI];
-            ++count;
+            f32 prevTime = -INFINITY;
+            f32 nextTime {};
 
-            /*LOG_BAD("nodeI: {}, jointI: {}, path: {}\n", channel.target.nodeI, jointI, channel.target.ePath);*/
-
-            const gltf::Accessor& accTimeStamps = model.m_vAccessors[sampler.inputI];
-            const gltf::BufferView& viewTimeStamps = model.m_vBufferViews[accTimeStamps.bufferViewI];
-            const gltf::Buffer& buffTimeStamps = model.m_vBuffers[viewTimeStamps.bufferI];
-
-            const View<f32> vwTimeStamps(
-                (f32*)(&buffTimeStamps.sBin[accTimeStamps.byteOffset + viewTimeStamps.byteOffset]),
-                accTimeStamps.count,
-                viewTimeStamps.byteStride
-            );
-
-            ADT_ASSERT(vwTimeStamps.getSize() >= 2, " ");
-
-            if (m_time >= accTimeStamps.uMin.SCALAR && m_time <= accTimeStamps.uMax.SCALAR)
+            int prevTimeI = 0;
+            for (ssize i = 0; i < vwTimeStamps.size(); ++i)
             {
-                f32 prevTime = -INFINITY;
-                f32 nextTime {};
+                const auto& timeStamp = vwTimeStamps[i];
+                if (timeStamp < m_time && timeStamp > prevTime)
+                    prevTimeI = i;
+            }
 
-                int prevTimeI = 0;
-                for (ssize i = 0; i < vwTimeStamps.getSize(); ++i)
-                {
-                    const auto& timeStamp = vwTimeStamps[i];
-                    if (timeStamp < m_time && timeStamp > prevTime)
-                        prevTimeI = i;
-                }
+            prevTime = vwTimeStamps[prevTimeI + 0];
+            nextTime = vwTimeStamps[prevTimeI + 1];
 
-                prevTime = vwTimeStamps[prevTimeI + 0];
-                nextTime = vwTimeStamps[prevTimeI + 1];
+            ADT_ASSERT(nextTime - prevTime != 0.0f, " ");
+            const f32 interpolationValue = (m_time - prevTime) / (nextTime - prevTime);
 
-                ADT_ASSERT(nextTime - prevTime != 0.0f, " ");
-                const f32 interpolationValue = (m_time - prevTime) / (nextTime - prevTime);
+            const auto& accOutput = model.m_vAccessors[sampler.outputI];
+            const auto& viewOutput = model.m_vBufferViews[accOutput.bufferViewI];
+            const auto& buffOutput = model.m_vBuffers[viewOutput.bufferI];
 
-                const auto& accOutput = model.m_vAccessors[sampler.outputI];
-                const auto& viewOutput = model.m_vBufferViews[accOutput.bufferViewI];
-                const auto& buffOutput = model.m_vBuffers[viewOutput.bufferI];
+            if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::TRANSLATION)
+            {
+                const View<math::V3> spOutTranslations(
+                    reinterpret_cast<const math::V3*>(&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset]),
+                    accOutput.count, viewOutput.byteStride
+                );
 
-                if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::TRANSLATION)
-                {
-                    const View<math::V3> spOutTranslations(
-                        reinterpret_cast<const math::V3*>(&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset]),
-                        accOutput.count, viewOutput.byteStride
-                    );
+                joint->m_translation = lerp(spOutTranslations[prevTimeI], spOutTranslations[prevTimeI + 1], interpolationValue);
+            }
+            else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::ROTATION)
+            {
+                const View<math::Qt> vwOutRotations(
+                    reinterpret_cast<const math::Qt*>(&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset]),
+                    accOutput.count, viewOutput.byteStride
+                );
 
-                    joint.translation = lerp(spOutTranslations[prevTimeI], spOutTranslations[prevTimeI + 1], interpolationValue);
-                }
-                else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::ROTATION)
-                {
-                    const View<math::Qt> vwOutRotations(
-                        reinterpret_cast<const math::Qt*>(&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset]),
-                        accOutput.count, viewOutput.byteStride
-                    );
+                math::Qt prevRot = vwOutRotations[prevTimeI + 0];
+                math::Qt nextRot = vwOutRotations[prevTimeI + 1];
 
-                    math::Qt prevRot = vwOutRotations[prevTimeI + 0];
-                    math::Qt nextRot = vwOutRotations[prevTimeI + 1];
+                joint->m_rotation = slerp(prevRot, nextRot, interpolationValue);
+            }
+            else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::SCALE)
+            {
+                const View<math::V3> spOutScales(
+                    reinterpret_cast<const math::V3*>(&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset]),
+                    accOutput.count, viewOutput.byteStride
+                );
 
-                    joint.rotation = slerp(prevRot, nextRot, interpolationValue);
-                }
-                else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::SCALE)
-                {
-                    const View<math::V3> spOutScales(
-                        reinterpret_cast<const math::V3*>(&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset]),
-                        accOutput.count, viewOutput.byteStride
-                    );
-
-                    joint.scale = lerp(spOutScales[prevTimeI], spOutScales[prevTimeI + 1], interpolationValue);
-                }
+                joint->m_scale = lerp(spOutScales[prevTimeI], spOutScales[prevTimeI + 1], interpolationValue);
             }
         }
     }
-    /*LOG_BAD("count: {}\n", count);*/
-    /*CERR("\n");*/
+
+    for (auto* node : m_vNodes)
+        node->update();
+}
+
+gltf::Model&
+Model::gltfModel() const
+{
+    return *asset::fromModelI(m_modelAssetI);
+}
+
+gltf::Node&
+Model::gltfNode(const Node* pNode) const
+{
+    auto& model = gltfModel();
+    return model.m_vNodes[pNode->m_idx];
+}
+
+Model::Node*
+Model::findNode(const Node* const pParent, int idx) const
+{
+    if (pParent->m_idx == idx)
+        return const_cast<Node*>(pParent);
+
+    for (auto* pChild : pParent->m_vChildren)
+    {
+        if (Node* pFound = findNode(pChild, idx))
+            return pFound;
+    }
+
+    return nullptr;
+}
+
+Model::Node*
+Model::nodeFromI(int idx) const
+{
+    Node* pFound {};
+    for (auto* node : m_vNodes)
+    {
+        pFound = findNode(node, idx);
+        if (pFound) break;
+    }
+
+    return pFound;
 }
 
 void
-Model::updateSkeletalTransofms(adt::math::M4 trm)
+Model::loadNode(Node* pParent, const gltf::Node& gltfNode, int nodeI)
 {
-    updateGlobalTransforms(m_rootJointI, trm);
-    CERR("\n");
-    updateJointTransforms();
+    const gltf::Model& model = gltfModel();
+    Node* pNewNode = m_arena.alloc<Node>(Node{});
+
+    pNewNode->m_idx = nodeI;
+    pNewNode->m_pParent = pParent;
+    pNewNode->m_skinI = gltfNode.skinI;
+    pNewNode->m_svName = gltfNode.sName;
+
+    switch (gltfNode.eTransformationType)
+    {
+        case gltf::Node::TRANSFORMATION_TYPE::ANIMATION:
+        {
+            pNewNode->m_translation = gltfNode.uTransformation.animation.translation;
+            pNewNode->m_rotation = gltfNode.uTransformation.animation.rotation;
+            pNewNode->m_scale = gltfNode.uTransformation.animation.scale;
+        }
+        break;
+
+        case gltf::Node::TRANSFORMATION_TYPE::MATRIX:
+        pNewNode->m_matrix = gltfNode.uTransformation.matrix;
+        break;
+
+        default: break;
+    }
+
+    for (const int childI : gltfNode.vChildren)
+        loadNode(pNewNode, model.m_vNodes[childI], childI);
+
+    if (gltfNode.meshI > -1)
+    {
+        Mesh* pNewMesh = m_arena.alloc<Mesh>(Mesh{});
+        pNewMesh->matrix = pNewNode->m_matrix;
+
+        pNewNode->m_pMesh = pNewMesh;
+        pNewNode->m_meshI = gltfNode.meshI;
+    }
+
+    if (pParent) pParent->m_vChildren.push(&m_arena, pNewNode);
+    else m_vNodes.push(&m_arena, pNewNode);
+
+    m_vAllNodes.push(&m_arena, pNewNode);
 }
 
 void
-Model::update()
+Model::loadSkins()
 {
-    if (m_vJoints.empty()) return;
+    const gltf::Model& model = gltfModel();
 
-    for (ssize jointI = 0; jointI < m_vJoints.getSize(); ++jointI)
-        m_vJointTrms[jointI] = m_vJoints[jointI].getTrm();
+    for (const gltf::Skin& gltfSkin : model.m_vSkins)
+    {
+        Skin* pNewSkin = m_arena.alloc<Skin>(Skin{});
+        pNewSkin->svName = gltfSkin.sName;
 
-    updateJoint(0);
+        for (const int jointI : gltfSkin.vJoints)
+        {
+            if (Node* pNode = nodeFromI(jointI))
+                pNewSkin->vJointNodes.push(&m_arena, pNode);
+        }
 
-    const gltf::Model& model = *asset::fromModelI(m_modelAssetI);
+        if (gltfSkin.inverseBindMatricesI > -1)
+        {
+            const View vwInvs = model.accessorView<math::M4>(gltfSkin.inverseBindMatricesI);
+            pNewSkin->vInverseBindMatrices.setSize(&m_arena, vwInvs.size());
+            for (ssize i = 0; i < vwInvs.size(); ++i)
+                pNewSkin->vInverseBindMatrices[i] = vwInvs[i];
+        }
 
-    const auto& skin = model.m_vSkins[0];
-    const auto& accInv = model.m_vAccessors[skin.inverseBindMatricesI];
-    const auto& viewInv = model.m_vBufferViews[accInv.bufferViewI];
-    const auto& buffInv = model.m_vBuffers[viewInv.bufferI];
+        if (pNewSkin->vJointNodes.size() > MAX_JOINTS)
+            LOG_BAD("too many joints\n");
 
-    const View<math::M4> vwInv(
-        reinterpret_cast<const math::M4*>(&buffInv.sBin[accInv.byteOffset + viewInv.byteOffset]),
-        accInv.count, viewInv.byteStride
-    );
-
-    ADT_ASSERT(m_vJoints.getSize() == vwInv.getSize() && m_vJointTrms.getSize() == vwInv.getSize(),
-        "%lld, %lld, %lld", m_vJoints.getSize(), vwInv.getSize(), m_vJointTrms.getSize()
-    );
-
-    for (ssize i = 0; i < m_vJoints.getSize(); ++i)
-        m_vJointTrms[i] *= vwInv[i];
+        m_vSkins.push(&m_arena, pNewSkin);
+    }
 }
 
-void
-Model::updateJoint(adt::i16 jointI)
+adt::math::M4
+Model::Node::matrix() const
 {
-    LOG_BAD("jointI: {}, root: {}\n", jointI, m_rootJointI);
-    auto& joint = m_vJoints[jointI];
+    math::M4 m = localMatrix();
+    Node* p = m_pParent;
+    while (p)
+    {
+        m = p->localMatrix() * m;
+        p = p->m_pParent;
+    }
 
-    auto parentJointI = joint.parentI;
-    if (parentJointI != -1)
-        m_vJointTrms[jointI] = m_vJointTrms[parentJointI] * m_vJointTrms[jointI];
-
-    for (ssize childI = 0; childI < joint.vChildren.getSize(); ++childI)
-        updateJoint(joint.vChildren[childI]);
-}
+    return m;
+};
 
 void
-Model::updateJointTransforms()
+Model::Node::update()
 {
-    const gltf::Model& model = *asset::fromModelI(m_modelAssetI);
+    if (m_pMesh)
+    {
+        math::M4 m = matrix();
+        m_pMesh->matrix = m;
+        if (m_pSkin)
+        {
+            math::M4 invTrm = math::M4Inv(m);
+            ADT_ASSERT(m_pSkin->vInverseBindMatrices.size() < MAX_JOINTS, " ");
+            m_pMesh->vJointMatrices.setSize(m_pSkin->vInverseBindMatrices.size());
+            for (ssize i = 0; i < m_pSkin->vInverseBindMatrices.size(); ++i)
+            {
+                Node* pJointNode = m_pSkin->vJointNodes[i];
+                math::M4 jointMat = pJointNode->matrix() * m_pSkin->vInverseBindMatrices[i];
+                jointMat = invTrm * jointMat;
+                m_pMesh->vJointMatrices[i] = jointMat;
+            }
+        }
 
-    const auto& skin = model.m_vSkins[0];
-    const auto& accInv = model.m_vAccessors[skin.inverseBindMatricesI];
-    const auto& viewInv = model.m_vBufferViews[accInv.bufferViewI];
-    const auto& buffInv = model.m_vBuffers[viewInv.bufferI];
-
-    const View<math::M4> vwInv(
-        reinterpret_cast<const math::M4*>(&buffInv.sBin[accInv.byteOffset + viewInv.byteOffset]),
-        accInv.count, viewInv.byteStride
-    );
-
-    ADT_ASSERT(m_vJoints.getSize() == vwInv.getSize() && m_vJointTrms.getSize() == vwInv.getSize(),
-        "%lld, %lld, %lld", m_vJoints.getSize(), vwInv.getSize(), m_vJointTrms.getSize()
-    );
-
-    for (ssize i = 0; i < m_vJoints.getSize(); ++i)
-        m_vJointTrms[i] = m_vJoints[i].globalTrm * vwInv[i];
+        for (Node* child : m_vChildren)
+            child->update();
+    }
 }

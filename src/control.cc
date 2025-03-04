@@ -30,7 +30,7 @@ bool g_abPrevPressed[MAX_KEY_VALUE] {};
 bool g_abPressed[MAX_KEY_VALUE] {};
 MOD_STATE g_ePressedMods {};
 
-Arr<Keybind, MAX_KEYBINDS> g_aKeybinds {
+Array<Keybind, MAX_KEYBINDS> g_aKeybinds {
     {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_F,        toggleFullscreen     },
     {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_R,        toggleRelativePointer},
     {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_V,        toggleVSync          },
@@ -48,7 +48,7 @@ Arr<Keybind, MAX_KEYBINDS> g_aKeybinds {
 };
 
 static void
-procKeybinds(Arr<bool, MAX_KEYBINDS>* paPressOnceMap, const Arr<Keybind, MAX_KEYBINDS>& aCommands)
+procKeybinds(Array<bool, MAX_KEYBINDS>* paPressOnceMap, const Array<Keybind, MAX_KEYBINDS>& aCommands)
 {
     for (auto& com : aCommands)
     {
@@ -145,7 +145,7 @@ procInput()
 
     defer( utils::memCopy(g_abPrevPressed, g_abPressed, utils::size(g_abPrevPressed)) );
 
-    static Arr<bool, MAX_KEYBINDS> s_aPressedKeysOnceMap(MAX_KEYBINDS);
+    static Array<bool, MAX_KEYBINDS> s_aPressedKeysOnceMap(MAX_KEYBINDS);
     procKeybinds(&s_aPressedKeysOnceMap, g_aKeybinds);
 
     procMouse();

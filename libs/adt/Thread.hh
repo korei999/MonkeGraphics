@@ -2,6 +2,8 @@
 
 #include "adt/types.hh"
 
+#include <type_traits>
+
 #if __has_include(<windows.h>)
     #define ADT_USE_WIN32THREAD
 #elif __has_include(<pthread.h>)
@@ -64,6 +66,10 @@ using ThreadFn = THREAD_STATUS (*)(void*);
 
 struct Thread
 {
+    enum class ATTR : u8 { JOINABLE, DETACHED };
+
+    /* */
+
 #ifdef ADT_USE_PTHREAD
 
     pthread_t m_thread {};
@@ -80,8 +86,11 @@ struct Thread
     /* */
 
     Thread() = default;
-    Thread(THREAD_STATUS (*pfn)(void*), void* pFnArg);
-    template<typename LAMBDA> Thread(LAMBDA l);
+    Thread(THREAD_STATUS (*pfn)(void*), void* pFnArg, ATTR eAttr = ATTR::JOINABLE);
+    template<typename LAMBDA> Thread(LAMBDA& l, ATTR eAttr = ATTR::JOINABLE);
+
+    template<typename LAMBDA> requires(std::is_rvalue_reference_v<LAMBDA&&>)
+    [[deprecated("rvalue lambdas cause use after free")]] Thread(LAMBDA&& l) = delete;
 
     /* */
 
@@ -93,6 +102,7 @@ private:
 
     THREAD_STATUS pthreadJoin();
     THREAD_STATUS pthreadDetach();
+    void start(void* (*pfn)(void*), void* pFnArg, ATTR eAttr);
 
 #elif defined ADT_USE_WIN32THREAD
 
@@ -113,11 +123,11 @@ private:
 #endif
 
 inline
-Thread::Thread(THREAD_STATUS (*pfn)(void*), void* pFnArg)
+Thread::Thread(THREAD_STATUS (*pfn)(void*), void* pFnArg, ATTR eAttr)
 {
 #ifdef ADT_USE_PTHREAD
 
-    pthread_create(&m_thread, {}, (void* (*)(void*))pfn, pFnArg);
+    start(reinterpret_cast<void* (*)(void*)>(pfn), pFnArg, eAttr);
 
 #elif defined ADT_USE_WIN32THREAD
 
@@ -128,7 +138,7 @@ Thread::Thread(THREAD_STATUS (*pfn)(void*), void* pFnArg)
 
 template<typename LAMBDA>
 inline
-Thread::Thread(LAMBDA l)
+Thread::Thread(LAMBDA& l, ATTR eAttr)
 {
 #ifdef ADT_USE_PTHREAD
 
@@ -138,17 +148,17 @@ Thread::Thread(LAMBDA l)
         return nullptr;
     };
 
-    pthread_create(&m_thread, {}, stub, &l);
+    start(stub, reinterpret_cast<void*>(&l), eAttr);
 
 #elif defined ADT_USE_WIN32THREAD
 
     auto stub = +[](void* pArg) -> THREAD_STATUS
     {
-        (*reinterpret_cast<decltype(l)*>(pArg))();
+        (*reinterpret_cast<LAMBDA*>(pArg))();
         return 0;
     };
 
-    m_thread = CreateThread(nullptr, 0, stub, &l, 0, &m_id);
+    m_thread = CreateThread(nullptr, 0, stub, reinterpret_cast<void*>(&l), 0, &m_id);
 
 #endif
 }
@@ -188,7 +198,8 @@ inline THREAD_STATUS
 Thread::pthreadJoin()
 {
     u64 ret {};
-    pthread_join(m_thread, (void**)&ret);
+    [[maybe_unused]] auto err = pthread_join(m_thread, (void**)&ret);
+    ADT_ASSERT(err == 0, "err: %d", err);
 
     return static_cast<THREAD_STATUS>(ret);
 }
@@ -196,7 +207,34 @@ Thread::pthreadJoin()
 inline THREAD_STATUS
 Thread::pthreadDetach()
 {
-    return (THREAD_STATUS)pthread_detach(m_thread);
+    return reinterpret_cast<THREAD_STATUS>(pthread_detach(m_thread));
+}
+
+inline void
+Thread::start(void* (*pfn)(void*), void* pFnArg, ATTR eAttr)
+{
+    [[maybe_unused]] int err {};
+    pthread_attr_t attr {};
+
+    switch (eAttr)
+    {
+        case ATTR::JOINABLE:
+        err = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+        ADT_ASSERT(err == 0, "err: %d", err);
+        break;
+
+        case ATTR::DETACHED:
+        err = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+        ADT_ASSERT(err == 0, "err: %d", err);
+        break;
+    }
+
+    err = pthread_attr_init(&attr);
+    ADT_ASSERT(err == 0, "err: %d", err);
+    err = pthread_create(&m_thread, &attr, (void* (*)(void*))pfn, pFnArg);
+    ADT_ASSERT(err == 0, "err: %d", err);
+    err = pthread_attr_destroy(&attr);
+    ADT_ASSERT(err == 0, "err: %d", err);
 }
 
 #elif defined ADT_USE_WIN32THREAD
@@ -260,9 +298,13 @@ Mutex::Mutex([[maybe_unused]] TYPE eType)
 {
 #ifdef ADT_USE_PTHREAD
 
-    pthread_mutexattr_init(&m_attr);
-    pthread_mutexattr_settype(&m_attr, pthreadAttrType(eType));
-    pthread_mutex_init(&m_mtx, &m_attr);
+    [[maybe_unused]] int err {};
+    err = pthread_mutexattr_init(&m_attr);
+    ADT_ASSERT(err == 0, "err: %d", err);
+    err = pthread_mutexattr_settype(&m_attr, pthreadAttrType(eType));
+    ADT_ASSERT(err == 0, "err: %d", err);
+    err = pthread_mutex_init(&m_mtx, &m_attr);
+    ADT_ASSERT(err == 0, "err: %d", err);
 
 #elif defined ADT_USE_WIN32THREAD
 
@@ -276,7 +318,8 @@ Mutex::lock()
 {
 #ifdef ADT_USE_PTHREAD
 
-    pthread_mutex_lock(&m_mtx);
+    [[maybe_unused]] int err = pthread_mutex_lock(&m_mtx);
+    ADT_ASSERT(err == 0, "err: %d", err);
 
 #elif defined ADT_USE_WIN32THREAD
 
@@ -304,7 +347,8 @@ Mutex::unlock()
 {
 #ifdef ADT_USE_PTHREAD
 
-    pthread_mutex_unlock(&m_mtx);
+    [[maybe_unused]] int err = pthread_mutex_unlock(&m_mtx);
+    ADT_ASSERT(err == 0, "err: %d", err);
 
 #elif defined ADT_USE_WIN32THREAD
 
@@ -318,8 +362,10 @@ Mutex::destroy()
 {
 #ifdef ADT_USE_PTHREAD
 
-    pthread_mutex_destroy(&m_mtx);
-    pthread_mutexattr_destroy(&m_attr);
+    [[maybe_unused]] int err = pthread_mutex_destroy(&m_mtx);
+    ADT_ASSERT(err == 0, "err: %d", err);
+    err = pthread_mutexattr_destroy(&m_attr);
+    ADT_ASSERT(err == 0, "err: %d", err);
     *this = {};
 
 #elif defined ADT_USE_WIN32THREAD
@@ -362,7 +408,8 @@ CndVar::CndVar(InitFlag)
 #ifdef ADT_USE_PTHREAD
 
     /* @MAN: The LinuxThreads implementation supports no attributes for conditions, hence the cond_attr parameter is actually ignored. */
-    pthread_cond_init(&m_cnd, {});
+    [[maybe_unused]] int err = pthread_cond_init(&m_cnd, {});
+    ADT_ASSERT(err == 0, "err: %d", err);
 
 #elif defined ADT_USE_WIN32THREAD
 
@@ -379,7 +426,8 @@ CndVar::destroy()
     /* @MAN:
      * In the LinuxThreads implementation, no resources are associated with condition variables,
      * thus pthread_cond_destroy actually does nothing except checking that the condition has no waiting threads. */
-    pthread_cond_destroy(&m_cnd);
+    [[maybe_unused]] int err = pthread_cond_destroy(&m_cnd);
+    ADT_ASSERT(err == 0, "err: %d", err);
     *this = {};
 
 #elif defined ADT_USE_WIN32THREAD
@@ -398,7 +446,8 @@ CndVar::wait(Mutex* pMtx)
      * The thread  execution  is  suspended and does not consume any CPU time until the condition variable is signaled.
      * The mutex must be locked by the calling thread on entrance to pthread_cond_wait.
      * Before returning to the calling thread, pthread_cond_wait re-acquires mutex (as per pthread_lock_mutex). */
-    pthread_cond_wait(&m_cnd, &pMtx->m_mtx);
+    [[maybe_unused]] int err = pthread_cond_wait(&m_cnd, &pMtx->m_mtx);
+    ADT_ASSERT(err == 0, "err: %d", err);
 
 #elif defined ADT_USE_WIN32THREAD
 
@@ -416,7 +465,8 @@ CndVar::timedWait(Mutex* pMtx, f64 ms)
         .tv_sec = ssize(ms / 1000.0),
         .tv_nsec = (ssize(ms) % 1000) * 1000'000,
     };
-    pthread_cond_timedwait(&m_cnd, &pMtx->m_mtx, &ts);
+    [[maybe_unused]] int err = pthread_cond_timedwait(&m_cnd, &pMtx->m_mtx, &ts);
+    ADT_ASSERT(err == 0, "err: %d", err);
 
 #elif defined ADT_USE_WIN32THREAD
 
@@ -430,7 +480,8 @@ CndVar::signal()
 {
 #ifdef ADT_USE_PTHREAD
 
-    pthread_cond_signal(&m_cnd);
+    [[maybe_unused]] int err = pthread_cond_signal(&m_cnd);
+    ADT_ASSERT(err == 0, "err: %d", err);
 
 #elif defined ADT_USE_WIN32THREAD
 
@@ -444,7 +495,8 @@ CndVar::broadcast()
 {
 #ifdef ADT_USE_PTHREAD
 
-    pthread_cond_broadcast(&m_cnd);
+    [[maybe_unused]] int err = pthread_cond_broadcast(&m_cnd);
+    ADT_ASSERT(err == 0, "err: %d", err);
 
 #elif defined ADT_USE_WIN32THREAD
 

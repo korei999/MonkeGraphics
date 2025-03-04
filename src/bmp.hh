@@ -86,7 +86,7 @@ Reader::read(adt::StringView sBMP)
 {
     using namespace adt;
 
-    if (sBMP.getSize() < static_cast<ssize>(sizeof(Header) + sizeof(BitmapInfoHeader)))
+    if (sBMP.size() < static_cast<ssize>(sizeof(Header) + sizeof(BitmapInfoHeader)))
         return false;
 
     m_sBMP = sBMP;
@@ -99,7 +99,7 @@ Reader::getImage()
 {
     using namespace adt;
 
-    if (m_sBMP.getSize() == 0)
+    if (m_sBMP.size() == 0)
         return {};
 
     switch (m_bmInfoHeader.nBitsPerPixel)

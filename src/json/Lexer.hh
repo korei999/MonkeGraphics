@@ -47,7 +47,7 @@ public:
     /* */
 
     Token next();
-    bool done() const { return m_pos >= m_sJson.getSize(); }
+    bool done() const { return m_pos >= m_sJson.size(); }
 
     /* */
 

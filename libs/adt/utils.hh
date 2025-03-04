@@ -253,7 +253,7 @@ reverse(auto* a, const ssize size)
 inline constexpr void
 reverse(auto* a)
 {
-    reverse(a->data(), a->getSize());
+    reverse(a->data(), a->size());
 }
 
 

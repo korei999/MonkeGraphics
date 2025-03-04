@@ -16,6 +16,7 @@ struct Renderer : public IRenderer
 {
     virtual void init() override;
     virtual void drawEntities(adt::Arena* pArena) override;
+    virtual void destroy() override;
 };
 
 struct ShaderMapping
@@ -94,7 +95,7 @@ struct Shader
     setM4(const char* ntsUnifromVar, const adt::Span<adt::math::M4> sp)
     {
         GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
-        glUniformMatrix4fv(ul, sp.getSize(), GL_FALSE, reinterpret_cast<const GLfloat*>(sp.data()));
+        glUniformMatrix4fv(ul, sp.size(), GL_FALSE, reinterpret_cast<const GLfloat*>(sp.data()));
     }
     
     void

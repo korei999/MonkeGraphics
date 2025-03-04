@@ -1,6 +1,6 @@
 #pragma once
 
-#include "adt/Arr.hh"
+#include "adt/Array.hh"
 #include "adt/math.hh"
 
 #include "frame.hh"
@@ -88,7 +88,7 @@ extern bool g_abPrevPressed[MAX_KEY_VALUE];
 extern bool g_abPressed[MAX_KEY_VALUE];
 extern MOD_STATE g_ePressedMods;
 
-extern adt::Arr<Keybind, MAX_KEYBINDS> g_aKeybinds;
+extern adt::Array<Keybind, MAX_KEYBINDS> g_aKeybinds;
 
 void procInput();
 

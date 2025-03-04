@@ -788,7 +788,7 @@ Renderer::drawEntities(Arena* pArena)
     {
         f64 avg = 0;
         for (f64 ft : s_vFrameTimes) avg += ft;
-        CERR("FPS: {} | avg frame time: {} ms\n", s_vFrameTimes.getSize(), avg / s_vFrameTimes.getSize());
+        CERR("FPS: {} | avg frame time: {} ms\n", s_vFrameTimes.size(), avg / s_vFrameTimes.size());
         s_vFrameTimes.setSize(0);
         s_lastAvgFrameTimeUpdate = t1;
     }

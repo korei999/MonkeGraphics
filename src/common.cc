@@ -47,7 +47,7 @@ updateModelNode(Model* pModel, const gltf::Node& node, adt::math::M4* pTrm)
                     accTimeStamps.count, viewTimeStamps.byteStride
                 );
 
-                ADT_ASSERT(spTimeStamps.getSize() >= 2, " ");
+                ADT_ASSERT(spTimeStamps.size() >= 2, " ");
 
                 if (pModel->m_time >= accTimeStamps.uMin.SCALAR && pModel->m_time <= accTimeStamps.uMax.SCALAR)
                 {
@@ -120,9 +120,9 @@ createDefaultTexture()
     static ImagePixelRGBA aPixels[width * height] {};
 
     Span2D sp(aPixels, width, height, width);
-    for (int y = 0; y < sp.getHeight(); ++y)
+    for (int y = 0; y < sp.height(); ++y)
     {
-        for (int x = 0; x < sp.getWidth(); ++x)
+        for (int x = 0; x < sp.width(); ++x)
         {
             u32 colorChannel = 255 * ((x + (y % 2)) % 2);
             ImagePixelRGBA p;

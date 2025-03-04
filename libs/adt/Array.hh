@@ -10,19 +10,23 @@ namespace adt
 
 /* statically sized array */
 template<typename T, ssize CAP> requires(CAP > 0)
-struct Arr
+struct Array
 {
     T m_aData[CAP] {};
     ssize m_size {};
 
     /* */
 
-    constexpr Arr() = default;
+    constexpr Array() = default;
 
     template<typename ...ARGS> requires(std::is_constructible_v<T, ARGS...>)
-    constexpr Arr(ssize size, ARGS&&... args);
+    constexpr Array(ssize size, ARGS&&... args);
 
-    constexpr Arr(std::initializer_list<T> list);
+    constexpr Array(std::initializer_list<T> list);
+
+    /* */
+
+    constexpr operator Span<T>() const { return {data(), size()}; }
 
     /* */
 
@@ -43,8 +47,8 @@ struct Arr
     constexpr ssize fakePush();
     constexpr T* pop();
     constexpr void fakePop();
-    constexpr ssize getCap() const;
-    constexpr ssize getSize() const;
+    constexpr ssize cap() const;
+    constexpr ssize size() const;
     constexpr void setSize(ssize newSize);
     constexpr ssize idx(const T* p);
     constexpr T& first();
@@ -105,9 +109,9 @@ struct Arr
 
 template<typename T, ssize CAP> requires(CAP > 0)
 constexpr ssize
-Arr<T, CAP>::push(const T& x)
+Array<T, CAP>::push(const T& x)
 {
-    ADT_ASSERT(getSize() < CAP, "pushing over capacity");
+    ADT_ASSERT(size() < CAP, "pushing over capacity");
 
     new(m_aData + m_size++) T(x);
 
@@ -117,9 +121,9 @@ Arr<T, CAP>::push(const T& x)
 template<typename T, ssize CAP> requires(CAP > 0)
 template<typename ...ARGS> requires(std::is_constructible_v<T, ARGS...>)
 inline constexpr ssize
-Arr<T, CAP>::emplace(ARGS&&... args)
+Array<T, CAP>::emplace(ARGS&&... args)
 {
-    ADT_ASSERT(getSize() < CAP, "pushing over capacity");
+    ADT_ASSERT(size() < CAP, "pushing over capacity");
 
     new(m_aData + m_size++) T(forward<ARGS>(args)...);
 
@@ -128,7 +132,7 @@ Arr<T, CAP>::emplace(ARGS&&... args)
 
 template<typename T, ssize CAP> requires(CAP > 0)
 constexpr ssize
-Arr<T, CAP>::fakePush()
+Array<T, CAP>::fakePush()
 {
     ADT_ASSERT(m_size < CAP, "push over capacity");
     ++m_size;
@@ -137,7 +141,7 @@ Arr<T, CAP>::fakePush()
 
 template<typename T, ssize CAP> requires(CAP > 0)
 constexpr T*
-Arr<T, CAP>::pop()
+Array<T, CAP>::pop()
 {
     ADT_ASSERT(m_size > 0, "empty");
     return &m_aData[--m_size];
@@ -145,7 +149,7 @@ Arr<T, CAP>::pop()
 
 template<typename T, ssize CAP> requires(CAP > 0)
 constexpr void
-Arr<T, CAP>::fakePop()
+Array<T, CAP>::fakePop()
 {
     ADT_ASSERT(m_size > 0, "empty");
     --m_size;
@@ -153,21 +157,21 @@ Arr<T, CAP>::fakePop()
 
 template<typename T, ssize CAP> requires(CAP > 0)
 constexpr ssize
-Arr<T, CAP>::getCap() const
+Array<T, CAP>::cap() const
 {
     return CAP;
 }
 
 template<typename T, ssize CAP> requires(CAP > 0)
 constexpr ssize
-Arr<T, CAP>::getSize() const
+Array<T, CAP>::size() const
 {
     return m_size;
 }
 
 template<typename T, ssize CAP> requires(CAP > 0)
 constexpr void
-Arr<T, CAP>::setSize(ssize newSize)
+Array<T, CAP>::setSize(ssize newSize)
 {
     ADT_ASSERT(newSize <= CAP, "cannot enlarge static array");
     m_size = newSize;
@@ -175,37 +179,37 @@ Arr<T, CAP>::setSize(ssize newSize)
 
 template<typename T, ssize CAP> requires(CAP > 0)
 constexpr ssize
-Arr<T, CAP>::idx(const T* p)
+Array<T, CAP>::idx(const T* p)
 {
     ssize r = ssize(p - m_aData);
-    ADT_ASSERT(r >= 0 && r < getSize(), "out of range, r: %lld, size: %lld", r, getSize());
+    ADT_ASSERT(r >= 0 && r < size(), "out of range, r: %lld, size: %lld", r, size());
     return r;
 }
 
 template<typename T, ssize CAP> requires(CAP > 0)
 constexpr T&
-Arr<T, CAP>::first()
+Array<T, CAP>::first()
 {
     return operator[](0);
 }
 
 template<typename T, ssize CAP> requires(CAP > 0)
 constexpr const T&
-Arr<T, CAP>::first() const
+Array<T, CAP>::first() const
 {
     return operator[](0);
 }
 
 template<typename T, ssize CAP> requires(CAP > 0)
 constexpr T&
-Arr<T, CAP>::last()
+Array<T, CAP>::last()
 {
     return operator[](m_size - 1);
 }
 
 template<typename T, ssize CAP> requires(CAP > 0)
 constexpr const T&
-Arr<T, CAP>::last() const
+Array<T, CAP>::last() const
 {
     return operator[](m_size - 1);
 }
@@ -213,7 +217,7 @@ Arr<T, CAP>::last() const
 template<typename T, ssize CAP> requires(CAP > 0)
 template<typename ...ARGS> requires(std::is_constructible_v<T, ARGS...>)
 inline constexpr
-Arr<T, CAP>::Arr(ssize size, ARGS&&... args)
+Array<T, CAP>::Array(ssize size, ARGS&&... args)
     : m_size(size)
 {
     ADT_ASSERT(size <= CAP, " ");
@@ -223,7 +227,7 @@ Arr<T, CAP>::Arr(ssize size, ARGS&&... args)
 }
 
 template<typename T, ssize CAP> requires(CAP > 0)
-constexpr Arr<T, CAP>::Arr(std::initializer_list<T> list)
+constexpr Array<T, CAP>::Array(std::initializer_list<T> list)
 {
     for (auto& e : list) push(e);
 }
@@ -233,7 +237,7 @@ namespace sort
 
 template<typename T, ssize CAP, auto FN_CMP = utils::compare<T>>
 constexpr void
-quick(Arr<T, CAP>* pArr)
+quick(Array<T, CAP>* pArr)
 {
     if (pArr->m_size <= 1) return;
 
@@ -242,7 +246,7 @@ quick(Arr<T, CAP>* pArr)
 
 template<typename T, ssize CAP, auto FN_CMP = utils::compare<T>>
 constexpr void
-insertion(Arr<T, CAP>* pArr)
+insertion(Array<T, CAP>* pArr)
 {
     if (pArr->m_size <= 1) return;
 
@@ -254,11 +258,12 @@ insertion(Arr<T, CAP>* pArr)
 namespace print
 {
 
+/* adapt to CON_T<T> template */
 template<typename T, ssize CAP>
 inline ssize
-formatToContext(Context ctx, FormatArgs fmtArgs, const Arr<T, CAP>& x)
+formatToContext(Context ctx, FormatArgs fmtArgs, const Array<T, CAP>& x)
 {
-    return print::formatToContext(ctx, fmtArgs, Span(x.data(), x.getSize()));
+    return print::formatToContext(ctx, fmtArgs, Span(x.data(), x.size()));
 }
 
 } /* namespace print */

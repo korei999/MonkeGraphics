@@ -14,11 +14,19 @@ namespace adt
 nullTermStringSize(const char* nts)
 {
     ssize i = 0;
-    if (!nts)
-        return 0;
+    if (!nts) return 0;
 
-    while (nts[i] != '\0')
-        ++i;
+#if defined __has_constexpr_builtin
+    #if __has_constexpr_builtin(__builtin_strlen)
+
+    i = __builtin_strlen(nts);
+
+    #endif
+#else
+
+    while (nts[i] != '\0') ++i;
+
+#endif
 
     return i;
 }
@@ -43,9 +51,6 @@ struct StringView
 
     constexpr StringView() = default;
 
-    constexpr StringView(char* sNullTerminated)
-        : m_pData(sNullTerminated), m_size(nullTermStringSize(sNullTerminated)) {}
-
     constexpr StringView(const char* sNullTerminated)
         : m_pData(const_cast<char*>(sNullTerminated)), m_size(nullTermStringSize(sNullTerminated)) {}
 
@@ -53,11 +58,11 @@ struct StringView
         : m_pData(pStr), m_size(len) {}
 
     constexpr StringView(Span<char> sp)
-        : StringView(sp.data(), sp.getSize()) {}
+        : StringView(sp.data(), sp.size()) {}
 
     /* */
 
-    explicit constexpr operator bool() const { return getSize() > 0; }
+    explicit constexpr operator bool() const { return size() > 0; }
 
     /* */
 
@@ -70,12 +75,11 @@ struct StringView
 
     constexpr const char* data() const { return m_pData; }
     constexpr char* data() { return m_pData; }
-    constexpr ssize getSize() const { return m_size; }
-    constexpr bool empty() const { return getSize() == 0; }
+    constexpr ssize size() const { return m_size; }
+    constexpr bool empty() const { return size() == 0; }
     [[nodiscard]] bool beginsWith(const StringView r) const;
     [[nodiscard]] bool endsWith(const StringView r) const;
     [[nodiscard]] ssize lastOf(char c) const;
-    void destroy(IAllocator* p);
     void trimEnd();
     void removeNLEnd(); /* remove \r\n */
     [[nodiscard]] bool contains(const StringView r) const;
@@ -151,7 +155,7 @@ struct StringGlyphIt
         {
             if (!p || i < 0 || i >= size)
             {
-death:
+GOTO_quit:
                 i = NPOS;
                 return *this;
             }
@@ -161,7 +165,7 @@ death:
             len = mbtowc(&wc, &p[i], size - i);
 
             if (len == -1)
-                goto death;
+                goto GOTO_quit;
             else if (len == 0)
                 len = 1;
 
@@ -174,10 +178,10 @@ death:
         friend bool operator!=(const It& l, const It& r) { return l.i != r.i; }
     };
 
-    It begin() { return {m_s.data(), 0, m_s.getSize()}; }
+    It begin() { return {m_s.data(), 0, m_s.size()}; }
     It end() { return {{}, NPOS, {}}; }
 
-    const It begin() const { return {m_s.data(), 0, m_s.getSize()}; }
+    const It begin() const { return {m_s.data(), 0, m_s.size()}; }
     const It end() const { return {{}, NPOS, {}}; }
 };
 
@@ -215,7 +219,7 @@ struct StringWordIt
         It&
         operator++()
         {
-            if (m_i >= m_svStr.getSize())
+            if (m_i >= m_svStr.size())
             {
                 m_i = NPOS;
                 return *this;
@@ -233,7 +237,7 @@ struct StringWordIt
                 return false;
             };
 
-            while (end < m_svStr.getSize() && !oneOf(m_svStr[end]))
+            while (end < m_svStr.size() && !oneOf(m_svStr[end]))
                 end++;
 
             m_svCurrWord = {const_cast<char*>(&m_svStr[start]), end - start};
@@ -258,10 +262,10 @@ StringView::beginsWith(const StringView r) const
 {
     const auto& l = *this;
 
-    if (l.getSize() < r.getSize())
+    if (l.size() < r.size())
         return false;
 
-    for (ssize i = 0; i < r.getSize(); ++i)
+    for (ssize i = 0; i < r.size(); ++i)
         if (l[i] != r[i])
             return false;
 
@@ -289,10 +293,10 @@ operator==(const StringView& l, const StringView& r)
     if (l.data() == r.data())
         return true;
 
-    if (l.getSize() != r.getSize())
+    if (l.size() != r.size())
         return false;
 
-    return strncmp(l.data(), r.data(), l.getSize()) == 0; /* strncmp is as fast as AVX2 version (on my 8700k) */
+    return strncmp(l.data(), r.data(), l.size()) == 0; /* strncmp is as fast as AVX2 version (on my 8700k) */
 }
 
 inline bool
@@ -329,13 +333,6 @@ StringView::lastOf(char c) const
             return i;
 
     return NPOS;
-}
-
-inline void
-StringView::destroy(IAllocator* p)
-{
-    p->free(m_pData);
-    *this = {};
 }
 
 inline void
@@ -417,7 +414,7 @@ StringView::nGlyphs() const
     ssize n = 0;
     for (ssize i = 0; i < m_size; )
     {
-        i+= mblen(&operator[](i), getSize() - i);
+        i+= mblen(&operator[](i), size() - i);
         ++n;
     }
 
@@ -441,7 +438,7 @@ struct String : public StringView
 
     /* */
 
-    const StringView& view() const { return *this; }
+    void destroy(IAllocator* pAlloc);
 };
 
 inline
@@ -464,22 +461,29 @@ String::String(IAllocator* pAlloc, const char* nts)
 
 inline
 String::String(IAllocator* pAlloc, Span<char> spChars)
-    : String(pAlloc, spChars.data(), spChars.getSize()) {}
+    : String(pAlloc, spChars.data(), spChars.size()) {}
 
 inline
 String::String(IAllocator* pAlloc, const StringView sv)
-    : String(pAlloc, sv.data(), sv.getSize()) {}
+    : String(pAlloc, sv.data(), sv.size()) {}
+
+inline void
+String::destroy(IAllocator* pAlloc)
+{
+    pAlloc->free(m_pData);
+    *this = {};
+}
 
 inline String
 StringCat(IAllocator* p, const StringView& l, const StringView& r)
 {
-    ssize len = l.getSize() + r.getSize();
+    ssize len = l.size() + r.size();
     char* ret = (char*)p->zalloc(len + 1, sizeof(char));
 
     ssize pos = 0;
-    for (ssize i = 0; i < l.getSize(); ++i, ++pos)
+    for (ssize i = 0; i < l.size(); ++i, ++pos)
         ret[pos] = l[i];
-    for (ssize i = 0; i < r.getSize(); ++i, ++pos)
+    for (ssize i = 0; i < r.size(); ++i, ++pos)
         ret[pos] = r[i];
 
     ret[len] = '\0';
@@ -494,7 +498,7 @@ template<>
 inline usize
 hash::func(const StringView& str)
 {
-    return hash::func(str.m_pData, str.getSize());
+    return hash::func(str.m_pData, str.size());
 }
 
 } /* namespace adt */

@@ -292,7 +292,7 @@ Model::procRootScene(IAllocator*)
         return false;
     }
 
-    m_defaultScene.nodeI = json::getLong(m_toplevelObjs.pScene);
+    m_defaultSceneI = static_cast<int>(json::getLong(m_toplevelObjs.pScene));
 
     return true;
 }

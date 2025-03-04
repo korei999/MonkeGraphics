@@ -32,6 +32,12 @@ struct Vec
           m_size(0),
           m_capacity(prealloc) {}
 
+    Vec(IAllocator* p, ssize preallocSize, const T& fillWith);
+
+    /* */
+
+    explicit operator Span<T>() const { return {data(), size()}; }
+
     /* */
 
 #define ADT_RANGE_CHECK ADT_ASSERT(i >= 0 && i < m_size, "i: %lld, m_size: %lld", i, m_size);
@@ -70,15 +76,15 @@ struct Vec
 
     void removeAndShift(ssize i) noexcept;
 
-    [[nodiscard]] ssize idx(const T* x) const noexcept;
+    [[nodiscard]] ssize idx(const T* const x) const noexcept;
 
     [[nodiscard]] ssize lastI() const noexcept;
 
     void destroy(IAllocator* p) noexcept;
 
-    [[nodiscard]] ssize getSize() const noexcept;
+    [[nodiscard]] ssize size() const noexcept;
 
-    [[nodiscard]] ssize getCap() const noexcept;
+    [[nodiscard]] ssize cap() const noexcept;
 
     [[nodiscard]] T* data() noexcept;
 
@@ -131,6 +137,16 @@ public:
 };
 
 template<typename T>
+inline
+Vec<T>::Vec(IAllocator* p, ssize prealloc, const T& defaultVal)
+    : Vec(p, prealloc)
+{
+    setSize(p, prealloc);
+    for (auto& e : (*this))
+        e = defaultVal;
+}
+
+template<typename T>
 inline ssize
 Vec<T>::push(IAllocator* p, const T& data)
 {
@@ -143,18 +159,18 @@ template<typename T>
 inline void
 Vec<T>::pushSpan(IAllocator* p, const Span<T> sp)
 {
-    ADT_ASSERT(sp.getSize() > 0, "pushing empty span");
-    ADT_ASSERT(m_size + sp.getSize() >= m_size, "overflow");
+    ADT_ASSERT(sp.size() > 0, "pushing empty span");
+    ADT_ASSERT(m_size + sp.size() >= m_size, "overflow");
 
-    if (m_size + sp.getSize() > m_capacity)
+    if (m_size + sp.size() > m_capacity)
     {
-        ssize newSize = utils::max(static_cast<ssize>((sp.getSize() + m_size)*1.33), m_size*2);
+        ssize newSize = utils::max(static_cast<ssize>((sp.size() + m_size)*1.33), m_size*2);
         ADT_ASSERT(newSize > m_size, "overflow");
         grow(p, newSize);
     }
 
-    utils::memCopy(m_pData + m_size, sp.data(), sp.getSize());
-    m_size += sp.getSize();
+    utils::memCopy(m_pData + m_size, sp.data(), sp.size());
+    m_size += sp.size();
 }
 
 template<typename T>
@@ -260,7 +276,7 @@ Vec<T>::removeAndShift(ssize i) noexcept
 
 template<typename T>
 inline ssize
-Vec<T>::idx(const T* x) const noexcept
+Vec<T>::idx(const T* const x) const noexcept
 {
     ssize r = ssize(x - m_pData);
     ADT_ASSERT(r >= 0 && r < m_capacity,"r: %lld, cap: %lld", r, m_capacity);
@@ -284,14 +300,14 @@ Vec<T>::destroy(IAllocator* p) noexcept
 
 template<typename T>
 inline ssize
-Vec<T>::getSize() const noexcept
+Vec<T>::size() const noexcept
 {
     return m_size;
 }
 
 template<typename T>
 inline ssize
-Vec<T>::getCap() const noexcept
+Vec<T>::cap() const noexcept
 {
     return m_capacity;
 }
@@ -321,9 +337,9 @@ template<typename T>
 inline Vec<T>
 Vec<T>::clone(IAllocator* pAlloc) const
 {
-    auto nVec = Vec<T>(pAlloc, getCap());
-    memcpy(nVec.data(), data(), getSize() * sizeof(T));
-    nVec.m_size = getSize();
+    auto nVec = Vec<T>(pAlloc, cap());
+    memcpy(nVec.data(), data(), size() * sizeof(T));
+    nVec.m_size = size();
 
     return nVec;
 }
@@ -371,6 +387,11 @@ struct VecManaged
 
     VecManaged() = default;
     VecManaged(IAllocator* p, ssize prealloc = 1) : base(p, prealloc), m_pAlloc(p) {}
+    VecManaged(IAllocator* p, ssize preallocSize, const T& fillWith) : base(p, preallocSize, fillWith) {}
+
+    /* */
+
+    explicit operator Span<T>() const { return {Span<T>(base)}; }
 
     /* */
 
@@ -406,15 +427,15 @@ struct VecManaged
 
     void removeAndShift(ssize i) noexcept { base.removeAndShift(i); }
 
-    [[nodiscard]] ssize idx(const T* x) const noexcept { return base.idx(x); }
+    [[nodiscard]] ssize idx(const T* const x) const noexcept { return base.idx(x); }
 
     [[nodiscard]] ssize lastI() const noexcept { return base.lastI(); }
 
     void destroy() { base.destroy(m_pAlloc); }
 
-    [[nodiscard]] ssize getSize() const noexcept { return base.getSize(); }
+    [[nodiscard]] ssize size() const noexcept { return base.size(); }
 
-    [[nodiscard]] ssize getCap() const noexcept { return base.getCap(); }
+    [[nodiscard]] ssize cap() const noexcept { return base.cap(); }
 
     [[nodiscard]] T* data() noexcept { return base.data(); }
 
