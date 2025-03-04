@@ -33,7 +33,6 @@ struct PrimitiveData
 
 static void loadShaders();
 static void loadAssetObjects();
-static void drawSkeleton(const Model& model);
 
 Pool<Shader, 128> g_poolShaders(INIT);
 static MapManaged<StringView, PoolHandle<Shader>> s_mapStringToShaders(OsAllocatorGet(), g_poolShaders.cap());
@@ -191,9 +190,6 @@ GOTO_defaultShader:
 static void
 drawGLTF(Model* pModel, math::M4 trm)
 {
-    const auto& gltfModel = asset::g_poolObjects[{pModel->m_modelAssetI}].m_uData.model;
-    auto& scene = gltfModel.m_vScenes[gltfModel.m_defaultSceneI];
-
     pModel->updateAnimations(0);
 
     for (auto* node : pModel->m_vNodes)
@@ -204,11 +200,6 @@ void
 Renderer::drawEntities([[maybe_unused]] Arena* pArena)
 {
     using namespace adt::math;
-
-    auto& win = app::window();
-
-    const auto& camera = control::g_camera;
-    const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

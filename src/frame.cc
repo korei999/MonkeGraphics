@@ -1,11 +1,11 @@
 #include "frame.hh"
 
-#include "adt/logs.hh"
 #include "app.hh"
-#include "asset.hh"
 #include "control.hh"
 #include "game/game.hh"
 
+#include "adt/Vec.hh"
+#include "adt/logs.hh"
 #include "adt/defer.hh"
 
 using namespace adt;
@@ -80,7 +80,6 @@ static void
 mainLoop()
 {
     auto& win = app::window();
-    auto& renderer = app::renderer();
 
     Arena frameArena(SIZE_8M);
     defer( frameArena.freeAll() );

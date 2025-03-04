@@ -47,7 +47,7 @@ adt::PoolHandle<Object> load(const adt::StringView svFilePath);
 extern adt::Pool<Object, 128> g_poolObjects;
 
 [[nodiscard]] inline Object*
-fromI(adt::i16 handleI, Object::TYPE eType)
+fromI(adt::i16 handleI, [[maybe_unused]] Object::TYPE eType)
 {
     auto& ret = g_poolObjects[{handleI}];
     ADT_ASSERT(ret.m_eType == eType, "types don't match");

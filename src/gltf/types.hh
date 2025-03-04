@@ -189,7 +189,7 @@ struct BufferView
     int byteOffset {}; /* The offset into the buffer in bytes. */
     int byteLength {};
     int byteStride {}; /* The stride, in bytes, between vertex attributes. When this is not defined, data is tightly packed. */
-    TARGET eTarget {};
+    TARGET eTarget = TARGET::NONE;
 };
 
 struct Image

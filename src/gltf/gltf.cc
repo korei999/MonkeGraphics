@@ -385,26 +385,29 @@ Model::procBufferViews(IAllocator* pAlloc)
             LOG_BAD("'buffer' field is required\n");
             return false;
         }
+        newView.bufferI = static_cast<int>(json::getLong(pBuffer));
 
         auto pByteOffset = json::searchNode(obj, "byteOffset");
-        auto pByteLength = json::searchNode(obj, "byteLength");
+        if (pByteOffset)
+            newView.byteOffset = static_cast<int>(json::getLong(pByteOffset));
 
+        auto pByteLength = json::searchNode(obj, "byteLength");
         if (!pByteLength)
         {
             LOG_BAD("'byteLength' field is required\n");
             return false;
         }
+        newView.byteLength = static_cast<int>(json::getLong(pByteLength));
 
         auto pByteStride = json::searchNode(obj, "byteStride");
-        auto pTarget = json::searchNode(obj, "target");
+        if (pByteStride)
+            newView.byteStride = static_cast<int>(json::getLong(pByteStride));
 
-        m_vBufferViews.push(pAlloc, {
-            .bufferI = static_cast<int>(json::getLong(pBuffer)),
-            .byteOffset = pByteOffset ? static_cast<int>(json::getLong(pByteOffset)) : 0,
-            .byteLength = static_cast<int>(json::getLong(pByteLength)),
-            .byteStride = pByteStride ? static_cast<int>(json::getLong(pByteStride)) : 0,
-            .eTarget = pTarget ? (TARGET)(json::getLong(pTarget)) : TARGET::NONE
-        });
+        auto pTarget = json::searchNode(obj, "target");
+        if (pTarget)
+            newView.eTarget = (TARGET)(json::getLong(pTarget));
+
+        m_vBufferViews.push(pAlloc, newView);
     }
 
     return true;
