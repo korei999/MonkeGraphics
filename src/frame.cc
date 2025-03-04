@@ -101,6 +101,8 @@ mainLoop()
     defer( vFrameTimes.destroy() );
     f64 lastAvgFrameTimeUpdateTime {};
 
+    game::updateState(&frameArena);
+
     while (win.m_bRunning)
     {
         const f64 t0 = utils::timeNowMS();
