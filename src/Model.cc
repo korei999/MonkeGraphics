@@ -53,10 +53,16 @@ Model::updateAnimations(int animationI)
 
     if (model.m_vAnimations.empty()) return;
 
+    if (animationI < 0 || animationI >= model.m_vAnimations.size())
+    {
+        LOG_WARN("out of range: animationI: {} (size: {})\n", animationI, model.m_vAnimations.size());
+        return;
+    }
+
     /* NOTE: using the first animation */
     const auto& animation = model.m_vAnimations[animationI];
 
-    m_time = std::fmod(m_time + frame::g_frameTime, m_globalMaxTime);
+    m_time += frame::g_frameTime;
 
     for (const auto& channel : animation.vChannels)
     {
@@ -65,16 +71,12 @@ Model::updateAnimations(int animationI)
         Node* joint = nodeFromI(channel.target.nodeI);
 
         const gltf::Accessor& accTimeStamps = model.m_vAccessors[sampler.inputI];
-        const gltf::BufferView& viewTimeStamps = model.m_vBufferViews[accTimeStamps.bufferViewI];
-        const gltf::Buffer& buffTimeStamps = model.m_vBuffers[viewTimeStamps.bufferI];
 
-        const View<f32> vwTimeStamps(
-            (f32*)(&buffTimeStamps.sBin[accTimeStamps.byteOffset + viewTimeStamps.byteOffset]),
-            accTimeStamps.count,
-            viewTimeStamps.byteStride
-        );
+        const View<f32> vwTimeStamps = model.accessorView<f32>(sampler.inputI);
 
         ADT_ASSERT(vwTimeStamps.size() >= 2, " ");
+
+        m_time = std::fmod(m_time, accTimeStamps.uMax.SCALAR);
 
         if (m_time >= accTimeStamps.uMin.SCALAR && m_time <= accTimeStamps.uMax.SCALAR)
         {
@@ -95,25 +97,15 @@ Model::updateAnimations(int animationI)
             ADT_ASSERT(nextTime - prevTime != 0.0f, " ");
             const f32 interpolationValue = (m_time - prevTime) / (nextTime - prevTime);
 
-            const auto& accOutput = model.m_vAccessors[sampler.outputI];
-            const auto& viewOutput = model.m_vBufferViews[accOutput.bufferViewI];
-            const auto& buffOutput = model.m_vBuffers[viewOutput.bufferI];
-
             if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::TRANSLATION)
             {
-                const View<math::V3> spOutTranslations(
-                    reinterpret_cast<const math::V3*>(&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset]),
-                    accOutput.count, viewOutput.byteStride
-                );
+                const View<math::V3> spOutTranslations(model.accessorView<math::V3>(sampler.outputI));
 
                 joint->m_translation = lerp(spOutTranslations[prevTimeI], spOutTranslations[prevTimeI + 1], interpolationValue);
             }
             else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::ROTATION)
             {
-                const View<math::Qt> vwOutRotations(
-                    reinterpret_cast<const math::Qt*>(&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset]),
-                    accOutput.count, viewOutput.byteStride
-                );
+                const View<math::Qt> vwOutRotations(model.accessorView<math::Qt>(sampler.outputI));
 
                 math::Qt prevRot = vwOutRotations[prevTimeI + 0];
                 math::Qt nextRot = vwOutRotations[prevTimeI + 1];
@@ -122,10 +114,7 @@ Model::updateAnimations(int animationI)
             }
             else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::SCALE)
             {
-                const View<math::V3> spOutScales(
-                    reinterpret_cast<const math::V3*>(&buffOutput.sBin[accOutput.byteOffset + viewOutput.byteOffset]),
-                    accOutput.count, viewOutput.byteStride
-                );
+                const View<math::V3> spOutScales(model.accessorView<math::V3>(sampler.outputI));
 
                 joint->m_scale = lerp(spOutScales[prevTimeI], spOutScales[prevTimeI + 1], interpolationValue);
             }

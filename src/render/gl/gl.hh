@@ -64,11 +64,12 @@ private:
 struct Shader
 {
     GLuint m_id = 0; /* gl shader handle */
+    adt::StringView m_svMappedTo {};
 
     /* */
 
     Shader() = default;
-    Shader(const adt::StringView sVertexShader, const adt::StringView sFragmentShader, const adt::StringView svMapTo);
+    Shader(const adt::StringView svVertexShader, const adt::StringView svFragmentShader, const adt::StringView svMapTo);
 
     /* */
 

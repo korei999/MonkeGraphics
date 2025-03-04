@@ -44,7 +44,7 @@ static ScratchBuffer s_scratch(s_aScratchMem);
 static Texture s_texDefault;
 
 static const ShaderMapping s_aShadersToLoad[] {
-    // {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"}, /* FIXME: causes leak is mesa */
+    {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"}, /* FIXME: causes leak is mesa */
     {shaders::glsl::ntsSimpleColorVert, shaders::glsl::ntsSimpleColorFrag, "SimpleColor"},
     {shaders::glsl::ntsSimpleTextureVert, shaders::glsl::ntsSimpleTextureFrag, "SimpleTexture"},
     {shaders::glsl::ntsSkinTestVert, shaders::glsl::ntsSimpleColorFrag, "SkinTest"},
@@ -63,9 +63,9 @@ Renderer::init()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
 
-    /*glEnable(GL_CULL_FACE);*/
-    /*glCullFace(GL_FRONT);*/
-    glDisable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+    /*glDisable(GL_CULL_FACE);*/
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
@@ -200,41 +200,6 @@ drawGLTF(Model* pModel, math::M4 trm)
         drawNode(*pModel, *node, trm);
 }
 
-static void
-drawSkeleton(const Model& model)
-{
-    auto* pBall = asset::search("assets/Sphere/sphere.gltf", asset::Object::TYPE::MODEL);
-    ADT_ASSERT(pBall != nullptr, " ");
-    Model ball(asset::g_poolObjects.idx(pBall));
-    defer( ball.m_arena.freeAll() );
-
-    const auto& gltfModel = asset::g_poolObjects[{ball.m_modelAssetI}].m_uData.model;
-    auto& scene = gltfModel.m_vScenes[gltfModel.m_defaultSceneI];
-
-    // for (const auto& joint : model.m_vJoints)
-    // {
-    //     // math::V3 translation = math::V3From(
-    //     //     joint.globalTrm.e[3][0], joint.globalTrm.e[3][1], joint.globalTrm.e[3][2]
-    //     // );
-
-    //     const auto& trm = model.m_vJointTrms[model.m_vJoints.idx(&joint)];
-    //     /*const auto& trm = joint.getTrm();*/
-    //     math::V3 translation = math::V3From(
-    //         trm.e[3][0], trm.e[3][1], trm.e[3][2]
-    //     );
-    //     /*math::V3 translation = math::V3From(*/
-    //     /*    trm.e[0][3], trm.e[1][3], trm.e[2][3]*/
-    //     /*);*/
-    //     /*LOG_GOOD("translation: {}\n", translation);*/
-
-    //     for (auto& nodeI : scene.vNodes)
-    //     {
-    //         auto& node = gltfModel.m_vNodes[nodeI];
-    //         drawGLTFNode(ball, node, math::M4TranslationFrom(translation) * math::M4ScaleFrom(0.05f), GL_LINE_LOOP);
-    //     }
-    // }
-}
-
 void
 Renderer::drawEntities([[maybe_unused]] Arena* pArena)
 {
@@ -279,7 +244,7 @@ Renderer::drawEntities([[maybe_unused]] Arena* pArena)
 void
 Renderer::destroy()
 {
-    for (auto& shader : g_poolShaders)
+    for (Shader& shader : g_poolShaders)
         shader.destroy();
 }
 
@@ -328,11 +293,12 @@ Texture::loadRGBA(const ImagePixelRGBA* pData)
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-Shader::Shader(const adt::StringView sVertexShader, const adt::StringView sFragmentShader, const adt::StringView svMapTo)
+Shader::Shader(const adt::StringView svVertexShader, const adt::StringView svFragmentShader, const adt::StringView svMapTo)
+    : m_svMappedTo(svMapTo)
 {
     GLint linked {};
-    GLuint vertex = loadOne(GL_VERTEX_SHADER, sVertexShader);
-    GLuint fragment = loadOne(GL_FRAGMENT_SHADER, sFragmentShader);
+    GLuint vertex = loadOne(GL_VERTEX_SHADER, svVertexShader);
+    GLuint fragment = loadOne(GL_FRAGMENT_SHADER, svFragmentShader);
 
     m_id = glCreateProgram();
     ADT_ASSERT(m_id != 0, "glCreateProgram failed: %u", m_id);
@@ -463,7 +429,8 @@ void
 Shader::destroy()
 {
     glDeleteProgram(m_id);
-    LOG_NOTIFY("shader '{}' destroyed\n", m_id);
+    s_mapStringToShaders.remove(m_svMappedTo);
+    LOG_NOTIFY("shader {} '{}' destroyed\n", m_id, m_svMappedTo);
     *this = {};
 }
 
@@ -589,11 +556,6 @@ bufferViewConvert(
         spB[spI] = B(elementA);
     }
 
-    // LOG_GOOD("spB:\n");
-    // for (const auto& e : spB)
-    //     CERR("#{}: [{}]\n", spB.idx(&e), e);
-    // CERR("\n");
-
     glGenBuffers(1, pVbo);
     glBindBuffer(GL_ARRAY_BUFFER, *pVbo);
     glBufferData(GL_ARRAY_BUFFER, spB.size()*sizeof(*spB.data()), spB.data(), GL_STATIC_DRAW);
@@ -650,8 +612,7 @@ loadGLTF(gltf::Model* pModel)
     }
 
     /* if no buffers there is nothing to do */
-    if (vVBOs.empty())
-        return;
+    if (vVBOs.empty()) return;
 
     {
         for (auto& mesh : pModel->m_vMeshes)
@@ -710,7 +671,6 @@ loadGLTF(gltf::Model* pModel)
                 {
                     gltf::Accessor accUV = pModel->m_vAccessors[primitive.attributes.TEXCOORD_0];
                     gltf::BufferView viewUV = pModel->m_vBufferViews[accUV.bufferViewI];
-                    gltf::Buffer buffUV  = pModel->m_vBuffers[viewUV.bufferI];
 
                     glEnableVertexAttribArray(1);
                     glVertexAttribPointer(
@@ -731,8 +691,6 @@ loadGLTF(gltf::Model* pModel)
                 if (primitive.attributes.JOINTS_0 != -1)
                 {
                     gltf::Accessor accJoints = pModel->m_vAccessors[primitive.attributes.JOINTS_0];
-                    gltf::BufferView viewJoints = pModel->m_vBufferViews[accJoints.bufferViewI];
-                    gltf::Buffer buffJoints = pModel->m_vBuffers[viewJoints.bufferI];
 
                     switch (accJoints.eComponentType)
                     {
@@ -740,11 +698,7 @@ loadGLTF(gltf::Model* pModel)
 
                         case gltf::COMPONENT_TYPE::UNSIGNED_BYTE:
                         {
-                            View<math::IV4u8> vwU8(
-                                reinterpret_cast<const math::IV4u8*>(&buffJoints.sBin[accJoints.byteOffset + viewJoints.byteOffset]),
-                                accJoints.count,
-                                viewJoints.byteStride
-                            );
+                            View<math::IV4u8> vwU8(pModel->accessorView<math::IV4u8>(primitive.attributes.JOINTS_0));
 
                             bufferViewConvert<math::IV4u8, math::V4>(
                                 vwU8, accJoints.count, shaders::glsl::JOINT_LOCATION, 4, GL_FLOAT, &newPrimitiveData.vboJoints
@@ -754,11 +708,7 @@ loadGLTF(gltf::Model* pModel)
 
                         case gltf::COMPONENT_TYPE::UNSIGNED_SHORT:
                         {
-                            View<math::IV4u16> vwU16(
-                                reinterpret_cast<const math::IV4u16*>(&buffJoints.sBin[accJoints.byteOffset + viewJoints.byteOffset]),
-                                accJoints.count,
-                                viewJoints.byteStride
-                            );
+                            View<math::IV4u16> vwU16(pModel->accessorView<math::IV4u16>(primitive.attributes.JOINTS_0));
 
                             bufferViewConvert<math::IV4u16, math::V4>(
                                 vwU16, accJoints.count, shaders::glsl::JOINT_LOCATION, 4, GL_FLOAT, &newPrimitiveData.vboJoints
@@ -776,8 +726,6 @@ loadGLTF(gltf::Model* pModel)
                 else if (primitive.attributes.JOINTS_0 != -1 && primitive.attributes.WEIGHTS_0 != -1)
                 {
                     gltf::Accessor accWeights = pModel->m_vAccessors[primitive.attributes.WEIGHTS_0];
-                    gltf::BufferView viewWeights = pModel->m_vBufferViews[accWeights.bufferViewI];
-                    gltf::Buffer buffWeights = pModel->m_vBuffers[viewWeights.bufferI];
 
                     switch (accWeights.eComponentType)
                     {
@@ -790,11 +738,7 @@ loadGLTF(gltf::Model* pModel)
 
                         case gltf::COMPONENT_TYPE::UNSIGNED_SHORT:
                         {
-                            const View<math::IV4u16> vwU16(
-                                reinterpret_cast<math::IV4u16*>(&buffWeights.sBin[accWeights.byteOffset + viewWeights.byteOffset]),
-                                accWeights.count,
-                                viewWeights.byteStride
-                            );
+                            const View<math::IV4u16> vwU16(pModel->accessorView<math::IV4u16>(primitive.attributes.WEIGHTS_0));
 
                             bufferViewConvert<math::IV4u16, math::V4>(
                                 vwU16, accWeights.count, shaders::glsl::WEIGHT_LOCATION, 4, GL_FLOAT, &newPrimitiveData.vboWeights
@@ -804,11 +748,7 @@ loadGLTF(gltf::Model* pModel)
 
                         case gltf::COMPONENT_TYPE::FLOAT:
                         {
-                            const View<math::V4> vwV4(
-                                reinterpret_cast<math::V4*>(&buffWeights.sBin[accWeights.byteOffset + viewWeights.byteOffset]),
-                                accWeights.count,
-                                viewWeights.byteStride
-                            );
+                            const View<math::V4> vwV4(pModel->accessorView<math::V4>(primitive.attributes.WEIGHTS_0));
 
                             bufferViewConvert<math::V4, math::V4>(
                                 vwV4, accWeights.count,

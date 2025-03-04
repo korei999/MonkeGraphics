@@ -61,9 +61,9 @@ loadStuff()
         PoolSOAHandle<Entity> hTest = g_poolEntites.make({});
         auto bind = g_poolEntites[hTest];
 
+        if (auto* pObj = asset::search("assets/Fox/Fox.gltf", asset::Object::TYPE::MODEL))
         /*if (auto* pObj = asset::search("assets/BoxAnimated/BoxAnimated.gltf", asset::Object::TYPE::MODEL))*/
         /*if (auto* pObj = asset::search("assets/SimpleSkin/glTF/SimpleSkin.gltf", asset::Object::TYPE::MODEL))*/
-        if (auto* pObj = asset::search("assets/Fox/Fox.gltf", asset::Object::TYPE::MODEL))
         {
             auto idx = asset::g_poolObjects.idx(pObj);
             bind.assetI = idx;
