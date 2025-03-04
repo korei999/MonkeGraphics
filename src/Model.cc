@@ -47,7 +47,7 @@ Model::Model(adt::i16 assetModelI)
 }
 
 void
-Model::updateAnimations(int animationI)
+Model::updateAnimation(int animationI)
 {
     const gltf::Model& model = gltfModel();
 

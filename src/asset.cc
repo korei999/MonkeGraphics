@@ -118,8 +118,8 @@ load(const adt::StringView svPath)
         auto& obj = g_poolObjects[retHnd];
         obj.m_sMappedWith = String(&obj.m_arena, svPath);
         [[maybe_unused]] auto mapRes = s_mapStringToObjects.insert(obj.m_sMappedWith, retHnd);
-        LOG_GOOD("hnd: {}, type: '{}', mappedWith: '{}', hash: {}\n",
-            retHnd, obj.m_eType, obj.m_sMappedWith, mapRes.hash
+        LOG_GOOD("hnd: {}, type: '{}', mappedWith: '{}', hash: {}, len: {}\n",
+            retHnd, obj.m_eType, obj.m_sMappedWith, mapRes.hash, obj.m_sMappedWith.size()
         );
     }
     else
@@ -150,6 +150,7 @@ search(const adt::StringView svKey, Object::TYPE eType)
     }
     else
     {
+        ADT_ASSERT(false, "failed to find asset: '%.*s'", static_cast<int>(svKey.size()), svKey.data());
         return nullptr;
     }
 }

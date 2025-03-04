@@ -74,6 +74,8 @@ struct Model
     adt::f64 m_globalMaxTime {};
     adt::i16 m_modelAssetI {};
 
+    adt::i16 m_animationI = -1;
+
     /* */
 
     static adt::Pool<Model, 128> s_poolModels;
@@ -100,7 +102,8 @@ struct Model
 
     /* */
 
-    void updateAnimations(int animationI);
+    void updateAnimation(int animationI);
+    void updateAnimation() { updateAnimation(m_animationI); };
 
     gltf::Model& gltfModel() const;
     gltf::Node& gltfNode(const Node* pNode) const;

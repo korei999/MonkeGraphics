@@ -43,11 +43,12 @@ static ScratchBuffer s_scratch(s_aScratchMem);
 static Texture s_texDefault;
 
 static const ShaderMapping s_aShadersToLoad[] {
-    {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"}, /* FIXME: causes leak is mesa */
+    {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"},
     {shaders::glsl::ntsSimpleColorVert, shaders::glsl::ntsSimpleColorFrag, "SimpleColor"},
     {shaders::glsl::ntsSimpleTextureVert, shaders::glsl::ntsSimpleTextureFrag, "SimpleTexture"},
     {shaders::glsl::ntsSkinTestVert, shaders::glsl::ntsSimpleColorFrag, "SkinTest"},
     {shaders::glsl::ntsSkinTestVert, shaders::glsl::ntsInterpolatedColorFrag, "SkinTestColors"},
+    {shaders::glsl::ntsSkinTestVert, shaders::glsl::ntsSimpleTextureFrag, "SkinTexture"},
 };
 
 void
@@ -89,13 +90,34 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
     for (Model::Node* child : node.m_vChildren)
         drawNode(model, *child, trm);
 
+    Shader* pSh {};
+
+    auto bindTexture = [&](const gltf::Primitive& primitive) {
+        auto& mat = gltfModel.m_vMaterials[primitive.materialI];
+
+        auto& tex = gltfModel.m_vTextures[mat.pbrMetallicRoughness.baseColorTexture.index];
+        auto& img = gltfModel.m_vImages[tex.sourceI];
+
+        Span<char> sp = s_scratch.nextMemZero<char>(img.sUri.size() + 300);
+        file::replacePathEnding(&sp, reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri);
+
+        auto* pObj = asset::search(sp, asset::Object::TYPE::IMAGE);
+        ADT_ASSERT(pObj != nullptr, " ");
+        auto* pTex = reinterpret_cast<Texture*>(pObj->m_pExtraData);
+
+        if (pTex)
+        {
+            ADT_ASSERT(pSh != nullptr, " ");
+            pSh->use();
+            pTex->bind(GL_TEXTURE0);
+        }
+    };
+
     if (node.m_pMesh)
     {
         auto& gltfMesh = gltfModel.m_vMeshes[node.m_meshI];
         for (const auto& primitive : gltfMesh.vPrimitives)
         {
-            Shader* pSh {};
-
             /* TODO: there might be any number of TEXCOORD_*,
              * which would be specified in baseColorTexture.texCoord.
              * But current gltf parser only reads the 0th. */
@@ -107,8 +129,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
             {
                 ADT_ASSERT(primitive.attributes.WEIGHTS_0 != -1, "must have");
 
-                /*pSh = searchShader("SkinTest");*/
-                pSh = searchShader("SkinTestColors");
+                pSh = searchShader("SkinTexture");
                 ADT_ASSERT(pSh != nullptr, " ");
                 pSh->use();
                 pSh->setM4("u_model", node.m_pMesh->matrix * trm);
@@ -116,8 +137,10 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                 pSh->setM4("u_projection", trmProj);
 
                 pSh->setM4("u_a2TrmJoints", Span<M4>(node.m_pMesh->vJointMatrices));
-                /*pSh->setV4("u_color", {0.0f, 1.0f, 1.0f, 1.0f});*/
+
+                bindTexture(primitive);
             }
+
             else if (primitive.materialI != -1)
             {
                 auto& mat = gltfModel.m_vMaterials[primitive.materialI];
@@ -128,7 +151,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                     auto& img = gltfModel.m_vImages[tex.sourceI];
 
                     Span<char> sp = s_scratch.nextMemZero<char>(img.sUri.size() + 300);
-                    file::replacePathEnding(sp, reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri);
+                    file::replacePathEnding(&sp, reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri);
 
                     auto* pObj = asset::search(sp, asset::Object::TYPE::IMAGE);
                     auto* pTex = reinterpret_cast<Texture*>(pObj->m_pExtraData);
@@ -190,7 +213,7 @@ GOTO_defaultShader:
 static void
 drawGLTF(Model* pModel, math::M4 trm)
 {
-    pModel->updateAnimations(0);
+    pModel->updateAnimation();
 
     for (auto* node : pModel->m_vNodes)
         drawNode(*pModel, *node, trm);

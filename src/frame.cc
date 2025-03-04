@@ -8,6 +8,10 @@
 #include "adt/logs.hh"
 #include "adt/defer.hh"
 
+#if !defined NDEBUG
+    #include "asset.hh"
+#endif
+
 using namespace adt;
 
 namespace frame

@@ -132,10 +132,12 @@ R"(/* ntsSkinTestVert */
 #version 300 es
 
 layout(location = 0) in vec3 a_pos;
+layout(location = 1) in vec2 a_tex;
 layout(location = 2) in vec4 a_joint;
 layout(location = 3) in vec4 a_weight;
 
 out vec4 vs_pos;
+out vec2 vs_texCoords;
 
 uniform mat4 u_model;
 uniform mat4 u_view;
@@ -156,6 +158,7 @@ main()
     gl_Position = u_projection * u_view * u_model * worldPos;
 
     vs_pos = a_weight;
+    vs_texCoords = a_tex;
 }
 )"
 ;
