@@ -52,7 +52,7 @@ parseArgs(int argc, char** argv)
             }
             else if (svArg == "--windows")
             {
-                app::g_eWindowType = app::WINDOW_TYPE::WIN32;
+                app::g_eWindowType = app::WINDOW_TYPE::WINDOWS;
                 app::g_eRendererType = app::RENDERER_TYPE::OPEN_GL;
             }
         }
@@ -66,7 +66,7 @@ startup(int argc, char** argv)
 #if defined __linux__
     app::g_eWindowType = app::WINDOW_TYPE::WAYLAND_GL;
 #elif defined _WIN32
-    app::g_eWindowType = app::WINDOW_TYPE::WIN32;
+    app::g_eWindowType = app::WINDOW_TYPE::WINDOWS;
 #endif
 
     app::g_eRendererType = app::RENDERER_TYPE::OPEN_GL;

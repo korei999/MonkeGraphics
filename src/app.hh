@@ -6,7 +6,7 @@
 namespace app
 {
 
-enum class WINDOW_TYPE : adt::u8 { WAYLAND_SHM, WAYLAND_GL, WIN32 };
+enum class WINDOW_TYPE : adt::u8 { WAYLAND_SHM, WAYLAND_GL, WINDOWS };
 enum class RENDERER_TYPE : adt::u8 { SW, OPEN_GL };
 
 extern WINDOW_TYPE g_eWindowType;

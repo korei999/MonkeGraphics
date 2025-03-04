@@ -9,9 +9,8 @@ constexpr int JOINT_LOCATION = 2;
 constexpr int WEIGHT_LOCATION = 3;
 
 static const char* ntsQuadTexVert =
-R"(/* ntsQuadTexVert */
-
-#version 300 es
+R"(#version 300 es
+/* ntsQuadTexVert */
 
 layout(location = 0) in vec2 a_pos;
 layout(location = 1) in vec2 a_texCoords;
@@ -28,9 +27,8 @@ main()
 ;
 
 static const char* ntsQuadTexFrag =
-R"(/* ntsQuadTexFrag */
-
-#version 300 es
+R"(#version 300 es
+/* ntsQuadTexFrag */
 
 precision mediump float;
 
@@ -49,9 +47,8 @@ main()
 ;
 
 static const char* ntsSimpleColorVert =
-R"(/* ntsSimpleColorVert */
-
-#version 300 es
+R"(#version 300 es
+/* ntsSimpleColorVert */
 
 layout(location = 0) in vec3 a_pos;
 
@@ -66,9 +63,8 @@ main()
 ;
 
 static const char* ntsSimpleColorFrag =
-R"(/* ntsSimpleColorFrag */
-
-#version 300 es
+R"(#version 300 es
+/* ntsSimpleColorFrag */
 
 precision mediump float;
 
@@ -85,9 +81,8 @@ main()
 ;
 
 static const char* ntsSimpleTextureVert =
-R"(/* ntsSimpleTextureVert */
-
-#version 300 es
+R"(#version 300 es
+/* ntsSimpleTextureVert */
 
 layout(location = 0) in vec3 a_pos;
 layout(location = 1) in vec2 a_tex;
@@ -106,9 +101,8 @@ main()
 ;
 
 static const char* ntsSimpleTextureFrag =
-R"(/* ntsSimpleTextureFrag */
-
-#version 300 es
+R"(#version 300 es
+/* ntsSimpleTextureFrag */
 
 precision mediump float;
 
@@ -127,9 +121,8 @@ main()
 ;
 
 static const char* ntsSkinTestVert =
-R"(/* ntsSkinTestVert */
-
-#version 300 es
+R"(#version 300 es
+/* ntsSkinTestVert */
 
 layout(location = 0) in vec3 a_pos;
 layout(location = 1) in vec2 a_tex;
@@ -164,9 +157,8 @@ main()
 ;
 
 static const char* ntsInterpolatedColorFrag =
-R"(/* ntsInterpolatedColorFrag */
-
-#version 300 es
+R"(#version 300 es
+/* ntsInterpolatedColorFrag */
 
 precision mediump float;
 
