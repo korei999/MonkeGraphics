@@ -23,8 +23,7 @@ main()
     vs_texCoords = a_texCoords;
     gl_Position = vec4(a_pos, 0.0, 1.0);
 }
-)"
-;
+)";
 
 static const char* ntsQuadTexFrag =
 R"(#version 300 es
@@ -43,8 +42,7 @@ main()
     fs_fragColor = texture(u_tex0, vs_texCoords);
     /*fs_fragColor = vec4(vs_texCoords, 0.0, 1.0);*/
 }
-)"
-;
+)";
 
 static const char* ntsSimpleColorVert =
 R"(#version 300 es
@@ -59,8 +57,7 @@ main()
 {
     gl_Position = u_trm * vec4(a_pos, 1.0);
 }
-)"
-;
+)";
 
 static const char* ntsSimpleColorFrag =
 R"(#version 300 es
@@ -77,8 +74,7 @@ main()
 {
     fs_fragColor = u_color;
 }
-)"
-;
+)";
 
 static const char* ntsSimpleTextureVert =
 R"(#version 300 es
@@ -97,8 +93,7 @@ main()
     vs_texCoords = a_tex;
     gl_Position = u_trm * vec4(a_pos, 1.0);
 }
-)"
-;
+)";
 
 static const char* ntsSimpleTextureFrag =
 R"(#version 300 es
@@ -117,8 +112,7 @@ main()
 {
     fs_fragColor = texture(u_tex0, vs_texCoords);
 }
-)"
-;
+)";
 
 static const char* ntsSkinTestVert =
 R"(#version 300 es
@@ -153,8 +147,7 @@ main()
     vs_pos = a_weight;
     vs_texCoords = a_tex;
 }
-)"
-;
+)";
 
 static const char* ntsInterpolatedColorFrag =
 R"(#version 300 es
@@ -171,8 +164,6 @@ main()
 {
     fs_fragColor = vs_pos;
 }
-)"
-;
+)";
 
 } /* namespace gl::glsl */
-
