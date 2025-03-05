@@ -88,9 +88,9 @@ updateState(adt::Arena*)
     // what.rot = math::QtAxisAngle(math::V3Norm({1.0f, 1.0f, 1.0f}), -frame::g_time);
 
     auto what1 = g_poolEntites[{0}];
-    what1.pos = {0.0f, 0.0f, 10.0f};
+    what1.pos = {0.0f, 0.0f, 5.0f};
     what1.scale = {0.05f, 0.05f, 0.05f};
-    what1.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::toRad(180.0f));
+    what1.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32 / 2.0f);
 
     Model::fromI(what1.modelI).m_animationI = 2;
 
