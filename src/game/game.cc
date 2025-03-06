@@ -32,8 +32,6 @@ static const StringView s_aAssetsToLoad[] {
     "assets/SimpleSkin/glTF/SimpleSkin.gltf",
     "assets/Fox/Fox.gltf",
     "assets/Sphere/sphere.gltf",
-    "/home/korei/source/glTF-Sample-Assets/Models/RiggedFigure/glTF/RiggedFigure.gltf",
-    "/home/korei/Documents/capo.gltf",
 };
 
 void
