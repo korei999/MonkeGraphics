@@ -25,6 +25,11 @@ struct Model
         adt::i16 skeletonRootI = -1; /* do we care? */
     };
 
+    struct Skin2
+    {
+        adt::Vec<adt::math::M4> vJointTransforms {};
+    };
+
     struct Node
     {
         Node* m_pParent {};

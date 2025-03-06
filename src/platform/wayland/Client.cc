@@ -332,6 +332,12 @@ Client::updateSurface()
 #endif
 
 void
+Client::resizeCB(int width, int height)
+{
+    wp_viewport_set_destination(m_pViewport, width, height);
+}
+
+void
 Client::global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, uint32_t version)
 {
     LOG("interface: '{}', version: {}, name: {}\n", ntsInterface, version, name);
@@ -423,7 +429,7 @@ Client::xdgToplevelConfigure(
         m_winWidth = width;
         m_winHeight = height;
 
-        wp_viewport_set_destination(m_pViewport, width, height);
+        resizeCB(width, height);
     }
 }
 

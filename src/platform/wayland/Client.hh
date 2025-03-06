@@ -81,7 +81,6 @@ struct Client : public IWindow
     adt::u8* m_pSurfaceBufferBind {};
     adt::Vec<ImagePixelRGBA> m_vTempBuff {};
 
-
     virtual adt::Span2D<ImagePixelRGBA> surfaceBuffer() override;
     virtual void scheduleFrame() override;
 
@@ -89,6 +88,10 @@ struct Client : public IWindow
 
     void updateSurface();
 #endif
+
+    /* */
+
+    virtual void resizeCB(int width, int height);
 
     /* */
 

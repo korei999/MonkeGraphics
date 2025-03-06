@@ -16,7 +16,7 @@ void updateState(adt::Arena* pArena);
 extern adt::PoolSOA<Entity, EntityBind, MAX_ENTITIES,
     &Entity::pos, &Entity::rot, &Entity::scale,
     &Entity::vel,
-    &Entity::assetI, &Entity::shaderI, &Entity::modelI,
+    &Entity::assetI, &Entity::modelI,
     &Entity::bInvisible
 > g_poolEntites;
 

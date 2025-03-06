@@ -67,12 +67,9 @@ Model::updateAnimation(int animationI)
     for (const auto& channel : animation.vChannels)
     {
         const auto& sampler = animation.vSamplers[channel.samplerI];
-
-        Node* joint = nodeFromI(channel.target.nodeI);
-
         const gltf::Accessor& accTimeStamps = model.m_vAccessors[sampler.inputI];
-
         const View<f32> vwTimeStamps = model.accessorView<f32>(sampler.inputI);
+        Node* joint = nodeFromI(channel.target.nodeI);
 
         ADT_ASSERT(vwTimeStamps.size() >= 2, " ");
 
@@ -99,9 +96,9 @@ Model::updateAnimation(int animationI)
 
             if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::TRANSLATION)
             {
-                const View<math::V3> spOutTranslations(model.accessorView<math::V3>(sampler.outputI));
+                const View<math::V3> vwOutTranslations(model.accessorView<math::V3>(sampler.outputI));
 
-                joint->m_translation = lerp(spOutTranslations[prevTimeI], spOutTranslations[prevTimeI + 1], interpolationValue);
+                joint->m_translation = lerp(vwOutTranslations[prevTimeI], vwOutTranslations[prevTimeI + 1], interpolationValue);
             }
             else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::ROTATION)
             {
@@ -114,10 +111,17 @@ Model::updateAnimation(int animationI)
             }
             else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::SCALE)
             {
-                const View<math::V3> spOutScales(model.accessorView<math::V3>(sampler.outputI));
+                const View<math::V3> vwOutScales(model.accessorView<math::V3>(sampler.outputI));
 
-                joint->m_scale = lerp(spOutScales[prevTimeI], spOutScales[prevTimeI + 1], interpolationValue);
+                joint->m_scale = lerp(vwOutScales[prevTimeI], vwOutScales[prevTimeI + 1], interpolationValue);
             }
+
+            // LOG_BAD("#{}\n\t"
+            //     "t: [{}\n\t"
+            //     "r: [{}]\n\t"
+            //     "s: [{}]\n\n",
+            //     channel.target.nodeI, joint->m_translation, joint->m_rotation, joint->m_scale
+            // );
         }
     }
 

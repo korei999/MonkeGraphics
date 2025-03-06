@@ -1382,7 +1382,7 @@ inline M4
 QtRot2(const Qt& q)
 {
     f32 x = q.x, y = q.y, z = q.z, w = q.w;
-    
+
     f32 xx = x * x;
     f32 yy = y * y;
     f32 zz = z * z;
@@ -1392,23 +1392,23 @@ QtRot2(const Qt& q)
     f32 wx = w * x;
     f32 wy = w * y;
     f32 wz = w * z;
-    
+
     M4 m;
     m.e[0][0] = 1.0f - 2.0f * (yy + zz);
     m.e[0][1] = 2.0f * (xy + wz);
     m.e[0][2] = 2.0f * (xz - wy);
     m.e[0][3] = 0.0f;
-    
+
     m.e[1][0] = 2.0f * (xy - wz);
     m.e[1][1] = 1.0f - 2.0f * (xx + zz);
     m.e[1][2] = 2.0f * (yz + wx);
     m.e[1][3] = 0.0f;
-    
+
     m.e[2][0] = 2.0f * (xz + wy);
     m.e[2][1] = 2.0f * (yz - wx);
     m.e[2][2] = 1.0f - 2.0f * (xx + yy);
     m.e[2][3] = 0.0f;
-    
+
     m.e[3][0] = 0.0f;
     m.e[3][1] = 0.0f;
     m.e[3][2] = 0.0f;

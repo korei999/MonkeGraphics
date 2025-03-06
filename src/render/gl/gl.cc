@@ -5,6 +5,7 @@
 #include "asset.hh"
 #include "common.hh"
 #include "control.hh"
+#include "colors.hh"
 #include "game/game.hh"
 #include "shaders/glsl.hh"
 
@@ -46,9 +47,9 @@ static const ShaderMapping s_aShadersToLoad[] {
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"},
     {shaders::glsl::ntsSimpleColorVert, shaders::glsl::ntsSimpleColorFrag, "SimpleColor"},
     {shaders::glsl::ntsSimpleTextureVert, shaders::glsl::ntsSimpleTextureFrag, "SimpleTexture"},
-    {shaders::glsl::ntsSkinTestVert, shaders::glsl::ntsSimpleColorFrag, "SkinTest"},
-    {shaders::glsl::ntsSkinTestVert, shaders::glsl::ntsInterpolatedColorFrag, "SkinTestColors"},
-    {shaders::glsl::ntsSkinTestVert, shaders::glsl::ntsSimpleTextureFrag, "SkinTexture"},
+    {shaders::glsl::ntsSkinVert, shaders::glsl::ntsSimpleColorFrag, "Skin"},
+    {shaders::glsl::ntsSkinTextureVert, shaders::glsl::ntsInterpolatedColorFrag, "SkinTestColors"},
+    {shaders::glsl::ntsSkinTextureVert, shaders::glsl::ntsSimpleTextureFrag, "SkinTexture"},
 };
 
 void
@@ -63,9 +64,9 @@ Renderer::init()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
 
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
-    /*glDisable(GL_CULL_FACE);*/
+    /*glEnable(GL_CULL_FACE);*/
+    /*glCullFace(GL_FRONT);*/
+    glDisable(GL_CULL_FACE);
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
@@ -93,23 +94,27 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
     Shader* pSh {};
 
     auto bindTexture = [&](const gltf::Primitive& primitive) {
-        auto& mat = gltfModel.m_vMaterials[primitive.materialI];
+        if (primitive.materialI < 0) return;
 
-        auto& tex = gltfModel.m_vTextures[mat.pbrMetallicRoughness.baseColorTexture.index];
-        auto& img = gltfModel.m_vImages[tex.sourceI];
-
-        Span<char> sp = s_scratch.nextMemZero<char>(img.sUri.size() + 300);
-        file::replacePathEnding(&sp, reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri);
-
-        auto* pObj = asset::search(sp, asset::Object::TYPE::IMAGE);
-        ADT_ASSERT(pObj != nullptr, " ");
-        auto* pTex = reinterpret_cast<Texture*>(pObj->m_pExtraData);
-
-        if (pTex)
+        if (auto& mat = gltfModel.m_vMaterials[primitive.materialI];
+            mat.pbrMetallicRoughness.baseColorTexture.index > -1
+        )
         {
-            ADT_ASSERT(pSh != nullptr, " ");
-            pSh->use();
-            pTex->bind(GL_TEXTURE0);
+            auto& tex = gltfModel.m_vTextures[mat.pbrMetallicRoughness.baseColorTexture.index];
+            auto& img = gltfModel.m_vImages[tex.sourceI];
+
+            Span<char> sp = s_scratch.nextMemZero<char>(img.sUri.size() + 300);
+            file::replacePathEnding(&sp, reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri);
+
+            auto* pObj = asset::search(sp, asset::Object::TYPE::IMAGE);
+            ADT_ASSERT(pObj != nullptr, " ");
+            auto* pTex = reinterpret_cast<Texture*>(pObj->m_pExtraData);
+
+            if (pTex)
+            {
+                ADT_ASSERT(pSh != nullptr, " ");
+                pTex->bind(GL_TEXTURE0);
+            }
         }
     };
 
@@ -129,18 +134,32 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
             {
                 ADT_ASSERT(primitive.attributes.WEIGHTS_0 != -1, "must have");
 
-                pSh = searchShader("SkinTexture");
-                ADT_ASSERT(pSh != nullptr, " ");
-                pSh->use();
-                pSh->setM4("u_model", node.m_pMesh->matrix * trm);
+                /*goto GOTO_defaultShader;*/
+
+                if (primitive.materialI > -1 &&
+                    gltfModel.m_vMaterials[primitive.materialI].pbrMetallicRoughness.baseColorTexture.index > -1
+                )
+                {
+                    pSh = searchShader("SkinTexture");
+                    pSh->use();
+                }
+                else
+                {
+                    pSh = searchShader("Skin");
+                    pSh->use();
+                    pSh->setV4("u_color", V4From(colors::get(colors::IDX::LINEN), 1.0f));
+                }
+
+                pSh->setM4("u_model", trm * node.m_pMesh->matrix);
                 pSh->setM4("u_view", trmView);
                 pSh->setM4("u_projection", trmProj);
+                pSh->setM4("u_a128TrmJoints", Span<M4>(node.m_pMesh->vJointMatrices));
 
-                pSh->setM4("u_a2TrmJoints", Span<M4>(node.m_pMesh->vJointMatrices));
+                /*for (auto& what : node.m_pMesh->vJointMatrices)*/
+                /*    LOG_BAD("#{}: {}\n", node.m_pMesh->vJointMatrices.idx(&what), what);*/
 
                 bindTexture(primitive);
             }
-
             else if (primitive.materialI != -1)
             {
                 auto& mat = gltfModel.m_vMaterials[primitive.materialI];
@@ -154,13 +173,17 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                     file::replacePathEnding(&sp, reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri);
 
                     auto* pObj = asset::search(sp, asset::Object::TYPE::IMAGE);
-                    auto* pTex = reinterpret_cast<Texture*>(pObj->m_pExtraData);
 
-                    if (pTex)
+                    if (pObj)
                     {
+                        auto* pTex = reinterpret_cast<Texture*>(pObj->m_pExtraData);
                         pSh = searchShader("SimpleTexture");
                         pSh->use();
-                        pTex->bind(GL_TEXTURE0);
+
+                        if (pTex)
+                            pTex->bind(GL_TEXTURE0);
+                        else s_texDefault.bind(GL_TEXTURE0);
+
                         pSh->setM4("u_trm", trmProj * trmView * trm);
                     }
                     else goto GOTO_defaultShader;
@@ -224,6 +247,9 @@ Renderer::drawEntities([[maybe_unused]] Arena* pArena)
 {
     using namespace adt::math;
 
+    const auto& win = app::window();
+
+    glViewport(0, 0, win.m_winWidth, win.m_winHeight);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     {
@@ -350,8 +376,7 @@ GLuint
 Shader::loadOne(GLenum type, adt::StringView sShader)
 {
     GLuint shader = glCreateShader(type);
-    if (!shader)
-        return 0;
+    if (!shader) return 0;
 
     const char* srcData = sShader.data();
 
@@ -485,7 +510,7 @@ searchShader(const adt::StringView svKey)
     auto res = s_mapStringToShaders.search(svKey);
     if (!res)
     {
-        LOG_WARN("not found\n");
+        ADT_ASSERT(false, "'%.*s' not found", static_cast<int>(svKey.size()), svKey.data());
         return {};
     }
 
@@ -597,7 +622,7 @@ loadImage(Image* pImage)
     auto& obj = *reinterpret_cast<asset::Object*>(pImage);
     LOG_GOOD("loading image '{}'...\n", obj.m_sMappedWith);
 
-    obj.m_pExtraData = obj.m_arena.alloc<Texture>(pImage->getSpanRGBA());
+    obj.m_pExtraData = obj.m_arena.alloc<Texture>(pImage->spanRGBA());
 }
 
 static void

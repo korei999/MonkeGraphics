@@ -15,7 +15,7 @@ struct Model
 {
     adt::StringView m_sPath {};
     Asset m_asset {}; /* REQUIRED */
-    int m_defaultSceneI {};
+    int m_defaultSceneI = -1;
     adt::Vec<Scene> m_vScenes {};
     adt::Vec<Buffer> m_vBuffers {};
     adt::Vec<BufferView> m_vBufferViews {};
@@ -47,6 +47,19 @@ struct Model
     
         return {reinterpret_cast<const T*>(&buff.sBin[acc.byteOffset + view.byteOffset]),
             acc.count, view.byteStride
+        };
+    }
+
+    template<typename T>
+    adt::Span<T>
+    accessorSpan(int accessorI) const
+    {
+        auto& acc = m_vAccessors[accessorI];
+        auto& view = m_vBufferViews[acc.bufferViewI];
+        auto& buff = m_vBuffers[view.bufferI];
+    
+        return {reinterpret_cast<const T*>(&buff.sBin[acc.byteOffset + view.byteOffset]),
+            acc.count
         };
     }
 

@@ -114,7 +114,7 @@ main()
 }
 )";
 
-static const char* ntsSkinTestVert =
+static const char* ntsSkinTextureVert =
 R"(#version 300 es
 /* ntsSkinTestVert */
 
@@ -129,16 +129,16 @@ out vec2 vs_texCoords;
 uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
-uniform mat4 u_a2TrmJoints[128];
+uniform mat4 u_a128TrmJoints[128];
 
 void
 main()
 {
     mat4 trmSkin =
-        a_weight.x * u_a2TrmJoints[int(a_joint.x)] +
-        a_weight.y * u_a2TrmJoints[int(a_joint.y)] +
-        a_weight.z * u_a2TrmJoints[int(a_joint.z)] +
-        a_weight.w * u_a2TrmJoints[int(a_joint.w)];
+        a_weight.x * u_a128TrmJoints[int(a_joint.x)] +
+        a_weight.y * u_a128TrmJoints[int(a_joint.y)] +
+        a_weight.z * u_a128TrmJoints[int(a_joint.z)] +
+        a_weight.w * u_a128TrmJoints[int(a_joint.w)];
 
     vec4 worldPos = trmSkin * vec4(a_pos, 1.0);
 
@@ -146,6 +146,38 @@ main()
 
     vs_pos = a_weight;
     vs_texCoords = a_tex;
+}
+)";
+
+static const char* ntsSkinVert =
+R"(#version 300 es
+/* ntsSkinVert */
+
+layout(location = 0) in vec3 a_pos;
+layout(location = 2) in vec4 a_joint;
+layout(location = 3) in vec4 a_weight;
+
+out vec4 vs_pos;
+
+uniform mat4 u_model;
+uniform mat4 u_view;
+uniform mat4 u_projection;
+uniform mat4 u_a128TrmJoints[128];
+
+void
+main()
+{
+    mat4 trmSkin =
+        a_weight.x * u_a128TrmJoints[int(a_joint.x)] +
+        a_weight.y * u_a128TrmJoints[int(a_joint.y)] +
+        a_weight.z * u_a128TrmJoints[int(a_joint.z)] +
+        a_weight.w * u_a128TrmJoints[int(a_joint.w)];
+
+    vec4 worldPos = trmSkin * vec4(a_pos, 1.0);
+
+    gl_Position = u_projection * u_view * u_model * worldPos;
+
+    vs_pos = a_weight;
 }
 )";
 

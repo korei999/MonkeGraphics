@@ -26,10 +26,10 @@ ClientGL::start(int width, int height)
     m_winHeight = m_height = height;
     m_stride = m_width + 7; /* NOTE: simd padding */
 
-    wp_viewport_set_source(m_pViewport,
-        wl_fixed_from_int(0), wl_fixed_from_int(0),
-        wl_fixed_from_int(m_width), wl_fixed_from_int(m_height)
-    );
+    // wp_viewport_set_source(m_pViewport,
+    //     wl_fixed_from_int(0), wl_fixed_from_int(0),
+    //     wl_fixed_from_int(m_width), wl_fixed_from_int(m_height)
+    // );
 
     initGL();
 }
@@ -74,6 +74,12 @@ ClientGL::destroy()
     if (!eglDestroySurface(m_eglDisplay, m_eglSurface)) LOG_BAD("!eglDestroySurface\n");
     if (!eglDestroyContext(m_eglDisplay, m_eglContext)) LOG_BAD("!eglDestroyContext\n");
     if (!eglTerminate(m_eglDisplay)) LOG_BAD("!eglTerminate\n");
+}
+
+void
+ClientGL::resizeCB(int width, int height)
+{
+    wl_egl_window_resize(m_eglWindow, width, height, 0, 0);
 }
 
 void

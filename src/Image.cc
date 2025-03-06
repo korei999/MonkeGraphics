@@ -116,7 +116,7 @@ Image::flipVertically(adt::IAllocator* pAlloc)
             auto* pTemp = pAlloc->mallocV<ImagePixelRGBA>(m_width * m_height);
             defer( pAlloc->free(pTemp) );
 
-            auto sp = getSpanRGBA();
+            auto sp = spanRGBA();
             const int halfHeight = m_height / 2;
 
             for (int y = 0; y < halfHeight; ++y)
@@ -133,7 +133,7 @@ Image::flipVertically(adt::IAllocator* pAlloc)
             auto* pTemp = pAlloc->mallocV<ImagePixelRGB>(m_width * m_height);
             defer( pAlloc->free(pTemp) );
 
-            auto sp = getSpanRGB();
+            auto sp = spanRGB();
             const int halfHeight = m_height / 2;
 
             for (int y = 0; y < halfHeight; ++y)

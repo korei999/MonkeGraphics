@@ -39,28 +39,28 @@ struct Image
     void flipVertically(adt::IAllocator* pAlloc);
 
     adt::Span2D<ImagePixelRGBA>
-    getSpanRGBA()
+    spanRGBA()
     {
         ADT_ASSERT(m_eType == TYPE::RGBA, " ");
         return {m_uData.pRGBA, m_width, m_height, m_width};
     }
 
     const adt::Span2D<ImagePixelRGBA>
-    getSpanRGBA() const
+    spanRGBA() const
     {
         ADT_ASSERT(m_eType == TYPE::RGBA, " ");
         return {m_uData.pRGBA, m_width, m_height, m_width};
     }
 
     adt::Span2D<ImagePixelRGB>
-    getSpanRGB()
+    spanRGB()
     {
         ADT_ASSERT(m_eType == TYPE::RGB, " ");
         return {m_uData.pRGB, m_width, m_height, m_width};
     }
 
     const adt::Span2D<ImagePixelRGB>
-    getSpanRGB() const
+    spanRGB() const
     {
         ADT_ASSERT(m_eType == TYPE::RGB, " ");
         return {m_uData.pRGB, m_width, m_height, m_width};

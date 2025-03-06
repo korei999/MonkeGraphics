@@ -31,7 +31,9 @@ struct ClientGL : public Client
     virtual void unbindContext() override;
     virtual void destroy() override;
 
-    /* */
+    /* Client overrides */
+    virtual void resizeCB(int width, int height) override;
+    /* Client overrides end */
 
     void initGL();
 };

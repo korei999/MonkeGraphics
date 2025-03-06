@@ -288,8 +288,8 @@ Model::procRootScene(IAllocator*)
 {
     if (!m_toplevelObjs.pScene)
     {
-        LOG_BAD("'scene' object not found\n");
-        return false;
+        m_defaultSceneI = -1;
+        return true;
     }
 
     m_defaultSceneI = static_cast<int>(json::getLong(m_toplevelObjs.pScene));
@@ -302,6 +302,19 @@ Model::procScenes(IAllocator* pAlloc)
 {
     auto scenes = m_toplevelObjs.pScenes;
     auto& arr = json::getArray(scenes);
+
+    if (arr.empty())
+    {
+        m_defaultSceneI = -1;
+        LOG_WARN("no scenes\n");
+        return true;
+    }
+    else
+    {
+        if (m_defaultSceneI == -1)
+            m_defaultSceneI = 0;
+    }
+
     for (auto& e : arr)
     {
         auto& obj = json::getObject(&e);
