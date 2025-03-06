@@ -1,5 +1,7 @@
 #include "ClientGL.hh"
 
+#include "render/gl/glfunc.hh"
+
 #include "adt/Array.hh"
 #include "adt/logs.hh"
 
@@ -25,11 +27,6 @@ ClientGL::start(int width, int height)
     m_winWidth = m_width = width;
     m_winHeight = m_height = height;
     m_stride = m_width + 7; /* NOTE: simd padding */
-
-    // wp_viewport_set_source(m_pViewport,
-    //     wl_fixed_from_int(0), wl_fixed_from_int(0),
-    //     wl_fixed_from_int(m_width), wl_fixed_from_int(m_height)
-    // );
 
     initGL();
 }
@@ -80,6 +77,8 @@ void
 ClientGL::resizeCB(int width, int height)
 {
     wl_egl_window_resize(m_eglWindow, width, height, 0, 0);
+    glViewport(0, 0, width, height);
+
 }
 
 void

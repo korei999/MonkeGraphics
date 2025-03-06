@@ -2,6 +2,7 @@
 
 #include "gltf/gltf.hh"
 
+#include "adt/Map.hh"
 #include "adt/Pool.hh"
 #include "adt/Arena.hh"
 
@@ -68,6 +69,8 @@ struct Model
     /* */
 
     adt::Arena m_arena {};
+
+    adt::Map<adt::i16, adt::i16> m_mapNodeIToJointI {};
 
     adt::Vec<Node*> m_vNodes {};
     adt::Vec<Node*> m_vAllNodes {};

@@ -247,9 +247,6 @@ Renderer::drawEntities([[maybe_unused]] Arena* pArena)
 {
     using namespace adt::math;
 
-    const auto& win = app::window();
-
-    glViewport(0, 0, win.m_winWidth, win.m_winHeight);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     {
