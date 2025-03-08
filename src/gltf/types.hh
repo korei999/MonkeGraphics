@@ -258,7 +258,7 @@ struct NormalTextureInfo
 
 struct PbrMetallicRoughness
 {
-    adt::math::V4 baseColorFactor {};
+    adt::math::V4 baseColorFactor {0.0f, 0.75f, 0.50f, 1.0f};
     TextureInfo baseColorTexture {};
 };
 
