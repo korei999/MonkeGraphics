@@ -5,7 +5,7 @@
 namespace adt
 {
 
-/* Span with byteStride. byteStride of Zero means tightly packed. */
+/* Span with byteStride between elements, byteStride of Zero means tightly packed. */
 template<typename T>
 struct View
 {
@@ -25,7 +25,7 @@ struct View
 
     ssize size() const { return m_count; }  /* NOTE: element count (not byte size). */
     ssize stride() const { return m_byteStride; }
-    ssize idx(const T* pElement) const; /* NOTE: requires division (slow), for i loops should be preferred instead. */
+    ssize idx(const T* const pElement) const; /* NOTE: requires division (slow), for i loops should be preferred instead. */
 
 private:
     T& at(ssize i) const;
@@ -68,13 +68,11 @@ public:
     const It rend()   const noexcept { return {this, NPOS}; }
 };
 
-
 template<typename T>
 View<T>::View(const T* pData, ssize size, ssize stride)
     : m_pData(const_cast<T*>(pData)), m_count(size)
 {
-    if (stride == 0)
-        m_byteStride = (sizeof(T));
+    if (stride == 0) m_byteStride = (sizeof(T));
     else m_byteStride = stride;
 }
 
@@ -91,7 +89,7 @@ View<T>::at(ssize i) const
 
 template<typename T>
 inline ssize
-View<T>::idx(const T* pElement) const
+View<T>::idx(const T* const pElement) const
 {
     auto* p = reinterpret_cast<const u8*>(pElement);
     pdiff absIdx = p - u8Data();
