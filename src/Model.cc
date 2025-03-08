@@ -160,13 +160,13 @@ Model::updateNodes()
 void
 Model::updateNode(Node* pNode, math::M4 trm)
 {
-    math::M4 nodeTrm;
+    /*math::M4 nodeTrm;*/
 
     switch (pNode->eType)
     {
         case Node::TRANSFORMATION_TYPE::ANIMATION:
         {
-            nodeTrm = math::M4TranslationFrom(pNode->uTransform.tra) *
+            trm *= math::M4TranslationFrom(pNode->uTransform.tra) *
                 math::QtRot(pNode->uTransform.rot) *
                 math::M4ScaleFrom(pNode->uTransform.sca);
         }
@@ -174,23 +174,21 @@ Model::updateNode(Node* pNode, math::M4 trm)
 
         case Node::TRANSFORMATION_TYPE::MATRIX:
         {
-            nodeTrm = pNode->uTransform.matrix;
+            trm *= pNode->uTransform.matrix;
         }
         break;
 
         default:
-        nodeTrm = math::M4Iden();
+        /*nodeTrm = math::M4Iden();*/
         break;
     }
 
     const gltf::Node& gltfNod = gltfNode(*pNode);
 
-    nodeTrm = trm * nodeTrm;
-
-    pNode->finalTransform = nodeTrm;
+    pNode->finalTransform = trm;
 
     for (const int childI : gltfNod.vChildren)
-        updateNode(&m_vNodes[childI], nodeTrm);
+        updateNode(&m_vNodes[childI], trm);
 }
 
 void

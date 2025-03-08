@@ -404,7 +404,9 @@ Map<K, V, FN_HASH>::searchHashed(const K& key, usize keyHash)
 
     if (m_nOccupied == 0)
     {
+#ifndef NDEBUG
         print::err("Map::search: m_nOccupied: {}\n", m_nOccupied);
+#endif
         return res;
     }
 
