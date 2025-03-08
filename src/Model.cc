@@ -160,8 +160,6 @@ Model::updateNodes()
 void
 Model::updateNode(Node* pNode, math::M4 trm)
 {
-    /*math::M4 nodeTrm;*/
-
     switch (pNode->eType)
     {
         case Node::TRANSFORMATION_TYPE::ANIMATION:
@@ -179,7 +177,6 @@ Model::updateNode(Node* pNode, math::M4 trm)
         break;
 
         default:
-        /*nodeTrm = math::M4Iden();*/
         break;
     }
 

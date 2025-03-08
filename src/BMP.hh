@@ -10,7 +10,7 @@
     #include "adt/logs.hh"
 #endif /* DBG_BMP */
 
-namespace bmp
+namespace BMP
 {
 
 enum class COMPRESSION_METHOD_ID : adt::u32

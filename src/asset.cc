@@ -1,6 +1,6 @@
 #include "asset.hh"
 #include "app.hh"
-#include "bmp.hh"
+#include "BMP.hh"
 #include "gltf/gltf.hh"
 
 #include "adt/Map.hh"
@@ -31,7 +31,7 @@ Object::destroy()
 static PoolHandle<Object>
 loadBMP([[maybe_unused]] const StringView svPath, const StringView sFile)
 {
-    bmp::Reader reader {};
+    BMP::Reader reader {};
     if (!reader.read(sFile))
         return {};
 
