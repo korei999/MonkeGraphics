@@ -2,87 +2,54 @@
 
 #include "gltf/gltf.hh"
 
-#include "adt/Map.hh"
 #include "adt/Pool.hh"
 #include "adt/Arena.hh"
 
+/* Model holds the same order of nodes as the gltf::Model that it refers to */
 struct Model
 {
     static constexpr int MAX_JOINTS = 128;
 
-    struct Node;
-
-    struct Mesh
-    {
-        adt::math::M4 matrix = adt::math::M4Iden();
-        adt::Array<adt::math::M4, MAX_JOINTS> vJointMatrices {};
-    };
-
     struct Skin
     {
-        adt::StringView svName {};
-        adt::Vec<adt::math::M4> vInverseBindMatrices {};
-        adt::Vec<Node*> vJointNodes {};
-        adt::i16 skeletonRootI = -1; /* do we care? */
-    };
-
-    struct Skin2
-    {
-        adt::Vec<adt::math::M4> vJointTransforms {};
+        adt::Vec<adt::math::M4> vJointMatrices {};
     };
 
     struct Node
     {
-        Node* m_pParent {};
-        Mesh* m_pMesh {};
-        Skin* m_pSkin {};
-
-        adt::Vec<Node*> m_vChildren {};
-
-        adt::math::M4 m_matrix = adt::math::M4Iden();
-        adt::math::V3 m_translation {};
-        adt::math::Qt m_rotation = adt::math::QtIden();
-        adt::math::V3 m_scale {1.0f, 1.0f, 1.0f};
-
-        adt::StringView m_svName {};
-
-        adt::i16 m_meshI = -1;
-        adt::i16 m_skinI = -1;
-
-        adt::i16 m_idx = -1;
+        enum class TRANSFORMATION_TYPE : adt::u8 { NONE, MATRIX, ANIMATION };
 
         /* */
 
-        adt::math::M4 localMatrix() const
+        adt::math::M4 finalTransform = adt::math::M4Iden();
+
+        union Transformation
         {
-            return adt::math::M4TranslationFrom(m_translation) *
-                adt::math::QtRot(m_rotation) *
-                adt::math::M4ScaleFrom(m_scale) *
-                m_matrix;
-        }
-
-        adt::math::M4 matrix() const;
-
-        void update();
+            adt::math::M4 matrix;
+            struct
+            {
+                adt::math::V3 tra;
+                adt::math::Qt rot;
+                adt::math::V3 sca;
+            };
+        } uTransform {};
+        TRANSFORMATION_TYPE eType = TRANSFORMATION_TYPE::MATRIX;
     };
 
     /* */
 
     adt::Arena m_arena {};
 
-    adt::Map<adt::i16, adt::i16> m_mapNodeIToJointI {};
-
-    adt::Vec<Node*> m_vNodes {};
-    adt::Vec<Node*> m_vAllNodes {};
-    adt::Vec<Skin*> m_vSkins {};
-    adt::Vec<Mesh> m_vMeshes {};
+    adt::Vec<Node> m_vNodes2 {};
+    adt::Vec<Skin> m_vSkins2 {};
 
     adt::f64 m_time {};
     adt::f64 m_globalMinTime {};
     adt::f64 m_globalMaxTime {};
     adt::i16 m_modelAssetI {};
 
-    adt::i16 m_animationI = -1;
+    int m_animationIUsed = -1;
+    int m_skinIUsed = -1;
 
     /* */
 
@@ -110,16 +77,18 @@ struct Model
 
     /* */
 
-    void updateAnimation(int animationI);
-    void updateAnimation() { updateAnimation(m_animationI); };
-
     gltf::Model& gltfModel() const;
-    gltf::Node& gltfNode(const Node* pNode) const;
+    gltf::Node& gltfNode(const Node& node) const;
+
+    void updateAnimation(int animationI);
+    void updateAnimation() { updateAnimation(m_animationIUsed); }
+    void updateSkin(int skinI);
+    void updateSkin() { updateSkin(m_skinIUsed); }
 
 private:
-    Node* findNode(const Node* pParent, int idx) const;
-    Node* nodeFromI(int idx) const;
-
-    void loadNode(Node* pParent, const gltf::Node& gltfNode, int nodeI);
+    void loadNodes();
     void loadSkins();
+
+    void updateNodes();
+    void updateNode(Node* pNode, adt::math::M4 trm);
 };

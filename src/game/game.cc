@@ -66,7 +66,6 @@ loadStuff()
         if (auto* pObj = asset::search("assets/Fox/Fox.gltf", asset::Object::TYPE::MODEL))
         /*if (auto* pObj = asset::search("assets/BoxAnimated/BoxAnimated.gltf", asset::Object::TYPE::MODEL))*/
         /*if (auto* pObj = asset::search("assets/SimpleSkin/glTF/SimpleSkin.gltf", asset::Object::TYPE::MODEL))*/
-        /*if (auto* pObj = asset::search("/home/korei/Documents/capo.gltf", asset::Object::TYPE::MODEL))*/
         {
             auto idx = asset::g_poolObjects.idx(pObj);
             bind.assetI = idx;
@@ -89,7 +88,8 @@ updateState(adt::Arena*)
     what1.scale = {0.05f, 0.05f, 0.05f};
     what1.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
 
-    Model::fromI(what1.modelI).m_animationI = 0;
+    Model::fromI(what1.modelI).m_animationIUsed = 0;
+    Model::fromI(what1.modelI).m_skinIUsed = 0;
 
     /*what1.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, frame::g_time);*/
 

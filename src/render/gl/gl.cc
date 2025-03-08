@@ -80,7 +80,7 @@ static void
 drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
 {
     using namespace adt::math;
-
+    const gltf::Node& gltfNode = model.gltfNode(node);
     const auto& win = app::window();
     const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
     const auto& camera = control::g_camera;
@@ -88,8 +88,8 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
     const M4& trmView = camera.m_trm;
     const auto& gltfModel = model.gltfModel();
 
-    for (Model::Node* child : node.m_vChildren)
-        drawNode(model, *child, trm);
+    for (const int& child : gltfNode.vChildren)
+        drawNode(model, model.m_vNodes2[child], trm);
 
     Shader* pSh {};
 
@@ -118,9 +118,10 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
         }
     };
 
-    if (node.m_pMesh)
+    if (gltfNode.meshI > -1)
     {
-        auto& gltfMesh = gltfModel.m_vMeshes[node.m_meshI];
+        auto& gltfMesh = gltfModel.m_vMeshes[gltfNode.meshI];
+
         for (const auto& primitive : gltfMesh.vPrimitives)
         {
             /* TODO: there might be any number of TEXCOORD_*,
@@ -150,13 +151,12 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                     pSh->setV4("u_color", V4From(colors::get(colors::IDX::LINEN), 1.0f));
                 }
 
-                pSh->setM4("u_model", trm * node.m_pMesh->matrix);
+                ADT_ASSERT(gltfNode.skinI > -1, " ");
+                const Model::Skin& skin = model.m_vSkins2[gltfNode.skinI];
+                pSh->setM4("u_model", trm * node.finalTransform);
                 pSh->setM4("u_view", trmView);
                 pSh->setM4("u_projection", trmProj);
-                pSh->setM4("u_a128TrmJoints", Span<M4>(node.m_pMesh->vJointMatrices));
-
-                /*for (auto& what : node.m_pMesh->vJointMatrices)*/
-                /*    LOG_BAD("#{}: {}\n", node.m_pMesh->vJointMatrices.idx(&what), what);*/
+                pSh->setM4("u_a128TrmJoints", Span<M4>(skin.vJointMatrices));
 
                 bindTexture(primitive);
             }
@@ -234,12 +234,16 @@ GOTO_defaultShader:
 }
 
 static void
-drawGLTF(Model* pModel, math::M4 trm)
+drawModel(const Model& model, math::M4 trm)
 {
-    pModel->updateAnimation();
+    const gltf::Model& gltfModel = model.gltfModel();
+    const gltf::Scene& scene = gltfModel.m_vScenes[gltfModel.m_defaultSceneI];
 
-    for (auto* node : pModel->m_vNodes)
-        drawNode(*pModel, *node, trm);
+    for (const int& nodeI : scene.vNodes)
+    {
+        const Model::Node& node = model.m_vNodes2[nodeI];
+        drawNode(model, node, trm);
+    }
 }
 
 void
@@ -266,7 +270,11 @@ Renderer::drawEntities([[maybe_unused]] Arena* pArena)
                 {
                     Model& model = Model::fromI(entity.modelI);
 
-                    drawGLTF(&model,
+                    model.updateAnimation();
+                    for (ssize i = 0; i < model.m_vSkins2.size(); ++i)
+                        model.updateSkin(i);
+
+                    drawModel(model,
                         M4TranslationFrom(entity.pos) *
                         QtRot(entity.rot) *
                         M4ScaleFrom(entity.scale)
