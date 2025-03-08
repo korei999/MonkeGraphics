@@ -82,7 +82,6 @@ struct Model
 
     void updateAnimation(int animationI);
     void updateAnimation() { updateAnimation(m_animationIUsed); }
-    void updateSkins();
 
 private:
     void loadNodes();
@@ -90,4 +89,6 @@ private:
 
     void updateNodes();
     void updateNode(Node* pNode, adt::math::M4 trm);
+
+    void updateSkins();
 };

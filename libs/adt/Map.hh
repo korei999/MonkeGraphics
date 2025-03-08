@@ -89,7 +89,7 @@ struct Map
 
     /* */
 
-    [[nodiscard]] bool empty() const { return m_nOccupied == 0; }
+    [[nodiscard]] bool empty() const { return m_nOccupied <= 0; }
 
     [[nodiscard]] ssize idx(const KeyVal<K, V>* p) const;
 

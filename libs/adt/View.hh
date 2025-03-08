@@ -23,6 +23,7 @@ struct View
     T& operator[](ssize i) { return at(i); }
     const T& operator[](ssize i) const { return at(i); }
 
+    bool empty() const { return m_count <= 0; }
     ssize size() const { return m_count; }  /* NOTE: element count (not byte size). */
     ssize stride() const { return m_byteStride; }
     ssize idx(const T* const pElement) const; /* NOTE: requires division (slow), for i loops should be preferred instead. */

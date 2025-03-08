@@ -5,7 +5,6 @@
 #include "asset.hh"
 #include "common.hh"
 #include "control.hh"
-#include "colors.hh"
 #include "game/game.hh"
 #include "shaders/glsl.hh"
 
@@ -64,9 +63,9 @@ Renderer::init()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
 
-    /*glEnable(GL_CULL_FACE);*/
-    /*glCullFace(GL_FRONT);*/
-    glDisable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+    /*glDisable(GL_CULL_FACE);*/
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
@@ -96,9 +95,8 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
     auto bindTexture = [&](const gltf::Primitive& primitive) {
         if (primitive.materialI < 0) return;
 
-        if (auto& mat = gltfModel.m_vMaterials[primitive.materialI];
-            mat.pbrMetallicRoughness.baseColorTexture.index > -1
-        )
+        auto& mat = gltfModel.m_vMaterials[primitive.materialI];
+        if (mat.pbrMetallicRoughness.baseColorTexture.index > -1)
         {
             auto& tex = gltfModel.m_vTextures[mat.pbrMetallicRoughness.baseColorTexture.index];
             auto& img = gltfModel.m_vImages[tex.sourceI];
@@ -116,6 +114,11 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                 pTex->bind(GL_TEXTURE0);
             }
         }
+        else
+        {
+            pSh->setV4("u_color", mat.pbrMetallicRoughness.baseColorFactor);
+        }
+
     };
 
     if (gltfNode.meshI > -1)
@@ -148,7 +151,6 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                 {
                     pSh = searchShader("Skin");
                     pSh->use();
-                    pSh->setV4("u_color", V4From(colors::get(colors::IDX::LINEN), 1.0f));
                 }
 
                 ADT_ASSERT(gltfNode.skinI > -1, " ");
@@ -180,8 +182,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                         pSh = searchShader("SimpleTexture");
                         pSh->use();
 
-                        if (pTex)
-                            pTex->bind(GL_TEXTURE0);
+                        if (pTex) pTex->bind(GL_TEXTURE0);
                         else s_texDefault.bind(GL_TEXTURE0);
 
                         pSh->setM4("u_trm", trmProj * trmView * trm);
@@ -271,7 +272,6 @@ Renderer::drawEntities([[maybe_unused]] Arena* pArena)
                     Model& model = Model::fromI(entity.modelI);
 
                     model.updateAnimation();
-                    model.updateSkins();
 
                     drawModel(model,
                         M4TranslationFrom(entity.pos) *

@@ -47,7 +47,7 @@ struct Vec
 
 #undef ADT_RANGE_CHECK
 
-    [[nodiscard]] bool empty() const noexcept { return m_size == 0; }
+    [[nodiscard]] bool empty() const noexcept { return m_size <= 0; }
 
     ssize push(IAllocator* p, const T& data);
 

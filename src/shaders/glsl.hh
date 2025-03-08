@@ -110,7 +110,10 @@ uniform sampler2D u_tex0;
 void
 main()
 {
-    fs_fragColor = texture(u_tex0, vs_texCoords);
+    vec4 color = texture(u_tex0, vs_texCoords);
+    if (color.a <= 0.01) discard;
+
+    fs_fragColor = color;
 }
 )";
 

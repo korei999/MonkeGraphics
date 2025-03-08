@@ -68,7 +68,8 @@ Model::updateAnimation(int animationI)
 
         ADT_ASSERT(vwTimeStamps.size() >= 2, " ");
 
-        m_time = std::fmod(m_time, accTimeStamps.uMax.SCALAR);
+        const f64 actualDuration = accTimeStamps.uMax.SCALAR - accTimeStamps.uMin.SCALAR;
+        m_time = std::fmod(m_time - accTimeStamps.uMin.SCALAR, actualDuration) + accTimeStamps.uMin.SCALAR;
 
         if (m_time >= accTimeStamps.uMin.SCALAR && m_time <= accTimeStamps.uMax.SCALAR)
         {
@@ -114,6 +115,7 @@ Model::updateAnimation(int animationI)
     }
 
     updateNodes();
+    updateSkins();
 }
 
 void

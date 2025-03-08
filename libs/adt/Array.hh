@@ -41,7 +41,7 @@ struct Array
 
     constexpr T* data() { return m_aData; }
     constexpr const T* data() const { return m_aData; }
-    constexpr bool empty() const { return m_size == 0; }
+    constexpr bool empty() const { return m_size <= 0; }
     constexpr ssize push(const T& x);
     template<typename ...ARGS> requires (std::is_constructible_v<T, ARGS...>) constexpr ssize emplace(ARGS&&... args);
     constexpr ssize fakePush();
