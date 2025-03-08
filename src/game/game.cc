@@ -89,7 +89,6 @@ updateState(adt::Arena*)
     what1.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
 
     Model::fromI(what1.modelI).m_animationIUsed = 0;
-    Model::fromI(what1.modelI).m_skinIUsed = 0;
 
     /*what1.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, frame::g_time);*/
 

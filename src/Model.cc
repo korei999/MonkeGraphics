@@ -63,7 +63,7 @@ Model::updateAnimation(int animationI)
         ADT_ASSERT(accTimeStamps.eComponentType == gltf::COMPONENT_TYPE::FLOAT, " ");
 
         const View<f32> vwTimeStamps = model.accessorView<f32>(sampler.inputI);
-        Node& node = m_vNodes2[channel.target.nodeI];
+        Node& node = m_vNodes[channel.target.nodeI];
         ADT_ASSERT(node.eType == Node::TRANSFORMATION_TYPE::ANIMATION, " ");
 
         ADT_ASSERT(vwTimeStamps.size() >= 2, " ");
@@ -117,30 +117,31 @@ Model::updateAnimation(int animationI)
 }
 
 void
-Model::updateSkin(int skinI)
+Model::updateSkins()
 {
     const gltf::Model& model = gltfModel();
 
-    if (model.m_vSkins.empty() || skinI <= -1)
+    for (const int& nodeI : m_vSkinnedNodes)
     {
-        return;
-    }
-    else if (skinI < 0 || skinI > m_vSkins2.size())
-    {
-        LOG_WARN("skinI is out of range: skinI: {}, size: {}\n", skinI, m_vSkins2.size());
-        return;
-    }
-
-    Skin& skin = m_vSkins2[skinI];
-    const gltf::Skin& gltfSkin = model.m_vSkins[skinI];
-
-    for (const int& jointNodeI : gltfSkin.vJoints)
-    {
-        const int jointI = gltfSkin.vJoints.idx(&jointNodeI);
-        const Node& node = m_vNodes2[jointNodeI];
-
+        const gltf::Node& gltfNode = model.m_vNodes[nodeI];
+        const gltf::Skin& gltfSkin = model.m_vSkins[gltfNode.skinI];
         const View<math::M4> vwInvBinds = model.accessorView<math::M4>(gltfSkin.inverseBindMatricesI);
-        skin.vJointMatrices[jointI] = node.finalTransform * vwInvBinds[jointI];
+
+        Node& node = m_vNodes[nodeI];
+        Skin& skin = m_vSkins[gltfNode.skinI];
+
+        const math::M4 invBindMatrix = math::M4Inv(node.finalTransform);
+
+        for (const int& jointNodeI : gltfSkin.vJoints)
+        {
+            const int jointI = gltfSkin.vJoints.idx(&jointNodeI);
+            const Node& jointNode = m_vNodes[jointNodeI];
+
+            skin.vJointMatrices[jointI] =
+                invBindMatrix *
+                jointNode.finalTransform *
+                vwInvBinds[jointI];
+        }
     }
 }
 
@@ -151,7 +152,7 @@ Model::updateNodes()
     const gltf::Scene& scene = model.m_vScenes[model.m_defaultSceneI];
 
     for (const int gltfNodeI : scene.vNodes)
-        updateNode(&m_vNodes2[gltfNodeI], math::M4Iden());
+        updateNode(&m_vNodes[gltfNodeI], math::M4Iden());
 }
 
 void
@@ -187,7 +188,7 @@ Model::updateNode(Node* pNode, math::M4 trm)
     pNode->finalTransform = nodeTrm;
 
     for (const int childI : gltfNod.vChildren)
-        updateNode(&m_vNodes2[childI], nodeTrm);
+        updateNode(&m_vNodes[childI], nodeTrm);
 }
 
 void
@@ -195,11 +196,14 @@ Model::loadNodes()
 {
     const gltf::Model& model = gltfModel();
 
-    m_vNodes2.setCap(&m_arena, model.m_vNodes.size());
+    m_vNodes.setCap(&m_arena, model.m_vNodes.size());
 
     for (const gltf::Node& gltfNode : model.m_vNodes)
     {
-        Node& newNode = m_vNodes2[m_vNodes2.push(&m_arena, {})];
+        Node& newNode = m_vNodes[m_vNodes.push(&m_arena, {})];
+
+        if (gltfNode.skinI > -1)
+            m_vSkinnedNodes.push(&m_arena, model.m_vNodes.idx(&gltfNode));
 
         switch (gltfNode.eTransformationType)
         {
@@ -236,11 +240,11 @@ Model::loadSkins()
 {
     const gltf::Model& model = gltfModel();
 
-    m_vSkins2.setCap(&m_arena, model.m_vSkins.size());
+    m_vSkins.setCap(&m_arena, model.m_vSkins.size());
 
     for (const auto& gltfSkin : model.m_vSkins)
     {
-        Skin& newSkin = m_vSkins2[m_vSkins2.push(&m_arena, {})];
+        Skin& newSkin = m_vSkins[m_vSkins.push(&m_arena, {})];
 
         newSkin.vJointMatrices.setSize(&m_arena, gltfSkin.vJoints.size());
         for (auto& trm : newSkin.vJointMatrices) trm = {};
@@ -250,5 +254,5 @@ Model::loadSkins()
 gltf::Node&
 Model::gltfNode(const Node& node) const
 {
-    return gltfModel().m_vNodes[m_vNodes2.idx(&node)];
+    return gltfModel().m_vNodes[m_vNodes.idx(&node)];
 };

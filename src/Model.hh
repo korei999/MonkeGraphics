@@ -40,8 +40,9 @@ struct Model
 
     adt::Arena m_arena {};
 
-    adt::Vec<Node> m_vNodes2 {};
-    adt::Vec<Skin> m_vSkins2 {};
+    adt::Vec<Node> m_vNodes {};
+    adt::Vec<Skin> m_vSkins {};
+    adt::Vec<int> m_vSkinnedNodes {};
 
     adt::f64 m_time {};
     adt::f64 m_globalMinTime {};
@@ -49,7 +50,6 @@ struct Model
     adt::i16 m_modelAssetI {};
 
     int m_animationIUsed = -1;
-    int m_skinIUsed = -1;
 
     /* */
 
@@ -82,8 +82,7 @@ struct Model
 
     void updateAnimation(int animationI);
     void updateAnimation() { updateAnimation(m_animationIUsed); }
-    void updateSkin(int skinI);
-    void updateSkin() { updateSkin(m_skinIUsed); }
+    void updateSkins();
 
 private:
     void loadNodes();

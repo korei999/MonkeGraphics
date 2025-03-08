@@ -89,7 +89,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
     const auto& gltfModel = model.gltfModel();
 
     for (const int& child : gltfNode.vChildren)
-        drawNode(model, model.m_vNodes2[child], trm);
+        drawNode(model, model.m_vNodes[child], trm);
 
     Shader* pSh {};
 
@@ -152,7 +152,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                 }
 
                 ADT_ASSERT(gltfNode.skinI > -1, " ");
-                const Model::Skin& skin = model.m_vSkins2[gltfNode.skinI];
+                const Model::Skin& skin = model.m_vSkins[gltfNode.skinI];
                 pSh->setM4("u_model", trm * node.finalTransform);
                 pSh->setM4("u_view", trmView);
                 pSh->setM4("u_projection", trmProj);
@@ -241,7 +241,7 @@ drawModel(const Model& model, math::M4 trm)
 
     for (const int& nodeI : scene.vNodes)
     {
-        const Model::Node& node = model.m_vNodes2[nodeI];
+        const Model::Node& node = model.m_vNodes[nodeI];
         drawNode(model, node, trm);
     }
 }
@@ -271,8 +271,7 @@ Renderer::drawEntities([[maybe_unused]] Arena* pArena)
                     Model& model = Model::fromI(entity.modelI);
 
                     model.updateAnimation();
-                    for (ssize i = 0; i < model.m_vSkins2.size(); ++i)
-                        model.updateSkin(i);
+                    model.updateSkins();
 
                     drawModel(model,
                         M4TranslationFrom(entity.pos) *
