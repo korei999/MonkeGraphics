@@ -17,11 +17,11 @@ ntsSize(const char* nts)
     if (!nts) return 0;
 
 #if defined __has_constexpr_builtin
+
     #if __has_constexpr_builtin(__builtin_strlen)
-
     i = __builtin_strlen(nts);
-
     #endif
+
 #else
 
     while (nts[i] != '\0') ++i;
@@ -33,22 +33,12 @@ ntsSize(const char* nts)
 
 template <ssize SIZE>
 [[nodiscard]] constexpr ssize
-ntsSize(const char (&aCharBuff)[SIZE])
+charBuffStringSize(const char (&aCharBuff)[SIZE])
 {
     ssize i = 0;
-    if (!aCharBuff) return 0;
-
-#if defined __has_constexpr_builtin
-    #if __has_constexpr_builtin(__builtin_strnlen)
-
-    i = __builtin_strnlen(aCharBuff);
-
-    #endif
-#else
+    if (!aCharBuff || SIZE == 0) return 0;
 
     while (i < SIZE && aCharBuff[i] != '\0') ++i;
-
-#endif
 
     return i;
 }
@@ -85,7 +75,7 @@ struct StringView
     template <ssize SIZE>
     constexpr StringView(const char (&aCharBuff)[SIZE])
         : m_pData(const_cast<char*>(aCharBuff)),
-          m_size(ntsSize(aCharBuff)) {}
+          m_size(charBuffStringSize(aCharBuff)) {}
 
     /* */
 

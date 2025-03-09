@@ -76,8 +76,8 @@ replacePathEnding(Span<char>* spBuff, StringView svPath, StringView svEnding)
     ADT_ASSERT(spBuff != nullptr, " ");
 
     ssize lastSlash = svPath.lastOf('/');
-    StringView sNoEnding = {&svPath[0], lastSlash + 1};
-    ssize n = print::toSpan(*spBuff, "{}{}", sNoEnding, svEnding);
+    StringView svNoEnding = {&svPath[0], lastSlash + 1};
+    ssize n = print::toSpan(*spBuff, "{}{}", svNoEnding, svEnding);
     spBuff->m_size = n;
 }
 
@@ -90,17 +90,10 @@ appendDirPath(IAllocator* pAlloc, StringView svDir, StringView svPath)
     ssize buffSize = svDir.size() + svPath.size() + 2;
     char* pData = pAlloc->zallocV<char>(buffSize);
     newString.m_pData = pData;
-    ssize n = 0;
 
     if (svDir.endsWith("/"))
-    {
-        n = print::toBuffer(pData, buffSize - 1, "{}{}", svDir, svPath);
-    }
-    else
-    {
-        n = print::toBuffer(pData, buffSize - 1, "{}/{}", svDir, svPath);
-    }
-    newString.m_size = n;
+        newString.m_size = print::toBuffer(pData, buffSize - 1, "{}{}", svDir, svPath);
+    else newString.m_size = print::toBuffer(pData, buffSize - 1, "{}/{}", svDir, svPath);
 
     return newString;
 }
