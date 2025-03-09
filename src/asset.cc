@@ -3,25 +3,26 @@
 #include "BMP.hh"
 #include "gltf/gltf.hh"
 
+#include "adt/Directory.hh"
 #include "adt/Map.hh"
-#include "adt/file.hh"
-#include "adt/StdAllocator.hh"
 #include "adt/Pool.hh"
+#include "adt/StdAllocator.hh"
+#include "adt/file.hh"
 
 using namespace adt;
 
 namespace asset
 {
 
-Pool<Object, 128> g_poolObjects(INIT);
-static MapManaged<StringView, PoolHandle<Object>> s_mapStringToObjects(StdAllocator::inst(), g_poolObjects.cap());
+Pool<Object, 128> g_poolObjects {};
+static MapManaged<StringView, PoolHandle<Object>> s_mapStringsToObjects(StdAllocator::inst(), g_poolObjects.cap());
 
 void
 Object::destroy()
 {
     LOG_NOTIFY("hnd: {}, mappedWith: '{}'\n", g_poolObjects.idx(this), m_sMappedWith);
 
-    s_mapStringToObjects.tryRemove(m_sMappedWith);
+    s_mapStringsToObjects.tryRemove(m_sMappedWith);
     m_arena.freeAll();
     g_poolObjects.giveBack(this);
 
@@ -46,7 +47,7 @@ loadBMP([[maybe_unused]] const StringView svPath, const StringView sFile)
     nObj.m_uData.img = img;
     nObj.m_eType = Object::TYPE::IMAGE;
 
-    PoolHandle hnd = g_poolObjects.push(nObj);
+    PoolHandle hnd = g_poolObjects.make(nObj);
 
     return hnd;
 }
@@ -74,7 +75,7 @@ loadGLTF(const StringView svPath, const StringView sFile)
     nObj.m_uData.model = gltfModel;
     nObj.m_eType = Object::TYPE::MODEL;
 
-    PoolHandle hnd = g_poolObjects.push(nObj);
+    PoolHandle hnd = g_poolObjects.make(nObj);
 
     for (const auto& image : gltfModel.m_vImages)
     {
@@ -87,20 +88,15 @@ loadGLTF(const StringView svPath, const StringView sFile)
 }
 
 PoolHandle<Object>
-load(const adt::StringView svPath)
+loadFile(const StringView svPath)
 {
-    auto found = s_mapStringToObjects.search(svPath);
-    if (found)
-    {
-        LOG_WARN("'{}' is already loaded\n", svPath);
-        return found.value();
-    }
+    StdAllocator stdAlloc {};
 
-    String sFile = file::load(StdAllocator::inst(), svPath);
+    String sFile = file::load(&stdAlloc, svPath);
     if (!sFile) return {};
 
     /* WARNING: must clone sFile contents */
-    defer( sFile.destroy(StdAllocator::inst()) );
+    defer( sFile.destroy(&stdAlloc) );
 
     PoolHandle<Object> retHnd {};
 
@@ -117,7 +113,7 @@ load(const adt::StringView svPath)
     {
         auto& obj = g_poolObjects[retHnd];
         obj.m_sMappedWith = String(&obj.m_arena, svPath);
-        [[maybe_unused]] auto mapRes = s_mapStringToObjects.insert(obj.m_sMappedWith, retHnd);
+        [[maybe_unused]] auto mapRes = s_mapStringsToObjects.insert(obj.m_sMappedWith, retHnd);
         LOG_GOOD("hnd: {}, type: '{}', mappedWith: '{}', hash: {}, len: {}\n",
             retHnd, obj.m_eType, obj.m_sMappedWith, mapRes.hash, obj.m_sMappedWith.size()
         );
@@ -130,10 +126,55 @@ load(const adt::StringView svPath)
     return retHnd;
 }
 
-Object*
-search(const adt::StringView svKey, Object::TYPE eType)
+bool
+load(const StringView svPath)
 {
-    auto f = s_mapStringToObjects.search(svKey);
+    StdAllocator stdAlloc {};
+
+    auto found = s_mapStringsToObjects.search(svPath);
+    if (found)
+    {
+        LOG_WARN("'{}' is already loaded\n", svPath);
+        return true;
+    }
+
+    char* ntsTemp = stdAlloc.zallocV<char>(svPath.size() + 1);
+    defer( stdAlloc.free(ntsTemp) );
+    strncpy(ntsTemp, svPath.data(), svPath.size());
+
+    switch (file::fileType(ntsTemp))
+    {
+        case file::TYPE::DIRECTORY:
+        {
+            Directory dir(ntsTemp);
+            defer( dir.close() );
+
+            for (StringView svEntry : dir)
+            {
+                String s = file::appendDirPath(&stdAlloc, svPath, svEntry);
+                defer( s.destroy(&stdAlloc) );
+
+                loadFile(s);
+            }
+        }
+        break;
+
+        case file::TYPE::FILE:
+        loadFile(svPath);
+        break;
+
+        default:
+        LOG_WARN("unhandled filetype\n");
+        return false;
+    }
+
+    return true;
+}
+
+Object*
+search(const StringView svKey, Object::TYPE eType)
+{
+    auto f = s_mapStringsToObjects.search(svKey);
 
     if (f)
     {
@@ -156,7 +197,7 @@ search(const adt::StringView svKey, Object::TYPE eType)
 }
 
 Image*
-searchImage(const adt::StringView svKey)
+searchImage(const StringView svKey)
 {
     auto* f = search(svKey, Object::TYPE::IMAGE);
     if (f) return &f->m_uData.img;
@@ -164,7 +205,7 @@ searchImage(const adt::StringView svKey)
 }
 
 gltf::Model*
-searchModel(const adt::StringView svKey)
+searchModel(const StringView svKey)
 {
     auto* f = search(svKey, Object::TYPE::MODEL);
     if (f) return &f->m_uData.model;

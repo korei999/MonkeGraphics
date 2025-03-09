@@ -11,7 +11,7 @@ namespace adt
 {
 
 [[nodiscard]] constexpr ssize
-nullTermStringSize(const char* nts)
+ntsSize(const char* nts)
 {
     ssize i = 0;
     if (!nts) return 0;
@@ -25,6 +25,28 @@ nullTermStringSize(const char* nts)
 #else
 
     while (nts[i] != '\0') ++i;
+
+#endif
+
+    return i;
+}
+
+template <ssize SIZE>
+[[nodiscard]] constexpr ssize
+ntsSize(const char (&aCharBuff)[SIZE])
+{
+    ssize i = 0;
+    if (!aCharBuff) return 0;
+
+#if defined __has_constexpr_builtin
+    #if __has_constexpr_builtin(__builtin_strnlen)
+
+    i = __builtin_strnlen(aCharBuff);
+
+    #endif
+#else
+
+    while (i < SIZE && nts[i] != '\0') ++i;
 
 #endif
 
@@ -51,14 +73,19 @@ struct StringView
 
     constexpr StringView() = default;
 
-    constexpr StringView(const char* sNullTerminated)
-        : m_pData(const_cast<char*>(sNullTerminated)), m_size(nullTermStringSize(sNullTerminated)) {}
+    constexpr StringView(const char* nts)
+        : m_pData(const_cast<char*>(nts)), m_size(ntsSize(nts)) {}
 
     constexpr StringView(char* pStr, ssize len)
         : m_pData(pStr), m_size(len) {}
 
     constexpr StringView(Span<char> sp)
         : StringView(sp.data(), sp.size()) {}
+
+    template <ssize SIZE>
+    constexpr StringView(const char (&aCharBuff)[SIZE])
+        : m_pData(const_cast<char*>(aCharBuff)),
+          m_size(ntsSize(aCharBuff)) {}
 
     /* */
 
@@ -144,7 +171,7 @@ struct StringGlyphIt
         It(const char* pFirst, ssize _i, ssize _size)
             : p{pFirst}, i(_i), size(_size)
         {
-            operator++();
+            if (i != NPOS) operator++();
         }
 
         wchar_t& operator*() { return wc; }
@@ -457,7 +484,7 @@ String::String(IAllocator* pAlloc, const char* pChars, ssize size)
 
 inline
 String::String(IAllocator* pAlloc, const char* nts)
-    : String(pAlloc, nts, nullTermStringSize(nts)) {}
+    : String(pAlloc, nts, ntsSize(nts)) {}
 
 inline
 String::String(IAllocator* pAlloc, Span<char> spChars)

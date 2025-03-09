@@ -53,7 +53,7 @@ struct Model
 
     /* */
 
-    static adt::Pool<Model, 128> s_poolModels;
+    static adt::Pool<Model, 128> g_poolModels;
 
     /* */
 
@@ -66,13 +66,13 @@ struct Model
     static adt::PoolHandle<Model>
     make(ARGS&&... args)
     {
-        return s_poolModels.push(std::forward<ARGS>(args)...);
+        return g_poolModels.make(std::forward<ARGS>(args)...);
     }
 
     static Model&
     fromI(adt::i16 h)
     {
-        return s_poolModels[{h}];
+        return g_poolModels[{h}];
     }
 
     /* */

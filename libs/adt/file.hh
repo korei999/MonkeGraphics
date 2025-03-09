@@ -4,10 +4,24 @@
 #include "logs.hh"
 #include "defer.hh"
 
+#if __has_include(<sys/stat.h>)
+
+    #define ADT_USE_STAT
+    #include <sys/stat.h>
+
+#elif defined _WIN32
+
+    #define ADT_USE_WIN32_STAT
+    #include <io.h>
+
+#endif
+
 namespace adt
 {
 namespace file
 {
+
+enum class TYPE : u8 { ERROR, FILE, DIRECTORY };
 
 [[nodiscard]] inline String
 load(IAllocator* pAlloc, StringView svPath)
@@ -15,7 +29,7 @@ load(IAllocator* pAlloc, StringView svPath)
     FILE* pf = fopen(svPath.data(), "rb");
     if (!pf)
     {
-        LOG_WARN("Error opening '{}' file\n", svPath);
+        LOG_WARN("failed to open '{}' file\n", svPath);
         return {};
     }
     defer(fclose(pf));
@@ -34,8 +48,7 @@ load(IAllocator* pAlloc, StringView svPath)
     return ret;
 }
 
-[[nodiscard]]
-inline StringView
+[[nodiscard]] inline StringView
 getPathEnding(StringView svPath)
 {
     ssize lastSlash = svPath.lastOf('/');
@@ -46,8 +59,7 @@ getPathEnding(StringView svPath)
     return StringView(&svPath[lastSlash + 1], &svPath[svPath.m_size - 1] - &svPath[lastSlash]);
 }
 
-[[nodiscard]]
-inline String
+[[nodiscard]] inline String
 replacePathEnding(IAllocator* pAlloc, StringView svPath, StringView svEnding)
 {
     ADT_ASSERT(pAlloc != nullptr, " ");
@@ -67,6 +79,51 @@ replacePathEnding(Span<char>* spBuff, StringView svPath, StringView svEnding)
     StringView sNoEnding = {&svPath[0], lastSlash + 1};
     ssize n = print::toSpan(*spBuff, "{}{}", sNoEnding, svEnding);
     spBuff->m_size = n;
+}
+
+[[nodiscard]] inline String
+appendDirPath(IAllocator* pAlloc, StringView svDir, StringView svPath)
+{
+    ADT_ASSERT(pAlloc != nullptr, " ");
+
+    String newString {};
+    ssize buffSize = svDir.size() + svPath.size() + 2;
+    char* pData = pAlloc->zallocV<char>(buffSize);
+    newString.m_pData = pData;
+    ssize n = 0;
+
+    if (svDir.endsWith("/"))
+    {
+        n = print::toBuffer(pData, buffSize - 1, "{}{}", svDir, svPath);
+    }
+    else
+    {
+        n = print::toBuffer(pData, buffSize - 1, "{}/{}", svDir, svPath);
+    }
+    newString.m_size = n;
+
+    return newString;
+}
+
+[[nodiscard]] inline TYPE
+fileType(const char* ntsPath)
+{
+    struct stat st {};
+
+    [[maybe_unused]] int err = ::stat(ntsPath, &st) != 0;
+#ifndef NDEBUG
+    if (err != 0)
+    {
+        fprintf(stderr, "stat(): err: %d\n", err);
+#endif
+        return TYPE::ERROR;
+    }
+
+    if (S_ISREG(st.st_mode))
+        return TYPE::FILE;
+    else if (S_ISDIR(st.st_mode))
+        return TYPE::DIRECTORY;
+    else return TYPE::ERROR;
 }
 
 } /* namespace file */

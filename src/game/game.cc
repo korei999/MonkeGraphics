@@ -34,6 +34,7 @@ static const StringView s_aAssetsToLoad[] {
     "assets/Sphere/sphere.gltf",
     "assets/Capo/capo.gltf",
     "assets/RecursiveSkeletons/glTF/RecursiveSkeletons.gltf",
+    "assets/skybox",
 };
 
 void

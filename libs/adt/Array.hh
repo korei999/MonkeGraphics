@@ -62,7 +62,7 @@ struct Array
     {
         T* s;
 
-        constexpr It(T* pFirst) : s{pFirst} {}
+        constexpr It(const T* pFirst) : s{const_cast<T*>(pFirst)} {}
 
         constexpr T& operator*() { return *s; }
         constexpr T* operator->() { return s; }
@@ -77,34 +77,15 @@ struct Array
         friend constexpr bool operator!=(const It& l, const It& r) { return l.s != r.s; }
     };
 
-    struct ConstIt
-    {
-        const T* s;
-
-        constexpr ConstIt(const T* pFirst) : s{pFirst} {}
-
-        constexpr const T& operator*() const { return *s; }
-        constexpr const T* operator->() const { return s; }
-
-        constexpr ConstIt operator++() { s++; return *this; }
-        constexpr ConstIt operator++(int) { T* tmp = s++; return tmp; }
-
-        constexpr ConstIt operator--() { s--; return *this; }
-        constexpr ConstIt operator--(int) { T* tmp = s--; return tmp; }
-
-        friend constexpr bool operator==(const ConstIt& l, const ConstIt& r) { return l.s == r.s; }
-        friend constexpr bool operator!=(const ConstIt& l, const ConstIt& r) { return l.s != r.s; }
-    };
-
     constexpr It begin() { return {&m_aData[0]}; }
     constexpr It end() { return {&m_aData[m_size]}; }
     constexpr It rbegin() { return {&m_aData[m_size - 1]}; }
     constexpr It rend() { return {m_aData - 1}; }
 
-    constexpr const ConstIt begin() const { return {&m_aData[0]}; }
-    constexpr const ConstIt end() const { return {&m_aData[m_size]}; }
-    constexpr const ConstIt rbegin() const { return {&m_aData[m_size - 1]}; }
-    constexpr const ConstIt rend() const { return {m_aData - 1}; }
+    constexpr const It begin() const { return {&m_aData[0]}; }
+    constexpr const It end() const { return {&m_aData[m_size]}; }
+    constexpr const It rbegin() const { return {&m_aData[m_size - 1]}; }
+    constexpr const It rend() const { return {m_aData - 1}; }
 };
 
 template<typename T, ssize CAP> requires(CAP > 0)

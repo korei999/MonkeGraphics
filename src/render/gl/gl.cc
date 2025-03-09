@@ -22,7 +22,7 @@ using namespace adt;
 namespace render::gl
 {
 
-/* used for gltf::Primitive::extras::pData */
+/* used for gltf::Primitive::pData */
 struct PrimitiveData
 {
     GLuint vao {};
@@ -32,16 +32,30 @@ struct PrimitiveData
     GLuint ebo {};
 };
 
+struct SkyBox
+{
+    GLuint m_fbo;
+    GLuint m_tex;
+    int m_width;
+    int m_height;
+
+    /* */
+
+    SkyBox() = default;
+    SkyBox(Image a6Images[6]);
+};
+
 static void loadShaders();
 static void loadAssetObjects();
 
-Pool<Shader, 128> g_poolShaders(INIT);
+Pool<Shader, 128> g_poolShaders {};
 static MapManaged<StringView, PoolHandle<Shader>> s_mapStringToShaders(StdAllocator::inst(), g_poolShaders.cap());
 
-static u8 s_aScratchMem[SIZE_8K] {};
+static u8 s_aScratchMem[SIZE_1K * 100] {};
 static ScratchBuffer s_scratch(s_aScratchMem);
 
-static Texture s_texDefault;
+static Texture s_texDefault {};
+static SkyBox s_skyboxDefault {};
 
 static const ShaderMapping s_aShadersToLoad[] {
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"},
@@ -258,10 +272,10 @@ Renderer::drawGame([[maybe_unused]] Arena* pArena)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     {
-        auto& poolEntities = game::g_poolEntities;
+        auto& entities = game::g_poolEntities;
 
         /* TODO: implement proper parallel for */
-        for (auto& model : Model::s_poolModels)
+        for (auto& model : Model::g_poolModels)
         {
             s_threadPool.add(+[](void* p) -> THREAD_STATUS
                 {
@@ -271,11 +285,9 @@ Renderer::drawGame([[maybe_unused]] Arena* pArena)
             );
         }
 
-        s_threadPool.wait();
-
-        for (int entityI = poolEntities.firstI();
-            entityI < poolEntities.m_size;
-            entityI = poolEntities.nextI(entityI)
+        for (int entityI = entities.firstI();
+            entityI < entities.m_size;
+            entityI = entities.nextI(entityI)
         )
         {
             if (game::g_poolEntities.bindMember<&game::Entity::bNoDraw>({entityI}))
@@ -394,7 +406,7 @@ Shader::Shader(const adt::StringView svVertexShader, const adt::StringView svFra
     glDeleteShader(vertex);
     glDeleteShader(fragment);
 
-    s_mapStringToShaders.insert(svMapTo, g_poolShaders.push(*this));
+    s_mapStringToShaders.insert(svMapTo, g_poolShaders.make(*this));
 }
 
 GLuint
@@ -852,6 +864,27 @@ loadAssetObjects()
             break;
         }
     }
+}
+
+SkyBox::SkyBox(Image a6Images[6])
+{
+    glGenTextures(1, &m_tex);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex);
+
+    for (ssize i = 0; i < 6; ++i)
+    {
+        Image& img = a6Images[i];
+
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                     0, GL_RGBA, img.m_width, img.m_height,
+                     0, GL_RGBA, GL_UNSIGNED_BYTE, img.m_uData.pRGBA);
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 }
 
 #ifndef NDEBUG

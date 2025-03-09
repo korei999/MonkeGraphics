@@ -42,14 +42,12 @@ struct FreeListData
     constexpr void addSize(usize _size) noexcept { setSize(_size + size()); }
 };
 
-class FreeList : public IAllocator
+struct FreeList : public IAllocator
 {
-public:
     using Node = RBNode<FreeListData>; /* node is the header + the memory chunk */
 
     /* */
 
-private:
     usize m_blockSize {};
     IAllocator* m_pBackAlloc {};
     usize m_totalAllocated {};
@@ -58,7 +56,6 @@ private:
 
     /* */
 
-public:
     FreeList() = default;
 
     FreeList(usize _blockSize, IAllocator* pBackAlloc = StdAllocator::inst()) noexcept(false)

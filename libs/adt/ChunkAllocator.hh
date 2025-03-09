@@ -24,7 +24,7 @@ struct ChunkAllocatorBlock
     u8 pMem[];
 };
 
-class ChunkAllocator : public IAllocator
+struct ChunkAllocator : public IAllocator
 {
     usize m_blockCap = 0; 
     usize m_chunkSize = 0;
@@ -33,9 +33,8 @@ class ChunkAllocator : public IAllocator
 
     /* */
 
-public:
     ChunkAllocator() = default;
-    ChunkAllocator(usize chunkSize, usize blockSize, IAllocator* pBackAlloc = StdAllocatorInst()) noexcept(false)
+    ChunkAllocator(usize chunkSize, usize blockSize, IAllocator* pBackAlloc = StdAllocator::inst()) noexcept(false)
         : m_blockCap {align(blockSize, chunkSize + sizeof(ChunkAllocatorNode))},
           m_chunkSize {chunkSize + sizeof(ChunkAllocatorNode)},
           m_pBackAlloc(pBackAlloc),

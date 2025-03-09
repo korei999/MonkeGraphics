@@ -3,8 +3,6 @@
 #include "app.hh"
 #include "control.hh"
 
-#include "adt/logs.hh"
-
 using namespace adt;
 
 namespace platform::wayland
@@ -95,7 +93,6 @@ Client::pointerEnter(
     [[maybe_unused]] wl_fixed_t surfaceY
 )
 {
-    LOG("pointerEnter(): serial: {}\n", serial);
     m_lastPointerEnterSerial = serial;
     if (m_bPointerRelativeMode)
     {
@@ -210,8 +207,8 @@ Client::relativePointerMotion(
     [[maybe_unused]] uint32_t utimeLo,
     [[maybe_unused]] wl_fixed_t dx,
     [[maybe_unused]] wl_fixed_t dy,
-    [[maybe_unused]] wl_fixed_t dxUnaccel,
-    [[maybe_unused]] wl_fixed_t dyUnaccel
+    wl_fixed_t dxUnaccel,
+    wl_fixed_t dyUnaccel
 )
 {
     if (m_bPointerRelativeMode)

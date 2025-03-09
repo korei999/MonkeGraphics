@@ -8,7 +8,7 @@
 
 using namespace adt;
 
-Pool<Model, 128> Model::s_poolModels(INIT);
+Pool<Model, 128> Model::g_poolModels {};
 
 Model::Model(i16 assetModelI)
     : m_modelAssetI(assetModelI)
@@ -63,10 +63,10 @@ Model::updateAnimation(int animationI)
         ADT_ASSERT(accTimeStamps.eComponentType == gltf::COMPONENT_TYPE::FLOAT, " ");
 
         const View<f32> vwTimeStamps = model.accessorView<f32>(sampler.inputI);
+        ADT_ASSERT(vwTimeStamps.size() >= 2, " ");
+
         Node& node = m_vNodes[channel.target.nodeI];
         ADT_ASSERT(node.eType == Node::TRANSFORMATION_TYPE::ANIMATION, " ");
-
-        ADT_ASSERT(vwTimeStamps.size() >= 2, " ");
 
         /* TODO: stupid (or smart) heuristic */
         if (m_vSkinnedNodes.empty())
