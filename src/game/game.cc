@@ -73,6 +73,8 @@ loadStuff()
     addTestEntity("assets/RecursiveSkeletons/glTF/RecursiveSkeletons.gltf");
     addTestEntity("assets/RecursiveSkeletons/glTF/RecursiveSkeletons.gltf");
     addTestEntity("assets/RecursiveSkeletons/glTF/RecursiveSkeletons.gltf");
+
+    addTestEntity("assets/BoxAnimated/BoxAnimated.gltf");
 }
 
 void
@@ -156,6 +158,14 @@ updateState(adt::Arena*)
         auto entity = g_poolEntities[{9}];
         entity.pos = {24.0f, 0.0f, 5.0f};
         entity.scale = {0.01f, 0.01f, 0.01f};
+        entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
+        Model::fromI(entity.modelI).m_animationIUsed = 0;
+    }
+
+    {
+        auto entity = g_poolEntities[{10}];
+        entity.pos = {-6.0f, 0.0f, 5.0f};
+        entity.scale = {1.00f, 1.00f, 1.00f};
         entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
         Model::fromI(entity.modelI).m_animationIUsed = 0;
     }

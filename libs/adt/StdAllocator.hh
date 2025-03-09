@@ -16,18 +16,22 @@ namespace adt
  * freeAll() method is not supported. */
 struct StdAllocator : IAllocator
 {
+    static StdAllocator* inst();
+
+    /* virtual */
     [[nodiscard]] virtual void* malloc(usize mCount, usize mSize) noexcept(false) override final;
     [[nodiscard]] virtual void* zalloc(usize mCount, usize mSize) noexcept(false) override final;
     [[nodiscard]] virtual void* realloc(void* ptr, usize oldCount, usize newCount, usize mSize) noexcept(false) override final;
     void virtual free(void* ptr) noexcept override final;
     ADT_WARN_LEAK void virtual freeAll() noexcept override final; /* assert(false) */
+    /* virtual end */
 };
 
 inline StdAllocator*
-StdAllocatorInst()
+StdAllocator::inst()
 {
-    static StdAllocator alloc {};
-    return &alloc;
+    static StdAllocator instance {};
+    return &instance;
 }
 
 inline void*

@@ -36,7 +36,7 @@ static void loadShaders();
 static void loadAssetObjects();
 
 Pool<Shader, 128> g_poolShaders(INIT);
-static MapManaged<StringView, PoolHandle<Shader>> s_mapStringToShaders(StdAllocatorInst(), g_poolShaders.cap());
+static MapManaged<StringView, PoolHandle<Shader>> s_mapStringToShaders(StdAllocator::inst(), g_poolShaders.cap());
 
 static u8 s_aScratchMem[SIZE_8K] {};
 static ScratchBuffer s_scratch(s_aScratchMem);
@@ -186,7 +186,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                         if (pTex) pTex->bind(GL_TEXTURE0);
                         else s_texDefault.bind(GL_TEXTURE0);
 
-                        pSh->setM4("u_trm", trmProj * trmView * trm);
+                        pSh->setM4("u_trm", trmProj * trmView * trm * node.finalTransform);
                     }
                     else goto GOTO_defaultShader;
                 }
@@ -195,7 +195,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                     pSh = searchShader("SimpleColor");
                     pSh->use();
                     pSh->setV4("u_color", mat.pbrMetallicRoughness.baseColorFactor);
-                    pSh->setM4("u_trm", trmProj * trmView * trm);
+                    pSh->setM4("u_trm", trmProj * trmView * trm * node.finalTransform);
                 }
             }
             else
@@ -204,7 +204,7 @@ GOTO_defaultShader:
                 pSh = searchShader("SimpleTexture");
                 pSh->use();
                 s_texDefault.bind(GL_TEXTURE0);
-                pSh->setM4("u_trm", trmProj * trmView * trm);
+                pSh->setM4("u_trm", trmProj * trmView * trm * node.finalTransform);
             }
 
             auto* pPrimitiveData = reinterpret_cast<PrimitiveData*>(primitive.pData);
@@ -248,10 +248,10 @@ drawModel(const Model& model, math::M4 trm)
     }
 }
 
-static ThreadPool s_threadPool(StdAllocatorInst());
+static ThreadPool s_threadPool(StdAllocator::inst());
 
 void
-Renderer::drawEntities([[maybe_unused]] Arena* pArena)
+Renderer::drawGame([[maybe_unused]] Arena* pArena)
 {
     using namespace adt::math;
 
@@ -263,10 +263,10 @@ Renderer::drawEntities([[maybe_unused]] Arena* pArena)
         /* TODO: implement proper parallel for */
         for (auto& model : Model::s_poolModels)
         {
-            s_threadPool.add(+[](void* p)
+            s_threadPool.add(+[](void* p) -> THREAD_STATUS
                 {
                     reinterpret_cast<Model*>(p)->updateAnimation();
-                    return THREAD_STATUS(0);
+                    return static_cast<THREAD_STATUS>(0);
                 }, &model
             );
         }
@@ -309,6 +309,8 @@ Renderer::destroy()
 {
     for (Shader& shader : g_poolShaders)
         shader.destroy();
+
+    s_threadPool.destroy();
 }
 
 ShaderMapping::ShaderMapping(const StringView svVert, const StringView svFrag, const StringView svMappedTo)
@@ -607,8 +609,8 @@ bufferViewConvert(
 {
     ADT_ASSERT(pVbo != nullptr, " ");
 
-    Span<B> spB(StdAllocatorInst()->zallocV<B>(accessorCount), accessorCount);
-    defer( StdAllocatorInst()->free(spB.data()) );
+    Span<B> spB(StdAllocator::inst()->zallocV<B>(accessorCount), accessorCount);
+    defer( StdAllocator::inst()->free(spB.data()) );
     ADT_ASSERT(spB.size() == accessorCount, "sp.size: %lld, acc.count: %d", spB.size(), accessorCount);
 
     ssize maxSize = utils::min(spB.size(), spA.size());
@@ -659,7 +661,7 @@ loadGLTF(gltf::Model* pModel)
 
     auto& obj = *reinterpret_cast<asset::Object*>(pModel);
 
-    VecManaged<GLuint> vVBOs(StdAllocatorInst());;
+    VecManaged<GLuint> vVBOs(StdAllocator::inst());;
     defer( vVBOs.destroy() );
     {
         for (auto& buffer : pModel->m_vBuffers)

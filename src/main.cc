@@ -80,7 +80,7 @@ startup(int argc, char** argv)
 
         const char* ntsName = "MonkeGraphics";
 
-        /* polymorphic singletons */
+        /* allocate polymorphic singletons */
         app::g_pWindow = app::allocWindow(&allocator, ntsName);
         app::g_pRenderer = app::allocRenderer(&allocator);
 

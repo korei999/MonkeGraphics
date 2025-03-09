@@ -34,7 +34,7 @@ struct Arena : public IAllocator
 
     Arena() = default;
 
-    Arena(usize capacity, IAllocator* pBackingAlloc = StdAllocatorInst()) noexcept(false)
+    Arena(usize capacity, IAllocator* pBackingAlloc = StdAllocator::inst()) noexcept(false)
         : m_defaultCapacity(align8(capacity)),
           m_pBackAlloc(pBackingAlloc),
           m_pBlocks(allocBlock(m_defaultCapacity)) {}

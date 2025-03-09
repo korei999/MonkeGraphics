@@ -15,7 +15,7 @@ namespace render::gl
 struct Renderer : public IRenderer
 {
     virtual void init() override;
-    virtual void drawEntities(adt::Arena* pArena) override;
+    virtual void drawGame(adt::Arena* pArena) override;
     virtual void destroy() override;
 };
 

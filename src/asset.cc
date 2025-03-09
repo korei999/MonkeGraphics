@@ -14,7 +14,7 @@ namespace asset
 {
 
 Pool<Object, 128> g_poolObjects(INIT);
-static MapManaged<StringView, PoolHandle<Object>> s_mapStringToObjects(StdAllocatorInst(), g_poolObjects.cap());
+static MapManaged<StringView, PoolHandle<Object>> s_mapStringToObjects(StdAllocator::inst(), g_poolObjects.cap());
 
 void
 Object::destroy()
@@ -58,7 +58,7 @@ loadGLTF(const StringView svPath, const StringView sFile)
     bool bSucces = false;
 
     json::Parser parser;
-    bSucces = parser.parse(StdAllocatorInst(), sFile);
+    bSucces = parser.parse(StdAllocator::inst(), sFile);
     defer( parser.destroy() );
 
     if (!bSucces) return {};
@@ -78,8 +78,8 @@ loadGLTF(const StringView svPath, const StringView sFile)
 
     for (const auto& image : gltfModel.m_vImages)
     {
-        String sPath = file::replacePathEnding(StdAllocatorInst(), svPath, image.sUri);
-        defer( sPath.destroy(StdAllocatorInst()) );
+        String sPath = file::replacePathEnding(StdAllocator::inst(), svPath, image.sUri);
+        defer( sPath.destroy(StdAllocator::inst()) );
         load(sPath);
     }
 
@@ -96,11 +96,11 @@ load(const adt::StringView svPath)
         return found.value();
     }
 
-    String sFile = file::load(StdAllocatorInst(), svPath);
+    String sFile = file::load(StdAllocator::inst(), svPath);
     if (!sFile) return {};
 
     /* WARNING: must clone sFile contents */
-    defer( sFile.destroy(StdAllocatorInst()) );
+    defer( sFile.destroy(StdAllocator::inst()) );
 
     PoolHandle<Object> retHnd {};
 

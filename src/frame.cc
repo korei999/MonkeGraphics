@@ -47,7 +47,7 @@ refresh(void* pArg)
         s_accumulator -= g_dt;
     }
 
-    renderer.drawEntities(pArena);
+    renderer.drawGame(pArena);
 }
 
 static void
@@ -97,7 +97,7 @@ mainLoop()
 
     g_time = utils::timeNowS();
 
-    VecManaged<f64> vFrameTimes(StdAllocatorInst(), 1000);
+    VecManaged<f64> vFrameTimes(StdAllocator::inst(), 1000);
     defer( vFrameTimes.destroy() );
     f64 lastAvgFrameTimeUpdateTime {};
 
