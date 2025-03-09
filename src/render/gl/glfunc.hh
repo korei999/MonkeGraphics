@@ -15,7 +15,6 @@
     #include "glcorearb.h"
     #include <gl/GL.h>
 
-
 extern void (*glActiveTexture)(GLenum texture);
 extern void (*glUseProgram)(GLuint program);
 extern GLint (*glGetUniformLocation)(GLuint program, const GLchar *name);

@@ -255,12 +255,17 @@ Renderer::drawEntities([[maybe_unused]] Arena* pArena)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     {
-        for (int entityI = 0; entityI < game::g_poolEntites.m_size; ++entityI)
+        auto& poolEntities = game::g_poolEntities;
+
+        for (int entityI = poolEntities.firstI();
+            entityI < poolEntities.m_size;
+            entityI = poolEntities.nextI(entityI)
+        )
         {
-            game::EntityBind entity = game::g_poolEntites[{entityI}];
-            if (!game::g_poolEntites.m_aNonFree[entityI] || entity.bInvisible)
+            if (game::g_poolEntities.bindMember<&game::Entity::bNoDraw>({entityI}))
                 continue;
 
+            game::EntityBind entity = game::g_poolEntities[{entityI}];
             auto& obj = asset::g_poolObjects[{entity.assetI}];
 
             switch (obj.m_eType)

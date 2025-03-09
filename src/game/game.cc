@@ -23,8 +23,8 @@ PoolSOA<Entity, EntityBind, MAX_ENTITIES,
     &Entity::pos, &Entity::rot, &Entity::scale,
     &Entity::vel,
     &Entity::assetI, &Entity::modelI,
-    &Entity::bInvisible
-> g_poolEntites {};
+    &Entity::bNoDraw
+> g_poolEntities {};
 
 static const StringView s_aAssetsToLoad[] {
     "assets/duck/Duck.gltf",
@@ -47,8 +47,8 @@ loadStuff()
 
     auto addTestEntity = [&](const StringView svModel) -> void
     {
-        PoolSOAHandle<Entity> hTest = g_poolEntites.make({});
-        game::EntityBind bind = g_poolEntites[hTest];
+        PoolSOAHandle<Entity> hTest = g_poolEntities.make({});
+        game::EntityBind bind = g_poolEntities[hTest];
 
         if (auto* pObj = asset::search(svModel, asset::Object::TYPE::MODEL))
         {
@@ -73,24 +73,24 @@ updateState(adt::Arena*)
     control::g_camera.updatePos();
 
     {
-        auto entity = g_poolEntites[{0}];
-        entity.pos = {0.0f, 0.0f, 5.0f};
+        auto entity = g_poolEntities[{0}];
+        entity.pos = {-3.0f, 0.0f, 5.0f};
         entity.scale = {1.00f, 1.00f, 1.00f};
         entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
         Model::fromI(entity.modelI).m_animationIUsed = 0;
     }
 
     {
-        auto entity = g_poolEntites[{1}];
-        entity.pos = {3.0f, 0.0f, 5.0f};
+        auto entity = g_poolEntities[{1}];
+        entity.pos = {0.0f, 0.0f, 5.0f};
         entity.scale = {0.01f, 0.01f, 0.01f};
         entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
         Model::fromI(entity.modelI).m_animationIUsed = 2;
     }
 
     {
-        auto entity = g_poolEntites[{2}];
-        entity.pos = {6.0f, 0.0f, 5.0f};
+        auto entity = g_poolEntities[{2}];
+        entity.pos = {3.0f, 0.0f, 5.0f};
         entity.scale = {0.01f, 0.01f, 0.01f};
         entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
         Model::fromI(entity.modelI).m_animationIUsed = 0;

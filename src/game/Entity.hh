@@ -17,7 +17,7 @@ struct Entity
     adt::i16 assetI = -1;
     adt::i16 modelI = -1;
 
-    bool bInvisible = false;
+    bool bNoDraw = false;
 };
 
 struct EntityBind
@@ -31,7 +31,7 @@ struct EntityBind
     adt::i16& assetI;
     adt::i16& modelI;
 
-    bool& bInvisible;
+    bool& bNoDraw;
 };
 
 } /* namespace game */
@@ -52,7 +52,7 @@ formatToContext(Context ctx, FormatArgs, const game::EntityBind& x)
         "\n\tbInvisible: {}";
 
     ctx.fmtIdx = 0;
-    return printArgs(ctx, x.pos, x.rot, x.scale, x.vel, x.assetI, x.modelI, x.bInvisible);
+    return printArgs(ctx, x.pos, x.rot, x.scale, x.vel, x.assetI, x.modelI, x.bNoDraw);
 }
 
 } /* namespace adt::print */

@@ -35,7 +35,7 @@ template<typename STRUCT, typename BIND, int CAP, auto ...MEMBERS>
 struct PoolSOA : public SOAArrayHolder<STRUCT, CAP, MEMBERS>...
 {
     Array<PoolSOAHandle<STRUCT>, CAP> m_aFreeHandles {};
-    bool m_aNonFree[CAP] {};
+    bool m_aOccupiedIdxs[CAP] {};
     int m_size {};
 
     /* */
@@ -56,8 +56,8 @@ struct PoolSOA : public SOAArrayHolder<STRUCT, CAP, MEMBERS>...
         if (!m_aFreeHandles.empty())
         {
             PoolSOAHandle h = *m_aFreeHandles.pop();
+            m_aOccupiedIdxs[h.i] = true;
             set(h, x);
-            m_aNonFree[h.i] = false;
             return h;
         }
         else
@@ -71,8 +71,8 @@ struct PoolSOA : public SOAArrayHolder<STRUCT, CAP, MEMBERS>...
             }
 
             ++m_size;
+            m_aOccupiedIdxs[m_size - 1] = true;
             set({m_size - 1}, x);
-            m_aNonFree[m_size - 1] = true;
             return {m_size - 1};
         }
     }
@@ -80,17 +80,16 @@ struct PoolSOA : public SOAArrayHolder<STRUCT, CAP, MEMBERS>...
     void
     giveBack(PoolSOAHandle<STRUCT> h)
     {
-        m_aNonFree[h.i] = false;
+        m_aOccupiedIdxs[h.i] = false;
         m_aFreeHandles.push(h);
     }
 
-private:
     template<auto MEMBER>
     decltype(auto)
     bindMember(PoolSOAHandle<STRUCT> h)
     {
         ADT_ASSERT(h.i >= 0 && h.i < CAP, "out of range: h: %d, CAP: %d", h.i, CAP);
-        ADT_ASSERT(m_aNonFree[h.i], "handle '%d' is free", h.i);
+        ADT_ASSERT(m_aOccupiedIdxs[h.i], "handle '%d' is free", h.i);
         return static_cast<SOAArrayHolder<STRUCT, CAP, MEMBER>&>(*this).m_arrays[h.i];
     }
 
@@ -99,8 +98,48 @@ private:
     bindMember(PoolSOAHandle<STRUCT> h) const
     {
         ADT_ASSERT(h.i >= 0 && h.i < CAP, "out of range: h: %d, CAP: %d", h.i, CAP);
-        ADT_ASSERT(m_aNonFree[h.i], "handle '%d' is free", h.i);
+        ADT_ASSERT(m_aOccupiedIdxs[h.i], "handle '%d' is free", h.i);
         return static_cast<const SOAArrayHolder<STRUCT, CAP, MEMBER>&>(*this).m_arrays[h.i];
+    }
+
+    int
+    firstI() const
+    {
+        if (m_size == 0) return -1;
+
+        for (ssize i = 0; i < m_size; ++i)
+            if (m_aOccupiedIdxs[i]) return i;
+
+        return NPOS;
+    }
+
+    int
+    lastI() const
+    {
+        if (m_size == 0) return -1;
+
+        for (ssize i = m_size - 1; i >= 0; --i)
+            if (m_aOccupiedIdxs[i]) return i;
+
+        return NPOS;
+    }
+
+    int
+    nextI(int i) const
+    {
+        do ++i;
+        while (i < m_size && !m_aOccupiedIdxs[i]);
+
+        return i;
+    }
+
+    int
+    prevI(int i) const
+    {
+        do --i;
+        while (i >= 0 && !m_aOccupiedIdxs[i]);
+
+        return i;
     }
 };
 
