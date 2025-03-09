@@ -64,6 +64,10 @@ ThreadPool::ThreadPool(IAllocator* pAlloc, int nThreads)
             this
         );
     }
+
+#ifndef NDEBUG
+    fprintf(stderr, "ThreadPool: new pool with %d threads\n", nThreads);
+#endif
 }
 
 inline THREAD_STATUS
