@@ -8,9 +8,10 @@
 #include "game/game.hh"
 #include "shaders/glsl.hh"
 
+#include "adt/ThreadPool.hh"
 #include "adt/defer.hh"
 #include "adt/Map.hh"
-#include "adt/OsAllocator.hh"
+#include "adt/StdAllocator.hh"
 #include "adt/View.hh"
 #include "adt/logs.hh"
 #include "adt/ScratchBuffer.hh"
@@ -35,7 +36,7 @@ static void loadShaders();
 static void loadAssetObjects();
 
 Pool<Shader, 128> g_poolShaders(INIT);
-static MapManaged<StringView, PoolHandle<Shader>> s_mapStringToShaders(OsAllocatorGet(), g_poolShaders.cap());
+static MapManaged<StringView, PoolHandle<Shader>> s_mapStringToShaders(StdAllocatorInst(), g_poolShaders.cap());
 
 static u8 s_aScratchMem[SIZE_8K] {};
 static ScratchBuffer s_scratch(s_aScratchMem);
@@ -80,7 +81,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
 {
     using namespace adt::math;
     const gltf::Node& gltfNode = model.gltfNode(node);
-    const auto& win = app::window();
+    const auto& win = app::windowInst();
     const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
     const auto& camera = control::g_camera;
     const M4 trmProj = M4Pers(toRad(camera.m_fov), aspectRatio, 0.01f, 1000.0f);
@@ -247,6 +248,8 @@ drawModel(const Model& model, math::M4 trm)
     }
 }
 
+static ThreadPool s_threadPool(StdAllocatorInst());
+
 void
 Renderer::drawEntities([[maybe_unused]] Arena* pArena)
 {
@@ -256,6 +259,17 @@ Renderer::drawEntities([[maybe_unused]] Arena* pArena)
 
     {
         auto& poolEntities = game::g_poolEntities;
+
+        /* TODO: implement proper parallel for */
+        for (auto& model : Model::s_poolModels)
+            s_threadPool.add([](void* p)
+                {
+                    reinterpret_cast<Model*>(p)->updateAnimation();
+                    return 0;
+                }, &model
+            );
+
+        s_threadPool.wait();
 
         for (int entityI = poolEntities.firstI();
             entityI < poolEntities.m_size;
@@ -275,8 +289,6 @@ Renderer::drawEntities([[maybe_unused]] Arena* pArena)
                 case asset::Object::TYPE::MODEL:
                 {
                     Model& model = Model::fromI(entity.modelI);
-
-                    model.updateAnimation();
 
                     drawModel(model,
                         M4TranslationFrom(entity.pos) *
@@ -593,8 +605,8 @@ bufferViewConvert(
 {
     ADT_ASSERT(pVbo != nullptr, " ");
 
-    Span<B> spB(OsAllocatorGet()->zallocV<B>(accessorCount), accessorCount);
-    defer( OsAllocatorGet()->free(spB.data()) );
+    Span<B> spB(StdAllocatorInst()->zallocV<B>(accessorCount), accessorCount);
+    defer( StdAllocatorInst()->free(spB.data()) );
     ADT_ASSERT(spB.size() == accessorCount, "sp.size: %lld, acc.count: %d", spB.size(), accessorCount);
 
     ssize maxSize = utils::min(spB.size(), spA.size());
@@ -645,7 +657,7 @@ loadGLTF(gltf::Model* pModel)
 
     auto& obj = *reinterpret_cast<asset::Object*>(pModel);
 
-    VecManaged<GLuint> vVBOs(OsAllocatorGet());;
+    VecManaged<GLuint> vVBOs(StdAllocatorInst());;
     defer( vVBOs.destroy() );
     {
         for (auto& buffer : pModel->m_vBuffers)

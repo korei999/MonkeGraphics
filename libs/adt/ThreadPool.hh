@@ -44,7 +44,7 @@ struct ThreadPool
     [[deprecated("rvalue lambdas cause use after free")]] void addLambda(LAMBDA&& t) = delete;
 
 private:
-    THREAD_STATUS loop(void* pArg);
+    THREAD_STATUS loop();
 };
 
 inline
@@ -67,7 +67,7 @@ ThreadPool::ThreadPool(IAllocator* pAlloc, int nThreads)
 }
 
 inline THREAD_STATUS
-ThreadPool::loop(void* pArg)
+ThreadPool::loop()
 {
     while (true)
     {

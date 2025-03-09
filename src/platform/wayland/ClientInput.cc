@@ -120,7 +120,7 @@ Client::pointerMotion(
     [[maybe_unused]] wl_fixed_t surfaceY
 )
 {
-    auto& win = app::window();
+    auto& win = app::windowInst();
     if (!win.m_bPointerRelativeMode)
     {
         win.m_pointerSurfaceX = static_cast<f32>(wl_fixed_to_double(surfaceX));

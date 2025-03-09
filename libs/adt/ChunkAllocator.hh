@@ -1,6 +1,6 @@
 #pragma once
 
-#include "OsAllocator.hh"
+#include "StdAllocator.hh"
 
 #include <cassert>
 #include <cstdlib>
@@ -35,7 +35,7 @@ class ChunkAllocator : public IAllocator
 
 public:
     ChunkAllocator() = default;
-    ChunkAllocator(usize chunkSize, usize blockSize, IAllocator* pBackAlloc = OsAllocatorGet()) noexcept(false)
+    ChunkAllocator(usize chunkSize, usize blockSize, IAllocator* pBackAlloc = StdAllocatorInst()) noexcept(false)
         : m_blockCap {align(blockSize, chunkSize + sizeof(ChunkAllocatorNode))},
           m_chunkSize {chunkSize + sizeof(ChunkAllocatorNode)},
           m_pBackAlloc(pBackAlloc),

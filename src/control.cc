@@ -10,10 +10,10 @@ using namespace adt;
 namespace control
 {
 
-static void toggleFullscreen() { app::window().toggleFullscreen(); }
-static void quit() { app::window().m_bRunning = false; }
-static void toggleRelativePointer() { app::window().togglePointerRelativeMode(); }
-static void toggleVSync() { app::window().toggleVSync(); }
+static void toggleFullscreen() { app::windowInst().toggleFullscreen(); }
+static void quit() { app::windowInst().m_bRunning = false; }
+static void toggleRelativePointer() { app::windowInst().togglePointerRelativeMode(); }
+static void toggleVSync() { app::windowInst().toggleVSync(); }
 
 static void cameraForward() { g_camera.m_lastMove += g_camera.getForwardVecNoY(); }
 static void cameraBack() { g_camera.m_lastMove -= g_camera.getForwardVecNoY(); }
@@ -96,7 +96,7 @@ procMouse()
 {
     using namespace adt::math;
 
-    const auto& win = app::window();
+    const auto& win = app::windowInst();
 
     g_mouse.rel.x = win.m_relMotionX;
     g_mouse.rel.y = win.m_relMotionY;

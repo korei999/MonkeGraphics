@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RBTree.hh"
-#include "OsAllocator.hh"
+#include "StdAllocator.hh"
 
 #if defined ADT_DBG_MEMORY
     #include "logs.hh"
@@ -61,7 +61,7 @@ private:
 public:
     FreeList() = default;
 
-    FreeList(usize _blockSize, IAllocator* pBackAlloc = OsAllocatorGet()) noexcept(false)
+    FreeList(usize _blockSize, IAllocator* pBackAlloc = StdAllocatorInst()) noexcept(false)
         : m_blockSize(align8(_blockSize + sizeof(FreeListBlock) + sizeof(FreeList::Node))),
           m_pBackAlloc(pBackAlloc),
           m_pBlocks(allocBlock(m_blockSize)) {}

@@ -21,7 +21,7 @@ struct MiMalloc : IAllocator
 };
 
 inline MiMalloc*
-MiMallocGet()
+MiMallocInst()
 {
     static MiMalloc alloc {};
     return &alloc;

@@ -15,8 +15,8 @@ extern RENDERER_TYPE g_eRendererType;
 extern IWindow* g_pWindow;
 extern render::IRenderer* g_pRenderer;
 
-inline IWindow& window() { return *g_pWindow; }
-inline render::IRenderer& renderer() { return *g_pRenderer; }
+inline IWindow& windowInst() { return *g_pWindow; }
+inline render::IRenderer& rendererInst() { return *g_pRenderer; }
 
 /* depend on global `g_eWindowType` and `g_eRendererType` */
 IWindow* allocWindow(adt::IAllocator* pAlloc, const char* ntsName);

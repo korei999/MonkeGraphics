@@ -1,6 +1,6 @@
 #pragma once
 
-#include "OsAllocator.hh"
+#include "StdAllocator.hh"
 #include "utils.hh"
 
 #include <cstdlib>
@@ -34,7 +34,7 @@ struct Arena : public IAllocator
 
     Arena() = default;
 
-    Arena(usize capacity, IAllocator* pBackingAlloc = OsAllocatorGet()) noexcept(false)
+    Arena(usize capacity, IAllocator* pBackingAlloc = StdAllocatorInst()) noexcept(false)
         : m_defaultCapacity(align8(capacity)),
           m_pBackAlloc(pBackingAlloc),
           m_pBlocks(allocBlock(m_defaultCapacity)) {}

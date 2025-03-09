@@ -26,7 +26,7 @@ static void
 refresh(void* pArg)
 {
     Arena* pArena = static_cast<Arena*>(pArg);
-    auto& renderer = app::renderer();
+    auto& renderer = app::rendererInst();
 
     static f64 s_accumulator = 0.0;
 
@@ -83,7 +83,7 @@ eventLoop()
 static void
 mainLoop()
 {
-    auto& win = app::window();
+    auto& win = app::windowInst();
 
     Arena frameArena(SIZE_8M);
     defer( frameArena.freeAll() );
@@ -97,7 +97,7 @@ mainLoop()
 
     g_time = utils::timeNowS();
 
-    VecManaged<f64> vFrameTimes(OsAllocatorGet(), 1000);
+    VecManaged<f64> vFrameTimes(StdAllocatorInst(), 1000);
     defer( vFrameTimes.destroy() );
     f64 lastAvgFrameTimeUpdateTime {};
 
@@ -135,8 +135,8 @@ mainLoop()
 void
 start()
 {
-    auto& win = app::window();
-    auto& renderer = app::renderer();
+    auto& win = app::windowInst();
+    auto& renderer = app::rendererInst();
 
     win.m_bRunning = true;
 

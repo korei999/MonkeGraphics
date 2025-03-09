@@ -715,7 +715,7 @@ drawImgDBG(Image* pImg)
 {
     ADT_ASSERT(pImg, "pImg == nullptr");
 
-    auto& win = app::window();
+    auto& win = app::windowInst();
     auto sp = win.surfaceBuffer();
     auto spImg = pImg->getSpanRGBA();
 
@@ -739,12 +739,12 @@ Renderer::drawEntities(Arena* pArena)
 {
     using namespace adt::math;
 
-    static Vec<f64> s_vFrameTimes(OsAllocatorGet(), 1000);
+    static Vec<f64> s_vFrameTimes(StdAllocatorInst(), 1000);
     static f64 s_lastAvgFrameTimeUpdate {};
 
     const f64 t0 = utils::timeNowMS();
 
-    auto& win = app::window();
+    auto& win = app::windowInst();
 
     win.clearSurfaceBuffer({0.1f, 0.1f, 0.1f, 1.0f});
     win.clearDepthBuffer();
