@@ -111,9 +111,9 @@ fileType(const char* ntsPath)
     struct stat st {};
 
     [[maybe_unused]] int err = ::stat(ntsPath, &st) != 0;
-#ifndef NDEBUG
     if (err != 0)
     {
+#ifndef NDEBUG
         fprintf(stderr, "stat(): err: %d\n", err);
 #endif
         return TYPE::ERROR;

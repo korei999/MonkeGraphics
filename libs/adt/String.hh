@@ -46,7 +46,7 @@ ntsSize(const char (&aCharBuff)[SIZE])
     #endif
 #else
 
-    while (i < SIZE && nts[i] != '\0') ++i;
+    while (i < SIZE && aCharBuff[i] != '\0') ++i;
 
 #endif
 

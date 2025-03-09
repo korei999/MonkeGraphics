@@ -74,7 +74,7 @@ struct Directory
             if (!pEntry) return {};
 
             usize n = strnlen(pEntry->d_name, sizeof(pEntry->d_name));
-            return {pEntry->d_name, n};
+            return {pEntry->d_name, static_cast<ssize>(n)};
         }
 
         It

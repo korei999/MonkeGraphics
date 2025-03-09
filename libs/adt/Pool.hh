@@ -225,7 +225,6 @@ Pool<T, CAP>::giveBack(PoolHandle<T> hnd)
     --m_nOccupied;
 
     m_aFreeIdxs.push(hnd);
-    auto& node = m_aNodes[hnd.i];
     ADT_ASSERT(m_aOccupied[hnd.i], "returning unoccupied node");
     m_aOccupied[hnd.i] = false;
 }
