@@ -240,7 +240,7 @@ Directory::Directory(const char* ntsPath)
     if (m_hFind == INVALID_HANDLE_VALUE)
     {
 #ifndef NDEBUG
-        fprintf(stderr, "failed to open '%s'\n", m_aBuff);
+        fprintf(stderr, "failed to open '%s'\n", ntsPath);
 #endif
         memset(m_aBuff, 0, sizeof(m_aBuff));
     }
