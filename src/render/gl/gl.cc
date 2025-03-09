@@ -263,10 +263,10 @@ Renderer::drawEntities([[maybe_unused]] Arena* pArena)
         /* TODO: implement proper parallel for */
         for (auto& model : Model::s_poolModels)
         {
-            s_threadPool.add([](void* p)
+            s_threadPool.add(+[](void* p)
                 {
                     reinterpret_cast<Model*>(p)->updateAnimation();
-                    return 0;
+                    return THREAD_STATUS(0);
                 }, &model
             );
         }
