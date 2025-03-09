@@ -235,12 +235,12 @@ Directory::Directory(const char* ntsPath)
         }
     }
 
-    p->m_hFind = FindFirstFile(p->m_aBuff, &p->m_fileData);
+    m_hFind = FindFirstFile(m_aBuff, &m_fileData);
 
-    if (p->m_hFind == INVALID_HANDLE_VALUE)
+    if (m_hFind == INVALID_HANDLE_VALUE)
     {
 #ifndef NDEBUG
-        fprintf(stderr, "failed to open '%s'\n", p->m_aBuff);
+        fprintf(stderr, "failed to open '%s'\n", m_aBuff);
 #endif
         memset(m_aBuff, 0, sizeof(m_aBuff));
     }
@@ -249,7 +249,7 @@ Directory::Directory(const char* ntsPath)
 inline
 Directory::operator bool() const
 {
-    return m_hFind > 0;
+    return m_hFind != nullptr && m_hFind != INVALID_HANDLE_VALUE;
 }
 
 inline bool
