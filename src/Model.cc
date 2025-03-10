@@ -13,8 +13,6 @@ Pool<Model, 128> Model::g_poolModels {};
 Model::Model(i16 assetModelI)
     : m_modelAssetI(assetModelI)
 {
-    const gltf::Model& model = gltfModel();
-
     m_arena = {SIZE_1M};
 
     loadNodes();
