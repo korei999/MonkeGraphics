@@ -36,17 +36,22 @@ struct Model
         TRANSFORMATION_TYPE eType = TRANSFORMATION_TYPE::MATRIX;
     };
 
+    struct Animation
+    {
+        adt::f64 minTime = INFINITY;
+        adt::f64 maxTime = -INFINITY;
+    };
+
     /* */
 
     adt::Arena m_arena {};
 
     adt::Vec<Node> m_vNodes {};
     adt::Vec<Skin> m_vSkins {};
+    adt::Vec<Animation> m_vAnimations {};
     adt::Vec<int> m_vSkinnedNodes {};
 
     adt::f64 m_time {};
-    adt::f64 m_globalMinTime {};
-    adt::f64 m_globalMaxTime {};
     adt::i16 m_modelAssetI {};
 
     int m_animationIUsed = -1;
@@ -86,6 +91,7 @@ struct Model
 private:
     void loadNodes();
     void loadSkins();
+    void loadAnimations();
 
     void updateNodes();
     void updateNode(Node* pNode, adt::math::M4 trm);

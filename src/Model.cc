@@ -17,17 +17,8 @@ Model::Model(i16 assetModelI)
 
     m_arena = {SIZE_1M};
 
-    for (auto& animation : model.m_vAnimations)
-    {
-        for (auto& sampler : animation.vSamplers)
-        {
-            auto& accTimeStamps = model.m_vAccessors[sampler.inputI];
-            m_globalMinTime = utils::min(m_globalMinTime, static_cast<f64>(accTimeStamps.uMin.SCALAR));
-            m_globalMaxTime = utils::max(m_globalMaxTime, static_cast<f64>(accTimeStamps.uMax.SCALAR));
-        }
-    }
-
     loadNodes();
+    loadAnimations();
     loadSkins();
 }
 
@@ -54,11 +45,12 @@ Model::updateAnimation(int animationI)
 
     m_time += frame::g_frameTime;
 
-    const gltf::Animation& animation = model.m_vAnimations[animationI];
+    const gltf::Animation& gltfAnimation = model.m_vAnimations[animationI];
+    const Animation& animation = m_vAnimations[animationI];
 
-    for (const auto& channel : animation.vChannels)
+    for (const auto& channel : gltfAnimation.vChannels)
     {
-        const auto& sampler = animation.vSamplers[channel.samplerI];
+        const auto& sampler = gltfAnimation.vSamplers[channel.samplerI];
         const gltf::Accessor& accTimeStamps = model.m_vAccessors[sampler.inputI];
         ADT_ASSERT(accTimeStamps.eComponentType == gltf::COMPONENT_TYPE::FLOAT, " ");
 
@@ -68,11 +60,11 @@ Model::updateAnimation(int animationI)
         Node& node = m_vNodes[channel.target.nodeI];
         ADT_ASSERT(node.eType == Node::TRANSFORMATION_TYPE::ANIMATION, " ");
 
-        /* TODO: stupid (or smart) heuristic */
+        /* NOTE: not sure we need this branch */
         if (m_vSkinnedNodes.empty())
         {
-            const f64 actualDuration = m_globalMaxTime - m_globalMinTime;
-            m_time = std::fmod(m_time - m_globalMinTime, actualDuration) + m_globalMinTime;
+            const f64 actualDuration = animation.maxTime - animation.minTime;
+            m_time = std::fmod(m_time - animation.minTime, actualDuration) + animation.minTime;
         }
         else
         {
@@ -254,6 +246,30 @@ Model::loadSkins()
 
         newSkin.vJointMatrices.setSize(&m_arena, gltfSkin.vJoints.size());
         for (auto& trm : newSkin.vJointMatrices) trm = {};
+    }
+}
+
+void
+Model::loadAnimations()
+{
+    const gltf::Model& model = gltfModel();
+
+    m_vAnimations.setCap(&m_arena, model.m_vAnimations.size());
+
+    for (const gltf::Animation& anim : model.m_vAnimations)
+    {
+        Animation& newAnim = m_vAnimations[m_vAnimations.push(&m_arena, {})];
+
+        for (const gltf::Animation::Sampler& sampler : anim.vSamplers)
+        {
+            auto& accTimeStamps = model.m_vAccessors[sampler.inputI];
+
+            if (newAnim.maxTime < accTimeStamps.uMax.SCALAR)
+                newAnim.maxTime = accTimeStamps.uMax.SCALAR;
+
+            if (newAnim.minTime > accTimeStamps.uMin.SCALAR)
+                newAnim.minTime = accTimeStamps.uMin.SCALAR;
+        }
     }
 }
 
