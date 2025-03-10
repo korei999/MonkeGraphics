@@ -62,16 +62,14 @@ struct Directory
         It(const Directory* pSelf, int _i)
             : p(const_cast<Directory*>(pSelf)), i(_i)
         {
-            if (i != NPOS)
+            if (i == NPOS) return;
+
+            while ((p->m_pEntry = readdir(p->m_pDir)))
             {
-                /* skip '.' and '..' */
-                while ((pEntry = readdir(p->m_pDir)))
-                {
-                    if (strncmp(p->m_pEntry->d_name, ".", sizeof(p->m_pEntry->d_name)) == 0 ||
-                        strncmp(p->m_pEntry->d_name, "..", sizeof(p->m_pEntry->d_name)) == 0)
-                        continue;
-                    else break;
-                }
+                if (strcmp(p->m_pEntry->d_name, ".") == 0 ||
+                    strcmp(p->m_pEntry->d_name, "..") == 0)
+                    continue;
+                else break;
             }
         }
 
@@ -119,8 +117,6 @@ Directory::Directory(const char* ntsPath)
 #endif
         return;
     }
-
-
 }
 
 inline bool
@@ -171,13 +167,6 @@ struct Directory
             : p(const_cast<Directory*>(self)), bStatus(_bStatus)
         {
             if (!bStatus) return;
-
-            p->m_hFind = FindFirstFile(p->m_aBuff, &p->m_fileData);
-
-#ifndef NDEBUG
-            if (p->m_hFind == INVALID_HANDLE_VALUE)
-                fprintf(stderr, "failed to open '%s'\n", p->m_aBuff);
-#endif
 
             do
             {
@@ -245,12 +234,22 @@ Directory::Directory(const char* ntsPath)
             }
         }
     }
+
+    p->m_hFind = FindFirstFile(p->m_aBuff, &p->m_fileData);
+
+    if (p->m_hFind == INVALID_HANDLE_VALUE)
+    {
+#ifndef NDEBUG
+        fprintf(stderr, "failed to open '%s'\n", p->m_aBuff);
+#endif
+        memset(m_aBuff, 0, sizeof(m_aBuff));
+    }
 }
 
 inline
 Directory::operator bool() const
 {
-    return m_hFind != 0;
+    return m_hFind > 0;
 }
 
 inline bool

@@ -36,7 +36,7 @@ template <ssize SIZE>
 charBuffStringSize(const char (&aCharBuff)[SIZE])
 {
     ssize i = 0;
-    if (!aCharBuff || SIZE == 0) return 0;
+    if (SIZE == 0) return 0;
 
     while (i < SIZE && aCharBuff[i] != '\0') ++i;
 
