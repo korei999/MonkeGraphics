@@ -1,4 +1,5 @@
 /* Just a simple directory file iterator, nothing else is cross platform at the moment. */
+/* TODO: abstract directory properties */
 
 #pragma once
 
@@ -94,7 +95,7 @@ struct Directory
             p->m_pEntry = readdir(p->m_pDir);
             if (!p->m_pEntry) i = NPOS;
 
-            return {i};
+            return *this;
         }
 
         friend bool operator==(const It& l, const It& r) { return l.i == r.i; }
@@ -200,7 +201,7 @@ struct Directory
             if (FindNextFile(p->m_hFind, &p->m_fileData) == 0)
                 bStatus = false;
 
-            return {bStatus};
+            return *this;
         }
 
         friend bool operator==(const It& l, const It& r) { return l.bStatus == r.bStatus; }

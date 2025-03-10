@@ -342,8 +342,8 @@ Client::global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, 
 {
     LOG("interface: '{}', version: {}, name: {}\n", ntsInterface, version, name);
 
-    /* TODO: chosing the latest version doesn't actually work,
-     * since some distros (debian) ship older libwayland version */
+    /* TODO: choosing the latest version doesn't actually work,
+     * since some distros (debian) ship older libwayland versions */
 
     StringView svInterface = StringView(ntsInterface);
 

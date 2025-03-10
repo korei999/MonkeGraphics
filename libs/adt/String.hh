@@ -221,12 +221,16 @@ struct StringWordIt
 
         /* */
 
-        It(const StringView sv, ssize pos, const StringView svSeps)
+        It(const StringView sv, ssize pos, const StringView svSeps, bool)
             : m_svStr(sv), m_svSeps(svSeps),  m_i(pos)
         {
-            if (pos != NPOS)
-                operator++();
+            if (pos != NPOS) operator++();
         }
+
+        It(const StringView sv, ssize pos, const StringView svSeps)
+            : m_svStr(sv), m_svSeps(svSeps),  m_i(pos) {}
+
+        explicit It(ssize i) : m_i(i) {}
 
         /* */
 
@@ -260,6 +264,8 @@ struct StringWordIt
             m_svCurrWord = {const_cast<char*>(&m_svStr[start]), end - start};
             m_i = end + 1;
 
+            if (m_svCurrWord.empty()) operator++();
+
             return *this;
         }
 
@@ -267,11 +273,11 @@ struct StringWordIt
         friend bool operator!=(const It& l, const It& r) { return l.m_i != r.m_i; }
     };
 
-    It begin() { return {m_sv, 0, m_svDelimiters}; }
-    It end() { return {m_sv, NPOS, m_svDelimiters}; }
+    It begin() { return {m_sv, 0, m_svDelimiters, true}; }
+    It end() { return It(NPOS); }
 
-    const It begin() const { return {m_sv, 0, m_svDelimiters}; }
-    const It end() const { return {m_sv, NPOS, m_svDelimiters}; }
+    const It begin() const { return {m_sv, 0, m_svDelimiters, true}; }
+    const It end() const { return It(NPOS); }
 };
 
 inline bool

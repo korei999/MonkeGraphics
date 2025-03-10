@@ -62,6 +62,10 @@ struct Model
 
     /* */
 
+    static Model& fromI(adt::i16 h) { return g_poolModels[{h}]; }
+
+    /* */
+
     Model() = default;
     Model(adt::i16 assetModelI);
 
@@ -74,16 +78,10 @@ struct Model
         return g_poolModels.make(std::forward<ARGS>(args)...);
     }
 
-    static Model&
-    fromI(adt::i16 h)
-    {
-        return g_poolModels[{h}];
-    }
-
     /* */
 
     gltf::Model& gltfModel() const;
-    gltf::Node& gltfNode(const Node& node) const;
+    gltf::Node& gltfNode(const Node& node) const { return gltfModel().m_vNodes[m_vNodes.idx(&node)]; };
 
     void updateAnimation(int animationI);
     void updateAnimation() { updateAnimation(m_animationIUsed); }

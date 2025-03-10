@@ -156,12 +156,13 @@ start()
         break;
     }
 
+    /* wait for running tasks */
+    renderer.destroy();
+
 #ifndef NDEBUG
 
     for (auto& asset : asset::g_poolObjects)
         asset.destroy();
-
-    renderer.destroy();
 
 #endif
 }

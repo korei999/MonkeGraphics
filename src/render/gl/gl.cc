@@ -319,10 +319,10 @@ Renderer::drawGame([[maybe_unused]] Arena* pArena)
 void
 Renderer::destroy()
 {
+    s_threadPool.destroy();
+
     for (Shader& shader : g_poolShaders)
         shader.destroy();
-
-    s_threadPool.destroy();
 }
 
 ShaderMapping::ShaderMapping(const StringView svVert, const StringView svFrag, const StringView svMappedTo)

@@ -198,7 +198,7 @@ Model::loadNodes()
 
     for (const gltf::Node& gltfNode : model.m_vNodes)
     {
-        Node& newNode = m_vNodes[m_vNodes.push(&m_arena, {})];
+        Node& newNode = m_vNodes[m_vNodes.emplace(&m_arena)];
 
         if (gltfNode.skinI > -1)
             m_vSkinnedNodes.push(&m_arena, model.m_vNodes.idx(&gltfNode));
@@ -228,7 +228,7 @@ Model::loadNodes()
             }
             break;
 
-            default: ADT_ASSERT(false, "invadil path"); break;
+            default: ADT_ASSERT(false, "invalid path"); break;
         };
     }
 }
@@ -242,7 +242,7 @@ Model::loadSkins()
 
     for (const auto& gltfSkin : model.m_vSkins)
     {
-        Skin& newSkin = m_vSkins[m_vSkins.push(&m_arena, {})];
+        Skin& newSkin = m_vSkins[m_vSkins.emplace(&m_arena)];
 
         newSkin.vJointMatrices.setSize(&m_arena, gltfSkin.vJoints.size());
         for (auto& trm : newSkin.vJointMatrices) trm = {};
@@ -258,7 +258,7 @@ Model::loadAnimations()
 
     for (const gltf::Animation& anim : model.m_vAnimations)
     {
-        Animation& newAnim = m_vAnimations[m_vAnimations.push(&m_arena, {})];
+        Animation& newAnim = m_vAnimations[m_vAnimations.emplace(&m_arena)];
 
         for (const gltf::Animation::Sampler& sampler : anim.vSamplers)
         {
@@ -272,9 +272,3 @@ Model::loadAnimations()
         }
     }
 }
-
-gltf::Node&
-Model::gltfNode(const Node& node) const
-{
-    return gltfModel().m_vNodes[m_vNodes.idx(&node)];
-};
