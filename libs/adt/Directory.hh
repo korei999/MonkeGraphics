@@ -1,3 +1,5 @@
+/* Just a simple directory file iterator, nothing else is cross platform at the moment. */
+
 #pragma once
 
 #include "String.hh"
@@ -100,10 +102,10 @@ struct Directory
     };
 
     It begin() { return {this, 0}; }
-    It end() { return {this, NPOS}; }
+    It end() { return {NPOS}; }
 
     It begin() const { return {this, 0}; }
-    It end() const { return {this, NPOS}; }
+    It end() const { return {NPOS}; }
 };
 
 inline
