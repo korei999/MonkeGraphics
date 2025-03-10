@@ -321,19 +321,6 @@ drawModel(const Model& model, math::M4 trm)
 }
 
 static void
-drawModelMesh(const Model& model)
-{
-    const gltf::Model& gltfModel = model.gltfModel();
-    const gltf::Scene& scene = gltfModel.m_vScenes[gltfModel.m_defaultSceneI];
-
-    for (const int& nodeI : scene.vNodes)
-    {
-        const Model::Node& node = model.m_vNodes[nodeI];
-        drawNodeMesh(model, node);
-    }
-}
-
-static void
 drawSkybox()
 {
     math::M4 view = control::g_camera.m_trm;
@@ -365,7 +352,8 @@ drawSkybox()
             Model& model = Model::fromI(
                 game::g_poolEntities.bindMember<&game::Entity::modelI>(oEntity.value())
             );
-            drawModelMesh(model);
+            /* this cube has only one mesh */
+            drawNodeMesh(model, model.m_vNodes[0]);
         }
     }
 
