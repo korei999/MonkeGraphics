@@ -20,13 +20,21 @@ struct AssetMapping
 };
 
 PoolSOA<Entity, EntityBind, MAX_ENTITIES,
+    &Entity::name,
     &Entity::pos, &Entity::rot, &Entity::scale,
     &Entity::vel,
     &Entity::assetI, &Entity::modelI,
     &Entity::bNoDraw
 > g_poolEntities {};
 
+MapManaged<
+    Entity::Name,
+    PoolSOAHandle<Entity>,
+    Entity::Name::hashFunc
+> g_mapNamesToEntities(StdAllocator::inst(), MAX_ENTITIES);
+
 static const StringView s_aAssetsToLoad[] {
+    "assets/cube/cube.gltf",
     "assets/duck/Duck.gltf",
     "assets/BoxAnimated/BoxAnimated.gltf",
     "assets/SimpleSkin/glTF/SimpleSkin.gltf",
@@ -46,10 +54,10 @@ loadStuff()
             LOG_BAD("failed to load: '{}'\n", svPath);
     }
 
-    auto addTestEntity = [&](const StringView svModel) -> void
+    auto addTestEntity = [&](const StringView svModel, const StringView svName) -> void
     {
-        PoolSOAHandle<Entity> hTest = g_poolEntities.make({});
-        game::EntityBind bind = g_poolEntities[hTest];
+        PoolSOAHandle<Entity> handle = g_poolEntities.make({});
+        game::EntityBind bind = g_poolEntities[handle];
 
         if (auto* pObj = asset::search(svModel, asset::Object::TYPE::MODEL))
         {
@@ -58,15 +66,26 @@ loadStuff()
 
             auto hModel = Model::make(bind.assetI);
             bind.modelI = hModel.i;
+
+            bind.name = svName;
+
+            g_mapNamesToEntities.insert(bind.name, handle);
         }
 
-        LOG("entity #{}: {}\n", hTest.i, bind);
+        LOG("entity #{}: {}\n", handle.i, bind);
     };
 
-    addTestEntity("assets/Capo/capo.gltf");
-    addTestEntity("assets/Fox/Fox.gltf");
-    addTestEntity("assets/RecursiveSkeletons/glTF/RecursiveSkeletons.gltf");
-    addTestEntity("assets/BoxAnimated/BoxAnimated.gltf");
+    addTestEntity("assets/cube/cube.gltf", "Cube");
+
+    addTestEntity("assets/Capo/capo.gltf", "Capo");
+    addTestEntity("assets/Fox/Fox.gltf", "Fox");
+    addTestEntity("assets/RecursiveSkeletons/glTF/RecursiveSkeletons.gltf", "RecursiveSkeletons");
+    addTestEntity("assets/BoxAnimated/BoxAnimated.gltf", "BoxAnimated");
+
+    {
+        auto entity = g_poolEntities[{0}];
+        entity.bNoDraw = true;
+    }
 }
 
 void
@@ -75,7 +94,7 @@ updateState(adt::Arena*)
     control::g_camera.updatePos();
 
     {
-        auto entity = g_poolEntities[{0}];
+        auto entity = g_poolEntities[{1}];
         entity.pos = {-3.0f, 0.0f, 5.0f};
         entity.scale = {1.00f, 1.00f, 1.00f};
         entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
@@ -83,7 +102,7 @@ updateState(adt::Arena*)
     }
 
     {
-        auto entity = g_poolEntities[{1}];
+        auto entity = g_poolEntities[{2}];
         entity.pos = {0.0f, 0.0f, 5.0f};
         entity.scale = {0.01f, 0.01f, 0.01f};
         entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
@@ -91,7 +110,7 @@ updateState(adt::Arena*)
     }
 
     {
-        auto entity = g_poolEntities[{2}];
+        auto entity = g_poolEntities[{3}];
         entity.pos = {3.0f, 0.0f, 5.0f};
         entity.scale = {0.01f, 0.01f, 0.01f};
         entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
@@ -99,12 +118,19 @@ updateState(adt::Arena*)
     }
 
     {
-        auto entity = g_poolEntities[{3}];
+        auto entity = g_poolEntities[{4}];
         entity.pos = {-6.0f, 0.0f, 5.0f};
         entity.scale = {1.00f, 1.00f, 1.00f};
         entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
         Model::fromI(entity.modelI).m_animationIUsed = 0;
     }
+}
+
+[[nodiscard]]
+Opt<PoolSOAHandle<Entity>> searchEntity(StringView svName)
+{
+    auto res = g_mapNamesToEntities.search(svName);
+    return Opt(res.valueOr({}));
 }
 
 } /* namespace game */

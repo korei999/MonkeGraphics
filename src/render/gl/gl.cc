@@ -32,7 +32,7 @@ struct PrimitiveData
     GLuint ebo {};
 };
 
-struct SkyBox
+struct Skybox
 {
     GLuint m_fbo;
     GLuint m_tex;
@@ -41,12 +41,17 @@ struct SkyBox
 
     /* */
 
-    SkyBox() = default;
-    SkyBox(Image a6Images[6]);
+    Skybox() = default;
+    Skybox(Image a6Images[6]);
+
+    /* */
+
+    void bind() { glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex); }
 };
 
 static void loadShaders();
 static void loadAssetObjects();
+static void loadSkybox();
 
 Pool<Shader, 128> g_poolShaders {};
 static MapManaged<StringView, PoolHandle<Shader>> s_mapStringToShaders(StdAllocator::inst(), g_poolShaders.cap());
@@ -55,7 +60,9 @@ static u8 s_aScratchMem[SIZE_1K * 100] {};
 static ScratchBuffer s_scratch(s_aScratchMem);
 
 static Texture s_texDefault {};
-static SkyBox s_skyboxDefault {};
+static Skybox s_skyboxDefault {};
+
+static ThreadPool s_threadPool(StdAllocator::inst());
 
 static const ShaderMapping s_aShadersToLoad[] {
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"},
@@ -64,6 +71,7 @@ static const ShaderMapping s_aShadersToLoad[] {
     {shaders::glsl::ntsSkinVert, shaders::glsl::ntsSimpleColorFrag, "Skin"},
     {shaders::glsl::ntsSkinTextureVert, shaders::glsl::ntsInterpolatedColorFrag, "SkinTestColors"},
     {shaders::glsl::ntsSkinTextureVert, shaders::glsl::ntsSimpleTextureFrag, "SkinTexture"},
+    {shaders::glsl::ntsSkyboxVert, shaders::glsl::ntsSkyboxFrag, "Skybox"},
 };
 
 void
@@ -84,10 +92,11 @@ Renderer::init()
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
+    s_texDefault = Texture(common::g_spDefaultTexture);
+
     loadShaders();
     loadAssetObjects();
-
-    s_texDefault = Texture(common::g_spDefaultTexture);
+    loadSkybox();
 };
 
 static void
@@ -222,28 +231,77 @@ GOTO_defaultShader:
             }
 
             auto* pPrimitiveData = reinterpret_cast<PrimitiveData*>(primitive.pData);
-            if (pPrimitiveData) glBindVertexArray(pPrimitiveData->vao);
-
-            if (primitive.indicesI != -1)
+            if (pPrimitiveData)
             {
-                const gltf::Accessor& accIndices = gltfModel.m_vAccessors[primitive.indicesI];
+                glBindVertexArray(pPrimitiveData->vao);
 
-                glDrawElements(
-                    static_cast<GLenum>(primitive.eMode),
-                    accIndices.count,
-                    static_cast<GLenum>(accIndices.eComponentType),
-                    {}
-                );
+                if (primitive.indicesI != -1)
+                {
+                    const gltf::Accessor& accIndices = gltfModel.m_vAccessors[primitive.indicesI];
+
+                    glDrawElements(
+                        static_cast<GLenum>(primitive.eMode),
+                        accIndices.count,
+                        static_cast<GLenum>(accIndices.eComponentType),
+                        {}
+                    );
+                }
+                else
+                {
+                    const auto& accPos = gltfModel.m_vAccessors[primitive.attributes.POSITION];
+
+                    glDrawArrays(
+                        static_cast<GLenum>(primitive.eMode),
+                        0,
+                        accPos.count
+                    );
+                }
             }
-            else
-            {
-                const auto& accPos = gltfModel.m_vAccessors[primitive.attributes.POSITION];
+        }
+    }
+}
 
-                glDrawArrays(
-                    static_cast<GLenum>(primitive.eMode),
-                    0,
-                    accPos.count
-                );
+static void
+drawNodeMesh(const Model& model, const Model::Node& node)
+{
+    const gltf::Node& gltfNode = model.gltfNode(node);
+    const auto& gltfModel = model.gltfModel();
+
+    for (const int& child : gltfNode.vChildren)
+        drawNodeMesh(model, model.m_vNodes[child]);
+
+    if (gltfNode.meshI > -1)
+    {
+        auto& gltfMesh = gltfModel.m_vMeshes[gltfNode.meshI];
+
+        for (const auto& primitive : gltfMesh.vPrimitives)
+        {
+            auto* pPrimitiveData = reinterpret_cast<PrimitiveData*>(primitive.pData);
+            if (pPrimitiveData)
+            {
+                glBindVertexArray(pPrimitiveData->vao);
+
+                if (primitive.indicesI != -1)
+                {
+                    const gltf::Accessor& accIndices = gltfModel.m_vAccessors[primitive.indicesI];
+
+                    glDrawElements(
+                        static_cast<GLenum>(primitive.eMode),
+                        accIndices.count,
+                        static_cast<GLenum>(accIndices.eComponentType),
+                        {}
+                    );
+                }
+                else
+                {
+                    const auto& accPos = gltfModel.m_vAccessors[primitive.attributes.POSITION];
+
+                    glDrawArrays(
+                        static_cast<GLenum>(primitive.eMode),
+                        0,
+                        accPos.count
+                    );
+                }
             }
         }
     }
@@ -262,7 +320,56 @@ drawModel(const Model& model, math::M4 trm)
     }
 }
 
-static ThreadPool s_threadPool(StdAllocator::inst());
+static void
+drawModelMesh(const Model& model)
+{
+    const gltf::Model& gltfModel = model.gltfModel();
+    const gltf::Scene& scene = gltfModel.m_vScenes[gltfModel.m_defaultSceneI];
+
+    for (const int& nodeI : scene.vNodes)
+    {
+        const Model::Node& node = model.m_vNodes[nodeI];
+        drawNodeMesh(model, node);
+    }
+}
+
+static void
+drawSkybox()
+{
+    math::M4 view = control::g_camera.m_trm;
+    /* remove translation */
+    view.e[3][0] = 0.0f;
+    view.e[3][1] = 0.0f;
+    view.e[3][2] = 0.0f;
+
+    auto& win = app::windowInst();
+    const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
+    const math::M4 trmProj = math::M4Pers(math::toRad(control::g_camera.m_fov), aspectRatio, 0.01f, 1000.0f);
+
+    glDisable(GL_CULL_FACE);
+    glDepthMask(GL_FALSE);
+
+    Shader* pSh = searchShader("Skybox");
+    ADT_ASSERT(pSh, " ");
+
+    if (pSh)
+    {
+        pSh->use();
+        pSh->setM4("u_viewNoTranslate", view);
+        pSh->setM4("u_projection", trmProj);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, s_skyboxDefault.m_tex);
+
+        Opt<PoolSOAHandle<game::Entity>> oEntity = game::searchEntity("Cube");
+        if (oEntity)
+        {
+            Model& model = Model::fromI(game::g_poolEntities[{oEntity.value().i}].modelI);
+            drawModelMesh(model);
+        }
+    }
+
+    glDepthMask(GL_TRUE);
+    glEnable(GL_CULL_FACE);
+}
 
 void
 Renderer::drawGame([[maybe_unused]] Arena* pArena)
@@ -270,6 +377,8 @@ Renderer::drawGame([[maybe_unused]] Arena* pArena)
     using namespace adt::math;
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    drawSkybox();
 
     {
         auto& entities = game::g_poolEntities;
@@ -554,7 +663,7 @@ searchShader(const adt::StringView svKey)
     return &g_poolShaders[res.value()];
 }
 
-void
+static void
 loadShaders()
 {
     for (const auto& shader : s_aShadersToLoad)
@@ -842,7 +951,7 @@ loadGLTF(gltf::Model* pModel)
     }
 }
 
-void
+static void
 loadAssetObjects()
 {
     if (asset::g_poolObjects.empty())
@@ -866,7 +975,45 @@ loadAssetObjects()
     }
 }
 
-SkyBox::SkyBox(Image a6Images[6])
+static void
+loadSkybox()
+{
+    Image* i0 = asset::searchImage("assets/skybox/right.bmp");
+    Image* i1 = asset::searchImage("assets/skybox/left.bmp");
+    Image* i2 = asset::searchImage("assets/skybox/top.bmp");
+    Image* i3 = asset::searchImage("assets/skybox/bottom.bmp");
+    Image* i4 = asset::searchImage("assets/skybox/front.bmp");
+    Image* i5 = asset::searchImage("assets/skybox/back.bmp");
+
+    Image a6Images[6] {};
+
+    if (!i0 || !i1 || !i2 || !i3 || !i4 || !i5)
+    {
+        LOG_BAD("failed to load skybox, using default texture\n");
+
+        Image img {
+            .m_uData {.pRGBA = const_cast<ImagePixelRGBA*>(common::g_spDefaultTexture.data())},
+            .m_width = static_cast<i16>(common::g_spDefaultTexture.width()),
+            .m_height = static_cast<i16>(common::g_spDefaultTexture.height()),
+            .m_eType = Image::TYPE::RGBA,
+        };
+
+        for (auto& el : a6Images) el = img;
+    }
+    else
+    {
+        a6Images[0] = *i0;
+        a6Images[1] = *i1;
+        a6Images[2] = *i2;
+        a6Images[3] = *i3;
+        a6Images[4] = *i4;
+        a6Images[5] = *i5;
+    }
+
+    s_skyboxDefault = Skybox(a6Images);
+}
+
+Skybox::Skybox(Image a6Images[6])
 {
     glGenTextures(1, &m_tex);
     glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex);

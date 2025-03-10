@@ -201,4 +201,44 @@ main()
 }
 )";
 
+static const char* ntsSkyboxVert =
+R"(#version 300 es
+/* ntsSkyboxVert */
+
+precision mediump float;
+
+layout (location = 0) in vec3 a_pos;
+
+uniform mat4 u_viewNoTranslate;
+uniform mat4 u_projection;
+
+out vec3 vs_texCoords;
+
+void
+main()
+{
+    vs_texCoords = a_pos;
+    gl_Position = u_projection * u_viewNoTranslate * vec4(a_pos, 1.0);
+}
+)";
+
+static const char* ntsSkyboxFrag =
+R"(#version 300 es
+/* ntsSkyboxFrag */
+
+precision mediump float;
+
+in vec3 vs_texCoords;
+
+uniform samplerCube u_tex0;
+
+out vec4 fragColor;
+
+void
+main()
+{
+    fragColor = texture(u_tex0, vs_texCoords);
+}
+)";
+
 } /* namespace gl::glsl */
