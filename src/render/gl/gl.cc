@@ -362,7 +362,9 @@ drawSkybox()
         Opt<PoolSOAHandle<game::Entity>> oEntity = game::searchEntity("Cube");
         if (oEntity)
         {
-            Model& model = Model::fromI(game::g_poolEntities[{oEntity.value().i}].modelI);
+            Model& model = Model::fromI(
+                game::g_poolEntities.bindMember<&game::Entity::modelI>(oEntity.value())
+            );
             drawModelMesh(model);
         }
     }
