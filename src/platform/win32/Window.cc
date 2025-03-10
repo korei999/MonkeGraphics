@@ -381,12 +381,12 @@ Window::toggleFullscreen()
 }
 
 void
-Window::hideCursor(bool bHide)
+Window::hideCursor([[maybe_unused]] bool bHide)
 {
 }
 
 void
-Window::setCursorImage(adt::StringView svCursorType)
+Window::setCursorImage([[maybe_unused]] adt::StringView svCursorType)
 {
 }
 

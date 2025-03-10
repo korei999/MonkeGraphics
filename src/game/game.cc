@@ -7,6 +7,7 @@
 
 #include "adt/PoolSOA.hh"
 #include "adt/logs.hh"
+#include "adt/Directory.hh"
 
 using namespace adt;
 

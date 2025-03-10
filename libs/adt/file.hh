@@ -6,13 +6,11 @@
 
 #if __has_include(<sys/stat.h>)
 
-    #define ADT_USE_STAT
     #include <sys/stat.h>
 
-#elif defined _WIN32
-
+#ifdef _WIN32
     #define ADT_USE_WIN32_STAT
-    #include <io.h>
+#endif
 
 #endif
 
@@ -21,7 +19,7 @@ namespace adt
 namespace file
 {
 
-enum class TYPE : u8 { ERROR, FILE, DIRECTORY };
+enum class TYPE : u8 { UNHANDLED, FILE, DIRECTORY };
 
 [[nodiscard]] inline String
 load(IAllocator* pAlloc, StringView svPath)
@@ -109,14 +107,26 @@ fileType(const char* ntsPath)
 #ifndef NDEBUG
         fprintf(stderr, "stat(): err: %d\n", err);
 #endif
-        return TYPE::ERROR;
+        return TYPE::UNHANDLED;
     }
+
+#ifdef ADT_USE_WIN32_STAT
+
+    if ((st.st_mode & S_IFMT) == S_IFDIR)
+        return TYPE::DIRECTORY;
+    else if ((st.st_mode & S_IFREG))
+        return TYPE::FILE;
+    else return TYPE::UNHANDLED;
+
+#else
 
     if (S_ISREG(st.st_mode))
         return TYPE::FILE;
     else if (S_ISDIR(st.st_mode))
         return TYPE::DIRECTORY;
-    else return TYPE::ERROR;
+    else return TYPE::UNHANDLED;
+
+#endif
 }
 
 } /* namespace file */

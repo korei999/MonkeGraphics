@@ -15,7 +15,14 @@ namespace adt
 #elif __has_include(<windows.h>)
 
     #define ADT_USE_WIN32DIR
-    #warning "TODO"
+
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN 1
+    #endif
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #include <windows.h>
 
 #else
 
@@ -23,9 +30,12 @@ namespace adt
 
 #endif
 
+#ifdef ADT_USE_DIRENT
+
 struct Directory
 {
     DIR* m_pDir {};
+    dirent* m_pEntry {};
 
     /* */
 
@@ -45,7 +55,6 @@ struct Directory
     struct It
     {
         Directory* p {};
-        dirent* pEntry {};
         int i {}; /* NPOS flag */
 
         /* */
@@ -58,32 +67,34 @@ struct Directory
                 /* skip '.' and '..' */
                 while ((pEntry = readdir(p->m_pDir)))
                 {
-                    if (strncmp(pEntry->d_name, ".", sizeof(pEntry->d_name)) == 0 ||
-                        strncmp(pEntry->d_name, "..", sizeof(pEntry->d_name)) == 0)
+                    if (strncmp(p->m_pEntry->d_name, ".", sizeof(p->m_pEntry->d_name)) == 0 ||
+                        strncmp(p->m_pEntry->d_name, "..", sizeof(p->m_pEntry->d_name)) == 0)
                         continue;
                     else break;
                 }
             }
         }
 
+        It(int _i) : i(_i) {}
+
         /* */
 
         [[nodiscard]] StringView
         operator*()
         {
-            if (!pEntry) return {};
+            if (!p || (p && !p->m_pEntry)) return {};
 
-            usize n = strnlen(pEntry->d_name, sizeof(pEntry->d_name));
-            return {pEntry->d_name, static_cast<ssize>(n)};
+            usize n = strnlen(p->m_pEntry->d_name, sizeof(p->m_pEntry->d_name));
+            return {p->m_pEntry->d_name, static_cast<ssize>(n)};
         }
 
         It
         operator++()
         {
-            pEntry = readdir(p->m_pDir);
-            if (!pEntry) i = NPOS;
+            p->m_pEntry = readdir(p->m_pDir);
+            if (!p->m_pEntry) i = NPOS;
 
-            return *this;
+            return {i};
         }
 
         friend bool operator==(const It& l, const It& r) { return l.i == r.i; }
@@ -123,5 +134,138 @@ Directory::close()
 
      return err == 0;
 }
+
+#endif /* ADT_USE_DIRENT */
+
+#ifdef ADT_USE_WIN32DIR
+
+struct Directory
+{
+    char m_aBuff[sizeof(WIN32_FIND_DATA::cFileName) + 3] {};
+    WIN32_FIND_DATA m_fileData {};
+    HANDLE m_hFind {};
+
+    /* */
+
+    Directory() = default;
+    Directory(const char* ntsPath);
+
+    /* */
+
+    explicit operator bool() const;
+
+    /* */
+
+    bool close();
+
+    /* */
+
+    struct It
+    {
+        Directory* p {};
+        bool bStatus {};
+
+        /* */
+
+        It(const Directory* self, bool _bStatus)
+            : p(const_cast<Directory*>(self)), bStatus(_bStatus)
+        {
+            if (!bStatus) return;
+
+            p->m_hFind = FindFirstFile(p->m_aBuff, &p->m_fileData);
+
+#ifndef NDEBUG
+            if (p->m_hFind == INVALID_HANDLE_VALUE)
+                fprintf(stderr, "failed to open '%s'\n", p->m_aBuff);
+#endif
+
+            do
+            {
+                if (strcmp(p->m_fileData.cFileName, ".") == 0 || 
+                    strcmp(p->m_fileData.cFileName, "..") == 0)
+                    continue;
+                else break;
+            }
+            while (FindNextFile(p->m_hFind, &p->m_fileData) != 0);
+        }
+
+        It(bool _bStatus) : bStatus(_bStatus) {}
+
+        /* */
+
+        [[nodiscard]] StringView
+        operator*()
+        {
+            if (!p) return {};
+
+            return StringView(p->m_fileData.cFileName,
+                strnlen(p->m_fileData.cFileName, sizeof(p->m_fileData.cFileName))
+            );
+        }
+
+        It
+        operator++()
+        {
+            if (FindNextFile(p->m_hFind, &p->m_fileData) == 0)
+                bStatus = false;
+
+            return {bStatus};
+        }
+
+        friend bool operator==(const It& l, const It& r) { return l.bStatus == r.bStatus; }
+        friend bool operator!=(const It& l, const It& r) { return l.bStatus != r.bStatus; }
+    };
+
+    It begin() { return {this, true}; }
+    It end() { return {this, false}; }
+
+    It begin() const { return {this, true}; }
+    It end() const { return {this, false}; }
+};
+
+inline
+Directory::Directory(const char* ntsPath)
+{
+    StringView sv = ntsPath;
+
+    if (!sv.endsWith("/*"))
+    {
+        if (sv.size() < static_cast<ssize>(sizeof(m_aBuff) - 4))
+        {
+            strncpy(m_aBuff, ntsPath, sizeof(m_aBuff));
+
+            if (sv.endsWith("/"))
+            {
+                m_aBuff[sv.size()] = '*';
+            }
+            else
+            {
+                m_aBuff[sv.size()] = '/';
+                m_aBuff[sv.size() + 1] = '*';
+            }
+        }
+    }
+}
+
+inline
+Directory::operator bool() const
+{
+    return m_hFind != 0;
+}
+
+inline bool
+Directory::close()
+{
+    int err = FindClose(m_hFind);
+
+#ifndef NDEBUG
+    if (err == 0)
+        fprintf(stderr, "FindClose(): failed '%lu'\n", GetLastError());
+#endif
+
+    return err > 0;
+}
+
+#endif
 
 } /* namespace adt */
