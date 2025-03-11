@@ -344,11 +344,13 @@ drawSkybox()
         pSh->setM4("u_projection", trmProj);
         glBindTexture(GL_TEXTURE_CUBE_MAP, s_skyboxDefault.m_tex);
 
-        Opt<PoolSOAHandle<game::Entity>> oEntity = game::searchEntity("Cube");
-        if (oEntity)
+        PoolSOAHandle<game::Entity> enCube = game::searchEntity("Cube");
+        ADT_ASSERT(enCube, "failed to find entity '%s'\n", "Cube");
+
+        if (enCube)
         {
             Model& model = Model::fromI(
-                game::g_poolEntities.bindMember<&game::Entity::modelI>(oEntity.value())
+                game::g_poolEntities.bindMember<&game::Entity::modelI>(enCube)
             );
             /* this cube has only one mesh */
             drawNodeMesh(model, model.m_vNodes[0]);

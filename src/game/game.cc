@@ -126,10 +126,10 @@ updateState(adt::Arena*)
 }
 
 [[nodiscard]]
-Opt<PoolSOAHandle<Entity>> searchEntity(StringView svName)
+PoolSOAHandle<Entity> searchEntity(StringView svName)
 {
     auto res = g_mapNamesToEntities.search(svName);
-    return Opt(res.valueOr({}));
+    return res.valueOr({});
 }
 
 } /* namespace game */

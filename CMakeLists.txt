@@ -195,6 +195,14 @@ add_executable(
     src/game/game.cc
 )
 
+file(GLOB_RECURSE ADT_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/libs/*.hh")
+list(FILTER ADT_HEADERS EXCLUDE REGEX ".*/adt/MiMalloc.hh")
+
+target_precompile_headers(
+    ${CMAKE_PROJECT_NAME} PRIVATE
+    "$<$<COMPILE_LANGUAGE:CXX>:${ADT_HEADERS}>"
+)
+
 if (OPT_MIMALLOC)
     target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE mimalloc-static)
 endif()
