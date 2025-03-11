@@ -20,17 +20,16 @@ struct AssetMapping
 };
 
 PoolSOA<Entity, EntityBind, MAX_ENTITIES,
-    &Entity::name,
+    &Entity::sfName,
     &Entity::pos, &Entity::rot, &Entity::scale,
     &Entity::vel,
     &Entity::assetI, &Entity::modelI,
     &Entity::bNoDraw
 > g_poolEntities {};
 
-MapManaged<
-    Entity::Name,
-    PoolSOAHandle<Entity>,
-    Entity::Name::hashFunc
+adt::MapManaged<
+    adt::StringFixed<128>,
+    adt::PoolSOAHandle<Entity>
 > g_mapNamesToEntities(StdAllocator::inst(), MAX_ENTITIES);
 
 static const StringView s_aAssetsToLoad[] {
@@ -67,9 +66,9 @@ loadStuff()
             auto hModel = Model::make(bind.assetI);
             bind.modelI = hModel.i;
 
-            bind.name = svName;
+            bind.sfName = svName;
 
-            g_mapNamesToEntities.insert(bind.name, handle);
+            g_mapNamesToEntities.insert(bind.sfName, handle);
         }
 
         LOG("entity #{}: {}\n", handle.i, bind);

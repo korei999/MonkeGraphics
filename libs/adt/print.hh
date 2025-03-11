@@ -292,6 +292,13 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const StringView& str) noexcept
     return copyBackToCtxBuffer(ctx, fmtArgs, {const_cast<char*>(str.data()), str.size()});
 }
 
+template<int SIZE> requires(SIZE > 1)
+inline ssize
+formatToContext(Context ctx, FormatArgs fmtArgs, const StringFixed<SIZE>& str) noexcept
+{
+    return copyBackToCtxBuffer(ctx, fmtArgs, {const_cast<char*>(str.data()), str.size()});
+}
+
 inline ssize
 formatToContext(Context ctx, FormatArgs fmtArgs, const char* str) noexcept
 {

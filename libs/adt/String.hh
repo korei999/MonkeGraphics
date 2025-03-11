@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IAllocator.hh"
+#include "utils.hh"
 #include "hash.hh"
 #include "Span.hh"
 
@@ -495,6 +496,56 @@ String::destroy(IAllocator* pAlloc)
 {
     pAlloc->free(m_pData);
     *this = {};
+}
+
+template<int SIZE> requires(SIZE > 1)
+struct StringFixed
+{
+    char m_aBuff[SIZE] {};
+
+    /* */
+
+    StringFixed() = default;
+    StringFixed(const StringView svName);
+
+    /* */
+
+    operator adt::StringView() { return StringView(m_aBuff); };
+    operator const adt::StringView() const { return StringView(m_aBuff); };
+
+    /* */
+
+    bool operator==(const StringFixed& other) const;
+    bool operator==(const adt::StringView sv) const;
+
+    char* data() { return m_aBuff; }
+    const char* data() const { return m_aBuff; }
+
+    ssize size() const { return strnlen(m_aBuff, SIZE); }
+};
+
+template<int SIZE> requires(SIZE > 1)
+inline
+StringFixed<SIZE>::StringFixed(const StringView svName)
+{
+    strncpy(m_aBuff,
+        svName.data(),
+        utils::min(svName.size(), static_cast<ssize>(sizeof(m_aBuff) - 1))
+    );
+}
+
+template<int SIZE> requires(SIZE > 1)
+inline bool
+StringFixed<SIZE>::operator==(const StringFixed<SIZE>& other) const
+{
+    return strncmp(m_aBuff, other.m_aBuff, SIZE) == 0;
+}
+
+template<int SIZE> requires(SIZE > 1)
+inline bool
+StringFixed<SIZE>::operator==(const StringView sv) const
+{
+    return StringView(m_aBuff) == sv;
 }
 
 inline String

@@ -325,9 +325,7 @@ drawSkybox()
 {
     math::M4 view = control::g_camera.m_trm;
     /* remove translation */
-    view.e[3][0] = 0.0f;
-    view.e[3][1] = 0.0f;
-    view.e[3][2] = 0.0f;
+    view.e[3][0] = view.e[3][1] = view.e[3][2] = 0.0f;
 
     auto& win = app::windowInst();
     const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);

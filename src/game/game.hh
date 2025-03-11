@@ -17,7 +17,7 @@ void updateState(adt::Arena* pArena);
 [[nodiscard]] adt::Opt<adt::PoolSOAHandle<Entity>> searchEntity(adt::StringView svName);
 
 extern adt::PoolSOA<Entity, EntityBind, MAX_ENTITIES,
-    &Entity::name,
+    &Entity::sfName,
     &Entity::pos, &Entity::rot, &Entity::scale,
     &Entity::vel,
     &Entity::assetI, &Entity::modelI,
@@ -25,9 +25,8 @@ extern adt::PoolSOA<Entity, EntityBind, MAX_ENTITIES,
 > g_poolEntities;
 
 extern adt::MapManaged<
-    Entity::Name,
-    adt::PoolSOAHandle<Entity>,
-    Entity::Name::hashFunc
+    adt::StringFixed<128>,
+    adt::PoolSOAHandle<Entity>
 > g_mapNamesToEntities;
 
 } /* namespace game */
