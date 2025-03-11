@@ -353,7 +353,7 @@ drawSkybox()
                 game::g_poolEntities.bindMember<&game::Entity::modelI>(enCube)
             );
             /* this cube has only one mesh */
-            drawNodeMesh(model, model.m_vNodes[0]);
+            drawNodeMesh(model, model.m_vNodes.first());
         }
     }
 
