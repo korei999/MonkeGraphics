@@ -472,7 +472,7 @@ String::String(IAllocator* pAlloc, const char* pChars, ssize size)
         return;
 
     char* pNewData = pAlloc->mallocV<char>(size + 1);
-    strncpy(pNewData, pChars, size);
+    memcpy(pNewData, pChars, size);
     pNewData[size] = '\0';
 
     m_pData = pNewData;
@@ -506,7 +506,10 @@ struct StringFixed
     /* */
 
     StringFixed() = default;
+
     StringFixed(const StringView svName);
+
+    StringFixed(const char* nts) : StringFixed(StringView(nts)) {}
 
     /* */
 
@@ -528,9 +531,9 @@ template<int SIZE> requires(SIZE > 1)
 inline
 StringFixed<SIZE>::StringFixed(const StringView svName)
 {
-    strncpy(m_aBuff,
+    memcpy(m_aBuff,
         svName.data(),
-        utils::min(svName.size(), static_cast<ssize>(sizeof(m_aBuff) - 1))
+        utils::min(svName.size(), static_cast<ssize>(sizeof(m_aBuff)))
     );
 }
 
@@ -538,7 +541,7 @@ template<int SIZE> requires(SIZE > 1)
 inline bool
 StringFixed<SIZE>::operator==(const StringFixed<SIZE>& other) const
 {
-    return strncmp(m_aBuff, other.m_aBuff, SIZE) == 0;
+    return memcmp(m_aBuff, other.m_aBuff, SIZE) == 0;
 }
 
 template<int SIZE> requires(SIZE > 1)

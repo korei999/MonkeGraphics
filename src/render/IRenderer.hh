@@ -9,6 +9,7 @@ struct IRenderer
 {
     virtual void init() = 0;
     virtual void drawGame(adt::Arena* pArena) = 0;
+    virtual void drawUI(adt::Arena* pArena) = 0;
     virtual void destroy() = 0;
 };
 

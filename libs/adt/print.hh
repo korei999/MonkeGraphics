@@ -100,8 +100,7 @@ parseFormatArg(FormatArgs* pArgs, const StringView fmt, ssize fmtIdx) noexcept
     {
         if (i + 1 < fmt.size())
             return fmt[i + 1];
-        else
-            return '\0';
+        else return '\0';
     };
 
     for (; i < fmt.size(); ++i, ++nRead)
@@ -166,10 +165,8 @@ parseFormatArg(FormatArgs* pArgs, const StringView fmt, ssize fmtIdx) noexcept
             }
         }
 
-        if (fmt[i] == '}')
-            bDone = true;
-        else if (fmt[i] == ':')
-            bColon = true;
+        if (fmt[i] == '}') bDone = true;
+        else if (fmt[i] == ':') bColon = true;
     }
 
     return nRead;
@@ -248,6 +245,8 @@ intToBuffer(INT_T x, Span<char> spBuff, FormatArgs fmtArgs) noexcept
 inline ssize
 copyBackToCtxBuffer(Context ctx, FormatArgs fmtArgs, const Span<char> spSrc) noexcept
 {
+    if (spSrc.empty()) return 0;
+
     ssize i = 0;
 
     auto copySpan = [&]

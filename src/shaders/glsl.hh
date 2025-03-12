@@ -15,12 +15,12 @@ R"(#version 300 es
 layout(location = 0) in vec2 a_pos;
 layout(location = 1) in vec2 a_texCoords;
 
-out vec2 vs_texCoords;
+out vec2 vs_tex;
 
 void
 main()
 {
-    vs_texCoords = a_texCoords;
+    vs_tex = a_texCoords;
     gl_Position = vec4(a_pos, 0.0, 1.0);
 }
 )";
@@ -32,15 +32,37 @@ R"(#version 300 es
 precision mediump float;
 
 out vec4 fs_fragColor;
-in vec2 vs_texCoords;
+in vec2 vs_tex;
 
 uniform sampler2D u_tex0;
 
 void
 main()
 {
-    fs_fragColor = texture(u_tex0, vs_texCoords);
-    /*fs_fragColor = vec4(vs_texCoords, 0.0, 1.0);*/
+    fs_fragColor = texture(u_tex0, vs_tex);
+}
+)";
+
+static const char* ntsQuadTexMonoFrag =
+R"(#version 300 es
+/* ntsQuadTexFrag */
+
+precision mediump float;
+
+out vec4 fs_fragColor;
+in vec2 vs_tex;
+
+uniform sampler2D u_tex0;
+uniform vec4 u_color;
+
+void
+main()
+{
+    vec3 col = texture(u_tex0, vs_tex).rrr;
+
+    if (col.r < 0.01) discard;
+
+    fs_fragColor = u_color * vec4(col, 1.0f);
 }
 )";
 
@@ -83,14 +105,14 @@ R"(#version 300 es
 layout(location = 0) in vec3 a_pos;
 layout(location = 1) in vec2 a_tex;
 
-out vec2 vs_texCoords;
+out vec2 vs_tex;
 
 uniform mat4 u_trm;
 
 void
 main()
 {
-    vs_texCoords = a_tex;
+    vs_tex = a_tex;
     gl_Position = u_trm * vec4(a_pos, 1.0);
 }
 )";
@@ -103,14 +125,14 @@ precision mediump float;
 
 out vec4 fs_fragColor;
 
-in vec2 vs_texCoords;
+in vec2 vs_tex;
 
 uniform sampler2D u_tex0;
 
 void
 main()
 {
-    vec4 color = texture(u_tex0, vs_texCoords);
+    vec4 color = texture(u_tex0, vs_tex);
     if (color.a <= 0.01) discard;
 
     fs_fragColor = color;
@@ -127,7 +149,7 @@ layout(location = 2) in vec4 a_joint;
 layout(location = 3) in vec4 a_weight;
 
 out vec4 vs_pos;
-out vec2 vs_texCoords;
+out vec2 vs_tex;
 
 uniform mat4 u_model;
 uniform mat4 u_view;
@@ -148,7 +170,7 @@ main()
     gl_Position = u_projection * u_view * u_model * worldPos;
 
     vs_pos = a_weight;
-    vs_texCoords = a_tex;
+    vs_tex = a_tex;
 }
 )";
 
@@ -212,12 +234,12 @@ layout (location = 0) in vec3 a_pos;
 uniform mat4 u_viewNoTranslate;
 uniform mat4 u_projection;
 
-out vec3 vs_texCoords;
+out vec3 vs_tex;
 
 void
 main()
 {
-    vs_texCoords = a_pos;
+    vs_tex = a_pos;
     gl_Position = u_projection * u_viewNoTranslate * vec4(a_pos, 1.0);
 }
 )";
@@ -228,7 +250,7 @@ R"(#version 300 es
 
 precision mediump float;
 
-in vec3 vs_texCoords;
+in vec3 vs_tex;
 
 uniform samplerCube u_tex0;
 
@@ -237,7 +259,46 @@ out vec4 fragColor;
 void
 main()
 {
-    fragColor = texture(u_tex0, vs_texCoords);
+    fragColor = texture(u_tex0, vs_tex);
+}
+)";
+
+static const char* nts2DVert =
+R"(#version 300 es
+/* nts2DVert */
+
+layout (location = 0) in vec2 a_pos;
+layout (location = 1) in vec2 a_tex;
+
+uniform mat4 u_projection;
+
+out vec2 vs_tex;
+
+void main()
+{
+    vs_tex = a_tex;
+    gl_Position = u_projection * vec4(a_pos, 0.0, 1.0);
+}
+)";
+
+static const char* nts2DColorFrag =
+R"(#version 300 es
+/* nts2DColorFrag */
+
+precision mediump float;
+
+out vec4 fs_fragColor;
+
+in vec2 vs_tex;
+
+uniform vec4 u_color;
+
+void
+main()
+{
+    if (u_color.a <= 0.01) discard;
+
+    fs_fragColor = u_color;
 }
 )";
 

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Image.hh"
-#include "gltf/gltf.hh"
+#include "gltf/Model.hh"
+#include "ttf/Font.hh"
 
-#include "adt/String.hh"
 #include "adt/Pool.hh"
 #include "adt/Arena.hh"
 
@@ -12,7 +12,7 @@ namespace asset
 
 struct Object
 {
-    enum class TYPE : adt::u8 { NONE, IMAGE, MODEL };
+    enum class TYPE : adt::u8 { NONE, IMAGE, MODEL, FONT };
 
     /* */
 
@@ -20,6 +20,7 @@ struct Object
     {
         Image img;
         gltf::Model model;
+        ttf::Font font;
     } m_uData {};
     TYPE m_eType {};
 
@@ -44,6 +45,7 @@ adt::PoolHandle<Object> loadFile(const adt::StringView svPath);
 /* may be null */ [[nodiscard]] Object* search(const adt::StringView svKey, Object::TYPE eType);
 /* may be null */ [[nodiscard]] Image* searchImage(const adt::StringView svKey);
 /* may be null */ [[nodiscard]] gltf::Model* searchModel(const adt::StringView svKey);
+/* may be null */ [[nodiscard]] ttf::Font* searchFont(const adt::StringView svKey);
 
 extern adt::Pool<Object, 128> g_poolObjects;
 
@@ -77,10 +79,12 @@ formatToContext(Context ctx, FormatArgs, const asset::Object::TYPE e)
 {
     ctx.fmt = "{}";
     ctx.fmtIdx = 0;
-    
+
     constexpr StringView asMap[] {
-        "NONE", "IMAGE", "MODEL"
+        "NONE", "IMAGE", "MODEL", "FONT"
     };
+
+    ADT_ASSERT(static_cast<int>(e) < utils::size(asMap), " ");
 
     return printArgs(ctx, asMap[static_cast<int>(e)]);
 }

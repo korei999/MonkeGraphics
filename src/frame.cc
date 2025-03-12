@@ -3,6 +3,7 @@
 #include "app.hh"
 #include "control.hh"
 #include "game/game.hh"
+#include "ui.hh"
 
 #include "adt/Vec.hh"
 #include "adt/logs.hh"
@@ -143,6 +144,7 @@ start()
     game::loadStuff();
     win.bindContext();
     renderer.init();
+    ui::init();
 
     switch (app::g_eWindowType)
     {

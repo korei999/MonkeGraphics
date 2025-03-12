@@ -107,6 +107,7 @@ include_directories(BEFORE "src")
 
 add_definitions("-DADT_LOGS_LESS_TYPING")
 add_definitions("-DADT_DEFER_LESS_TYPING")
+add_definitions("-DADT_JSON_USE_PRINTF")
 
 if (CMAKE_BUILD_TYPE MATCHES "DebugO1")
     if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -186,11 +187,15 @@ add_executable(
     src/asset.cc
     src/common.cc
     src/Model.cc
+    src/ui.cc
+
+    src/ttf/Font.cc
+    src/ttf/Rasterizer.cc
 
     src/json/Parser.cc
     src/json/Lexer.cc
 
-    src/gltf/gltf.cc
+    src/gltf/Model.cc
 
     src/game/game.cc
 )

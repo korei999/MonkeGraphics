@@ -5,7 +5,7 @@
 
 namespace colors
 {
-    enum class IDX : int
+    enum IDX : int
     {
         MAROON,
         DARKRED,

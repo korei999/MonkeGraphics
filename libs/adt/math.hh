@@ -1492,7 +1492,7 @@ normalize(const V4& v)
 }
 
 constexpr inline auto
-lerp(auto& a, auto& b, auto& t)
+lerp(const auto& a, const auto& b, const auto& t)
 {
     return (1.0 - t) * a + t * b;
 }
@@ -1557,6 +1557,18 @@ bezier(
     const std::floating_point auto t)
 {
     return cube(1-t)*p0 + 3*sq(1-t)*t*p1 + 3*(1-t)*sq(t)*p2 + cube(t)*p3;
+}
+
+inline M4
+transformation(const V3& translation, const Qt& rot, const V3& scale)
+{
+    return M4TranslationFrom(translation) * QtRot(rot) * M4ScaleFrom(scale);
+}
+
+inline M4
+transformation(const V3& translation, const V3& scale)
+{
+    return M4TranslationFrom(translation) * M4ScaleFrom(scale);
 }
 
 } /* namespace adt::math */

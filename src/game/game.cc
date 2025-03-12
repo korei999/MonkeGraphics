@@ -42,6 +42,7 @@ static const StringView s_aAssetsToLoad[] {
     "assets/Capo/capo.gltf",
     "assets/RecursiveSkeletons/glTF/RecursiveSkeletons.gltf",
     "assets/skybox",
+    "assets/LiberationMono-Regular.ttf",
 };
 
 void
@@ -85,6 +86,8 @@ loadStuff()
         auto entity = g_poolEntities[{0}];
         entity.bNoDraw = true;
     }
+
+    control::g_bTestQuad = true;
 }
 
 void

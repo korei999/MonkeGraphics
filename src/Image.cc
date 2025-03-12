@@ -42,6 +42,22 @@ Image::cloneToRGBA(adt::IAllocator* pAlloc)
             utils::memCopy(nImg.m_uData.pRGBA, m_uData.pRGBA, m_width * m_height);
         }
         break;
+
+        case Image::TYPE::MONO:
+        {
+            for (ssize i = 0; i < m_width * m_height; ++i)
+            {
+                const auto& pix = m_uData.pMono[i];
+
+                ImagePixelRGBA p;
+                p.r = pix;
+                p.g = pix;
+                p.b = pix;
+                p.a = 255;
+
+                nImg.m_uData.pRGBA[i] = p;
+            }
+        };
     }
 
     return nImg;
@@ -103,6 +119,9 @@ Image::swapRedBlue()
                 utils::swap(&m_uData.pRGB[i].r, &m_uData.pRGB[i].b);
         };
         break;
+
+        case Image::TYPE::MONO:
+        break;
     }
 }
 
@@ -134,6 +153,23 @@ Image::flipVertically(adt::IAllocator* pAlloc)
             defer( pAlloc->free(pTemp) );
 
             auto sp = spanRGB();
+            const int halfHeight = m_height / 2;
+
+            for (int y = 0; y < halfHeight; ++y)
+            {
+                utils::memCopy(pTemp, &sp(0, m_height - y - 1), m_width);
+                utils::memCopy(&sp(0, m_height - y - 1), &sp(0, y), m_width);
+                utils::memCopy(&sp(0, y), pTemp, m_width);
+            }
+        }
+        break;
+
+        case Image::TYPE::MONO:
+        {
+            auto* pTemp = pAlloc->mallocV<adt::u8>(m_width * m_height);
+            defer( pAlloc->free(pTemp) );
+
+            auto sp = spanMono();
             const int halfHeight = m_height / 2;
 
             for (int y = 0; y < halfHeight; ++y)

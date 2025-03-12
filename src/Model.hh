@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gltf/gltf.hh"
+#include "gltf/Model.hh"
 
 #include "adt/Pool.hh"
 #include "adt/Arena.hh"

@@ -16,6 +16,7 @@ struct Renderer : public IRenderer
 {
     virtual void init() override;
     virtual void drawGame(adt::Arena* pArena) override;
+    virtual void drawUI(adt::Arena* pArena) override;
     virtual void destroy() override;
 };
 
@@ -43,12 +44,14 @@ struct Texture
     GLuint m_id {};
     int m_width {};
     int m_height {};
+    Image::TYPE m_eType {};
 
     /* */
 
     Texture() = default;
     [[nodiscard]] Texture(int width, int height);
     [[nodiscard]] Texture(const adt::Span2D<ImagePixelRGBA> spImg);
+    [[nodiscard]] Texture(const adt::Span2D<adt::u8> spImgMono);
 
     /* */
 

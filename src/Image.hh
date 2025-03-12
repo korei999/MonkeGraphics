@@ -19,7 +19,7 @@ union ImagePixelRGB
 
 struct Image
 {
-    enum class TYPE : adt::u8 { RGBA, RGB };
+    enum class TYPE : adt::u8 { RGBA, RGB, MONO };
 
     /* */
 
@@ -27,6 +27,7 @@ struct Image
     {
         ImagePixelRGBA* pRGBA;
         ImagePixelRGB* pRGB;
+        adt::u8* pMono;
     } m_uData {};
     adt::i16 m_width {};
     adt::i16 m_height {};
@@ -64,5 +65,19 @@ struct Image
     {
         ADT_ASSERT(m_eType == TYPE::RGB, " ");
         return {m_uData.pRGB, m_width, m_height, m_width};
+    }
+
+    adt::Span2D<adt::u8>
+    spanMono()
+    {
+        ADT_ASSERT(m_eType == TYPE::MONO, " ");
+        return {m_uData.pMono, m_width, m_height, m_width};
+    }
+
+    adt::Span2D<adt::u8>
+    spanMono() const
+    {
+        ADT_ASSERT(m_eType == TYPE::MONO, " ");
+        return {m_uData.pMono, m_width, m_height, m_width};
     }
 };

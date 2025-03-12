@@ -110,8 +110,7 @@ class Parser
     adt::IAllocator* m_pAlloc {};
     Lexer m_lex {};
     adt::Vec<Node> m_aObjects {};
-    Token m_tCurr {};
-    Token m_tNext {};
+    Token m_token {};
 
     /* */
 
@@ -144,7 +143,7 @@ private:
     bool expect(TOKEN_TYPE t);
     bool expectNot(TOKEN_TYPE t);
     bool printNodeError();
-    void next();
+    void next() { m_token = m_lex.next(); }
 };
 
 /* pfn returns true for early return */
@@ -201,14 +200,14 @@ getArray(const Node* obj)
 }
 
 [[nodiscard]] inline adt::i64
-getLong(const Node* obj)
+getInteger(const Node* obj)
 {
     ADT_ASSERT(obj->tagVal.eTag == TAG::LONG, " ");
     return obj->tagVal.val.l;
 }
 
 [[nodiscard]] inline double
-getDouble(const Node* obj)
+getFloat(const Node* obj)
 {
     ADT_ASSERT(obj->tagVal.eTag == TAG::DOUBLE, " ");
     return obj->tagVal.val.d;

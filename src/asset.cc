@@ -1,7 +1,6 @@
 #include "asset.hh"
 #include "app.hh"
 #include "BMP.hh"
-#include "gltf/gltf.hh"
 
 #include "adt/Directory.hh"
 #include "adt/Map.hh"
@@ -87,6 +86,26 @@ loadGLTF(const StringView svPath, const StringView sFile)
     return hnd;
 }
 
+static PoolHandle<Object>
+loadTTF(const StringView svPath, const StringView sFile)
+{
+    Object nObj(SIZE_1K * 500);
+
+    ttf::Font font(&nObj.m_arena, sFile);
+    if (!font.parse())
+    {
+        LOG_BAD("failed to load font '{}'\n", svPath);
+        nObj.m_arena.freeAll();
+        return {};
+    }
+
+    nObj.m_uData.font = font;
+    nObj.m_eType = Object::TYPE::FONT;
+
+    PoolHandle<Object> hnd = g_poolObjects.make(nObj);
+    return hnd;
+}
+
 PoolHandle<Object>
 loadFile(const StringView svPath)
 {
@@ -107,6 +126,10 @@ loadFile(const StringView svPath)
     else if (svPath.endsWith(".gltf"))
     {
         retHnd = loadGLTF(svPath, sFile);
+    }
+    else if (svPath.endsWith(".ttf"))
+    {
+        retHnd = loadTTF(svPath, sFile);
     }
 
     if (retHnd)
@@ -209,6 +232,14 @@ searchModel(const StringView svKey)
 {
     auto* f = search(svKey, Object::TYPE::MODEL);
     if (f) return &f->m_uData.model;
+    else return nullptr;
+}
+
+ttf::Font*
+searchFont(const adt::StringView svKey)
+{
+    auto* f = search(svKey, Object::TYPE::FONT);
+    if (f) return &f->m_uData.font;
     else return nullptr;
 }
 

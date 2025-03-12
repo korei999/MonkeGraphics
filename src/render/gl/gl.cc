@@ -1,21 +1,24 @@
 #include "gl.hh"
 
-#include "app.hh"
 #include "Model.hh"
+#include "app.hh"
 #include "asset.hh"
+#include "colors.hh"
 #include "common.hh"
 #include "control.hh"
 #include "game/game.hh"
 #include "shaders/glsl.hh"
+#include "ttf/Rasterizer.hh"
+#include "ui.hh"
 
-#include "adt/ThreadPool.hh"
-#include "adt/defer.hh"
 #include "adt/Map.hh"
-#include "adt/StdAllocator.hh"
-#include "adt/View.hh"
-#include "adt/logs.hh"
 #include "adt/ScratchBuffer.hh"
+#include "adt/StdAllocator.hh"
+#include "adt/ThreadPool.hh"
+#include "adt/View.hh"
+#include "adt/defer.hh"
 #include "adt/file.hh"
+#include "adt/logs.hh"
 
 using namespace adt;
 
@@ -53,26 +56,79 @@ static void loadShaders();
 static void loadAssetObjects();
 static void loadSkybox();
 
-Pool<Shader, 128> g_poolShaders {};
+Pool<Shader, 128> g_poolShaders;
 static MapManaged<StringView, PoolHandle<Shader>> s_mapStringToShaders(StdAllocator::inst(), g_poolShaders.cap());
 
 static u8 s_aScratchMem[SIZE_1K * 100] {};
 static ScratchBuffer s_scratch(s_aScratchMem);
 
-static Texture s_texDefault {};
-static Skybox s_skyboxDefault {};
+static Texture s_texDefault;
+static Texture s_texRastTest;
+static Skybox s_skyboxDefault;
+static Quad s_quad;
+static ttf::Rasterizer s_rasterizer;
 
 static ThreadPool s_threadPool(StdAllocator::inst());
 
 static const ShaderMapping s_aShadersToLoad[] {
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"},
+    {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexMonoFrag, "QuadTexMono"},
     {shaders::glsl::ntsSimpleColorVert, shaders::glsl::ntsSimpleColorFrag, "SimpleColor"},
     {shaders::glsl::ntsSimpleTextureVert, shaders::glsl::ntsSimpleTextureFrag, "SimpleTexture"},
     {shaders::glsl::ntsSkinVert, shaders::glsl::ntsSimpleColorFrag, "Skin"},
     {shaders::glsl::ntsSkinTextureVert, shaders::glsl::ntsInterpolatedColorFrag, "SkinTestColors"},
     {shaders::glsl::ntsSkinTextureVert, shaders::glsl::ntsSimpleTextureFrag, "SkinTexture"},
     {shaders::glsl::ntsSkyboxVert, shaders::glsl::ntsSkyboxFrag, "Skybox"},
+    {shaders::glsl::nts2DVert, shaders::glsl::nts2DColorFrag, "2DColor"},
 };
+
+#ifndef NDEBUG
+
+void
+debugCallback(
+    [[maybe_unused]] GLenum source,
+    [[maybe_unused]] GLenum type,
+    [[maybe_unused]] GLuint id,
+    [[maybe_unused]] GLenum severity,
+    [[maybe_unused]] GLsizei length,
+    [[maybe_unused]] const GLchar* message,
+    [[maybe_unused]] const void* user
+)
+{
+    const char* typeStr {};
+    const char* sourceStr {};
+
+    switch (source)
+    {
+        case GL_DEBUG_SOURCE_API: sourceStr = "API"; break;
+        case GL_DEBUG_SOURCE_WINDOW_SYSTEM: sourceStr = "Window System"; break;
+        case GL_DEBUG_SOURCE_SHADER_COMPILER: sourceStr = "Shader Compiler"; break;
+        case GL_DEBUG_SOURCE_THIRD_PARTY: sourceStr = "Third Party"; break;
+        case GL_DEBUG_SOURCE_APPLICATION: sourceStr = "Application"; break;
+        case GL_DEBUG_SOURCE_OTHER: sourceStr = "Other"; break;
+
+        default: break;
+    }
+
+    switch (type)
+    {
+        case GL_DEBUG_TYPE_ERROR: typeStr = "Error"; break;
+        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: typeStr = "Deprecated Behavior"; break;
+        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: typeStr = "Undefined Behavior"; break;
+        case GL_DEBUG_TYPE_PORTABILITY: typeStr = "Portability"; break;
+        case GL_DEBUG_TYPE_PERFORMANCE: typeStr = "Performance"; break;
+        case GL_DEBUG_TYPE_MARKER: typeStr = "Marker"; break;
+        case GL_DEBUG_TYPE_PUSH_GROUP: typeStr = "Push Group"; break;
+        case GL_DEBUG_TYPE_POP_GROUP: typeStr = "Pop Group"; break;
+        case GL_DEBUG_TYPE_OTHER: typeStr = "Other"; break;
+
+        default: break;
+    }
+
+    LOG_WARN("source: '{}', type: '{}'\n{}\n", sourceStr, typeStr, message);
+}
+
+#endif
 
 void
 Renderer::init()
@@ -85,6 +141,7 @@ Renderer::init()
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
@@ -93,6 +150,12 @@ Renderer::init()
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
     s_texDefault = Texture(common::g_spDefaultTexture);
+    s_quad = Quad(INIT);
+
+    ttf::Font* pFont = asset::searchFont("assets/LiberationMono-Regular.ttf");
+    s_rasterizer.rasterizeAscii(StdAllocator::inst(), pFont, 256.0f);
+
+    s_texRastTest = Texture(s_rasterizer.m_altas.spanMono());
 
     loadShaders();
     loadAssetObjects();
@@ -361,11 +424,27 @@ drawSkybox()
     glEnable(GL_CULL_FACE);
 }
 
+static void
+drawTestQuad()
+{
+    Shader* pSh = searchShader("QuadTexMono");
+    if (!pSh) return;
+
+    pSh->use();
+    s_quad.bind();
+
+    pSh->setV4("u_color", V4From(colors::get(colors::WHITE), 0.75f));
+
+    s_texRastTest.bind(GL_TEXTURE0);
+    s_quad.draw();
+}
+
 void
-Renderer::drawGame([[maybe_unused]] Arena* pArena)
+Renderer::drawGame(Arena* pArena)
 {
     using namespace adt::math;
 
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     drawSkybox();
@@ -376,6 +455,7 @@ Renderer::drawGame([[maybe_unused]] Arena* pArena)
         /* TODO: implement proper parallel for */
         for (auto& model : Model::g_poolModels)
         {
+            /* don't even wait */
             s_threadPool.add(+[](void* p) -> THREAD_STATUS
                 {
                     reinterpret_cast<Model*>(p)->updateAnimation();
@@ -402,17 +482,17 @@ Renderer::drawGame([[maybe_unused]] Arena* pArena)
                 case asset::Object::TYPE::MODEL:
                 {
                     Model& model = Model::fromI(entity.modelI);
-
-                    drawModel(model,
-                        M4TranslationFrom(entity.pos) *
-                        QtRot(entity.rot) *
-                        M4ScaleFrom(entity.scale)
-                    );
+                    drawModel(model, math::transformation(entity.pos, entity.rot, entity.scale));
                 }
                 break;
             }
         }
     }
+
+    drawUI(pArena);
+
+    if (control::g_bTestQuad)
+        drawTestQuad();
 }
 
 void
@@ -428,15 +508,36 @@ ShaderMapping::ShaderMapping(const StringView svVert, const StringView svFrag, c
     : m_svVert(svVert), m_svFrag(svFrag), m_svMappedTo(svMappedTo), m_eType(TYPE::VS_FS) {}
 
 Texture::Texture(int width, int height)
-    : m_width(width), m_height(height)
+    : m_width(width), m_height(height), m_eType(Image::TYPE::RGBA)
 {
     loadRGBA(nullptr);
 }
 
 Texture::Texture(const adt::Span2D<ImagePixelRGBA> spImg)
-    : m_width(spImg.width()), m_height(spImg.height())
+    : m_width(spImg.width()), m_height(spImg.height()), m_eType(Image::TYPE::RGBA)
 {
     loadRGBA(spImg.data());
+}
+
+Texture::Texture(const adt::Span2D<adt::u8> spImgMono)
+    : m_width(spImgMono.width()), m_height(spImgMono.height()), m_eType(Image::TYPE::MONO)
+{
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glGenTextures(1, &m_id);
+    glBindTexture(GL_TEXTURE_2D, m_id);
+    defer(
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    );
+
+    /*glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED);*/
+    /*glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);*/
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, m_width, m_height, 0, GL_RED, GL_UNSIGNED_BYTE, spImgMono.data());
 }
 
 void
@@ -447,6 +548,8 @@ Texture::subImage(const Span2D<ImagePixelRGBA> spImg)
         spImg.height() > 0 && m_height <= spImg.height(),
         "invalid spImg size"
     );
+
+    ADT_ASSERT(m_eType == Image::TYPE::RGBA, " ");
 
     bind();
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, spImg.stride(), spImg.height(), GL_RGBA, GL_UNSIGNED_BYTE, spImg.data());
@@ -614,12 +717,12 @@ Quad::Quad(adt::InitFlag)
     const f32 aVertices[] = {
         /* pos(0, 1)      uv(2, 3) */
         -1.0f,  1.0f,    0.0f, 1.0f,
-        -1.0f, -1.0f,    0.0f, 0.0f,
          1.0f, -1.0f,    1.0f, 0.0f,
+        -1.0f, -1.0f,    0.0f, 0.0f,
 
         -1.0f,  1.0f,    0.0f, 1.0f,
+         1.0f,  1.0f,    1.0f, 1.0f,
          1.0f, -1.0f,    1.0f, 0.0f,
-         1.0f,  1.0f,    1.0f, 1.0f
     };
 
     glGenVertexArrays(1, &m_vao);
@@ -959,7 +1062,7 @@ loadAssetObjects()
             loadImage(&obj.m_uData.img);
             break;
 
-            case asset::Object::TYPE::NONE:
+            default:
             break;
         }
     }
@@ -1024,52 +1127,47 @@ Skybox::Skybox(Image a6Images[6])
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 }
 
-#ifndef NDEBUG
-
 void
-debugCallback(
-    [[maybe_unused]] GLenum source,
-    [[maybe_unused]] GLenum type,
-    [[maybe_unused]] GLuint id,
-    [[maybe_unused]] GLenum severity,
-    [[maybe_unused]] GLsizei length,
-    [[maybe_unused]] const GLchar* message,
-    [[maybe_unused]] const void* user
-)
+Renderer::drawUI(Arena*)
 {
-    const char* typeStr {};
-    const char* sourceStr {};
+    Shader* pSh = searchShader("2DColor");
+    ADT_ASSERT(pSh, " ");
 
-    switch (source)
+    pSh->use();
+    s_quad.bind();
+
+    const auto& win = app::windowInst();
+    const f32 winWidth = win.m_width;
+    const f32 winHeight = win.m_height;
+    const f32 winWidthInv = 1.0f / winWidth;
+    const f32 winHeightInv = 1.0f / winHeight;
+    const f32 asp = winWidth / winHeight;
+    const f32 aspInv = 1.0f / asp;
+
+    const math::M4 proj = math::M4Ortho(0, 1, 1, 0, -1.0f, 10.0f);
+
+    for (const ui::Rect& rect : ui::g_poolRects)
     {
-        case GL_DEBUG_SOURCE_API: sourceStr = "API"; break;
-        case GL_DEBUG_SOURCE_WINDOW_SYSTEM: sourceStr = "Window System"; break;
-        case GL_DEBUG_SOURCE_SHADER_COMPILER: sourceStr = "Shader Compiler"; break;
-        case GL_DEBUG_SOURCE_THIRD_PARTY: sourceStr = "Third Party"; break;
-        case GL_DEBUG_SOURCE_APPLICATION: sourceStr = "Application"; break;
-        case GL_DEBUG_SOURCE_OTHER: sourceStr = "Other"; break;
+        if (!(rect.eFlags & ui::Rect::FLAGS::DRAW)) continue;
 
-        default: break;
+        f32 width = rect.width * winWidthInv;
+        f32 height = rect.height * winHeightInv;
+
+        math::V3 pos {
+            rect.x * winWidthInv,
+            rect.y * winHeightInv,
+            0.0f
+        };
+
+        math::V3 scale {width, height, 1.00f};
+
+        const math::M4 trm = math::transformation(pos, scale);
+
+        pSh->setM4("u_projection", proj * trm);
+        pSh->setV4("u_color", rect.color);
+
+        s_quad.draw();
     }
-
-    switch (type)
-    {
-        case GL_DEBUG_TYPE_ERROR: typeStr = "Error"; break;
-        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: typeStr = "Deprecated Behavior"; break;
-        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: typeStr = "Undefined Behavior"; break;
-        case GL_DEBUG_TYPE_PORTABILITY: typeStr = "Portability"; break;
-        case GL_DEBUG_TYPE_PERFORMANCE: typeStr = "Performance"; break;
-        case GL_DEBUG_TYPE_MARKER: typeStr = "Marker"; break;
-        case GL_DEBUG_TYPE_PUSH_GROUP: typeStr = "Push Group"; break;
-        case GL_DEBUG_TYPE_POP_GROUP: typeStr = "Pop Group"; break;
-        case GL_DEBUG_TYPE_OTHER: typeStr = "Other"; break;
-
-        default: break;
-    }
-
-    LOG_WARN("source: '{}', type: '{}'\n{}\n", sourceStr, typeStr, message);
 }
-
-#endif
 
 } /* namespace render::gl */

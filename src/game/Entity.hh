@@ -1,7 +1,6 @@
 #pragma once
 
 #include "adt/math.hh"
-#include "adt/print.hh"
 
 namespace game
 {

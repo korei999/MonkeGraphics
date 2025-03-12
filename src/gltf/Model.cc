@@ -1,4 +1,4 @@
-#include "gltf.hh"
+#include "Model.hh"
 
 #include "adt/file.hh"
 #include "adt/logs.hh"
@@ -72,8 +72,8 @@ assignUnionType(json::Node* obj, int n)
     for (int i = 0; i < n; i++)
     {
         if (arr[i].tagVal.eTag == json::TAG::LONG)
-            type.MAT4.d[i] = f32(json::getLong(&arr[i]));
-        else type.MAT4.d[i] = f32(json::getDouble(&arr[i]));
+            type.MAT4.d[i] = f32(json::getInteger(&arr[i]));
+        else type.MAT4.d[i] = f32(json::getFloat(&arr[i]));
     }
 
     return type;
@@ -91,8 +91,8 @@ accessorTypeToUnionType(Accessor::TYPE eType, json::Node* obj)
         {
             auto& arr = json::getArray(obj);
             if (arr[0].tagVal.eTag == json::TAG::LONG)
-                type.SCALAR = f64(json::getLong(&arr[0]));
-            else type.SCALAR = f64(json::getDouble(&arr[0]));
+                type.SCALAR = f64(json::getInteger(&arr[0]));
+            else type.SCALAR = f64(json::getFloat(&arr[0]));
         } break;
 
         case Accessor::TYPE::VEC2:
@@ -292,7 +292,7 @@ Model::procRootScene(IAllocator*)
         return true;
     }
 
-    m_defaultSceneI = static_cast<int>(json::getLong(m_toplevelObjs.pScene));
+    m_defaultSceneI = static_cast<int>(json::getInteger(m_toplevelObjs.pScene));
 
     return true;
 }
@@ -327,7 +327,7 @@ Model::procScenes(IAllocator* pAlloc)
             auto& vNodes = json::getArray(pNodes);
             Vec<int> vNewNodes {};
             for (auto& node : vNodes)
-                vNewNodes.push(pAlloc, static_cast<int>(json::getLong(&node)));
+                vNewNodes.push(pAlloc, static_cast<int>(json::getInteger(&node)));
 
             newScene.vNodes = vNewNodes;
         }
@@ -372,7 +372,7 @@ Model::procBuffers(IAllocator* pAlloc)
         }
 
         m_vBuffers.push(pAlloc, {
-            .byteLength = static_cast<int>(json::getLong(pByteLength)),
+            .byteLength = static_cast<int>(json::getInteger(pByteLength)),
             .sUri = svUri,
             .sBin = aBin
         });
@@ -398,11 +398,11 @@ Model::procBufferViews(IAllocator* pAlloc)
             LOG_BAD("'buffer' field is required\n");
             return false;
         }
-        newView.bufferI = static_cast<int>(json::getLong(pBuffer));
+        newView.bufferI = static_cast<int>(json::getInteger(pBuffer));
 
         auto pByteOffset = json::searchNode(obj, "byteOffset");
         if (pByteOffset)
-            newView.byteOffset = static_cast<int>(json::getLong(pByteOffset));
+            newView.byteOffset = static_cast<int>(json::getInteger(pByteOffset));
 
         auto pByteLength = json::searchNode(obj, "byteLength");
         if (!pByteLength)
@@ -410,15 +410,15 @@ Model::procBufferViews(IAllocator* pAlloc)
             LOG_BAD("'byteLength' field is required\n");
             return false;
         }
-        newView.byteLength = static_cast<int>(json::getLong(pByteLength));
+        newView.byteLength = static_cast<int>(json::getInteger(pByteLength));
 
         auto pByteStride = json::searchNode(obj, "byteStride");
         if (pByteStride)
-            newView.byteStride = static_cast<int>(json::getLong(pByteStride));
+            newView.byteStride = static_cast<int>(json::getInteger(pByteStride));
 
         auto pTarget = json::searchNode(obj, "target");
         if (pTarget)
-            newView.eTarget = (TARGET)(json::getLong(pTarget));
+            newView.eTarget = (TARGET)(json::getInteger(pTarget));
 
         m_vBufferViews.push(pAlloc, newView);
     }
@@ -465,10 +465,10 @@ Model::procAccessors(IAllocator* pAlloc)
         Accessor::TYPE eType = stringToAccessorType(json::getString(pType));
  
         m_vAccessors.push(pAlloc, {
-            .bufferViewI = pBufferView ? static_cast<int>(json::getLong(pBufferView)) : 0,
-            .byteOffset = pByteOffset ? static_cast<int>(json::getLong(pByteOffset)) : 0,
-            .eComponentType = (COMPONENT_TYPE)(json::getLong(pComponentType)),
-            .count = static_cast<int>(json::getLong(pCount)),
+            .bufferViewI = pBufferView ? static_cast<int>(json::getInteger(pBufferView)) : 0,
+            .byteOffset = pByteOffset ? static_cast<int>(json::getInteger(pByteOffset)) : 0,
+            .eComponentType = (COMPONENT_TYPE)(json::getInteger(pComponentType)),
+            .count = static_cast<int>(json::getInteger(pCount)),
             .uMax = pMax ? accessorTypeToUnionType(eType, pMax) : Type{},
             .uMin = pMin ? accessorTypeToUnionType(eType, pMin) : Type{},
             .eType = eType
@@ -503,7 +503,7 @@ Model::procSkins(IAllocator* pAlloc)
         for (auto joint : jointsArr)
         {
             newSkin.vJoints.push(pAlloc,
-                static_cast<int>(json::getLong(&joint))
+                static_cast<int>(json::getInteger(&joint))
             );
         }
 
@@ -513,11 +513,11 @@ Model::procSkins(IAllocator* pAlloc)
 
         auto* pInverseBindMatrices = json::searchNode(skinObj, "inverseBindMatrices");
         if (pInverseBindMatrices)
-            newSkin.inverseBindMatricesI = static_cast<int>(json::getLong(pInverseBindMatrices));
+            newSkin.inverseBindMatricesI = static_cast<int>(json::getInteger(pInverseBindMatrices));
 
         auto* pSkeleton = json::searchNode(skinObj, "skeleton");
         if (pSkeleton)
-            newSkin.skeleton = static_cast<int>(json::getLong(pSkeleton));
+            newSkin.skeleton = static_cast<int>(json::getInteger(pSkeleton));
 
         m_vSkins.push(pAlloc, newSkin);
     }
@@ -554,15 +554,15 @@ Model::procMeshes(IAllocator* pAlloc)
 
             auto pIndices = json::searchNode(op, "indices");
             if (pIndices)
-                newPrimitive.indicesI = static_cast<int>(json::getLong(pIndices));
+                newPrimitive.indicesI = static_cast<int>(json::getInteger(pIndices));
 
             auto pMode = json::searchNode(op, "mode");
             if (pMode)
-                newPrimitive.eMode = static_cast<Primitive::TYPE>(json::getLong(pMode));
+                newPrimitive.eMode = static_cast<Primitive::TYPE>(json::getInteger(pMode));
 
             auto pMaterial = json::searchNode(op, "material");
             if (pMaterial)
-                newPrimitive.materialI = static_cast<int>(json::getLong(pMaterial));
+                newPrimitive.materialI = static_cast<int>(json::getInteger(pMaterial));
  
             auto pAttributes = json::searchNode(op, "attributes");
             if (!pAttributes)
@@ -575,27 +575,27 @@ Model::procMeshes(IAllocator* pAlloc)
 
             auto pNORMAL = json::searchNode(oAttr, "NORMAL");
             if (pNORMAL)
-                newPrimitive.attributes.NORMAL = static_cast<int>(json::getLong(pNORMAL));
+                newPrimitive.attributes.NORMAL = static_cast<int>(json::getInteger(pNORMAL));
 
             auto pTANGENT = json::searchNode(oAttr, "TANGENT");
             if (pTANGENT)
-                newPrimitive.attributes.TANGENT = static_cast<int>(json::getLong(pTANGENT));
+                newPrimitive.attributes.TANGENT = static_cast<int>(json::getInteger(pTANGENT));
 
             auto pPOSITION = json::searchNode(oAttr, "POSITION");
             if (pPOSITION)
-                newPrimitive.attributes.POSITION = static_cast<int>(json::getLong(pPOSITION));
+                newPrimitive.attributes.POSITION = static_cast<int>(json::getInteger(pPOSITION));
 
             auto pTEXCOORD_0 = json::searchNode(oAttr, "TEXCOORD_0");
             if (pTEXCOORD_0)
-                newPrimitive.attributes.TEXCOORD_0 = static_cast<int>(json::getLong(pTEXCOORD_0));
+                newPrimitive.attributes.TEXCOORD_0 = static_cast<int>(json::getInteger(pTEXCOORD_0));
 
             auto* pJOINTS_0 = json::searchNode(oAttr, "JOINTS_0");
             if (pJOINTS_0)
-                newPrimitive.attributes.JOINTS_0 = static_cast<int>(json::getLong(pJOINTS_0));
+                newPrimitive.attributes.JOINTS_0 = static_cast<int>(json::getInteger(pJOINTS_0));
 
             auto* pWEIGHTS_0 = json::searchNode(oAttr, "WEIGHTS_0");
             if (pWEIGHTS_0)
-                newPrimitive.attributes.WEIGHTS_0 = static_cast<int>(json::getLong(pWEIGHTS_0));
+                newPrimitive.attributes.WEIGHTS_0 = static_cast<int>(json::getInteger(pWEIGHTS_0));
  
             aPrimitives.push(pAlloc, newPrimitive);
         }
@@ -622,8 +622,8 @@ Model::procTexures(IAllocator* pAlloc)
         auto pSampler = json::searchNode(obj, "sampler");
 
         m_vTextures.push(pAlloc, {
-            .sourceI = pSource ? static_cast<i32>(json::getLong(pSource)) : -1,
-            .samplerI = pSampler ? static_cast<i32>(json::getLong(pSampler)) : -1
+            .sourceI = pSource ? static_cast<i32>(json::getInteger(pSource)) : -1,
+            .samplerI = pSampler ? static_cast<i32>(json::getInteger(pSampler)) : -1
         });
     }
 
@@ -666,7 +666,7 @@ Model::procMaterials(IAllocator* pAlloc)
                         return false;
                     }
 
-                    newMaterial.pbrMetallicRoughness.baseColorTexture.index = json::getLong(pIndex);
+                    newMaterial.pbrMetallicRoughness.baseColorTexture.index = json::getInteger(pIndex);
                 }
             }
 
@@ -688,7 +688,7 @@ Model::procMaterials(IAllocator* pAlloc)
                 return false;
             }
 
-            newMaterial.normalTexture.index = json::getLong(pIndex);
+            newMaterial.normalTexture.index = json::getInteger(pIndex);
         }
 
         m_vMaterials.push(pAlloc, newMaterial);
@@ -734,14 +734,14 @@ Model::procNodes(IAllocator* pAlloc)
 
         auto pCamera = json::searchNode(obj, "camera");
         if (pCamera)
-            newNode.cameraI = static_cast<int>(json::getLong(pCamera));
+            newNode.cameraI = static_cast<int>(json::getInteger(pCamera));
 
         auto pChildren = json::searchNode(obj, "children");
         if (pChildren)
         {
             auto& arrChil = json::getArray(pChildren);
             for (auto& c : arrChil)
-                newNode.vChildren.push(pAlloc, static_cast<int>(json::getLong(&c)));
+                newNode.vChildren.push(pAlloc, static_cast<int>(json::getInteger(&c)));
         }
 
         auto pMatrix = json::searchNode(obj, "matrix");
@@ -753,11 +753,11 @@ Model::procNodes(IAllocator* pAlloc)
 
         auto pMesh = json::searchNode(obj, "mesh");
         if (pMesh)
-            newNode.meshI = static_cast<int>(json::getLong(pMesh));
+            newNode.meshI = static_cast<int>(json::getInteger(pMesh));
 
         auto pSkin = json::searchNode(obj, "skin");
         if (pSkin)
-            newNode.skinI = static_cast<int>(json::getLong(pSkin));
+            newNode.skinI = static_cast<int>(json::getInteger(pSkin));
 
         auto pTranslation = json::searchNode(obj, "translation");
         if (pTranslation)
@@ -829,7 +829,7 @@ Model::procAnimations(IAllocator* pAlloc)
                 return false;
             }
 
-            auto sampler = json::getLong(pSampler);
+            auto sampler = json::getInteger(pSampler);
             newChannel.samplerI = sampler;
 
             auto* pTarget = json::searchNode(channelObj, "target");
@@ -846,7 +846,7 @@ Model::procAnimations(IAllocator* pAlloc)
             auto pNode = json::searchNode(targetObj, "node");
             if (pNode)
             {
-                newTarget.nodeI = static_cast<int>(json::getLong(pNode));
+                newTarget.nodeI = static_cast<int>(json::getInteger(pNode));
             }
 
             auto pPath = json::searchNode(targetObj, "path");
@@ -884,7 +884,7 @@ Model::procAnimations(IAllocator* pAlloc)
                 return false;
             }
 
-            newSampler.inputI = static_cast<int>(json::getLong(pInput));
+            newSampler.inputI = static_cast<int>(json::getInteger(pInput));
 
             auto* pInterpolation = json::searchNode(samplerObj, "interpolation");
             if (pInterpolation)
@@ -897,7 +897,7 @@ Model::procAnimations(IAllocator* pAlloc)
                 return false;
             }
 
-            newSampler.outputI = static_cast<int>(json::getLong(pOutput));
+            newSampler.outputI = static_cast<int>(json::getInteger(pOutput));
 
             newAnim.vSamplers.push(pAlloc, newSampler);
         }
