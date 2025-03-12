@@ -142,6 +142,8 @@ loadGLFunctions()
     LOAD_GL_FUNC(glBufferData);
     LOAD_GL_FUNC(glVertexAttribPointer);
     LOAD_GL_FUNC(glEnableVertexAttribArray);
+    LOAD_GL_FUNC(glBufferSubData);
+
     LOAD_GL_FUNC(glDebugMessageCallbackARB);
 
 #undef LOAD_GL_FUNC

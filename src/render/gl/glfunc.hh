@@ -47,6 +47,7 @@ extern void (*glBindBuffer)(GLenum target, GLuint buffer);
 extern void (*glBufferData)(GLenum target, GLsizeiptr size, const void *data, GLenum usage);
 extern void (*glVertexAttribPointer)(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
 extern void (*glEnableVertexAttribArray)(GLuint index);
+extern void (*glBufferSubData)(GLenum target, GLintptr offset, GLsizeiptr size, const void *data);
 
 extern void (*glDebugMessageCallbackARB)(GLDEBUGPROCARB callback, const void *userParam);
 
