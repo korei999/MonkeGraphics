@@ -18,7 +18,7 @@ struct PointOnCurve
 };
 
 Vec<PointOnCurve>
-getPointsWithMissingOnCurve(IAllocator* pAlloc, Glyph* g)
+pointsWithMissingOnCurve(IAllocator* pAlloc, Glyph* g)
 {
     const auto& aGlyphPoints = g->uGlyph.simple.vPoints;
     u32 size = aGlyphPoints.size();
@@ -167,15 +167,14 @@ makeItCurvy(IAllocator* pAlloc, const Vec<PointOnCurve>& aNonCurvyPoints, CurveE
     return aNew;
 }
 
-/* https://sharo.dev/post/reading-ttf-files-and-rasterizing-them-using-a-handmade- */
 void
-Rasterizer::rasterizeGlyph(IAllocator* pAlloc, Font* pFont, Glyph* pGlyph, Span2D<u8> spBitmap)
+Rasterizer::rasterizeGlyph(Arena* pArena, Font* pFont, Glyph* pGlyph, int xOff, int yOff)
 {
-    const auto& aGlyphPoints = pGlyph->uGlyph.simple.vPoints;
+    const Vec<Point>& vGlyphPoints = pGlyph->uGlyph.simple.vPoints;
 
     CurveEndIdx endIdxs;
-    auto aCurvyPoints = makeItCurvy(
-        pAlloc, getPointsWithMissingOnCurve(pAlloc, pGlyph), &endIdxs, 6
+    Vec<PointOnCurve> vCurvyPoints = makeItCurvy(
+        pArena, pointsWithMissingOnCurve(pArena, pGlyph), &endIdxs, 6
     );
 
     f32 xMax = pFont->m_head.xMax;
@@ -183,26 +182,26 @@ Rasterizer::rasterizeGlyph(IAllocator* pAlloc, Font* pFont, Glyph* pGlyph, Span2
     f32 yMax = pFont->m_head.yMax;
     f32 yMin = pFont->m_head.yMin;
 
-    Array<f32, 32> aIntersections {};
-    auto& sp = spBitmap;
+    Array<f32, 64> aIntersections {};
+    Span2D<u8> sp = m_altas.spanMono();
 
-    const f32 vScale = static_cast<f32>(sp.height()) / static_cast<f32>(yMax - yMin);
-    const f32 hScale = static_cast<f32>(sp.width()) / static_cast<f32>(xMax - xMin);
+    const f32 hScale = static_cast<f32>(m_scale) / static_cast<f32>(xMax - xMin);
+    const f32 vScale = static_cast<f32>(m_scale) / static_cast<f32>(yMax - yMin);
 
-    for (ssize row = 0; row < sp.height(); ++row)
+    for (ssize row = 0; row < static_cast<ssize>(m_scale); ++row)
     {
         aIntersections.setSize(0);
-        const f32 scanline = f32(row);
+        const f32 scanline = static_cast<f32>(row);
 
-        for (u32 pointIdx = 1; pointIdx < aCurvyPoints.size(); ++pointIdx)
+        for (ssize pointIdx = 1; pointIdx < vCurvyPoints.size(); ++pointIdx)
         {
-            f32 x0 = (aCurvyPoints[pointIdx - 1].pos.x) * hScale;
-            f32 x1 = (aCurvyPoints[pointIdx - 0].pos.x) * hScale;
+            f32 x0 = (vCurvyPoints[pointIdx - 1].pos.x) * hScale;
+            f32 x1 = (vCurvyPoints[pointIdx - 0].pos.x) * hScale;
 
-            f32 y0 = (aCurvyPoints[pointIdx - 1].pos.y - yMin) * vScale;
-            f32 y1 = (aCurvyPoints[pointIdx - 0].pos.y - yMin) * vScale;
+            f32 y0 = (vCurvyPoints[pointIdx - 1].pos.y - yMin) * vScale;
+            f32 y1 = (vCurvyPoints[pointIdx - 0].pos.y - yMin) * vScale;
 
-            if (aCurvyPoints[pointIdx].bEndOfCurve)
+            if (vCurvyPoints[pointIdx].bEndOfCurve)
                 ++pointIdx;
 
             /* for the intersection all we need is to find what X is when our y = scanline or when y is equal to i of the loop
@@ -228,6 +227,7 @@ Rasterizer::rasterizeGlyph(IAllocator* pAlloc, Font* pFont, Glyph* pGlyph, Span2
                 intersection = x1;
             else intersection = (scanline - y1)*(dx/dy) + x1;
 
+            if (aIntersections.size() >= aIntersections.cap()) continue;
             aIntersections.push(intersection);
         }
 
@@ -235,7 +235,7 @@ Rasterizer::rasterizeGlyph(IAllocator* pAlloc, Font* pFont, Glyph* pGlyph, Span2
         {
             sort::insertion(&aIntersections);
 
-            for (u32 intIdx = 0; intIdx < aIntersections.size(); intIdx += 2)
+            for (ssize intIdx = 0; intIdx < aIntersections.size(); intIdx += 2)
             {
                 f32 start = aIntersections[intIdx];
                 int startIdx = start;
@@ -245,15 +245,19 @@ Rasterizer::rasterizeGlyph(IAllocator* pAlloc, Font* pFont, Glyph* pGlyph, Span2
                 int endIdx = end;
                 f32 endCovered = end - endIdx;
 
-                if (startIdx >= 0)
-                    sp(startIdx, row) = 255.0f * startCovered;
+                /*if (startIdx >= 0)*/
+                /*    sp(xOff + startIdx, yOff + row) = 255.0f * startCovered;*/
+                /*if (startIdx != endIdx)*/
+                /*    sp(xOff + endIdx, yOff + row) = 255.0f * endCovered;*/
 
+                if (startIdx >= 0)
+                    sp(xOff + startIdx, yOff + row) = utils::clamp(255.0f * startCovered, 0.0f, 255.0f);
                 if (startIdx != endIdx)
-                    sp(endIdx, row) = 255.0f * endCovered;
+                    sp(xOff + endIdx, yOff + row) = utils::clamp(255.0f * endCovered, 0.0f, 255.0f);
 
                 for (int col = startIdx + 1; col < endIdx; ++col)
                     if (col >= 0)
-                        sp(col, row) = 255;
+                        sp(xOff + col, yOff + row) = 255;
             }
         }
     }
@@ -292,23 +296,16 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
 
     i16 xOff = 0;
     i16 yOff = 0;
+    const i16 xStep = iScale * X_STEP;
 
-    for (int ch = '!'; ch <= '~'; ++ch)
+    for (u32 ch = '!'; ch <= '~'; ++ch)
     {
-        m_mapCodeToXY.insert(pAlloc, static_cast<u32>(ch), {xOff, yOff});
-        u8* pTmp = arena.zallocV<u8>(math::sq(iScale));
+        m_mapCodeToXY.insert(pAlloc, ch, {xOff, yOff});
 
-        auto g = pFont->readGlyph(ch);
-        rasterizeGlyph(&arena, pFont, &g, Span2D{pTmp, iScale, iScale, iScale});
+        Glyph g = pFont->readGlyph(ch);
+        rasterizeGlyph(&arena, pFont, &g, xOff, yOff);
 
-        int off = 0;
-        for (int y = yOff; y < yOff + iScale; ++y)
-        {
-            for (int x = xOff; x < xOff + scale; ++x)
-                sp(x, y) = pTmp[off++];
-        }
-
-        if ((xOff += (iScale / 2)) >= (nSquares * iScale) - iScale/2)
+        if ((xOff += xStep) >= (nSquares * iScale) - xStep)
         {
             xOff = 0;
             yOff += iScale;

@@ -69,6 +69,12 @@ fromModelI(adt::i16 handleI)
     return &fromI(handleI, Object::TYPE::MODEL)->m_uData.model;
 }
 
+[[nodiscard]] inline ttf::Font*
+fromFontI(adt::i16 handleI)
+{
+    return &fromI(handleI, Object::TYPE::FONT)->m_uData.font;
+}
+
 } /* namespace asset */
 
 namespace adt::print

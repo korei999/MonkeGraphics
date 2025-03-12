@@ -11,15 +11,19 @@ struct Font;
 
 struct Rasterizer
 {
+    static constexpr adt::f32 X_STEP = 0.60f;
+
+    /* */
+
     Image m_altas {};
-    adt::Map<adt::u32, adt::Pair<adt::i16, adt::i16>> m_mapCodeToXY {};
+    adt::Map<adt::u32, adt::Pair<adt::i16, adt::i16>, adt::hash::dumbFunc> m_mapCodeToXY {};
     adt::f32 m_scale {};
 
     /* */
 
-    void rasterizeGlyph(adt::IAllocator* pAlloc, Font* pFont, Glyph* pGlyph, adt::Span2D<adt::u8> spBitmap);
-    void rasterizeAscii(adt::IAllocator* pAlloc, Font* pFont, adt::f32 scale);
     void destroy(adt::IAllocator* pAlloc);
+    void rasterizeAscii(adt::IAllocator* pAlloc, Font* pFont, adt::f32 scale);
+    void rasterizeGlyph(adt::Arena* pArena, Font* pFont, Glyph* pGlyph, int xOff, int yOff);
 };
 
 } /* namespace ttf */
