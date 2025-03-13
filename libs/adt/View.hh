@@ -28,7 +28,7 @@ struct View
     ssize stride() const { return m_byteStride; }
     ssize idx(const T* const pElement) const; /* NOTE: requires division (slow), for i loops should be preferred instead. */
 
-private:
+protected:
     T& at(ssize i) const;
     u8* u8Data() { return (u8*)(m_pData); }
     const u8* u8Data() const { return (const u8*)(m_pData); }

@@ -6,7 +6,6 @@
 #include "ui.hh"
 
 #include "adt/Vec.hh"
-#include "adt/logs.hh"
 #include "adt/defer.hh"
 
 #if !defined NDEBUG
@@ -22,6 +21,7 @@ f64 g_time {};
 f64 g_frameTime {};
 const f64 g_dt = FIXED_DELTA_TIME;
 f64 g_gameTime {};
+adt::StringFixed<100> g_sfFps;
 
 static void
 refresh(void* pArg)
@@ -126,7 +126,10 @@ mainLoop()
             f64 avg = 0;
             for (f64 ft : vFrameTimes) avg += ft;
 
-            CERR("FPS: {} | avg frame time: {} ms\n", vFrameTimes.size(), avg / vFrameTimes.size());
+            char aBuff[128] {};
+            print::toBuffer(aBuff, sizeof(aBuff) - 1, "FPS: {} | avg frame time: {} ms\n", vFrameTimes.size(), avg / vFrameTimes.size());
+            g_sfFps = aBuff;
+
             vFrameTimes.setSize(0);
             lastAvgFrameTimeUpdateTime = t1;
         }
@@ -159,6 +162,7 @@ start()
     }
 
     /* wait for running tasks */
+    app::g_threadPool.destroy();
     renderer.destroy();
 
 #ifndef NDEBUG

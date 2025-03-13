@@ -95,6 +95,7 @@ struct StringView
     constexpr char* data() { return m_pData; }
     constexpr ssize size() const { return m_size; }
     constexpr bool empty() const { return size() == 0; }
+    constexpr ssize idx(const char* const pChar) const;
     [[nodiscard]] bool beginsWith(const StringView r) const;
     [[nodiscard]] bool endsWith(const StringView r) const;
     [[nodiscard]] ssize lastOf(char c) const;
@@ -280,6 +281,15 @@ struct StringWordIt
     const It begin() const { return {m_sv, 0, m_svDelimiters, true}; }
     const It end() const { return It(NPOS); }
 };
+
+constexpr inline ssize
+StringView::idx(const char* const p) const
+{
+    ssize i = p - m_pData;
+    ADT_ASSERT(i >= 0 && i < size(), "out of range: idx: %lld: size: %lld", i, size());
+
+    return i;
+}
 
 inline bool
 StringView::beginsWith(const StringView r) const

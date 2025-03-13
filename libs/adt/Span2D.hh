@@ -40,7 +40,7 @@ struct Span2D
 
     /* */
 
-private:
+protected:
     constexpr T&
     at(int x, int y) const
     {

@@ -25,10 +25,11 @@ pointsWithMissingOnCurve(IAllocator* pAlloc, Glyph* g)
 
     bool bCurrOnCurve = false;
     bool bPrevOnCurve = false;
-    u32 firstInCurveIdx = 0;
+
+    [[maybe_unused]] u32 firstInCurveIdx = 0;
+    [[maybe_unused]] int nOffCurve = 0;
 
     Vec<PointOnCurve> aPoints(pAlloc, size);
-    int nOffCurve = 0;
     for (const auto& p : aGlyphPoints)
     {
         const u32 pointIdx = aGlyphPoints.idx(&p);
@@ -65,8 +66,10 @@ pointsWithMissingOnCurve(IAllocator* pAlloc, Glyph* g)
             .bEndOfCurve = bEndOfCurve
         });
 
-        if (!bCurrOnCurve && bEndOfCurve)
-            assert(aGlyphPoints[firstInCurveIdx].bOnCurve == true);
+#ifndef NDEBUG
+            if (!bCurrOnCurve && bEndOfCurve)
+                ADT_ASSERT(aGlyphPoints[firstInCurveIdx].bOnCurve == true, " ");
+#endif
 
         if (bEndOfCurve) firstInCurveIdx = pointIdx + 1;
     }
@@ -170,8 +173,6 @@ makeItCurvy(IAllocator* pAlloc, const Vec<PointOnCurve>& aNonCurvyPoints, CurveE
 void
 Rasterizer::rasterizeGlyph(Arena* pArena, Font* pFont, Glyph* pGlyph, int xOff, int yOff)
 {
-    const Vec<Point>& vGlyphPoints = pGlyph->uGlyph.simple.vPoints;
-
     CurveEndIdx endIdxs;
     Vec<PointOnCurve> vCurvyPoints = makeItCurvy(
         pArena, pointsWithMissingOnCurve(pArena, pGlyph), &endIdxs, 6
@@ -245,11 +246,6 @@ Rasterizer::rasterizeGlyph(Arena* pArena, Font* pFont, Glyph* pGlyph, int xOff, 
                 int endIdx = end;
                 f32 endCovered = end - endIdx;
 
-                /*if (startIdx >= 0)*/
-                /*    sp(xOff + startIdx, yOff + row) = 255.0f * startCovered;*/
-                /*if (startIdx != endIdx)*/
-                /*    sp(xOff + endIdx, yOff + row) = 255.0f * endCovered;*/
-
                 if (startIdx >= 0)
                     sp(xOff + startIdx, yOff + row) = utils::clamp(255.0f * startCovered, 0.0f, 255.0f);
                 if (startIdx != endIdx)
@@ -292,8 +288,6 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
     Arena arena(SIZE_8M);
     defer( arena.freeAll() );
 
-    auto sp = m_altas.spanMono();
-
     i16 xOff = 0;
     i16 yOff = 0;
     const i16 xStep = iScale * X_STEP;
@@ -305,10 +299,11 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
         Glyph g = pFont->readGlyph(ch);
         rasterizeGlyph(&arena, pFont, &g, xOff, yOff);
 
-        if ((xOff += xStep) >= (nSquares * iScale) - xStep)
+        if ((xOff += xStep) >= (nSquares*iScale) - xStep)
         {
             xOff = 0;
-            yOff += iScale;
+            if ((yOff += iScale) >= (nSquares*iScale) - iScale)
+                break;
         }
 
         arena.reset();

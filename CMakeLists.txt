@@ -325,6 +325,7 @@ if (OPT_GL)
     target_sources(
         ${CMAKE_PROJECT_NAME} PRIVATE
         src/render/gl/gl.cc
+        src/render/gl/Text.cc
     )
 endif()
 

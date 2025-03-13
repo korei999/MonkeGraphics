@@ -11,7 +11,7 @@ struct Font;
 
 struct Rasterizer
 {
-    static constexpr adt::f32 X_STEP = 0.60f;
+    static constexpr adt::f32 X_STEP = 0.60f; /* x-axis spacing between glyphs */
 
     /* */
 
@@ -23,6 +23,8 @@ struct Rasterizer
 
     void destroy(adt::IAllocator* pAlloc);
     void rasterizeAscii(adt::IAllocator* pAlloc, Font* pFont, adt::f32 scale);
+
+protected:
     void rasterizeGlyph(adt::Arena* pArena, Font* pFont, Glyph* pGlyph, int xOff, int yOff);
 };
 

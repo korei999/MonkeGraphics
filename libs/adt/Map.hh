@@ -107,6 +107,7 @@ struct Map
         MapResult<K, V> emplace(IAllocator* p, const K& key, ARGS&&... args);
 
     [[nodiscard]] MapResult<K, V> search(const K& key);
+    [[nodiscard]] const MapResult<K, V> search(const K& key) const;
 
     void remove(ssize i);
 
@@ -126,7 +127,7 @@ struct Map
 
     MapResult<K, V> insertHashed(const K& key, const V& val, usize hash);
 
-    [[nodiscard]] MapResult<K, V> searchHashed(const K& key, usize keyHash);
+    [[nodiscard]] MapResult<K, V> searchHashed(const K& key, usize keyHash) const;
 
     void zeroOut();
 
@@ -279,6 +280,14 @@ Map<K, V, FN_HASH>::search(const K& key)
 }
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
+[[nodiscard]] inline const MapResult<K, V>
+Map<K, V, FN_HASH>::search(const K& key) const
+{
+    usize keyHash = FN_HASH(key);
+    return searchHashed(key, keyHash);
+}
+
+template<typename K, typename V, usize (*FN_HASH)(const K&)>
 inline void
 Map<K, V, FN_HASH>::remove(ssize i)
 {
@@ -398,7 +407,7 @@ Map<K, V, FN_HASH>::insertHashed(const K& key, const V& val, usize keyHash)
 
 template<typename K, typename V, usize (*FN_HASH)(const K&)>
 [[nodiscard]] inline MapResult<K, V>
-Map<K, V, FN_HASH>::searchHashed(const K& key, usize keyHash)
+Map<K, V, FN_HASH>::searchHashed(const K& key, usize keyHash) const
 {
     MapResult<K, V> res {.eStatus = MAP_RESULT_STATUS::NOT_FOUND};
 
@@ -417,7 +426,7 @@ Map<K, V, FN_HASH>::searchHashed(const K& key, usize keyHash)
     {
         if (!m_aBuckets[idx].bDeleted && m_aBuckets[idx].key == key)
         {
-            res.pData = &m_aBuckets[idx];
+            res.pData = const_cast<MapBucket<K, V>*>(&m_aBuckets[idx]);
             res.eStatus = MAP_RESULT_STATUS::FOUND;
             break;
         }
@@ -499,6 +508,8 @@ struct MapManaged
     { return base.emplace(m_pAlloc, key, std::forward<ARGS>(args)...); };
 
     [[nodiscard]] MapResult<K, V> search(const K& key) { return base.search(key); }
+
+    [[nodiscard]] const MapResult<K, V> search(const K& key) const { return base.search(key); }
 
     void remove(ssize i) { base.remove(i); }
 

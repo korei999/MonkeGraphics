@@ -22,4 +22,6 @@ inline render::IRenderer& rendererInst() { return *g_pRenderer; }
 IWindow* allocWindow(adt::IAllocator* pAlloc, const char* ntsName);
 render::IRenderer* allocRenderer(adt::IAllocator* pAlloc);
 
+extern adt::ThreadPool g_threadPool;
+
 } /* namespace app */;

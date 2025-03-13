@@ -17,11 +17,13 @@ layout(location = 1) in vec2 a_texCoords;
 
 out vec2 vs_tex;
 
+uniform mat4 u_trm;
+
 void
 main()
 {
     vs_tex = a_texCoords;
-    gl_Position = vec4(a_pos, 0.0, 1.0);
+    gl_Position = u_trm * vec4(a_pos, 0.0, 1.0);
 }
 )";
 
@@ -59,10 +61,10 @@ void
 main()
 {
     vec3 col = texture(u_tex0, vs_tex).rrr;
-
     if (col.r < 0.01) discard;
 
-    fs_fragColor = u_color * vec4(col, 1.0f);
+    /*fs_fragColor = vec4(col, 1.0f);*/
+    fs_fragColor = u_color;
 }
 )";
 

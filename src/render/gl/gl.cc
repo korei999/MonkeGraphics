@@ -1,4 +1,5 @@
 #include "gl.hh"
+#include "Text.hh"
 
 #include "Model.hh"
 #include "app.hh"
@@ -55,6 +56,7 @@ struct Skybox
 static void loadShaders();
 static void loadAssetObjects();
 static void loadSkybox();
+static void drawUI(Arena*);
 
 Pool<Shader, 128> g_poolShaders;
 static MapManaged<StringView, PoolHandle<Shader>> s_mapStringToShaders(StdAllocator::inst(), g_poolShaders.cap());
@@ -63,12 +65,11 @@ static u8 s_aScratchMem[SIZE_1K * 100] {};
 static ScratchBuffer s_scratch(s_aScratchMem);
 
 static Texture s_texDefault;
-static Texture s_texRastTest;
+static Texture s_texLiberation;
 static Skybox s_skyboxDefault;
 static Quad s_quad;
 static ttf::Rasterizer s_rasterizer;
-
-static ThreadPool s_threadPool(StdAllocator::inst());
+static Text s_text;
 
 static const ShaderMapping s_aShadersToLoad[] {
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"},
@@ -145,7 +146,6 @@ Renderer::init()
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
-    /*glDisable(GL_CULL_FACE);*/
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
@@ -153,9 +153,13 @@ Renderer::init()
     s_quad = Quad(INIT);
 
     ttf::Font* pFont = asset::searchFont("assets/LiberationMono-Regular.ttf");
-    s_rasterizer.rasterizeAscii(StdAllocator::inst(), pFont, 256.0f);
-
-    s_texRastTest = Texture(s_rasterizer.m_altas.spanMono());
+    ADT_ASSERT(pFont, " ");
+    if (pFont)
+    {
+        s_rasterizer.rasterizeAscii(StdAllocator::inst(), pFont, 256.0f);
+        s_texLiberation = Texture(s_rasterizer.m_altas.spanMono());
+        s_text = Text(100);
+    }
 
     loadShaders();
     loadAssetObjects();
@@ -433,10 +437,36 @@ drawTestQuad()
     pSh->use();
     s_quad.bind();
 
+    pSh->setM4("u_trm", math::M4TranslationFrom({0.0f, 1.0f, 0.0f}));
     pSh->setV4("u_color", V4From(colors::get(colors::WHITE), 0.75f));
 
-    s_texRastTest.bind(GL_TEXTURE0);
+    s_texLiberation.bind(GL_TEXTURE0);
     s_quad.draw();
+}
+
+static void
+drawFPS(Arena* pArena)
+{
+    Shader* pSh = searchShader("QuadTexMono");
+    if (!pSh) return;
+
+    glDisable(GL_CULL_FACE);
+
+    pSh->use();
+    s_text.bind();
+    s_texLiberation.bind(GL_TEXTURE0);
+
+    const f32 width = 100.0f;
+    const f32 height = width * 0.3333f;
+
+    math::M4 proj = math::M4Ortho(0, width, 0, height, -10.0f, 10.0f);
+
+    pSh->setM4("u_trm", proj * math::M4TranslationFrom({0.0f, height - 1.0f, -1.0f}));
+    pSh->setV4("u_color", V4From(colors::get(colors::WHITE), 0.75f));
+
+    s_text.update(pArena, s_rasterizer, frame::g_sfFps);
+
+    s_text.draw();
 }
 
 void
@@ -456,10 +486,10 @@ Renderer::drawGame(Arena* pArena)
         for (auto& model : Model::g_poolModels)
         {
             /* don't even wait */
-            s_threadPool.add(+[](void* p) -> THREAD_STATUS
+            app::g_threadPool.add(+[](void* p) -> THREAD_STATUS
                 {
                     reinterpret_cast<Model*>(p)->updateAnimation();
-                    return static_cast<THREAD_STATUS>(0);
+                    return THREAD_STATUS(0);
                 }, &model
             );
         }
@@ -489,17 +519,16 @@ Renderer::drawGame(Arena* pArena)
         }
     }
 
-    drawUI(pArena);
+    /*drawUI(pArena);*/
+    drawFPS(pArena);
 
-    if (control::g_bTestQuad)
-        drawTestQuad();
+    /*if (control::g_bTestQuad)*/
+    /*    drawTestQuad();*/
 }
 
 void
 Renderer::destroy()
 {
-    s_threadPool.destroy();
-
     for (Shader& shader : g_poolShaders)
         shader.destroy();
 }
@@ -1127,8 +1156,8 @@ Skybox::Skybox(Image a6Images[6])
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 }
 
-void
-Renderer::drawUI(Arena*)
+static void
+drawUI(Arena*)
 {
     Shader* pSh = searchShader("2DColor");
     ADT_ASSERT(pSh, " ");

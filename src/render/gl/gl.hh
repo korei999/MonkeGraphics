@@ -16,7 +16,6 @@ struct Renderer : public IRenderer
 {
     virtual void init() override;
     virtual void drawGame(adt::Arena* pArena) override;
-    virtual void drawUI(adt::Arena* pArena) override;
     virtual void destroy() override;
 };
 
