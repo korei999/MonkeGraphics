@@ -335,23 +335,23 @@ Font::readCmapTable()
 u32
 Font::getGlyphOffset(u32 idx)
 {
-    const u32 savedPos = m_bin.m_pos;
+    const ssize savedPos = m_bin.m_pos;
     defer(m_bin.m_pos = savedPos);
 
     auto fLoca = getTable("loca");
     ADT_ASSERT(fLoca, " ");
-    const auto& locaTable = *fLoca.pData;
+    const auto& locaTable = fLoca.pData->val;
 
     u32 offset = NPOS;
 
     if (m_head.indexToLocFormat == 1)
     {
-        m_bin.m_pos = locaTable.val.offset + idx*4;
+        m_bin.m_pos = locaTable.offset + idx*4;
         offset = m_bin.read32Rev();
     }
     else
     {
-        m_bin.m_pos = locaTable.val.offset + idx*2;
+        m_bin.m_pos = locaTable.offset + idx*2;
         offset = m_bin.read16Rev();
     }
 
@@ -475,12 +475,13 @@ Font::getGlyphIdx(u16 code)
 Glyph
 Font::readGlyph(u32 code)
 {
-    const u32 savedPos = m_bin.m_pos;
+    const ssize savedPos = m_bin.m_pos;
     defer(m_bin.m_pos = savedPos);
 
     const auto glyphIdx = getGlyphIdx(code);
     const u32 offset = getGlyphOffset(glyphIdx);
 
+    /* FIXME: ' ' and '!' are mapped to the same glyph (using liberation font) */
     auto fCachedGlyph = m_mapOffsetToGlyph.search(offset);
     if (fCachedGlyph) return fCachedGlyph.value();
 

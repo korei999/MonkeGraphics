@@ -61,6 +61,8 @@ void
 main()
 {
     vec3 col = texture(u_tex0, vs_tex).rrr;
+    if (col.r < 0.01) discard;
+
     fs_fragColor = vec4(col, 1.0f);
 }
 )";

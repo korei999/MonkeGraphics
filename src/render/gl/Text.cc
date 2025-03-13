@@ -12,7 +12,8 @@ Text::makeStringMesh(
     const StringView vs
 )
 {
-    Vec<CharQuad2Pos2UV> aQuads(pArena, m_maxSize);
+    Vec<CharQuad2Pos2UV> vQuads(pArena, m_maxSize);
+    vQuads.setSize(pArena, m_maxSize);
 
     f32 xOff = 0.0f;
     f32 yOff = 0.0f;
@@ -21,17 +22,22 @@ Text::makeStringMesh(
     const f32 yStep = norm * rast.m_scale;
     const f32 xStep = (norm * rast.m_scale) * rast.X_STEP;
 
+#define SKIP { xOff += 1.0f; continue; }
+
     for (const char& ch : vs)
     {
-        if (vs.idx(&ch) >= m_maxSize) break;
+        if (ch == ' ')
+            SKIP;
+
+        ssize idx = vs.idx(&ch);
+        if (idx >= m_maxSize) break;
 
         const MapResult fCh = rast.m_mapCodeToXY.search(ch);
 
         if (!fCh)
-        {
-            xOff += 1.0f;
-            continue;
-        }
+            SKIP;
+
+#undef SKIP
 
         const Pair<i16, i16> uv = fCh.value();
         const f32 u = uv.first * norm;
@@ -60,7 +66,7 @@ Text::makeStringMesh(
             continue;
         }
 
-        aQuads.push(pArena, {
+        vQuads[idx] = {
              0.0f + xOff, 1.0f + yOff, x0, y0,
              1.0f + xOff, 0.0f + yOff, x3, y3,
              0.0f + xOff, 0.0f + yOff, x2, y2,
@@ -68,12 +74,12 @@ Text::makeStringMesh(
              0.0f + xOff, 1.0f + yOff, x0, y0,
              1.0f + xOff, 1.0f + yOff, x1, y1,
              1.0f + xOff, 0.0f + yOff, x3, y3,
-        });
+        };
 
         xOff += 1.0f;
     }
 
-    return aQuads;
+    return vQuads;
 }
 
 Text::Text(const int maxSize)

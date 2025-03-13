@@ -61,7 +61,7 @@ static void drawUI(Arena*);
 Pool<Shader, 128> g_poolShaders;
 static MapManaged<StringView, PoolHandle<Shader>> s_mapStringToShaders(StdAllocator::inst(), g_poolShaders.cap());
 
-static u8 s_aScratchMem[SIZE_1K * 100] {};
+static u8 s_aScratchMem[SIZE_1K * 100];
 static ScratchBuffer s_scratch(s_aScratchMem);
 
 static Texture s_texDefault;
@@ -157,7 +157,7 @@ Renderer::init()
     ADT_ASSERT(pFont, " ");
     if (pFont)
     {
-        s_rasterizer.rasterizeAscii(StdAllocator::inst(), pFont, 256.0f);
+        s_rasterizer.rasterizeAscii(StdAllocator::inst(), pFont, 128.0f);
         s_texLiberation = Texture(s_rasterizer.m_altas.spanMono());
         s_text = Text(100);
     }
@@ -430,9 +430,25 @@ drawSkybox()
 }
 
 static void
-drawFPS(Arena* pArena)
+drawTestQuad()
 {
     Shader* pSh = searchShader("QuadTexMonoAlphaDiscard");
+    if (!pSh) return;
+
+    pSh->use();
+    s_quad.bind();
+
+    pSh->setM4("u_trm", math::M4TranslationFrom({0.0f, 0.0f, 0.0f}));
+    pSh->setV4("u_color", V4From(colors::get(colors::WHITE), 0.75f));
+
+    s_texLiberation.bind(GL_TEXTURE0);
+    s_quad.draw();
+}
+
+static void
+drawFPS(Arena* pArena)
+{
+    Shader* pSh = searchShader("QuadTexMono");
     if (!pSh) return;
 
     glDisable(GL_CULL_FACE);
@@ -722,7 +738,7 @@ Shader::destroy()
 {
     glDeleteProgram(m_id);
     s_mapStringToShaders.remove(m_svMappedTo);
-    LOG_NOTIFY("shader {} '{}' destroyed\n", m_id, m_svMappedTo);
+    LOG_NOTIFY("shader {} '{}'\n", m_id, m_svMappedTo);
     *this = {};
 }
 
@@ -780,6 +796,7 @@ loadShaders()
             case ShaderMapping::TYPE::VS_FS:
             {
                 /* maps to gl::g_shaders */
+                LOG_GOOD("loading shader '{}' ..\n", shader.m_svMappedTo);
                 gl::Shader(shader.m_svVert, shader.m_svFrag, shader.m_svMappedTo);
             }
             break;
