@@ -87,7 +87,7 @@ loadGLTF(const StringView svPath, const StringView sFile)
 }
 
 static PoolHandle<Object>
-loadTTF(const StringView svPath, const StringView sFile)
+loadTTF([[maybe_unused]] const StringView svPath, const StringView sFile)
 {
     Object nObj(SIZE_1K * 500);
 

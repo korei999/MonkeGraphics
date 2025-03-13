@@ -42,7 +42,7 @@ getTableChecksum(u32* pTable, u32 nBytes)
     return sum;
 }
 
-static constexpr StringView
+[[maybe_unused]] static constexpr StringView
 platformIDToString(u16 platformID)
 {
     constexpr StringView map[] {
@@ -53,7 +53,7 @@ platformIDToString(u16 platformID)
     return map[platformID];
 }
 
-static constexpr StringView
+[[maybe_unused]] static constexpr StringView
 platformSpecificIDToString(u16 platformSpecificID)
 {
     constexpr StringView map[] {
@@ -70,7 +70,7 @@ platformSpecificIDToString(u16 platformSpecificID)
     return map[platformSpecificID];
 }
 
-static constexpr StringView
+[[maybe_unused]] static constexpr StringView
 languageIDToString(u16 languageID)
 {
     switch (languageID)
@@ -189,8 +189,10 @@ Font::readCmapFormat4()
     auto segCount = c.segCountX2 / 2;
     c.mapCodeToGlyphIdx = {m_pAlloc, u32(segCount)};
 
+#ifndef NDEBUG
     auto searchRangeCheck = 2*(std::pow(2, std::floor(std::log2(segCount))));
     ADT_ASSERT(c.searchRange == searchRangeCheck, " ");
+#endif
 
     /* just set pointer and skip, swap bytes after */
     c.endCode = (u16*)&m_bin[m_bin.m_pos];
@@ -360,7 +362,7 @@ Font::getGlyphOffset(u32 idx)
 }
 
 void
-Font::readCompoundGlyph(Glyph* g)
+Font::readCompoundGlyph(Glyph*)
 {
     // TODO:
     LOG_WARN("ignoring compound glyph...\n");

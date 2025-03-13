@@ -449,7 +449,7 @@ drawFPS(Arena* pArena)
     pSh->setM4("u_trm", proj * math::M4TranslationFrom({0.0f, height - 1.0f, -1.0f}));
     pSh->setV4("u_color", V4From(colors::get(colors::WHITE), 0.75f));
 
-    s_text.update(pArena, s_rasterizer, frame::g_sfFps);
+    s_text.update(pArena, s_rasterizer, frame::g_sfFpsStatus);
 
     s_text.draw();
 }

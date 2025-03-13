@@ -21,7 +21,7 @@ f64 g_time {};
 f64 g_frameTime {};
 const f64 g_dt = FIXED_DELTA_TIME;
 f64 g_gameTime {};
-adt::StringFixed<100> g_sfFps;
+adt::StringFixed<100> g_sfFpsStatus;
 
 static void
 refresh(void* pArg)
@@ -128,7 +128,7 @@ mainLoop()
 
             char aBuff[128] {};
             print::toBuffer(aBuff, sizeof(aBuff) - 1, "FPS: {} | avg frame time: {} ms\n", vFrameTimes.size(), avg / vFrameTimes.size());
-            g_sfFps = aBuff;
+            g_sfFpsStatus = aBuff;
 
             vFrameTimes.setSize(0);
             lastAvgFrameTimeUpdateTime = t1;

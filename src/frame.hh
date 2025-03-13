@@ -13,7 +13,7 @@ extern adt::f64 g_time;
 extern adt::f64 g_frameTime;
 extern const adt::f64 g_dt; /* delta time (fixed) */
 extern adt::f64 g_gameTime; /* game time */
-extern adt::StringFixed<100> g_sfFps;
+extern adt::StringFixed<100> g_sfFpsStatus;
 
 void start();
 

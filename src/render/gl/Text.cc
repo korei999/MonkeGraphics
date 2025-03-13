@@ -12,13 +12,6 @@ Text::makeStringMesh(
     const StringView vs
 )
 {
-    const f32 invScale = 1.0f / (128.0f * rast.m_scale);
-
-    auto getUV = [&](int c) -> f32
-    {
-        return (c*rast.m_scale) * invScale;
-    };
-
     Vec<CharQuad2Pos2UV> aQuads(pArena, m_maxSize);
 
     f32 xOff = 0.0f;
