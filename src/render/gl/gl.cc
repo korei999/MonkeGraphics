@@ -74,6 +74,7 @@ static Text s_text;
 static const ShaderMapping s_aShadersToLoad[] {
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"},
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexMonoFrag, "QuadTexMono"},
+    {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexMonoAlphaDiscardFrag, "QuadTexMonoAlphaDiscard"},
     {shaders::glsl::ntsSimpleColorVert, shaders::glsl::ntsSimpleColorFrag, "SimpleColor"},
     {shaders::glsl::ntsSimpleTextureVert, shaders::glsl::ntsSimpleTextureFrag, "SimpleTexture"},
     {shaders::glsl::ntsSkinVert, shaders::glsl::ntsSimpleColorFrag, "Skin"},
@@ -429,25 +430,9 @@ drawSkybox()
 }
 
 static void
-drawTestQuad()
-{
-    Shader* pSh = searchShader("QuadTexMono");
-    if (!pSh) return;
-
-    pSh->use();
-    s_quad.bind();
-
-    pSh->setM4("u_trm", math::M4TranslationFrom({0.0f, 1.0f, 0.0f}));
-    pSh->setV4("u_color", V4From(colors::get(colors::WHITE), 0.75f));
-
-    s_texLiberation.bind(GL_TEXTURE0);
-    s_quad.draw();
-}
-
-static void
 drawFPS(Arena* pArena)
 {
-    Shader* pSh = searchShader("QuadTexMono");
+    Shader* pSh = searchShader("QuadTexMonoAlphaDiscard");
     if (!pSh) return;
 
     glDisable(GL_CULL_FACE);

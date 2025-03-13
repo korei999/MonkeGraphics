@@ -47,7 +47,27 @@ main()
 
 static const char* ntsQuadTexMonoFrag =
 R"(#version 300 es
-/* ntsQuadTexFrag */
+/* ntsQuadTexMonoFrag */
+
+precision mediump float;
+
+out vec4 fs_fragColor;
+in vec2 vs_tex;
+
+uniform sampler2D u_tex0;
+uniform vec4 u_color;
+
+void
+main()
+{
+    vec3 col = texture(u_tex0, vs_tex).rrr;
+    fs_fragColor = vec4(col, 1.0f);
+}
+)";
+
+static const char* ntsQuadTexMonoAlphaDiscardFrag =
+R"(#version 300 es
+/* ntsQuadTexMonoAlphaDiscardFrag */
 
 precision mediump float;
 
@@ -63,7 +83,6 @@ main()
     vec3 col = texture(u_tex0, vs_tex).rrr;
     if (col.r < 0.01) discard;
 
-    /*fs_fragColor = vec4(col, 1.0f);*/
     fs_fragColor = u_color;
 }
 )";
