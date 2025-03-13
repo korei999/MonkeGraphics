@@ -9,6 +9,8 @@
 
 #include "adt/Vec.hh"
 
+#include <wayland-cursor.h>
+
 namespace platform::wayland
 {
 
@@ -31,6 +33,9 @@ struct Client : public IWindow
     wl_keyboard* m_pKeyboard {};
     wl_pointer* m_pPointer {};
     adt::u32 m_lastPointerEnterSerial {};
+
+    wl_surface* m_pPointerSurface {};
+    wl_cursor_theme* m_pCursorTheme {};
 
     zwp_relative_pointer_manager_v1* m_pRelPointerMgr {};
     zwp_relative_pointer_v1* m_pRelPointer {};

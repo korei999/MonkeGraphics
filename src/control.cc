@@ -24,14 +24,11 @@ static void quit() { app::windowInst().m_bRunning = false; }
 static void toggleRelativePointer() { app::windowInst().togglePointerRelativeMode(); }
 static void toggleVSync() { app::windowInst().toggleVSync(); }
 
-static void toggleTestQuad() { utils::toggle(&g_bTestQuad); LOG_NOTIFY("g_bTestQuad: {}\n", g_bTestQuad); }
-
 Camera g_camera {.m_pos {0, 0, -3}, .m_lastMove {}, .m_sens = 0.05f, .m_speed = 4.0f};
 Mouse g_mouse;
 bool g_abPrevPressed[MAX_KEY_VALUE];
 bool g_abPressed[MAX_KEY_VALUE];
 MOD_STATE g_ePressedMods;
-bool g_bTestQuad;
 
 Array<Keybind, MAX_KEYBINDS> g_aKeybinds {
     {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_F,        toggleFullscreen     },
@@ -39,8 +36,6 @@ Array<Keybind, MAX_KEYBINDS> g_aKeybinds {
     {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_V,        toggleVSync          },
     {REPEAT::ONCE,       EXEC_ON::RELEASE, MOD_STATE::ANY,   KEY_Q,        quit                 },
     {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_ESC,      quit                 },
-
-    {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_B,        toggleTestQuad       },
 
     {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_W,        cameraForward        },
     {REPEAT::WHILE_DOWN, EXEC_ON::PRESS,   MOD_STATE::SHIFT, 0,            cameraBoost          },

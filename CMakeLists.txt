@@ -227,7 +227,7 @@ endif()
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     find_package(PkgConfig REQUIRED)
-    pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client)
+    pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client wayland-cursor)
 
     include_directories(BEFORE ${WAYLAND_CLIENT_INCLUDE_DIRS})
     target_link_libraries(

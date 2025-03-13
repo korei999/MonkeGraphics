@@ -87,7 +87,6 @@ extern Mouse g_mouse;
 extern bool g_abPrevPressed[MAX_KEY_VALUE];
 extern bool g_abPressed[MAX_KEY_VALUE];
 extern MOD_STATE g_ePressedMods;
-extern bool g_bTestQuad;
 
 extern adt::Array<Keybind, MAX_KEYBINDS> g_aKeybinds;
 

@@ -86,8 +86,6 @@ loadStuff()
         auto entity = g_poolEntities[{0}];
         entity.bNoDraw = true;
     }
-
-    control::g_bTestQuad = true;
 }
 
 void

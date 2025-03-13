@@ -19,15 +19,23 @@ Text::makeStringMesh(
     f32 yOff = 0.0f;
 
     const f32 norm = 1.0f / rast.m_altas.m_width;
-    const f32 yStep = norm * rast.m_scale;
-    const f32 xStep = (norm * rast.m_scale) * rast.X_STEP;
+    const f32 yCoordOff = norm * rast.m_scale;
+    const f32 xCoordOff = (norm * rast.m_scale) * rast.X_STEP;
 
 #define SKIP { xOff += 1.0f; continue; }
 
     for (const char& ch : vs)
     {
         if (ch == ' ')
+        {
             SKIP;
+        }
+        else if (ch == '\n')
+        {
+            xOff = 0.0f;
+            yOff -= 1.0f;
+            continue;
+        }
 
         ssize idx = vs.idx(&ch);
         if (idx >= m_maxSize) break;
@@ -45,26 +53,19 @@ Text::makeStringMesh(
 
         /* tl */
         f32 x0 = u;
-        f32 y0 = v + yStep;
+        f32 y0 = v + yCoordOff;
 
         /* tr */
-        f32 x1 = u + xStep;
-        f32 y1 = v + yStep;
+        f32 x1 = u + xCoordOff;
+        f32 y1 = v + yCoordOff;
 
         /* bl */
         f32 x2 = u;
         f32 y2 = v;
 
         /* br */
-        f32 x3 = u + xStep;
+        f32 x3 = u + xCoordOff;
         f32 y3 = v;
-
-        if (ch == '\n')
-        {
-            xOff = 0.0f;
-            yOff += 2.0f;
-            continue;
-        }
 
         vQuads[idx] = {
              0.0f + xOff, 1.0f + yOff, x0, y0,

@@ -70,6 +70,7 @@ static Skybox s_skyboxDefault;
 static Quad s_quad;
 static ttf::Rasterizer s_rasterizer;
 static Text s_text;
+static Shader* s_pShTexMono;
 
 static const ShaderMapping s_aShadersToLoad[] {
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"},
@@ -165,6 +166,8 @@ Renderer::init()
     loadShaders();
     loadAssetObjects();
     loadSkybox();
+
+    s_pShTexMono = searchShader("QuadTexMono");
 };
 
 static void
@@ -430,34 +433,47 @@ drawSkybox()
 }
 
 static void
-drawTestQuad()
+drawInfo(Arena* pArena)
 {
-    Shader* pSh = searchShader("QuadTexMonoAlphaDiscard");
+    Shader* pSh = s_pShTexMono;
     if (!pSh) return;
-
-    pSh->use();
-    s_quad.bind();
-
-    pSh->setM4("u_trm", math::M4TranslationFrom({0.0f, 0.0f, 0.0f}));
-    pSh->setV4("u_color", V4From(colors::get(colors::WHITE), 0.75f));
-
-    s_texLiberation.bind(GL_TEXTURE0);
-    s_quad.draw();
-}
-
-static void
-drawFPS(Arena* pArena)
-{
-    Shader* pSh = searchShader("QuadTexMono");
-    if (!pSh) return;
-
-    glDisable(GL_CULL_FACE);
 
     pSh->use();
     s_text.bind();
     s_texLiberation.bind(GL_TEXTURE0);
 
-    const f32 width = 100.0f;
+    const f32 width = 90.0f;
+    const f32 height = width * 0.3333f;
+
+    math::M4 proj = math::M4Ortho(0, width, 0, height, -10.0f, 10.0f);
+
+    StringView sv =
+        "F: toggle fullscreen\n"
+        "R: lock/unlock mouse\n"
+        "Q/Escape: quit";
+
+    int nSpaces = 0;
+    for (auto ch : sv) if (ch == '\n') ++nSpaces;
+
+    s_text.update(pArena, s_rasterizer, sv);
+
+    pSh->setM4("u_trm", proj * math::M4TranslationFrom({0.0f, static_cast<f32>(nSpaces), -1.0f}));
+    pSh->setV4("u_color", V4From(colors::get(colors::WHITE), 0.75f));
+
+    s_text.draw();
+}
+
+static void
+drawFPS(Arena* pArena)
+{
+    Shader* pSh = s_pShTexMono;
+    if (!pSh) return;
+
+    pSh->use();
+    s_text.bind();
+    s_texLiberation.bind(GL_TEXTURE0);
+
+    const f32 width = 90.0f;
     const f32 height = width * 0.3333f;
 
     math::M4 proj = math::M4Ortho(0, width, 0, height, -10.0f, 10.0f);
@@ -522,9 +538,7 @@ Renderer::drawGame(Arena* pArena)
 
     /*drawUI(pArena);*/
     drawFPS(pArena);
-
-    /*if (control::g_bTestQuad)*/
-    /*    drawTestQuad();*/
+    drawInfo(pArena);
 }
 
 void

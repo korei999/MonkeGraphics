@@ -108,6 +108,9 @@ Client::Client(adt::IAllocator* pAlloc, const char* ntsName)
     m_pSurface = wl_compositor_create_surface(m_pCompositor);
     ADT_ASSERT_ALWAYS(m_pSurface, "wl_compositor_create_surface() failed");
 
+    m_pPointerSurface = wl_compositor_create_surface(m_pCompositor);
+    ADT_ASSERT_ALWAYS(m_pPointerSurface, "wl_compositor_create_surface() failed");
+
     m_pViewport = wp_viewporter_get_viewport(m_pViewporter, m_pSurface);
     ADT_ASSERT_ALWAYS(m_pViewport, "wp_viewporter_get_viewport() failed");
 
@@ -159,6 +162,8 @@ Client::disableRelativeMode()
 
     zwp_locked_pointer_v1_destroy(m_pLockedPointer);
     m_pLockedPointer = nullptr;
+
+    hideCursor(false);
 }
 
 void
@@ -191,8 +196,32 @@ Client::toggleFullscreen()
 void
 Client::hideCursor([[maybe_unused]] bool bHide)
 {
-    LOG("hideCursor(): serial: {}\n", m_lastPointerEnterSerial);
-    wl_pointer_set_cursor(m_pPointer, m_lastPointerEnterSerial, {}, 0, 0);
+    if (bHide)
+    {
+        wl_pointer_set_cursor(m_pPointer, m_lastPointerEnterSerial, {}, 0, 0);
+    }
+    else
+    {
+        wl_cursor* pCursor = wl_cursor_theme_get_cursor(m_pCursorTheme, "default");
+        if (pCursor)
+        {
+            if (pCursor->image_count == 0) return;
+
+            wl_cursor_image* pCursorImage = pCursor->images[0];
+            wl_buffer* pCursorBuffer = wl_cursor_image_get_buffer(pCursorImage);
+
+            wl_pointer_set_cursor(
+                m_pPointer,
+                m_lastPointerEnterSerial,
+                m_pPointerSurface,
+                pCursorImage->hotspot_x,
+                pCursorImage->hotspot_y
+            );
+
+            wl_surface_attach(m_pPointerSurface, pCursorBuffer, 0, 0);
+            wl_surface_commit(m_pPointerSurface);
+        }
+    }
 }
 
 void
@@ -248,6 +277,8 @@ Client::showWindow()
 void
 Client::destroy()
 {
+    if (m_bPointerRelativeMode) disableRelativeMode();
+
     if (m_pRegistry) wl_registry_destroy(m_pRegistry);
     if (m_pCompositor) wl_compositor_destroy(m_pCompositor);
     if (m_pSurface) wl_surface_destroy(m_pSurface);
@@ -262,6 +293,8 @@ Client::destroy()
     if (m_pRelPointer) zwp_relative_pointer_v1_destroy(m_pRelPointer);
     if (m_pLockedPointer) disableRelativeMode();
     if (m_pPointerConstraints) zwp_pointer_constraints_v1_destroy(m_pPointerConstraints);
+    if (m_pPointerSurface) wl_surface_destroy(m_pPointerSurface);
+    if (m_pCursorTheme) wl_cursor_theme_destroy(m_pCursorTheme);
     if (m_pXdgWmBase) xdg_wm_base_destroy(m_pXdgWmBase);
     if (m_pXdgSurface) xdg_surface_destroy(m_pXdgSurface);
     if (m_pXdgToplevel) xdg_toplevel_destroy(m_pXdgToplevel);
@@ -462,6 +495,7 @@ Client::seatCapabilities(wl_seat* pWlSeat, uint32_t capabilities)
     if (capabilities & WL_SEAT_CAPABILITY_POINTER)
     {
         m_pPointer = wl_seat_get_pointer(pWlSeat);
+        m_pCursorTheme = wl_cursor_theme_load(nullptr, 24, m_pShm);
         wl_pointer_add_listener(m_pPointer, &s_pointerListener, this);
     }
     if (capabilities & WL_SEAT_CAPABILITY_KEYBOARD)
