@@ -20,7 +20,7 @@ static void cameraBoost() { g_camera.m_lastBoost *= 2.0f; }
 static void cameraDeboost() { g_camera.m_lastBoost *= 0.25f; }
 
 static void toggleFullscreen() { app::windowInst().toggleFullscreen(); }
-static void quit() { app::windowInst().m_bRunning = false; }
+static void quit() { LOG_WARN("QUIT\n"); app::windowInst().m_bRunning = false; }
 static void toggleRelativePointer() { app::windowInst().togglePointerRelativeMode(); }
 static void toggleVSync() { app::windowInst().toggleVSync(); }
 
@@ -52,7 +52,7 @@ procKeybinds(Array<bool, MAX_KEYBINDS>* paPressOnceMap, const Array<Keybind, MAX
 {
     for (auto& com : aCommands)
     {
-        ssize idx = &com - &aCommands[0];
+        ssize idx = aCommands.idx(&com);
 
         bool bKey {};
         bool bMod {};
@@ -60,7 +60,7 @@ procKeybinds(Array<bool, MAX_KEYBINDS>* paPressOnceMap, const Array<Keybind, MAX
         if (com.eExecOn == EXEC_ON::PRESS)
         {
             bKey = com.key == 0 ? true : g_abPressed[com.key];
-            bMod = com.eMod == MOD_STATE::ANY ? true : !!(com.eMod & g_ePressedMods);
+            bMod = com.eMod == MOD_STATE::ANY ? true : bool(com.eMod & g_ePressedMods);
         }
         else
         {
@@ -107,10 +107,8 @@ procMouse()
     g_camera.m_yaw += delta.x;
     g_camera.m_pitch += delta.y;
 
-    if (g_camera.m_pitch > 89.9f)
-        g_camera.m_pitch = 89.9f;
-    if (g_camera.m_pitch < -89.9f)
-        g_camera.m_pitch = -89.9f;
+    if (g_camera.m_pitch > 89.9f) g_camera.m_pitch = 89.9f;
+    if (g_camera.m_pitch < -89.9f) g_camera.m_pitch = -89.9f;
 
     const M4 yawTrm = M4RotFrom(0, toRad(-g_camera.m_yaw), 0);
     const M4 pitchTrm = M4RotFrom(toRad(g_camera.m_pitch), 0, 0);

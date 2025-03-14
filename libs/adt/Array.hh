@@ -50,7 +50,7 @@ struct Array
     constexpr ssize cap() const;
     constexpr ssize size() const;
     constexpr void setSize(ssize newSize);
-    constexpr ssize idx(const T* p);
+    constexpr ssize idx(const T* const p) const;
     constexpr T& first();
     constexpr const T& first() const;
     constexpr T& last();
@@ -160,7 +160,7 @@ Array<T, CAP>::setSize(ssize newSize)
 
 template<typename T, ssize CAP> requires(CAP > 0)
 constexpr ssize
-Array<T, CAP>::idx(const T* p)
+Array<T, CAP>::idx(const T* const p) const
 {
     ssize r = ssize(p - m_aData);
     ADT_ASSERT(r >= 0 && r < size(), "out of range, r: %lld, size: %lld", r, size());

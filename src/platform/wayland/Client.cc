@@ -124,6 +124,7 @@ Client::Client(adt::IAllocator* pAlloc, const char* ntsName)
 
     xdg_toplevel_add_listener(m_pXdgToplevel, &s_xdgTopLevelListener, this);
     xdg_toplevel_set_title(m_pXdgToplevel, m_ntsName);
+    xdg_toplevel_set_app_id(m_pXdgToplevel, m_ntsName);
     wl_surface_commit(m_pSurface);
 
 	/* Perform the initial commit and wait for the first configure event */
