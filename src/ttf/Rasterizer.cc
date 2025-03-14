@@ -29,7 +29,7 @@ pointsWithMissingOnCurve(IAllocator* pAlloc, Glyph* g)
     [[maybe_unused]] u32 firstInCurveIdx = 0;
     [[maybe_unused]] int nOffCurve = 0;
 
-    Vec<PointOnCurve> aPoints(pAlloc, size);
+    Vec<PointOnCurve> vPoints(pAlloc, size);
     for (const auto& p : aGlyphPoints)
     {
         const u32 pointIdx = aGlyphPoints.idx(&p);
@@ -50,17 +50,17 @@ pointsWithMissingOnCurve(IAllocator* pAlloc, Glyph* g)
         if (!bCurrOnCurve && !bPrevOnCurve)
         {
             /* insert middle point */
-            const auto& prev = aPoints.last();
+            const auto& prev = vPoints.last();
             math::V2 mid = math::lerp(prev.pos, vCurr, 0.5f);
 
-            aPoints.push(pAlloc, {
+            vPoints.push(pAlloc, {
                 .pos = mid,
                 .bOnCurve = true,
                 .bEndOfCurve = false
             });
         }
 
-        aPoints.push(pAlloc, {
+        vPoints.push(pAlloc, {
             .pos {x, y},
             .bOnCurve = p.bOnCurve,
             .bEndOfCurve = bEndOfCurve
@@ -74,7 +74,7 @@ pointsWithMissingOnCurve(IAllocator* pAlloc, Glyph* g)
         if (bEndOfCurve) firstInCurveIdx = pointIdx + 1;
     }
 
-    return aPoints;
+    return vPoints;
 }
 
 static void

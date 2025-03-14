@@ -10,7 +10,6 @@
 #include "game/game.hh"
 #include "shaders/glsl.hh"
 #include "ttf/Rasterizer.hh"
-#include "ui.hh"
 
 #include "adt/Map.hh"
 #include "adt/ScratchBuffer.hh"
@@ -76,6 +75,7 @@ static const ShaderMapping s_aShadersToLoad[] {
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"},
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexMonoFrag, "QuadTexMono"},
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexMonoAlphaDiscardFrag, "QuadTexMonoAlphaDiscard"},
+    {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexMonoBoxBlurFrag, "QuadTexMonoBoxBlur"},
     {shaders::glsl::ntsSimpleColorVert, shaders::glsl::ntsSimpleColorFrag, "SimpleColor"},
     {shaders::glsl::ntsSimpleTextureVert, shaders::glsl::ntsSimpleTextureFrag, "SimpleTexture"},
     {shaders::glsl::ntsSkinVert, shaders::glsl::ntsSimpleColorFrag, "Skin"},
@@ -159,7 +159,7 @@ Renderer::init()
     if (pFont)
     {
         s_rasterizer.rasterizeAscii(StdAllocator::inst(), pFont, 128.0f);
-        s_texLiberation = Texture(s_rasterizer.m_altas.spanMono());
+        s_texLiberation = Texture(s_rasterizer.m_altas.spanMono(), GL_LINEAR);
         s_text = Text(100);
     }
 
@@ -167,7 +167,7 @@ Renderer::init()
     loadAssetObjects();
     loadSkybox();
 
-    s_pShTexMono = searchShader("QuadTexMono");
+    s_pShTexMono = searchShader("QuadTexMonoBoxBlur");
 };
 
 static void
@@ -433,7 +433,7 @@ drawSkybox()
 }
 
 static void
-drawInfo(Arena* pArena)
+drawUI(Arena* pArena)
 {
     Shader* pSh = s_pShTexMono;
     if (!pSh) return;
@@ -442,48 +442,38 @@ drawInfo(Arena* pArena)
     s_text.bind();
     s_texLiberation.bind(GL_TEXTURE0);
 
-    const f32 width = 90.0f;
+    const f32 width = 100.0f;
     const f32 height = width * 0.3333f;
 
     math::M4 proj = math::M4Ortho(0, width, 0, height, -10.0f, 10.0f);
 
-    StringView sv =
-        "F: toggle fullscreen\n"
-        "R: lock/unlock mouse\n"
-        "Q/Escape: quit";
-
-    int nSpaces = 0;
-    for (auto ch : sv) if (ch == '\n') ++nSpaces;
-
-    s_text.update(pArena, s_rasterizer, sv);
-
-    pSh->setM4("u_trm", proj * math::M4TranslationFrom({0.0f, static_cast<f32>(nSpaces), -1.0f}));
     pSh->setV4("u_color", V4From(colors::get(colors::WHITE), 0.75f));
+    pSh->setV2("u_texelSize", math::V2From(1.0f/s_texLiberation.m_width, 1.0f/s_texLiberation.m_height));
 
-    s_text.draw();
-}
+    /* fps */
+    {
+        pSh->setM4("u_trm", proj * math::M4TranslationFrom({0.0f, height - 1.0f, -1.0f}));
 
-static void
-drawFPS(Arena* pArena)
-{
-    Shader* pSh = s_pShTexMono;
-    if (!pSh) return;
+        s_text.update(pArena, s_rasterizer, frame::g_sfFpsStatus);
+        s_text.draw();
+    }
 
-    pSh->use();
-    s_text.bind();
-    s_texLiberation.bind(GL_TEXTURE0);
+    /* info */
+    {
+        StringView sv =
+            "F: toggle fullscreen\n"
+            "R: lock/unlock mouse\n"
+            "Q/Escape: quit";
 
-    const f32 width = 90.0f;
-    const f32 height = width * 0.3333f;
+        int nSpaces = 0;
+        for (auto ch : sv) if (ch == '\n') ++nSpaces;
 
-    math::M4 proj = math::M4Ortho(0, width, 0, height, -10.0f, 10.0f);
+        pSh->setM4("u_trm", proj * math::M4TranslationFrom({0.0f, static_cast<f32>(nSpaces), -1.0f}));
 
-    pSh->setM4("u_trm", proj * math::M4TranslationFrom({0.0f, height - 1.0f, -1.0f}));
-    pSh->setV4("u_color", V4From(colors::get(colors::WHITE), 0.75f));
+        s_text.update(pArena, s_rasterizer, sv);
+        s_text.draw();
+    }
 
-    s_text.update(pArena, s_rasterizer, frame::g_sfFpsStatus);
-
-    s_text.draw();
 }
 
 void
@@ -502,7 +492,7 @@ Renderer::drawGame(Arena* pArena)
         /* TODO: implement proper parallel for */
         for (auto& model : Model::g_poolModels)
         {
-            /* don't even wait */
+            /* don't even wait, this is tolerable for now */
             app::g_threadPool.add(+[](void* p) -> THREAD_STATUS
                 {
                     reinterpret_cast<Model*>(p)->updateAnimation();
@@ -536,9 +526,7 @@ Renderer::drawGame(Arena* pArena)
         }
     }
 
-    /*drawUI(pArena);*/
-    drawFPS(pArena);
-    drawInfo(pArena);
+    drawUI(pArena);
 }
 
 void
@@ -563,7 +551,7 @@ Texture::Texture(const adt::Span2D<ImagePixelRGBA> spImg)
     loadRGBA(spImg.data());
 }
 
-Texture::Texture(const adt::Span2D<adt::u8> spImgMono)
+Texture::Texture(const adt::Span2D<adt::u8> spImgMono, GLint minMagParam)
     : m_width(spImgMono.width()), m_height(spImgMono.height()), m_eType(Image::TYPE::MONO)
 {
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -574,12 +562,10 @@ Texture::Texture(const adt::Span2D<adt::u8> spImgMono)
         glBindTexture(GL_TEXTURE_2D, 0);
     );
 
-    /*glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED);*/
-    /*glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);*/
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, minMagParam);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minMagParam);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, m_width, m_height, 0, GL_RED, GL_UNSIGNED_BYTE, spImgMono.data());
 }
@@ -1170,49 +1156,6 @@ Skybox::Skybox(Image a6Images[6])
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-}
-
-static void
-drawUI(Arena*)
-{
-    Shader* pSh = searchShader("2DColor");
-    ADT_ASSERT(pSh, " ");
-
-    pSh->use();
-    s_quad.bind();
-
-    const auto& win = app::windowInst();
-    const f32 winWidth = win.m_width;
-    const f32 winHeight = win.m_height;
-    const f32 winWidthInv = 1.0f / winWidth;
-    const f32 winHeightInv = 1.0f / winHeight;
-    const f32 asp = winWidth / winHeight;
-    const f32 aspInv = 1.0f / asp;
-
-    const math::M4 proj = math::M4Ortho(0, 1, 1, 0, -1.0f, 10.0f);
-
-    for (const ui::Rect& rect : ui::g_poolRects)
-    {
-        if (!(rect.eFlags & ui::Rect::FLAGS::DRAW)) continue;
-
-        f32 width = rect.width * winWidthInv;
-        f32 height = rect.height * winHeightInv;
-
-        math::V3 pos {
-            rect.x * winWidthInv,
-            rect.y * winHeightInv,
-            0.0f
-        };
-
-        math::V3 scale {width, height, 1.00f};
-
-        const math::M4 trm = math::transformation(pos, scale);
-
-        pSh->setM4("u_projection", proj * trm);
-        pSh->setV4("u_color", rect.color);
-
-        s_quad.draw();
-    }
 }
 
 } /* namespace render::gl */

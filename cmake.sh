@@ -47,7 +47,7 @@ debugCLANG()
 {
     _clean
 
-    if CC=clang CXX=clang++ cmake -G "Ninja" -S . -B build/ -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" "$@" 
+    if CC=clang CXX=clang++ cmake -G "Ninja" -S . -B build/ -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" "$@"
     then
         cmake --build build/ -j -v
     fi
@@ -57,7 +57,7 @@ debug()
 {
     _clean
 
-    if cmake -G "Ninja" -S . -B build/ -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" "$@" 
+    if cmake -G "Ninja" -S . -B build/ -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" "$@"
     then
         cmake --build build/ -j -v
     fi
@@ -67,7 +67,17 @@ asanCLANG()
 {
     _clean
 
-    if CC=clang CXX=clang++ cmake -G "Ninja" -S . -B build/ -DCMAKE_BUILD_TYPE=Asan -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" "$@" 
+    if CC=clang CXX=clang++ cmake -G "Ninja" -S . -B build/ -DCMAKE_BUILD_TYPE=Asan -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" "$@"
+    then
+        cmake --build build/ -j -v
+    fi
+}
+
+tsanCLANG()
+{
+    _clean
+
+    if CC=clang CXX=clang++ cmake -G "Ninja" -S . -B build/ -DCMAKE_BUILD_TYPE=Tsan -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" "$@"
     then
         cmake --build build/ -j -v
     fi
@@ -77,7 +87,7 @@ asan()
 {
     _clean
 
-    if cmake -G "Ninja" -S . -B build/ -DCMAKE_BUILD_TYPE=Asan -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" "$@" 
+    if cmake -G "Ninja" -S . -B build/ -DCMAKE_BUILD_TYPE=Asan -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" "$@"
     then
         cmake --build build/ -j -v
     fi
@@ -156,6 +166,7 @@ case "$1" in
     debug) debug "${@:2}" ;;
     asanCLANG) asanCLANG "${@:2}" ;;
     asan) asan "${@:2}" ;;
+    tsanCLANG) tsanCLANG "${@:2}" ;;
     releaseCLANG) releaseCLANG "${@:2}";;
     release) release "${@:2}";;
     install) _install "${@:2}" ;;

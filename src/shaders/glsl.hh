@@ -89,6 +89,45 @@ main()
 }
 )";
 
+static const char* ntsQuadTexMonoBoxBlurFrag =
+R"(#version 300 es
+/* ntsQuadTexMonoBoxBlurFrag */
+
+precision mediump float;
+
+out vec4 fs_fragColor;
+in vec2 vs_tex;
+
+uniform sampler2D u_tex0;
+uniform vec4 u_color;
+uniform vec2 u_texelSize;
+
+vec3
+boxBlur()
+{
+    vec3 sum = vec3(0.0);
+
+    for (int x = -1; x <= 1; ++x)
+    {
+        for (int y = -1; y <= 1; ++y)
+        {
+            vec2 offset = vec2(x, y) * u_texelSize;
+            sum += texture(u_tex0, vs_tex + offset).rrr;
+        }
+    }
+
+    return sum;
+}
+
+void
+main()
+{
+    vec3 col = texture(u_tex0, vs_tex).rrr;
+
+    fs_fragColor = vec4(boxBlur(), col.x) * u_color;
+}
+)";
+
 static const char* ntsSimpleColorVert =
 R"(#version 300 es
 /* ntsSimpleColorVert */

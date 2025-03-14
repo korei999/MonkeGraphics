@@ -50,7 +50,7 @@ struct Texture
     Texture() = default;
     [[nodiscard]] Texture(int width, int height);
     [[nodiscard]] Texture(const adt::Span2D<ImagePixelRGBA> spImg);
-    [[nodiscard]] Texture(const adt::Span2D<adt::u8> spImgMono);
+    [[nodiscard]] Texture(const adt::Span2D<adt::u8> spImgMono, GLint minManParam = GL_LINEAR);
 
     /* */
 
@@ -99,6 +99,13 @@ struct Shader
     {
         GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
         glUniformMatrix4fv(ul, sp.size(), GL_FALSE, reinterpret_cast<const GLfloat*>(sp.data()));
+    }
+
+    void
+    setV2(const char* ntsUnifromVar, const adt::math::V2& v)
+    {
+        GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
+        glUniform2fv(ul, 1, reinterpret_cast<const GLfloat*>(v.e));
     }
     
     void
