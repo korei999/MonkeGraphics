@@ -31,5 +31,6 @@ extern adt::MapManaged<
 > g_mapNamesToEntities;
 
 extern adt::PoolSOAHandle<Entity> g_dirLight;
+extern adt::math::V3 g_ambientLight;
 
 } /* namespace game */

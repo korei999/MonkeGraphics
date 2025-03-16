@@ -258,7 +258,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
 
                         pSh->setV3("u_lightPos", light.pos);
                         pSh->setV3("u_lightColor", light.color.xyz);
-                        pSh->setV3("u_ambientColor", light.color.xyz);
+                        pSh->setV3("u_ambientColor", game::g_ambientLight);
                     }
                     else
                     {

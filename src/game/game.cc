@@ -36,6 +36,7 @@ adt::MapManaged<
 > g_mapNamesToEntities(StdAllocator::inst(), MAX_ENTITIES);
 
 PoolSOAHandle<Entity> g_dirLight;
+math::V3 g_ambientLight = colors::get(colors::WHITE) * 0.6f;
 
 static const StringView s_aAssetsToLoad[] {
     "assets/cube/cube.gltf",
