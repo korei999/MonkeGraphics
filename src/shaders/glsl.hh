@@ -208,7 +208,7 @@ R"(#version 300 es
 
 layout(location = 0) in vec3 a_pos;
 layout(location = 1) in vec2 a_tex;
-layout(location = 2) in vec4 a_joint;
+layout(location = 2) in ivec4 a_joint;
 layout(location = 3) in vec4 a_weight;
 
 out vec4 vs_pos;
@@ -223,10 +223,10 @@ void
 main()
 {
     mat4 trmSkin =
-        a_weight.x * u_a128TrmJoints[int(a_joint.x)] +
-        a_weight.y * u_a128TrmJoints[int(a_joint.y)] +
-        a_weight.z * u_a128TrmJoints[int(a_joint.z)] +
-        a_weight.w * u_a128TrmJoints[int(a_joint.w)];
+        a_weight.x * u_a128TrmJoints[a_joint.x] +
+        a_weight.y * u_a128TrmJoints[a_joint.y] +
+        a_weight.z * u_a128TrmJoints[a_joint.z] +
+        a_weight.w * u_a128TrmJoints[a_joint.w];
 
     vec4 worldPos = trmSkin * vec4(a_pos, 1.0);
 
@@ -242,7 +242,7 @@ R"(#version 300 es
 /* ntsSkinVert */
 
 layout(location = 0) in vec3 a_pos;
-layout(location = 2) in vec4 a_joint;
+layout(location = 2) in ivec4 a_joint;
 layout(location = 3) in vec4 a_weight;
 
 out vec4 vs_pos;
@@ -256,10 +256,10 @@ void
 main()
 {
     mat4 trmSkin =
-        a_weight.x * u_a128TrmJoints[int(a_joint.x)] +
-        a_weight.y * u_a128TrmJoints[int(a_joint.y)] +
-        a_weight.z * u_a128TrmJoints[int(a_joint.z)] +
-        a_weight.w * u_a128TrmJoints[int(a_joint.w)];
+        a_weight.x * u_a128TrmJoints[a_joint.x] +
+        a_weight.y * u_a128TrmJoints[a_joint.y] +
+        a_weight.z * u_a128TrmJoints[a_joint.z] +
+        a_weight.w * u_a128TrmJoints[a_joint.w];
 
     vec4 worldPos = trmSkin * vec4(a_pos, 1.0);
 
@@ -372,7 +372,7 @@ R"(#version 320 es
 precision mediump float;
 
 layout(location = 0) in vec3 a_pos;
-layout(location = 2) in vec4 a_joint;
+layout(location = 2) in ivec4 a_joint;
 layout(location = 3) in vec4 a_weight;
 layout(location = 4) in vec3 a_norm;
 
@@ -391,10 +391,10 @@ out vec4 vs_color;
 void main()
 {
     mat4 trmSkin =
-        a_weight.x * u_a128TrmJoints[int(a_joint.x)] +
-        a_weight.y * u_a128TrmJoints[int(a_joint.y)] +
-        a_weight.z * u_a128TrmJoints[int(a_joint.z)] +
-        a_weight.w * u_a128TrmJoints[int(a_joint.w)];
+        a_weight.x * u_a128TrmJoints[a_joint.x] +
+        a_weight.y * u_a128TrmJoints[a_joint.y] +
+        a_weight.z * u_a128TrmJoints[a_joint.z] +
+        a_weight.w * u_a128TrmJoints[a_joint.w];
 
     vec4 worldPos = trmSkin * vec4(a_pos, 1.0);
 

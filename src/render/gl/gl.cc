@@ -37,10 +37,10 @@ struct PrimitiveData
 
 struct Skybox
 {
-    GLuint m_fbo;
-    GLuint m_tex;
-    int m_width;
-    int m_height;
+    GLuint m_fbo {};
+    GLuint m_tex {};
+    int m_width {};
+    int m_height {};
 
     /* */
 
@@ -188,7 +188,8 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
 
     Shader* pSh {};
 
-    auto bindTexture = [&](const gltf::Primitive& primitive) {
+    auto bindTexture = [&](const gltf::Primitive& primitive)
+    {
         if (primitive.materialI < 0) return;
 
         auto& mat = gltfModel.m_vMaterials[primitive.materialI];
@@ -891,14 +892,28 @@ bufferViewConvert(
     glBufferData(GL_ARRAY_BUFFER, spB.size()*sizeof(*spB.data()), spB.data(), GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(attrLocation);
-    glVertexAttribPointer(
-        attrLocation, /* enabled index */
-        size,
-        eType,
-        false,
-        0,
-        0
-    );
+
+    if (eType == GL_INT)
+    {
+        glVertexAttribIPointer(
+            attrLocation, /* enabled index */
+            size,
+            eType,
+            0,
+            0
+        );
+    }
+    else
+    {
+        glVertexAttribPointer(
+            attrLocation, /* enabled index */
+            size,
+            eType,
+            false,
+            0,
+            0
+        );
+    }
 }
 
 static void
@@ -1058,8 +1073,8 @@ loadGLTF(gltf::Model* pModel)
                         {
                             View<math::IV4u8> vwU8(pModel->accessorView<math::IV4u8>(primitive.attributes.JOINTS_0));
 
-                            bufferViewConvert<math::IV4u8, math::V4>(
-                                vwU8, accJoints.count, shaders::glsl::JOINT_LOCATION, 4, GL_FLOAT, &newPrimitiveData.vboJoints
+                            bufferViewConvert<math::IV4u8, math::IV4>(
+                                vwU8, accJoints.count, shaders::glsl::JOINT_LOCATION, 4, GL_INT, &newPrimitiveData.vboJoints
                             );
                         }
                         break;
@@ -1068,8 +1083,8 @@ loadGLTF(gltf::Model* pModel)
                         {
                             View<math::IV4u16> vwU16(pModel->accessorView<math::IV4u16>(primitive.attributes.JOINTS_0));
 
-                            bufferViewConvert<math::IV4u16, math::V4>(
-                                vwU16, accJoints.count, shaders::glsl::JOINT_LOCATION, 4, GL_FLOAT, &newPrimitiveData.vboJoints
+                            bufferViewConvert<math::IV4u16, math::IV4>(
+                                vwU16, accJoints.count, shaders::glsl::JOINT_LOCATION, 4, GL_INT, &newPrimitiveData.vboJoints
                             );
                         }
                         break;
