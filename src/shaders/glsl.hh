@@ -380,12 +380,13 @@ uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
 
+uniform vec4 u_color;
 uniform vec3 u_lightPos;
 uniform vec3 u_lightColor;
 uniform vec3 u_ambientColor;
 uniform mat4 u_a128TrmJoints[128];
 
-out vec3 vs_color;
+out vec4 vs_color;
 
 void main()
 {
@@ -405,7 +406,7 @@ void main()
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = diff * u_lightColor;
 
-    vs_color = u_ambientColor + diffuse;
+    vs_color = vec4((u_ambientColor + diffuse), 1.0) * u_color;
 }
 )";
 
@@ -415,15 +416,13 @@ R"(#version 320 es
 
 precision mediump float;
 
-in vec3 vs_color;
+in vec4 vs_color;
 
 out vec4 fs_color;
 
-uniform vec4 u_color;
-
 void main()
 {
-    fs_color = vec4(vs_color, 1.0) * u_color;
+    fs_color = vs_color;
 }
 )";
 

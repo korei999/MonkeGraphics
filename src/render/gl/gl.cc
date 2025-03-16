@@ -230,7 +230,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
             if (primitive.attributes.TEXCOORD_0 != -1)
                 accUV = gltfModel.m_vAccessors[primitive.attributes.TEXCOORD_0];
 
-            app::g_threadPool.wait();
+            /*app::g_threadPool.wait();*/
 
             if (primitive.attributes.JOINTS_0 != -1)
             {
@@ -258,12 +258,6 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                         pSh->setV3("u_lightPos", light.pos);
                         pSh->setV3("u_lightColor", light.color.xyz);
                         pSh->setV3("u_ambientColor", light.color.xyz);
-
-                        if (primitive.materialI > -1)
-                        {
-                            auto& mat = gltfModel.m_vMaterials[primitive.materialI];
-                            pSh->setV4("u_color", math::V4From(colors::get(colors::BLACK), 1.0f));
-                        }
                     }
                     else
                     {
@@ -515,7 +509,6 @@ Renderer::drawGame(Arena* pArena)
 
     {
         auto& entities = game::g_poolEntities;
-        static int what = 0;
 
         /* TODO: implement proper parallel for */
         for (auto& model : Model::g_poolModels)
