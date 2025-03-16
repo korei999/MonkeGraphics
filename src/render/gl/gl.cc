@@ -269,7 +269,10 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
 
                 ADT_ASSERT(gltfNode.skinI > -1, " ");
                 const Model::Skin& skin = model.m_vSkins[gltfNode.skinI];
-                pSh->setM4("u_model", trm * node.finalTransform);
+
+                math::M4 finalTrm = trm * node.finalTransform;
+
+                pSh->setM4("u_model", finalTrm);
                 pSh->setM4("u_view", trmView);
                 pSh->setM4("u_projection", trmProj);
                 pSh->setM4("u_a128TrmJoints", Span<M4>(skin.vJointMatrices));
@@ -881,6 +884,7 @@ bufferViewConvert(
     ADT_ASSERT(spB.size() == accessorCount, "sp.size: %lld, acc.count: %d", spB.size(), accessorCount);
 
     ssize maxSize = utils::min(spB.size(), spA.size());
+
     for (ssize spI = 0; spI < maxSize; ++spI)
     {
         auto& elementA = spA[spI];

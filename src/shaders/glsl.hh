@@ -396,11 +396,15 @@ void main()
         a_weight.z * u_a128TrmJoints[a_joint.z] +
         a_weight.w * u_a128TrmJoints[a_joint.w];
 
-    vec4 worldPos = trmSkin * vec4(a_pos, 1.0);
+    mat4 finalTrm = u_model * trmSkin;
 
-    gl_Position = u_projection * u_view * u_model * worldPos;
+    vec4 worldPos = finalTrm * vec4(a_pos, 1.0);
 
-    vec3 norm = normalize(a_norm);
+    gl_Position = u_projection * u_view * worldPos;
+
+    mat3 normalTrm = transpose(inverse(mat3(finalTrm)));
+
+    vec3 norm = normalize(normalTrm * a_norm);
     vec3 lightDir = normalize(u_lightPos - worldPos.xyz);
 
     float diff = max(dot(norm, lightDir), 0.0);

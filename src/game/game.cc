@@ -115,8 +115,10 @@ updateState(adt::Arena*)
     {
         auto entity = g_poolEntities[{1}];
         entity.pos = {-3.0f, 0.0f, 5.0f};
-        entity.scale = {1.00f, 1.00f, 1.00f};
+        entity.scale = {1.0f, 1.0f, 1.0f};
         entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
+        /*entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, frame::g_time);*/
+
         Model::fromI(entity.modelI).m_animationIUsed = 0;
     }
 
