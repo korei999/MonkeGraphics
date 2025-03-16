@@ -2,8 +2,6 @@
 
 #include "adt/types.hh"
 
-#include <type_traits>
-
 #if __has_include(<windows.h>)
     #define ADT_USE_WIN32THREAD
 #elif __has_include(<pthread.h>)

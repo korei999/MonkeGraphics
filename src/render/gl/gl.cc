@@ -83,6 +83,7 @@ static const ShaderMapping s_aShadersToLoad[] {
     {shaders::glsl::ntsSkinTextureVert, shaders::glsl::ntsSimpleTextureFrag, "SkinTexture"},
     {shaders::glsl::ntsSkyboxVert, shaders::glsl::ntsSkyboxFrag, "Skybox"},
     {shaders::glsl::nts2DVert, shaders::glsl::nts2DColorFrag, "2DColor"},
+    {shaders::glsl::ntsGouraudVert, shaders::glsl::ntsGouraudFrag, "Gouraud"},
 };
 
 #ifndef NDEBUG
@@ -229,6 +230,8 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
             if (primitive.attributes.TEXCOORD_0 != -1)
                 accUV = gltfModel.m_vAccessors[primitive.attributes.TEXCOORD_0];
 
+            app::g_threadPool.wait();
+
             if (primitive.attributes.JOINTS_0 != -1)
             {
                 ADT_ASSERT(primitive.attributes.WEIGHTS_0 != -1, "must have");
@@ -244,8 +247,29 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                 }
                 else
                 {
-                    pSh = searchShader("Skin");
-                    pSh->use();
+                    if (primitive.attributes.NORMAL > -1)
+                    {
+                        pSh = searchShader("Gouraud");
+                        ADT_ASSERT(pSh, " ");
+                        pSh->use();
+
+                        auto light = game::g_poolEntities[game::g_dirLight];
+
+                        pSh->setV3("u_lightPos", light.pos);
+                        pSh->setV3("u_lightColor", light.color.xyz);
+                        pSh->setV3("u_ambientColor", light.color.xyz);
+
+                        if (primitive.materialI > -1)
+                        {
+                            auto& mat = gltfModel.m_vMaterials[primitive.materialI];
+                            pSh->setV4("u_color", math::V4From(colors::get(colors::BLACK), 1.0f));
+                        }
+                    }
+                    else
+                    {
+                        pSh = searchShader("Skin");
+                        pSh->use();
+                    }
                 }
 
                 ADT_ASSERT(gltfNode.skinI > -1, " ");
@@ -474,6 +498,9 @@ drawUI(Arena* pArena)
         s_text.draw();
     }
 
+    /* ui */
+    {
+    }
 }
 
 void
@@ -488,11 +515,12 @@ Renderer::drawGame(Arena* pArena)
 
     {
         auto& entities = game::g_poolEntities;
+        static int what = 0;
 
         /* TODO: implement proper parallel for */
         for (auto& model : Model::g_poolModels)
         {
-            /* don't even wait, this is tolerable for now */
+            /* wait in drawNode */
             app::g_threadPool.add(+[](void* p) -> THREAD_STATUS
                 {
                     reinterpret_cast<Model*>(p)->updateAnimation();
@@ -509,7 +537,7 @@ Renderer::drawGame(Arena* pArena)
             if (game::g_poolEntities.bindMember<&game::Entity::bNoDraw>({entityI}))
                 continue;
 
-            game::EntityBind entity = game::g_poolEntities[{entityI}];
+            game::Entity::Bind entity = game::g_poolEntities[{entityI}];
             auto& obj = asset::g_poolObjects[{entity.assetI}];
 
             switch (obj.m_eType)
@@ -796,7 +824,7 @@ loadShaders()
             case ShaderMapping::TYPE::VS_FS:
             {
                 /* maps to gl::g_shaders */
-                LOG_GOOD("loading shader '{}' ..\n", shader.m_svMappedTo);
+                LOG_GOOD("loading shader '{}' ...\n", shader.m_svMappedTo);
                 gl::Shader(shader.m_svVert, shader.m_svFrag, shader.m_svMappedTo);
             }
             break;
@@ -964,9 +992,9 @@ loadGLTF(gltf::Model* pModel)
                     newPrimitiveData.vbo = vVBOs[buffPos.bufferI];
                     glBindBuffer(GL_ARRAY_BUFFER, newPrimitiveData.vbo);
 
-                    glEnableVertexAttribArray(0);
+                    glEnableVertexAttribArray(shaders::glsl::POS_LOCATION);
                     glVertexAttribPointer(
-                        0, /* enabled index */
+                        shaders::glsl::POS_LOCATION,
                         3, /* positions are 3 f32s */
                         static_cast<GLenum>(accPos.eComponentType),
                         false,
@@ -981,15 +1009,43 @@ loadGLTF(gltf::Model* pModel)
                     gltf::Accessor accUV = pModel->m_vAccessors[primitive.attributes.TEXCOORD_0];
                     gltf::BufferView viewUV = pModel->m_vBufferViews[accUV.bufferViewI];
 
-                    glEnableVertexAttribArray(1);
+                    glEnableVertexAttribArray(shaders::glsl::TEX_LOCATION);
                     glVertexAttribPointer(
-                        1, /* enabled index */
-                        2, /* uv's are 2 f32s */
+                        shaders::glsl::TEX_LOCATION,
+                        2, /* uvs are 2 f32s */
                         static_cast<GLenum>(accUV.eComponentType),
                         false,
                         viewUV.byteStride,
                         reinterpret_cast<void*>(accUV.byteOffset + viewUV.byteOffset)
                     );
+                }
+
+                /* normals */
+                if (primitive.attributes.NORMAL != -1)
+                {
+                    gltf::Accessor accNorm = pModel->m_vAccessors[primitive.attributes.NORMAL];
+                    gltf::BufferView viewNorm = pModel->m_vBufferViews[accNorm.bufferViewI];
+
+                    glEnableVertexAttribArray(shaders::glsl::NORMAL_LOCATION);
+                    glVertexAttribPointer(
+                        shaders::glsl::NORMAL_LOCATION,
+                        3, /* normals are 3 f32s */
+                        static_cast<GLenum>(accNorm.eComponentType),
+                        false,
+                        viewNorm.byteStride,
+                        reinterpret_cast<void*>(accNorm.byteOffset + viewNorm.byteOffset)
+                    );
+                }
+                else /* calculate from positions */
+                {
+                    /*const View<math::V3> vwPos = pModel->accessorView<math::V3>(primitive.attributes.POSITION);*/
+                    /*VecManaged<math::V3> vNorms(StdAllocator::inst(), vwPos.size());*/
+                    /*defer( vNorms.destroy() );*/
+
+                    /*ADT_ASSERT(vwPos.size() % 3 == 0, "size: %lld", vwPos.size());*/
+                    /*for (auto& pos : vwPos)*/
+                    /*{*/
+                    /*}*/
                 }
 
                 /* NOTE:

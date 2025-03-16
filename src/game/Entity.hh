@@ -7,7 +7,36 @@ namespace game
 
 struct Entity
 {
+    enum class TYPE : adt::u8
+    {
+        REGULAR, LIGHT
+    };
+
+    struct Bind
+    {
+        adt::StringFixed<128>& sfName;
+
+        adt::math::V4& color;
+
+        adt::math::V3& pos;
+        adt::math::Qt& rot;
+        adt::math::V3& scale;
+
+        adt::math::V3& vel;
+
+        adt::i16& assetI;
+        adt::i16& modelI;
+
+        Entity::TYPE& eType;
+
+        bool& bNoDraw;
+    };
+
+    /* */
+
     adt::StringFixed<128> sfName {};
+
+    adt::math::V4 color {};
 
     adt::math::V3 pos {};
     adt::math::Qt rot = adt::math::QtIden();
@@ -18,23 +47,9 @@ struct Entity
     adt::i16 assetI = -1;
     adt::i16 modelI = -1;
 
+    TYPE eType = TYPE::REGULAR;
+
     bool bNoDraw = false;
-};
-
-struct EntityBind
-{
-    adt::StringFixed<128>& sfName;
-
-    adt::math::V3& pos;
-    adt::math::Qt& rot;
-    adt::math::V3& scale;
-
-    adt::math::V3& vel;
-
-    adt::i16& assetI;
-    adt::i16& modelI;
-
-    bool& bNoDraw;
 };
 
 } /* namespace game */
@@ -43,10 +58,11 @@ namespace adt::print
 {
 
 inline ssize
-formatToContext(Context ctx, FormatArgs, const game::EntityBind& x)
+formatToContext(Context ctx, FormatArgs, const game::Entity::Bind& x)
 {
     ctx.fmt =
         "\n\tname: '{}'"
+        "\n\tcolor: '{}'"
         "\n\tpos: [{}]"
         "\n\trot: [{}]"
         "\n\tscale: [{}]"
@@ -56,7 +72,7 @@ formatToContext(Context ctx, FormatArgs, const game::EntityBind& x)
         "\n\tbInvisible: {}";
 
     ctx.fmtIdx = 0;
-    return printArgs(ctx, x.sfName, x.pos, x.rot, x.scale, x.vel, x.assetI, x.modelI, x.bNoDraw);
+    return printArgs(ctx, x.sfName, x.color, x.pos, x.rot, x.scale, x.vel, x.assetI, x.modelI, x.bNoDraw);
 }
 
 } /* namespace adt::print */

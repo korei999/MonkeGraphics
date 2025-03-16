@@ -7,6 +7,7 @@ constexpr int POS_LOCATION = 0;
 constexpr int TEX_LOCATION = 1;
 constexpr int JOINT_LOCATION = 2;
 constexpr int WEIGHT_LOCATION = 3;
+constexpr int NORMAL_LOCATION = 4;
 
 static const char* ntsQuadTexVert =
 R"(#version 300 es
@@ -361,6 +362,68 @@ main()
     if (u_color.a <= 0.01) discard;
 
     fs_fragColor = u_color;
+}
+)";
+
+static const char* ntsGouraudVert =
+R"(#version 320 es
+/* ntsGouraudVert */
+
+precision mediump float;
+
+layout(location = 0) in vec3 a_pos;
+layout(location = 2) in vec4 a_joint;
+layout(location = 3) in vec4 a_weight;
+layout(location = 4) in vec3 a_norm;
+
+uniform mat4 u_model;
+uniform mat4 u_view;
+uniform mat4 u_projection;
+
+uniform vec3 u_lightPos;
+uniform vec3 u_lightColor;
+uniform vec3 u_ambientColor;
+uniform mat4 u_a128TrmJoints[128];
+
+out vec3 vs_color;
+
+void main()
+{
+    mat4 trmSkin =
+        a_weight.x * u_a128TrmJoints[int(a_joint.x)] +
+        a_weight.y * u_a128TrmJoints[int(a_joint.y)] +
+        a_weight.z * u_a128TrmJoints[int(a_joint.z)] +
+        a_weight.w * u_a128TrmJoints[int(a_joint.w)];
+
+    vec4 worldPos = trmSkin * vec4(a_pos, 1.0);
+
+    gl_Position = u_projection * u_view * u_model * worldPos;
+
+    vec3 norm = normalize(a_norm);
+    vec3 lightDir = normalize(u_lightPos - worldPos.xyz);
+
+    float diff = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse = diff * u_lightColor;
+
+    vs_color = u_ambientColor + diffuse;
+}
+)";
+
+static const char* ntsGouraudFrag =
+R"(#version 320 es
+/* ntsGouraudFrag */
+
+precision mediump float;
+
+in vec3 vs_color;
+
+out vec4 fs_color;
+
+uniform vec4 u_color;
+
+void main()
+{
+    fs_color = vec4(vs_color, 1.0) * u_color;
 }
 )";
 

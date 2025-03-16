@@ -2,8 +2,6 @@
 
 #include "Array.hh"
 
-#include <type_traits>
-
 namespace adt
 {
 
