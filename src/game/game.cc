@@ -98,10 +98,10 @@ loadStuff()
         auto hnd = makeEntity("assets/cube/cube.gltf", "LightCube", Entity::TYPE::LIGHT);
         auto bind = g_poolEntities[hnd];
 
-        bind.pos = {-5.0f, 6.0f, -8.0f};
+        bind.pos = {-10.0f, 8.0f, -8.0f};
         bind.scale = {0.2f, 0.2f, 0.2f};
-        bind.color = math::V4From(colors::get(colors::WHITESMOKE), 1.0f);
-        /*bind.bNoDraw = true;*/
+        bind.color = math::V4From(colors::get(colors::WHITE), 1.0f);
+        bind.bNoDraw = true;
 
         g_dirLight = hnd;
     }
