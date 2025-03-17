@@ -115,6 +115,7 @@ loadGLFunctions()
     LOAD_GL_FUNC(glGetUniformLocation);
     LOAD_GL_FUNC(glUniformMatrix3fv);
     LOAD_GL_FUNC(glUniformMatrix4fv);
+    LOAD_GL_FUNC(glUniform2fv);
     LOAD_GL_FUNC(glUniform3fv);
     LOAD_GL_FUNC(glUniform4fv);
     LOAD_GL_FUNC(glUniform1iv);
@@ -180,6 +181,11 @@ windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         break;
 
         case WM_LBUTTONDOWN:
+        control::g_abPressed[BTN_LEFT] = true;
+        break;
+
+        case WM_LBUTTONUP:
+        control::g_abPressed[BTN_LEFT] = false;
         break;
 
         case WM_SYSKEYUP:
@@ -201,7 +207,7 @@ windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         case WM_MOUSEMOVE:
         {
             s->m_pointerSurfaceX = static_cast<f32>(GET_X_LPARAM(lParam));
-            s->m_pointerSurfaceY = static_cast<f32>(GET_Y_LPARAM(lParam));
+            s->m_pointerSurfaceY = static_cast<f32>(s->m_winHeight) - static_cast<f32>(GET_Y_LPARAM(lParam));
         }
         break;
 

@@ -270,6 +270,7 @@ draw(Arena* pArena)
     {
         StringView sv =
             "F: toggle fullscreen\n"
+            "V: toggle VSync\n"
             "R: lock/unlock mouse\n"
             "Q/Escape: quit";
 
