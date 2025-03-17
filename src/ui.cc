@@ -25,7 +25,7 @@ init()
         .width = 20,
         .height = 10,
         .color = math::V4From(colors::get(colors::BLACK), 0.5f),
-        .eFlags = Rect::FLAGS::DRAW | Rect::FLAGS::TITLE,
+        .eFlags = Rect::FLAGS::TITLE,
     });
 
     g_mapStringsToRectHandles.insert(g_poolRects[hTest].sfName, hTest);

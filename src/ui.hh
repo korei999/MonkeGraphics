@@ -14,7 +14,7 @@ struct Rect
 {
     enum class FLAGS : adt::u8
     {
-        DRAW = 1,
+        NO_DRAW = 1,
         TITLE = 1 << 1,
     };
 

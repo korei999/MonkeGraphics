@@ -76,8 +76,8 @@ draw(Arena*)
     {
         for (const ::ui::Rect& rect : ::ui::g_poolRects)
         {
-            const f32 fw = ::ui::WIDTH / rect.width;
-            const f32 fh = ::ui::HEIGHT / rect.height;
+            if (bool(rect.eFlags & ::ui::Rect::FLAGS::NO_DRAW))
+                continue;
 
             g_pShColor->use();
             g_pShColor->setM4("u_trm", proj *
@@ -87,11 +87,14 @@ draw(Arena*)
             g_pShColor->setV4("u_color", math::V4From(colors::get(colors::BLACK), 0.5f));
             g_quad.draw();
 
-            pShTex->use();
-            pShTex->setM4("u_trm", proj * math::M4TranslationFrom({rect.x, rect.y + rect.height - 1, 0.0f}));
+            if (bool(rect.eFlags & ::ui::Rect::FLAGS::TITLE))
+            {
+                pShTex->use();
+                pShTex->setM4("u_trm", proj * math::M4TranslationFrom({rect.x, rect.y + rect.height - 1, 0.0f}));
 
-            g_text.update(g_rasterizer, rect.sfTitle);
-            g_text.draw();
+                g_text.update(g_rasterizer, rect.sfTitle);
+                g_text.draw();
+            }
         }
     }
 }
