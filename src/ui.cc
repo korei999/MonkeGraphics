@@ -19,11 +19,11 @@ init()
 
     auto hTest = g_poolRects.make({
         .sfName = "test",
-        .sTitle = String(&al, "title"),
-        .x = 100,
-        .y = 100,
-        .width = 100,
-        .height = 100,
+        .sfTitle = "TestTitle",
+        .x = WIDTH - 20,
+        .y = HEIGHT - 10,
+        .width = 20,
+        .height = 10,
         .color = math::V4From(colors::get(colors::BLACK), 0.5f),
         .eFlags = Rect::FLAGS::DRAW | Rect::FLAGS::TITLE,
     });

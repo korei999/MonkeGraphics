@@ -35,6 +35,7 @@ adt::MapManaged<
     PoolSOAHandle<Entity>
 > g_mapNamesToEntities(StdAllocator::inst(), MAX_ENTITIES);
 
+/* TODO: should probably be just a separate array of light sources */
 PoolSOAHandle<Entity> g_dirLight;
 math::V3 g_ambientLight = colors::get(colors::WHITE) * 0.6f;
 
@@ -106,6 +107,13 @@ loadStuff()
 
         g_dirLight = hnd;
     }
+
+    Arena firstUpdateArena(SIZE_1K);
+    defer( firstUpdateArena.freeAll() );
+    updateState(&firstUpdateArena);
+
+    for (auto& model : Model::g_poolModels)
+        model.updateAnimation();
 }
 
 void

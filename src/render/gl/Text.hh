@@ -26,7 +26,7 @@ struct Text
 
     /* */
 
-    void update(adt::Arena* pArena, const ttf::Rasterizer& rast, const adt::StringView sv);
+    void update(const ttf::Rasterizer& rast, const adt::StringView sv);
     void bind() const { glBindVertexArray(m_vao); }
     void draw() const { glDrawArrays(GL_TRIANGLES, 0, m_vboSize); }
 
@@ -34,7 +34,7 @@ struct Text
 
 protected:
     [[nodiscard]] adt::Vec<CharQuad2Pos2UV> makeStringMesh(
-        adt::Arena* pArena, const ttf::Rasterizer& rast, const adt::StringView sv
+        const ttf::Rasterizer& rast, const adt::StringView sv
     );
 };
 

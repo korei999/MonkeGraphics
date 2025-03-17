@@ -344,6 +344,7 @@ if (OPT_GL)
         ${CMAKE_PROJECT_NAME} PRIVATE
         src/render/gl/gl.cc
         src/render/gl/Text.cc
+        src/render/gl/glui.cc
     )
 endif()
 

@@ -1,5 +1,8 @@
 #include "Text.hh"
 
+#include "app.hh"
+#include "adt/BufferAllocator.hh"
+
 using namespace adt;
 
 namespace render::gl
@@ -7,13 +10,18 @@ namespace render::gl
 
 Vec<CharQuad2Pos2UV>
 Text::makeStringMesh(
-    Arena* pArena,
     const ttf::Rasterizer& rast,
     const StringView vs
 )
 {
-    Vec<CharQuad2Pos2UV> vQuads(pArena, m_maxSize);
-    vQuads.setSize(pArena, m_maxSize);
+    auto spMem = app::gtl_scratch.nextMem<CharQuad2Pos2UV>(m_maxSize);
+    if (spMem.size() < m_maxSize) return {};
+
+    /* NOTE: problems with constructor */
+    BufferAllocator al((u8*)spMem.data(), spMem.size() * sizeof(spMem[0]));
+
+    Vec<CharQuad2Pos2UV> vQuads(&al, m_maxSize);
+    vQuads.setSize(&al, m_maxSize);
 
     f32 xOff = 0.0f;
     f32 yOff = 0.0f;
@@ -103,17 +111,21 @@ Text::Text(const int maxSize)
 }
 
 void
-Text::update(Arena* pArena, const ttf::Rasterizer& rast, const StringView sv)
+Text::update(const ttf::Rasterizer& rast, const StringView sv)
 {
-    Vec<CharQuad2Pos2UV> vQuads = makeStringMesh(pArena, rast, sv);
+    /* construct from gtl_scratch */
+    Vec<CharQuad2Pos2UV> vQuads = makeStringMesh(rast, sv);
     m_vboSize = vQuads.size() * 6; /* 6 vertices for 1 quad */
 
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    if (m_vboSize > 0)
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
 
-    glBufferSubData(GL_ARRAY_BUFFER, 0,
-        utils::min(vQuads.size(), static_cast<ssize>(m_maxSize)) * sizeof(vQuads[0]),
-        vQuads.data()
-    );
+        glBufferSubData(GL_ARRAY_BUFFER, 0,
+            utils::min(vQuads.size(), static_cast<ssize>(m_maxSize)) * sizeof(vQuads[0]),
+            vQuads.data()
+        );
+    }
 }
 
 } /* namespace render::gl */

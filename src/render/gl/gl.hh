@@ -8,6 +8,7 @@
 #include "adt/Pool.hh"
 
 #include "Image.hh"
+#include "ttf/Rasterizer.hh"
 
 namespace render::gl
 {
@@ -171,6 +172,13 @@ void debugCallback(
 );
 #endif
 
+struct Text;
+
 extern adt::Pool<Shader, 128> g_poolShaders;
+extern ttf::Rasterizer g_rasterizer;
+extern Quad g_quad;
+extern Texture g_texDefault;
+extern Texture g_texLiberation;
+extern Shader* g_pShColor;
 
 } /* namespace render::gl */

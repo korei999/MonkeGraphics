@@ -34,6 +34,9 @@ render::IRenderer* g_pRenderer {};
 
 adt::ThreadPool g_threadPool(adt::StdAllocator::inst());
 
+static thread_local u8 stl_aScratchMem[SIZE_1M];
+thread_local ScratchBuffer gtl_scratch(stl_aScratchMem);
+
 IWindow*
 allocWindow(IAllocator* pAlloc, const char* ntsName)
 {

@@ -52,7 +52,7 @@ struct Arena : public IAllocator
 
     /* */
 
-private:
+protected:
     [[nodiscard]] inline ArenaBlock* allocBlock(usize size);
     [[nodiscard]] inline ArenaBlock* prependBlock(usize size);
     [[nodiscard]] inline ArenaBlock* findFittingBlock(usize size);
@@ -92,6 +92,8 @@ Arena::findFittingBlock(usize size)
 inline ArenaBlock*
 Arena::allocBlock(usize size)
 {
+    ADT_ASSERT(m_pBackAlloc, "uninitialized: m_pBackAlloc == nullptr");
+
     /* NOTE: m_pBackAlloc can throw here */
     ArenaBlock* pBlock = static_cast<ArenaBlock*>(m_pBackAlloc->zalloc(1, size + sizeof(ArenaBlock)));
 

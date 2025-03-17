@@ -78,7 +78,7 @@ struct FreeList : public IAllocator
 
     /* */
 
-private:
+protected:
     [[nodiscard]] FreeListBlock* allocBlock(usize size);
     [[nodiscard]] FreeListBlock* blockPrepend(usize size);
     [[nodiscard]] FreeListBlock* blockFromNode(FreeList::Node* pNode);
@@ -122,6 +122,8 @@ FreeList::blockFromNode(FreeList::Node* pNode)
 inline FreeListBlock*
 FreeList::allocBlock(usize size)
 {
+    ADT_ASSERT(m_pBackAlloc, "uninitialized: m_pBackAlloc == nullptr");
+
     FreeListBlock* pBlock = (FreeListBlock*)m_pBackAlloc->zalloc(1, size);
     pBlock->size = size;
 

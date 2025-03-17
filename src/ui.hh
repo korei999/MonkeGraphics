@@ -7,6 +7,9 @@
 namespace ui
 {
 
+constexpr adt::f32 WIDTH = 100.0f;
+constexpr adt::f32 HEIGHT = 35.0f;
+
 struct Rect
 {
     enum class FLAGS : adt::u8
@@ -18,7 +21,7 @@ struct Rect
     /* */
 
     adt::StringFixed<16> sfName {};
-    adt::String sTitle {};
+    adt::StringFixed<32> sfTitle {};
 
     adt::f32 x {};
     adt::f32 y {};

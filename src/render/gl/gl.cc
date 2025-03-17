@@ -1,15 +1,13 @@
 #include "gl.hh"
-#include "Text.hh"
+#include "glui.hh"
 
 #include "Model.hh"
 #include "app.hh"
 #include "asset.hh"
-#include "colors.hh"
 #include "common.hh"
 #include "control.hh"
 #include "game/game.hh"
 #include "shaders/glsl.hh"
-#include "ttf/Rasterizer.hh"
 
 #include "adt/Map.hh"
 #include "adt/ScratchBuffer.hh"
@@ -55,21 +53,16 @@ struct Skybox
 static void loadShaders();
 static void loadAssetObjects();
 static void loadSkybox();
-static void drawUI(Arena*);
 
 Pool<Shader, 128> g_poolShaders;
+ttf::Rasterizer g_rasterizer;
+Quad g_quad;
+Texture g_texDefault;
+Texture g_texLiberation;
+Shader* g_pShColor;
+
 static MapManaged<StringView, PoolHandle<Shader>> s_mapStringToShaders(StdAllocator::inst(), g_poolShaders.cap());
-
-static u8 s_aScratchMem[SIZE_1K * 100];
-static ScratchBuffer s_scratch(s_aScratchMem);
-
-static Texture s_texDefault;
-static Texture s_texLiberation;
 static Skybox s_skyboxDefault;
-static Quad s_quad;
-static ttf::Rasterizer s_rasterizer;
-static Text s_text;
-static Shader* s_pShTexMono;
 
 static const ShaderMapping s_aShadersToLoad[] {
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"},
@@ -152,23 +145,16 @@ Renderer::init()
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
-    s_texDefault = Texture(common::g_spDefaultTexture);
-    s_quad = Quad(INIT);
-
-    ttf::Font* pFont = asset::searchFont("assets/LiberationMono-Regular.ttf");
-    ADT_ASSERT(pFont, " ");
-    if (pFont)
-    {
-        s_rasterizer.rasterizeAscii(StdAllocator::inst(), pFont, 128.0f);
-        s_texLiberation = Texture(s_rasterizer.m_altas.spanMono(), GL_LINEAR);
-        s_text = Text(100);
-    }
+    g_texDefault = Texture(common::g_spDefaultTexture);
+    g_quad = Quad(INIT);
 
     loadShaders();
     loadAssetObjects();
     loadSkybox();
 
-    s_pShTexMono = searchShader("QuadTexMonoBoxBlur");
+    g_pShColor = searchShader("SimpleColor");
+
+    ui::init();
 };
 
 static void
@@ -198,7 +184,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
             auto& tex = gltfModel.m_vTextures[mat.pbrMetallicRoughness.baseColorTexture.index];
             auto& img = gltfModel.m_vImages[tex.sourceI];
 
-            Span<char> sp = s_scratch.nextMemZero<char>(img.sUri.size() + 300);
+            Span<char> sp = app::gtl_scratch.nextMemZero<char>(img.sUri.size() + 300);
             file::replacePathEnding(&sp, reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri);
 
             auto* pObj = asset::search(sp, asset::Object::TYPE::IMAGE);
@@ -288,7 +274,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                     auto& tex = gltfModel.m_vTextures[mat.pbrMetallicRoughness.baseColorTexture.index];
                     auto& img = gltfModel.m_vImages[tex.sourceI];
 
-                    Span<char> sp = s_scratch.nextMemZero<char>(img.sUri.size() + 300);
+                    Span<char> sp = app::gtl_scratch.nextMemZero<char>(img.sUri.size() + 300);
                     file::replacePathEnding(&sp, reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri);
 
                     auto* pObj = asset::search(sp, asset::Object::TYPE::IMAGE);
@@ -300,7 +286,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                         pSh->use();
 
                         if (pTex) pTex->bind(GL_TEXTURE0);
-                        else s_texDefault.bind(GL_TEXTURE0);
+                        else g_texDefault.bind(GL_TEXTURE0);
 
                         pSh->setM4("u_trm", trmProj * trmView * trm * node.finalTransform);
                     }
@@ -319,7 +305,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
 GOTO_defaultShader:
                 pSh = searchShader("SimpleTexture");
                 pSh->use();
-                s_texDefault.bind(GL_TEXTURE0);
+                g_texDefault.bind(GL_TEXTURE0);
                 pSh->setM4("u_trm", trmProj * trmView * trm * node.finalTransform);
             }
 
@@ -454,53 +440,6 @@ drawSkybox()
     glEnable(GL_CULL_FACE);
 }
 
-static void
-drawUI(Arena* pArena)
-{
-    Shader* pSh = s_pShTexMono;
-    if (!pSh) return;
-
-    pSh->use();
-    s_text.bind();
-    s_texLiberation.bind(GL_TEXTURE0);
-
-    const f32 width = 100.0f;
-    const f32 height = width * 0.3333f;
-
-    math::M4 proj = math::M4Ortho(0, width, 0, height, -10.0f, 10.0f);
-
-    pSh->setV4("u_color", V4From(colors::get(colors::WHITE), 0.75f));
-    pSh->setV2("u_texelSize", math::V2From(1.0f/s_texLiberation.m_width, 1.0f/s_texLiberation.m_height));
-
-    /* fps */
-    {
-        pSh->setM4("u_trm", proj * math::M4TranslationFrom({0.0f, height - 1.0f, -1.0f}));
-
-        s_text.update(pArena, s_rasterizer, frame::g_sfFpsStatus);
-        s_text.draw();
-    }
-
-    /* info */
-    {
-        StringView sv =
-            "F: toggle fullscreen\n"
-            "R: lock/unlock mouse\n"
-            "Q/Escape: quit";
-
-        int nSpaces = 0;
-        for (auto ch : sv) if (ch == '\n') ++nSpaces;
-
-        pSh->setM4("u_trm", proj * math::M4TranslationFrom({0.0f, static_cast<f32>(nSpaces), -1.0f}));
-
-        s_text.update(pArena, s_rasterizer, sv);
-        s_text.draw();
-    }
-
-    /* ui */
-    {
-    }
-}
-
 void
 Renderer::drawGame(Arena* pArena)
 {
@@ -551,7 +490,7 @@ Renderer::drawGame(Arena* pArena)
         }
     }
 
-    drawUI(pArena);
+    ui::draw(pArena);
 }
 
 void
