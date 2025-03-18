@@ -38,6 +38,7 @@ struct Model
 
     struct Animation
     {
+        adt::String sName {};
         adt::f64 minTime = INFINITY;
         adt::f64 maxTime = -INFINITY;
     };

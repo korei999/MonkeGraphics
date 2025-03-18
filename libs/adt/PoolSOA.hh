@@ -100,6 +100,9 @@ struct PoolSOA : public SOAArrayHolder<STRUCT, CAP, MEMBERS>...
         return static_cast<const SOAArrayHolder<STRUCT, CAP, MEMBER>&>(*this).m_arrays[h.i];
     }
 
+    ssize size() const { return static_cast<ssize>(m_size); }
+    ssize cap() const { return static_cast<ssize>(CAP); }
+
     int
     firstI() const
     {
@@ -139,6 +142,61 @@ struct PoolSOA : public SOAArrayHolder<STRUCT, CAP, MEMBERS>...
 
         return i;
     }
+
+    /* */
+
+    struct It
+    {
+        PoolSOA* s {};
+        int i {};
+
+        /* */
+
+        It(const PoolSOA* _s, int _i) : s(const_cast<PoolSOA*>(_s)), i(_i) {}
+
+        /* */
+
+        auto operator*() { return s->operator[]({i}); }
+
+        friend bool operator==(const It& l, const It& r) { return l.i == r.i; }
+        friend bool operator!=(const It& l, const It& r) { return l.i != r.i; }
+
+        It
+        operator++()
+        {
+            i = s->nextI(i);
+            return {s, i};
+        }
+
+        It
+        operator++(int)
+        {
+            ssize tmp = i;
+            i = s->nextI(i);
+            return {s, tmp};
+        }
+
+        It
+        operator--()
+        {
+            i = s->prevI(i);
+            return {s, i};
+        }
+
+        It
+        operator--(int)
+        {
+            ssize tmp = i;
+            i = s->prevI(i);
+            return {s, tmp};
+        }
+    };
+
+    It begin() { return {this, firstI()}; }
+    It end() { return {this, size() == 0 ? -1 : lastI() + 1}; }
+
+    const It begin() const { return {this, firstI()}; }
+    const It end() const { return {this, size() == 0 ? -1 : lastI() + 1}; }
 };
 
 } /* namespace adt */

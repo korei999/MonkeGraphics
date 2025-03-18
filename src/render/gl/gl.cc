@@ -55,10 +55,8 @@ static void loadAssetObjects();
 static void loadSkybox();
 
 Pool<Shader, 128> g_poolShaders;
-ttf::Rasterizer g_rasterizer;
 Quad g_quad;
 Texture g_texDefault;
-Texture g_texLiberation;
 Shader* g_pShColor;
 
 static MapManaged<StringView, PoolHandle<Shader>> s_mapStringToShaders(StdAllocator::inst(), g_poolShaders.cap());
@@ -67,6 +65,7 @@ static Skybox s_skyboxDefault;
 static const ShaderMapping s_aShadersToLoad[] {
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexFrag, "QuadTex"},
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexMonoFrag, "QuadTexMono"},
+    {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexColorFrag, "QuadTexColor"},
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexMonoAlphaDiscardFrag, "QuadTexMonoAlphaDiscard"},
     {shaders::glsl::ntsQuadTexVert, shaders::glsl::ntsQuadTexMonoBoxBlurFrag, "QuadTexMonoBoxBlur"},
     {shaders::glsl::ntsSimpleColorVert, shaders::glsl::ntsSimpleColorFrag, "SimpleColor"},
@@ -706,25 +705,26 @@ Shader::destroy()
     *this = {};
 }
 
-Quad::Quad(adt::InitFlag)
+Quad::Quad(InitFlag, TYPE eType)
 {
-    const f32 aVertices[] = {
-        /* pos(0, 1)      uv(2, 3) */
-        -1.0f,  1.0f,    0.0f, 1.0f,
-         1.0f, -1.0f,    1.0f, 0.0f,
-        -1.0f, -1.0f,    0.0f, 0.0f,
-
-        -1.0f,  1.0f,    0.0f, 1.0f,
-         1.0f,  1.0f,    1.0f, 1.0f,
-         1.0f, -1.0f,    1.0f, 0.0f,
-    };
-
     glGenVertexArrays(1, &m_vao);
     glGenBuffers(1, &m_vbo);
 
     glBindVertexArray(m_vao);
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(aVertices), aVertices, GL_STATIC_DRAW);
+
+    switch (eType)
+    {
+        case TYPE::MINUS_ONE_TO_ONE:
+        glBufferData(GL_ARRAY_BUFFER, sizeof(Quad::aMINUS_ONE_TO_ONE), Quad::aMINUS_ONE_TO_ONE, GL_STATIC_DRAW);
+        break;
+
+        case TYPE::ZERO_TO_ONE:
+        glBufferData(GL_ARRAY_BUFFER, sizeof(Quad::aZERO_TO_ONE), Quad::aZERO_TO_ONE, GL_STATIC_DRAW);
+        break;
+
+        default: ADT_ASSERT(false, "wrong path");
+    }
 
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), (void*)0);
     glEnableVertexAttribArray(0);

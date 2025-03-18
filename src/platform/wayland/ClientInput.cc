@@ -26,6 +26,8 @@ Client::keyboardEnter(
     [[maybe_unused]] wl_array* pKeys
 )
 {
+    m_bKeyboardUnfocused = false;
+
     if (m_bRestoreLockedPointer)
     {
         m_bRestoreLockedPointer = false;
@@ -40,7 +42,10 @@ Client::keyboardLeave(
     [[maybe_unused]] wl_surface* pSurface
 )
 {
-    memset(control::g_abPressed, 0, sizeof(control::g_abPressed));
+    m_bKeyboardUnfocused = true;
+
+    if (m_bPointerUnfocused)
+        memset(control::g_abPressed, 0, sizeof(control::g_abPressed));
 
     if (m_bPointerRelativeMode)
     {
@@ -93,7 +98,9 @@ Client::pointerEnter(
     [[maybe_unused]] wl_fixed_t surfaceY
 )
 {
+    m_bPointerUnfocused = false;
     m_lastPointerEnterSerial = serial;
+
     if (m_bPointerRelativeMode)
     {
         hideCursor(true);
@@ -107,6 +114,10 @@ Client::pointerLeave(
     [[maybe_unused]] wl_surface* pSurface
 )
 {
+    m_bPointerUnfocused = true;
+
+    /*if (m_bKeyboardUnfocused)*/
+    /*    memset(control::g_abPressed, 0, sizeof(control::g_abPressed));*/
 }
 
 void
@@ -118,6 +129,7 @@ Client::pointerMotion(
 )
 {
     auto& win = app::windowInst();
+
     if (!win.m_bPointerRelativeMode)
     {
         win.m_pointerSurfaceX = static_cast<f32>(wl_fixed_to_double(surfaceX));

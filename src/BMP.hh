@@ -159,8 +159,8 @@ Reader::parse()
         "hRes: {}\n"
         "vRes: {}\n"
         "nColors: {}\n"
-        "nColorsUsed: {}\n"
-        , m_bmInfoHeader.size, m_bmInfoHeader.width, m_bmInfoHeader.height, 
+        "nColorsUsed: {}\n",
+        m_bmInfoHeader.size, m_bmInfoHeader.width, m_bmInfoHeader.height, 
         m_bmInfoHeader.nPlanes, m_bmInfoHeader.nBitsPerPixel,
         m_bmInfoHeader.eCompressionMethod, m_bmInfoHeader.nPlanes,
         m_bmInfoHeader.imageSize, m_bmInfoHeader.hRes, m_bmInfoHeader.vRes,
@@ -192,6 +192,8 @@ formatToContext(Context ctx, FormatArgs fmtArgs, bmp::COMPRESSION_METHOD_ID eCom
         "BI_CMYKRLE8",
         "BI_CMYKRLE4",
     };
+
+    ADT_ASSERT(int(eCompressionMethod) < utils::size(asMethods), " ");
 
     return formatToContext(ctx, fmtArgs, asMethods[eCompressionMethod]);
 }

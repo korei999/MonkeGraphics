@@ -29,7 +29,6 @@ struct Text
     void update(const ttf::Rasterizer& rast, const adt::StringView sv);
     void bind() const { glBindVertexArray(m_vao); }
     void draw() const { glDrawArrays(GL_TRIANGLES, 0, m_vboSize); }
-
     void bindDraw() const { bind(); draw(); }
 
 protected:

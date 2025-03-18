@@ -46,6 +46,25 @@ main()
 }
 )";
 
+static const char* ntsQuadTexColorFrag =
+R"(#version 300 es
+/* ntsQuadTexFrag */
+
+precision mediump float;
+
+out vec4 fs_fragColor;
+in vec2 vs_tex;
+
+uniform sampler2D u_tex0;
+uniform vec4 u_color;
+
+void
+main()
+{
+    fs_fragColor = texture(u_tex0, vs_tex) * u_color;
+}
+)";
+
 static const char* ntsQuadTexMonoFrag =
 R"(#version 300 es
 /* ntsQuadTexMonoFrag */

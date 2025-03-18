@@ -101,6 +101,9 @@ procMouse()
     g_mouse.rel.x = win.m_relMotionX;
     g_mouse.rel.y = win.m_relMotionY;
 
+    g_mouse.abs.x = win.m_pointerSurfaceX;
+    g_mouse.abs.y = win.m_pointerSurfaceY;
+
     V2 delta = (g_mouse.rel - g_mouse.prevRel) * g_camera.m_sens;
     g_mouse.prevRel = g_mouse.rel;
 

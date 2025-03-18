@@ -521,6 +521,9 @@ struct StringFixed
 
     StringFixed(const char* nts) : StringFixed(StringView(nts)) {}
 
+    template<int SIZE_B>
+    StringFixed(const StringFixed<SIZE_B> other);
+
     /* */
 
     operator adt::StringView() { return StringView(m_aBuff); };
@@ -548,6 +551,14 @@ StringFixed<SIZE>::StringFixed(const StringView svName)
 }
 
 template<int SIZE> requires(SIZE > 1)
+template<int SIZE_B>
+inline
+StringFixed<SIZE>::StringFixed(const StringFixed<SIZE_B> other)
+{
+    memcpy(m_aBuff, other.m_aBuff, utils::min(SIZE, SIZE_B));
+}
+
+template<int SIZE> requires(SIZE > 1)
 inline bool
 StringFixed<SIZE>::operator==(const StringFixed<SIZE>& other) const
 {
@@ -559,6 +570,13 @@ inline bool
 StringFixed<SIZE>::operator==(const StringView sv) const
 {
     return StringView(m_aBuff) == sv;
+}
+
+template<int SIZE_L, int SIZE_R>
+inline bool
+operator==(const StringFixed<SIZE_L>& l, const StringFixed<SIZE_R>& r)
+{
+    return memcmp(l.m_aBuff, r.m_aBuff, utils::min(SIZE_L, SIZE_R)) == 0;
 }
 
 inline String

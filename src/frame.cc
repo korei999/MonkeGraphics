@@ -40,6 +40,7 @@ refresh(void* pArg)
     s_accumulator += g_frameTime;
 
     control::procInput();
+    ui::updateState();
 
     while (s_accumulator >= g_dt)
     {
@@ -171,6 +172,8 @@ start()
 
     for (auto& asset : asset::g_poolObjects)
         asset.destroy();
+
+    ui::destroy();
 
 #endif
 }

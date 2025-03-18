@@ -1,5 +1,6 @@
 #include "Model.hh"
 
+#include "app.hh"
 #include "frame.hh"
 #include "asset.hh"
 
@@ -254,11 +255,11 @@ Model::loadAnimations()
 
     m_vAnimations.setCap(&m_arena, model.m_vAnimations.size());
 
-    for (const gltf::Animation& anim : model.m_vAnimations)
+    for (const gltf::Animation& gltfAnim : model.m_vAnimations)
     {
         Animation& newAnim = m_vAnimations[m_vAnimations.emplace(&m_arena)];
 
-        for (const gltf::Animation::Sampler& sampler : anim.vSamplers)
+        for (const gltf::Animation::Sampler& sampler : gltfAnim.vSamplers)
         {
             auto& accTimeStamps = model.m_vAccessors[sampler.inputI];
 
@@ -267,6 +268,18 @@ Model::loadAnimations()
 
             if (newAnim.minTime > accTimeStamps.uMin.SCALAR)
                 newAnim.minTime = accTimeStamps.uMin.SCALAR;
+        }
+
+        if (gltfAnim.sName.empty())
+        {
+            constexpr StringView svPrefix = "animation";
+            Span<char> sp = app::gtl_scratch.nextMemZero<char>(svPrefix.size() + 5);
+            const ssize n = print::toSpan(sp, "{}{}", "animation", model.m_vAnimations.idx(&gltfAnim));
+            newAnim.sName = String(&m_arena, sp.data(), n);
+        }
+        else
+        {
+            newAnim.sName = String(&m_arena, gltfAnim.sName);
         }
     }
 }

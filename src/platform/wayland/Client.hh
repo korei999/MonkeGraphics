@@ -54,6 +54,9 @@ struct Client : public IWindow
     wp_viewporter* m_pViewporter {};
     wp_viewport* m_pViewport {};
 
+    bool m_bKeyboardUnfocused {};
+    bool m_bPointerUnfocused {};
+
     /* */
 
     Client() = default;

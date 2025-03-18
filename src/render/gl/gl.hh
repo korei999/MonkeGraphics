@@ -144,18 +144,45 @@ private:
 
 struct Quad
 {
+    enum class TYPE : adt::u8 { MINUS_ONE_TO_ONE, ZERO_TO_ONE };
+
+    static constexpr adt::f32 aMINUS_ONE_TO_ONE[24] {
+        /* pos(0, 1)      uv(2, 3) */
+        -1.0f,  1.0f,    0.0f, 1.0f,
+         1.0f, -1.0f,    1.0f, 0.0f,
+        -1.0f, -1.0f,    0.0f, 0.0f,
+
+        -1.0f,  1.0f,    0.0f, 1.0f,
+         1.0f,  1.0f,    1.0f, 1.0f,
+         1.0f, -1.0f,    1.0f, 0.0f,
+    };
+
+    static constexpr adt::f32 aZERO_TO_ONE[24] {
+        /* pos(0, 1)      uv(2, 3) */
+        0.0f,  1.0f,    0.0f, 1.0f,
+         1.0f, 0.0f,    1.0f, 0.0f,
+        0.0f, 0.0f,    0.0f, 0.0f,
+
+        0.0f,  1.0f,    0.0f, 1.0f,
+         1.0f,  1.0f,    1.0f, 1.0f,
+         1.0f, 0.0f,    1.0f, 0.0f,
+    };
+
+    /* */
+
     GLuint m_vao {};
     GLuint m_vbo {};
 
     /* */
 
     Quad() = default;
-    Quad(adt::InitFlag);
+    Quad(adt::InitFlag, TYPE eType = TYPE::MINUS_ONE_TO_ONE);
 
     /* */
 
     void bind() { glBindVertexArray(m_vao); }
     void draw() { glDrawArrays(GL_TRIANGLES, 0, 6); }
+    void bindDraw() { bind(); draw(); }
 };
 
 [[nodiscard]] Shader* searchShader(const adt::StringView svKey);
@@ -175,10 +202,8 @@ void debugCallback(
 struct Text;
 
 extern adt::Pool<Shader, 128> g_poolShaders;
-extern ttf::Rasterizer g_rasterizer;
 extern Quad g_quad;
 extern Texture g_texDefault;
-extern Texture g_texLiberation;
 extern Shader* g_pShColor;
 
 } /* namespace render::gl */
