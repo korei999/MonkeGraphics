@@ -2,6 +2,7 @@
 
 #include "app.hh"
 #include "control.hh"
+#include "ui.hh"
 
 using namespace adt;
 

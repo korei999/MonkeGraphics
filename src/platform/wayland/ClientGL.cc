@@ -76,9 +76,8 @@ ClientGL::destroy()
 void
 ClientGL::resizeCB(int width, int height)
 {
-    wl_egl_window_resize(m_eglWindow, width, height, 0, 0);
-    glViewport(0, 0, width, height);
-
+    EGLD( wl_egl_window_resize(m_eglWindow, width, height, 0, 0) );
+    /*glViewport(0, 0, width, height);*/
 }
 
 void

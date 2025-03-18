@@ -48,7 +48,7 @@ init()
             }
 
             Entry entityEntry {
-                .menu {.sfName {en.sfName}, .vEntries {vAnimations}},
+                .menu {.sfName {en.sfName}, .vEntries {vAnimations}, .selectedI = 0},
                 .fgColor = math::V4From(colors::get(colors::WHITE), 1.0f),
                 .eType = Entry::TYPE::MENU,
             };
@@ -72,14 +72,18 @@ void
 updateState()
 {
     const auto& win = app::windowInst();
+    auto& mouse = control::g_mouse;
 
     static bool s_bPressed = false;
 
+    mouse.abs = math::V2{win.m_pointerSurfaceX, win.m_pointerSurfaceY};
+
+    const math::V2 delta = mouse.abs - mouse.prevAbs;
+    mouse.prevAbs = mouse.abs;
+
     if (!control::g_abPressed[BTN_LEFT])
     {
-        control::g_mouse.prevAbs = control::g_mouse.abs;
         s_bPressed = false;
-
         return;
     }
 
@@ -89,11 +93,8 @@ updateState()
     const f32 widthFactor = 1.0f / (win.m_winWidth * invWidth);
     const f32 heightFactor = 1.0f / (win.m_winHeight * invHeight);
 
-    const f32 px = win.m_pointerSurfaceX * widthFactor;
-    const f32 py = win.m_pointerSurfaceY * heightFactor;
-
-    const math::V2 delta = control::g_mouse.abs - control::g_mouse.prevAbs;
-    control::g_mouse.prevAbs = control::g_mouse.abs;
+    const f32 px = mouse.abs.x * widthFactor;
+    const f32 py = mouse.abs.y * heightFactor;
 
     const f32 dX = delta.x * widthFactor;
     const f32 dY = delta.y * heightFactor;

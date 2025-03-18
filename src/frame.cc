@@ -24,35 +24,6 @@ f64 g_gameTime {};
 adt::StringFixed<100> g_sfFpsStatus;
 
 static void
-refresh(void* pArg)
-{
-    Arena* pArena = static_cast<Arena*>(pArg);
-    auto& renderer = app::rendererInst();
-
-    static f64 s_accumulator = 0.0;
-
-    f64 newTime = utils::timeNowS();
-    g_frameTime = newTime - g_time;
-    g_time = newTime;
-    /*if (frameTime > 0.25)*/
-    /*    frameTime = 0.25;*/
-
-    s_accumulator += g_frameTime;
-
-    control::procInput();
-    ui::updateState();
-
-    while (s_accumulator >= g_dt)
-    {
-        game::updateState(pArena);
-        g_gameTime += g_dt;
-        s_accumulator -= g_dt;
-    }
-
-    renderer.drawGame(pArena);
-}
-
-static void
 eventLoop()
 {
 #ifdef OPT_SW
@@ -82,40 +53,48 @@ eventLoop()
 #endif
 }
 
-static void
-mainLoop()
+static THREAD_STATUS
+renderLoop(void* pArg)
 {
+    Arena* pArena = static_cast<Arena*>(pArg);
+
     auto& win = app::windowInst();
+    win.bindContext();
 
-    Arena frameArena(SIZE_8M);
-    defer( frameArena.freeAll() );
-
-    win.showWindow();
-    win.swapBuffers(); /* start events */
-
-    win.togglePointerRelativeMode();
-    win.toggleVSync();
-    // win.toggleFullscreen();
-
-    g_time = utils::timeNowS();
+    auto& renderer = app::rendererInst();
 
     VecManaged<f64> vFrameTimes(StdAllocator::inst(), 1000);
     defer( vFrameTimes.destroy() );
     f64 lastAvgFrameTimeUpdateTime {};
-
-    game::updateState(&frameArena);
 
     while (win.m_bRunning)
     {
         const f64 t0 = utils::timeNowMS();
 
         {
-            win.procEvents();
+            static f64 s_accumulator = 0.0;
 
-            refresh(&frameArena);
+            f64 newTime = utils::timeNowS();
+            g_frameTime = newTime - g_time;
+            g_time = newTime;
+            /*if (frameTime > 0.25)*/
+            /*    frameTime = 0.25;*/
 
-            frameArena.shrinkToFirstBlock();
-            frameArena.reset();
+            s_accumulator += g_frameTime;
+
+            control::procInput();
+
+            while (s_accumulator >= g_dt)
+            {
+                game::updateState(pArena);
+                g_gameTime += g_dt;
+                s_accumulator -= g_dt;
+            }
+
+            renderer.drawGame(pArena);
+
+            pArena->shrinkToFirstBlock();
+            pArena->reset();
             win.swapBuffers();
         }
 
@@ -136,6 +115,41 @@ mainLoop()
             vFrameTimes.setSize(0);
             lastAvgFrameTimeUpdateTime = t1;
         }
+    }
+
+    return THREAD_STATUS(0);
+}
+
+static void
+mainLoop()
+{
+    auto& win = app::windowInst();
+
+    Arena frameArena(SIZE_8M); /* reset inside renderLoop */
+    defer( frameArena.freeAll() );
+
+    win.showWindow();
+    win.swapBuffers(); /* start events */
+
+    win.togglePointerRelativeMode();
+    win.toggleVSync();
+    // win.toggleFullscreen();
+
+    g_time = utils::timeNowS();
+
+    game::updateState(&frameArena);
+
+    /* NOTE: Two threads, first for input and UI, second for
+     * input processing, game state updates and rendering */
+
+    win.unbindContext();
+    Thread renderThread(renderLoop, &frameArena, Thread::ATTR::JOINABLE);
+    defer( renderThread.join() );
+
+    while (win.m_bRunning)
+    {
+        win.procEvents();
+        ui::updateState();
     }
 }
 

@@ -444,8 +444,11 @@ Renderer::drawGame(Arena* pArena)
 {
     using namespace adt::math;
 
+    auto& win = app::windowInst();
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, win.m_winWidth, win.m_winHeight);
 
     drawSkybox();
 
