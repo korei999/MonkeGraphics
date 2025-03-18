@@ -7,8 +7,8 @@
 namespace ui
 {
 
-constexpr adt::f32 WIDTH = 100.0f;
-constexpr adt::f32 HEIGHT = 35.0f;
+constexpr adt::f32 WIDTH = 120.0f;
+constexpr adt::f32 HEIGHT = 42.0f;
 
 struct Entry
 {
