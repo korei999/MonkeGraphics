@@ -300,49 +300,50 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
     Arena arena(SIZE_8K);
     defer( arena.freeAll() );
 
-    try
+    for (u32 ch = '!'; ch <= '~'; ++ch)
     {
-        for (u32 ch = '!'; ch <= '~'; ++ch)
+        m_mapCodeToXY.insert(pAlloc, ch, {xOff, yOff});
+
+        Glyph* pGlyph = pFont->readGlyph(ch);
+        if (!pGlyph) continue;
+
+        struct Arg
         {
-            m_mapCodeToXY.insert(pAlloc, ch, {xOff, yOff});
+            Rasterizer* self;
+            const Font& font;
+            const Glyph& glyph; /* just copy (data races) */
+            const int xOff;
+            const int yOff;
+        };
 
-            Glyph* pGlyph = pFont->readGlyph(ch);
-            if (!pGlyph) continue;
+        auto* arg = arena.alloc<Arg>(this, *pFont, *pGlyph, xOff, yOff);
 
-            struct Arg
+        /* no data contention between atlas sections */
+        app::g_threadPool.add(+[](void* pArg) -> THREAD_STATUS
             {
-                Rasterizer* self;
-                const Font& font;
-                const Glyph& glyph; /* just copy (data races) */
-                const int xOff;
-                const int yOff;
-            };
+                Arg a = *static_cast<Arg*>(pArg);
 
-            auto* arg = arena.alloc<Arg>(this, *pFont, *pGlyph, xOff, yOff);
-
-            /* no data contention between atlas sections */
-            app::g_threadPool.add(+[](void* pArg) -> THREAD_STATUS
+                try
                 {
-                    Arg a = *static_cast<Arg*>(pArg);
                     a.self->rasterizeGlyph(a.font, a.glyph, a.xOff, a.yOff);
+                }
+                catch (const AllocException& ex)
+                {
+                    ex.printErrorMsg(stderr);
+                    LOG_BAD("guess reusing thread_local buffers didn't pay out\n");
+                }
 
-                    return THREAD_STATUS(0);
-                },
-                arg
-            );
+                return THREAD_STATUS(0);
+            },
+            arg
+        );
 
-            if ((xOff += xStep) >= (nSquares*iScale) - xStep)
-            {
-                xOff = 0;
-                if ((yOff += iScale) >= (nSquares*iScale) - iScale)
-                    break;
-            }
+        if ((xOff += xStep) >= (nSquares*iScale) - xStep)
+        {
+            xOff = 0;
+            if ((yOff += iScale) >= (nSquares*iScale) - iScale)
+                break;
         }
-    }
-    catch (const AllocException& ex)
-    {
-        ex.printErrorMsg(stderr);
-        LOG_BAD("guess reusing thread_local buffers didn't pay out\n");
     }
 
     app::g_threadPool.wait();

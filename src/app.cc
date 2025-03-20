@@ -32,11 +32,41 @@ RENDERER_TYPE g_eRendererType {};
 IWindow* g_pWindow {};
 render::IRenderer* g_pRenderer {};
 
-adt::ThreadPool g_threadPool(adt::StdAllocator::inst());
+static constexpr ssize SCRATCH_SIZE = SIZE_1M;
 
-/* FIXME: big enough buffer causes stack overflow */
-static thread_local u8 stl_aScratchMem[SIZE_1K * 500];
-thread_local ScratchBuffer gtl_scratch(stl_aScratchMem);
+/* NOTE: allocate scratch memory for each thread,
+ * bacause using thread_local static buffer can actually cause stack overflow. */
+static thread_local u8* stl_pScratchMem;
+thread_local ScratchBuffer gtl_scratch;
+
+adt::ThreadPool g_threadPool(adt::StdAllocator::inst(),
+    +[](void* pArg) -> void
+    {
+        ssize size = *static_cast<ssize*>(pArg);
+        allocScratchForThisThread(size);
+    },
+    (void*)&SCRATCH_SIZE,
+    +[](void*) -> void
+    {
+        destroyScratchForThisThread();
+    },
+    nullptr
+);
+
+void
+allocScratchForThisThread(ssize size)
+{
+    stl_pScratchMem = (u8*)calloc(1, size);
+    gtl_scratch = {stl_pScratchMem, size};
+}
+
+void
+destroyScratchForThisThread()
+{
+    ::free(stl_pScratchMem);
+    stl_pScratchMem = {};
+    gtl_scratch = {};
+}
 
 IWindow*
 allocWindow(IAllocator* pAlloc, const char* ntsName)

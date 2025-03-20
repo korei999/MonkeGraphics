@@ -159,6 +159,8 @@ assertionFailed(const char* cnd, const char* msg, const char* file, int line, co
                 adt::assertionFailed(#CND, aMsgBuff, ADT_LOGS_FILE, __LINE__, __func__);                               \
             }                                                                                                          \
         } while (0)
+#else
+    #define ADT_ASSERT_ALWAYS(...) (void)0
 #endif
 
 } /* namespace adt */

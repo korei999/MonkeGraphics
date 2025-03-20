@@ -26,6 +26,10 @@ struct ScratchBuffer
     ScratchBuffer(T (&aBuff)[SIZE]) noexcept
         : m_sp((u8*)aBuff, SIZE * sizeof(T)) {}
 
+    template<typename T>
+    ScratchBuffer(T* pMem, ssize size) noexcept
+        : m_sp((u8*)pMem, size) {}
+
     /* */
 
     template<typename T>
@@ -48,6 +52,8 @@ template<typename T>
 inline Span<T>
 ScratchBuffer::nextMem(ssize mCount) noexcept
 {
+    ADT_ASSERT(m_sp.size() > 0, "empty");
+
     const ssize realSize = align8(mCount * sizeof(T));
 
     if (realSize >= m_sp.size())

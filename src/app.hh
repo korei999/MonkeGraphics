@@ -25,8 +25,11 @@ inline IWindow& windowInst() { return *g_pWindow; }
 extern render::IRenderer* g_pRenderer;
 inline render::IRenderer& rendererInst() { return *g_pRenderer; }
 
-extern adt::ThreadPool g_threadPool;
+void allocScratchForThisThread(adt::ssize size);
+void destroyScratchForThisThread();
 
 extern thread_local adt::ScratchBuffer gtl_scratch;
+
+extern adt::ThreadPool g_threadPool;
 
 } /* namespace app */;

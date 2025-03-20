@@ -4,6 +4,7 @@
 #include "Queue.hh"
 #include "Span.hh"
 #include "guard.hh"
+#include "defer.hh"
 
 #include <atomic>
 
@@ -24,13 +25,27 @@ struct ThreadPool
     Mutex m_mtxQ {};
     CndVar m_cndQ {};
     CndVar m_cndWait {};
+    void (*m_pfnLoopStart)(void*) {};
+    void* m_pLoopStartArg {};
+    void (*m_pfnLoopEnd)(void*) {};
+    void* m_pLoopEndArg {};
     std::atomic<int> m_nActiveTasks {};
     std::atomic<bool> m_bDone {};
 
     /* */
 
     ThreadPool() = default;
+
     ThreadPool(IAllocator* pAlloc, int nThreads = ADT_GET_NPROCS());
+
+    ThreadPool(
+        IAllocator* pAlloc,
+        void (*pfnLoopStart)(void*),
+        void* pLoopStartArg,
+        void (*pfnLoopEnd)(void*),
+        void* pLoopEndArg,
+        int nThreads = ADT_GET_NPROCS()
+    );
 
     /* */
 
@@ -43,8 +58,9 @@ struct ThreadPool
     template<typename LAMBDA> requires(std::is_rvalue_reference_v<LAMBDA&&>)
     [[deprecated("rvalue lambdas cause use after free")]] void addLambda(LAMBDA&& t) = delete;
 
-private:
+protected:
     THREAD_STATUS loop();
+    void spawnThreads();
 };
 
 inline
@@ -57,22 +73,37 @@ ThreadPool::ThreadPool(IAllocator* pAlloc, int nThreads)
       m_cndWait(INIT),
       m_bDone(false)
 {
-    for (auto& thread : m_spThreads)
-    {
-        thread = Thread(
-            reinterpret_cast<ThreadFn>(methodPointer(&ThreadPool::loop)),
-            this
-        );
-    }
+    spawnThreads();
+}
 
-#ifndef NDEBUG
-    fprintf(stderr, "ThreadPool: new pool with %d threads\n", nThreads);
-#endif
+inline
+ThreadPool::ThreadPool(
+    IAllocator* pAlloc,
+    void (*pfnLoopStart)(void*), void* pLoopStartArg,
+    void (*pfnLoopEnd)(void*), void* pLoopEndArg,
+    int nThreads
+)
+    : m_pAlloc(pAlloc),
+      m_qTasks(pAlloc, nThreads * 2),
+      m_spThreads(pAlloc->zallocV<Thread>(nThreads), nThreads),
+      m_mtxQ(Mutex::TYPE::PLAIN),
+      m_cndQ(INIT),
+      m_cndWait(INIT),
+      m_pfnLoopStart(pfnLoopStart),
+      m_pLoopStartArg(pLoopStartArg),
+      m_pfnLoopEnd(pfnLoopEnd),
+      m_pLoopEndArg(pLoopEndArg),
+      m_bDone(false)
+{
+    spawnThreads();
 }
 
 inline THREAD_STATUS
 ThreadPool::loop()
 {
+    if (m_pfnLoopStart) m_pfnLoopStart(m_pLoopStartArg);
+    defer( if (m_pfnLoopEnd) m_pfnLoopEnd(m_pLoopEndArg) );
+
     while (true)
     {
         ThreadPoolTask task {};
@@ -91,7 +122,7 @@ ThreadPool::loop()
         }
 
         task.pfn(task.pArg);
-        m_nActiveTasks.fetch_sub(1,std::memory_order_seq_cst);
+        m_nActiveTasks.fetch_sub(1, std::memory_order_seq_cst);
 
         {
             guard::Mtx qLock(&m_mtxQ);
@@ -102,6 +133,22 @@ ThreadPool::loop()
     }
 
     return 0;
+}
+
+inline void
+ThreadPool::spawnThreads()
+{
+    for (auto& thread : m_spThreads)
+    {
+        thread = Thread(
+            reinterpret_cast<ThreadFn>(methodPointer(&ThreadPool::loop)),
+            this
+        );
+    }
+
+#ifndef NDEBUG
+    fprintf(stderr, "ThreadPool: new pool with %lld threads\n", m_spThreads.size());
+#endif
 }
 
 inline void

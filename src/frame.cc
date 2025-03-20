@@ -6,6 +6,7 @@
 #include "ui.hh"
 
 #include "adt/Vec.hh"
+#include "adt/logs.hh"
 #include "adt/defer.hh"
 
 #if !defined NDEBUG
@@ -57,7 +58,7 @@ eventLoop()
     auto& win = app::window();
     auto& renderer = app::renderer();
 
-    Arena frameArena(SIZE_8M);
+    Arena frameArena(SIZE_1M);
     defer( frameArena.freeAll() );
 
     win.regUpdateCB(refresh, &frameArena);
@@ -83,6 +84,9 @@ static THREAD_STATUS
 renderLoop(void* pArg)
 {
     Arena* pArena = static_cast<Arena*>(pArg);
+
+    app::allocScratchForThisThread(SIZE_1M);
+    defer( app::destroyScratchForThisThread() );
 
     auto& win = app::windowInst();
     win.bindContext();
@@ -204,6 +208,7 @@ start()
     }
 
     /* wait for running tasks */
+    LOG_GOOD("cleaning up...\n");
     app::g_threadPool.destroy();
     renderer.destroy();
 

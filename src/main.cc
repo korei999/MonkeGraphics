@@ -83,6 +83,8 @@ startup(int argc, char** argv)
         /* allocate polymorphic singletons */
         app::g_pWindow = app::allocWindow(&allocator, ntsName);
         app::g_pRenderer = app::allocRenderer(&allocator);
+        app::allocScratchForThisThread(SIZE_1K);
+        defer( app::destroyScratchForThisThread() );
 
         app::g_pWindow->start(1280, 720);
         defer( app::g_pWindow->destroy() );
