@@ -1,8 +1,12 @@
 #pragma once
 
+#include "adt/Arena.hh"
 #include "adt/String.hh"
 #include "adt/Pool.hh"
+#include "adt/Vec.hh"
 #include "adt/enum.hh"
+#include "adt/math.hh"
+#include "adt/Map.hh"
 
 namespace ui
 {

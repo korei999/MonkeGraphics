@@ -2,7 +2,6 @@
 
 #include "IAllocator.hh"
 
-#include <cassert>
 #include <cstdlib>
 
 #ifdef ADT_USE_MIMALLOC

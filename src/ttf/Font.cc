@@ -1,6 +1,6 @@
 #include "Font.hh"
 
-#include <cmath>
+#include "adt/logs.hh"
 
 using namespace adt;
 
@@ -483,7 +483,7 @@ Font::readGlyph(u32 code)
 
     /* FIXME: ' ' and '!' are mapped to the same glyph (using liberation font) */
     auto fCachedGlyph = m_mapOffsetToGlyph.search(offset);
-    if (fCachedGlyph) return &fCachedGlyph.pData->val;
+    if (fCachedGlyph) return &fCachedGlyph.value();
 
     const auto fGlyf = getTable("glyf");
     const auto& glyfTable = *fGlyf.pData;
@@ -499,7 +499,7 @@ Font::readGlyph(u32 code)
     }
 
     m_bin.m_pos = offset;
-    Glyph g {
+    Glyph newGlyph {
         .numberOfContours = i16(m_bin.read16Rev()),
         .xMin = readFWord(),
         .yMin = readFWord(),
@@ -507,16 +507,13 @@ Font::readGlyph(u32 code)
         .yMax = readFWord(),
     };
 
-    ADT_ASSERT(g.numberOfContours >= -1, " ");
+    ADT_ASSERT(newGlyph.numberOfContours >= -1, " ");
 
-    if (g.numberOfContours == -1)
-        readCompoundGlyph(&g);
-    else readSimpleGlyph(&g);
+    if (newGlyph.numberOfContours == -1) readCompoundGlyph(&newGlyph);
+    else readSimpleGlyph(&newGlyph);
 
-    /* cache every used glyph */
-    auto placed = m_mapOffsetToGlyph.emplace(m_pAlloc, offset, g);
-
-    return &placed.pData->val;
+    /* cache everything */
+    return &m_mapOffsetToGlyph.insert(m_pAlloc, offset, newGlyph).value();
 };
 
 void

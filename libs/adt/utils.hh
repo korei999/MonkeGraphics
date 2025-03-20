@@ -25,7 +25,6 @@
 
 #include <ctime>
 #include <cstring>
-#include <cassert>
 #include <cmath>
 
 namespace adt::utils
@@ -179,7 +178,7 @@ template<typename T>
 inline void
 memCopy(T* pDest, const T* const pSrc, ssize size)
 {
-    assert(pDest != nullptr && pSrc != nullptr);
+    ADT_ASSERT(pDest != nullptr && pSrc != nullptr, " ");
     memcpy(pDest, pSrc, size * sizeof(T));
 }
 
@@ -188,7 +187,7 @@ template<typename T>
 inline void
 memMove(T* pDest, const T* const pSrc, ssize size)
 {
-    assert(pDest != nullptr && pSrc != nullptr);
+    ADT_ASSERT(pDest != nullptr && pSrc != nullptr, " ");
     memmove(pDest, pSrc, size * sizeof(T));
 }
 
@@ -196,7 +195,7 @@ template<typename T>
 inline void
 memSet(T* pDest, int byte, ssize size)
 {
-    assert(pDest != nullptr);
+    ADT_ASSERT(pDest != nullptr, " ");
     memset(pDest, byte, size * sizeof(T));
 }
 
@@ -219,7 +218,7 @@ template<template<typename> typename CON_T, typename T>
 [[nodiscard]] inline T&
 searchMax(CON_T<T>* s)
 {
-    assert(!empty(s));
+    ADT_ASSERT(!empty(s), " ");
 
     auto _max = s->begin();
     for (auto it = ++s->begin(); it != s->end(); ++it)
@@ -232,7 +231,7 @@ template<template<typename> typename CON_T, typename T>
 [[nodiscard]] inline T&
 searchMin(CON_T<T>* s)
 {
-    assert(!empty(s));
+    ADT_ASSERT(!empty(s), " ");
 
     auto _min = s->begin();
     for (auto it = ++s->begin(); it != s->end(); ++it)
@@ -244,7 +243,7 @@ searchMin(CON_T<T>* s)
 inline constexpr void
 reverse(auto* a, const ssize size)
 {
-    assert(size > 0);
+    ADT_ASSERT(size > 0, " ");
 
     for (ssize i = 0; i < size / 2; ++i)
         swap(&a[i], &a[size - 1 - i]);

@@ -4,7 +4,6 @@
 #include "IAllocator.hh"
 #include "mimalloc.h"
 
-#include <cassert>
 #include <cstdlib>
 
 namespace adt

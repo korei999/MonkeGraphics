@@ -33,7 +33,6 @@
 #include "logs.hh"
 
 #include <cstdio>
-#include <cassert>
 #include <new> /* IWYU pragma: keep */
 
 #ifdef _WIN32
@@ -383,7 +382,7 @@ template<typename T>
 inline RBNode<T>*
 RBTree<T>::remove(RBNode<T>* elm)
 {
-    assert(m_size > 0 && "[RBTree]: empty");
+    ADT_ASSERT(m_size > 0, "empty");
 
     RBNode<T>* child, * parent, * old = elm;
     enum RB_COLOR color;
@@ -606,7 +605,7 @@ RBTraverse(
         return RBTraversePOST(p, pfn, pUserData);
     }
 
-    assert(false && "[RBTree]: incorrect RB_ORDER");
+    ADT_ASSERT(false, "incorrect RB_ORDER");
     return {};
 }
 

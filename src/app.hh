@@ -3,6 +3,9 @@
 #include "IWindow.hh"
 #include "render/IRenderer.hh"
 
+#include "adt/ThreadPool.hh"
+#include "adt/ScratchBuffer.hh"
+
 namespace app
 {
 

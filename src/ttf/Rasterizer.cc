@@ -3,6 +3,11 @@
 #include "Font.hh"
 #include "app.hh"
 
+#include "adt/BufferAllocator.hh"
+#include "adt/logs.hh"
+#include "adt/Array.hh"
+#include "adt/math.hh"
+
 using namespace adt;
 
 namespace ttf
@@ -22,7 +27,7 @@ Vec<PointOnCurve>
 pointsWithMissingOnCurve(IAllocator* pAlloc, const Glyph& g)
 {
     const auto& aGlyphPoints = g.uGlyph.simple.vPoints;
-    u32 size = aGlyphPoints.size();
+    const u32 size = aGlyphPoints.size();
 
     bool bCurrOnCurve = false;
     bool bPrevOnCurve = false;
@@ -157,7 +162,7 @@ makeItCurvy(IAllocator* pAlloc, const Vec<PointOnCurve>& aNonCurvyPoints, CurveE
             });
 
             if (endIdx < 8) pEndIdxs->aIdxs[endIdx++] = aNew.lastI();
-            else assert(false && "8 curves max");
+            else ADT_ASSERT(false, "8 curves max");
 
             firstInCurveIdx = idx + 1;
             bPrevOnCurve = true;
