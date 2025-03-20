@@ -59,7 +59,7 @@ drawText(
     s_text.update(s_rastLiberation, entry.text.sfText);
     s_text.draw();
 
-    return {entry.text.sfText.size(), 1};
+    return {static_cast<int>(entry.text.sfText.size()), 1};
 }
 
 static math::IV2
@@ -83,7 +83,7 @@ drawText(
     s_text.update(s_rastLiberation, sv);
     s_text.draw();
 
-    return {sv.size(), 1};
+    return {static_cast<int>(sv.size()), 1};
 }
 
 static math::IV2
