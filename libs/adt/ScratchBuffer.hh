@@ -79,7 +79,7 @@ template<typename T>
 Span<T>
 ScratchBuffer::allMem() noexcept
 {
-    return {reinterpret_cast<T*>(m_sp.data()), m_sp.size() * static_cast<ssize>(1.0/sizeof(T))};
+    return {reinterpret_cast<T*>(m_sp.data()), static_cast<ssize>(m_sp.size() * (1.0/sizeof(T)))};
 }
 
 inline void
