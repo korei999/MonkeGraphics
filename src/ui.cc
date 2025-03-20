@@ -14,6 +14,10 @@ namespace ui
 Pool<Widget, 64> g_poolWidgets;
 MapManaged<StringFixed<16>, PoolHandle<Widget>> g_mapStringsToWidgetHandles(StdAllocator::inst(), g_poolWidgets.cap());
 
+static bool s_bGrabbed = false;
+static Widget* s_pGrabbedWidget {};
+static bool s_bPressed = false;
+
 void
 init()
 {
@@ -23,7 +27,7 @@ init()
         Widget newWidget {
             .arena = {500},
             .sfName = "EntityList",
-            .sfTitle = "EntityList",
+            .sfTitle = "Entity list",
             .x = WIDTH - 20.0f,
             .y = HEIGHT - 10.0f,
             .width = 20.0f,
@@ -68,13 +72,98 @@ init()
     }
 }
 
+struct ClickResult
+{
+    enum class FLAG : u8 { HANDLED, GRAB };
+
+    /* */
+
+    FLAG eFlag {};
+    int xOff {};
+    int yOff {};
+};
+
+static ClickResult
+clickArrowList(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int xOff, int yOff)
+{
+    ADT_ASSERT(pEntry, " ");
+    ADT_ASSERT(pEntry->eType == Entry::TYPE::ARROW_LIST, " ");
+
+    ClickResult ret {};
+
+    if (py < pWidget->y + pWidget->height - yOff)
+        ++pEntry->arrowList.selectedI %= pEntry->arrowList.vEntries.size();
+
+    ret.xOff = xOff;
+    ret.yOff = yOff;
+    return ret;
+}
+
+static ClickResult
+clickWidget(Widget* pWidget, const f32 px, const f32 py, int xOff, int yOff)
+{
+    ADT_ASSERT(pWidget, " ");
+
+    Widget& widget = *pWidget;
+    ClickResult ret {};
+    bool bHandled = false;
+
+    if (px >= widget.x && px < widget.x + widget.width &&
+        py >= widget.y && py < widget.y + widget.height
+    )
+    {
+        if (bool(widget.eFlags & Widget::FLAGS::TITLE))
+            ++yOff;
+
+        for (Entry& entry : widget.vEntries)
+        {
+            switch (entry.eType)
+            {
+                case Entry::TYPE::ARROW_LIST:
+                {
+                    if (py >= widget.y + widget.height - yOff - 1)
+                    {
+                        bHandled = true;
+                        s_bPressed = true;
+
+                        ClickResult res = clickArrowList(pWidget, &entry, px, py, xOff, yOff);
+                        xOff = res.xOff;
+                        yOff = res.yOff;
+                    }
+                }
+                break;
+
+                case Entry::TYPE::MENU:
+                {
+                }
+                break;
+
+                case Entry::TYPE::TEXT: break;
+            }
+
+            if (bHandled) break;
+            ++yOff;
+        }
+
+        if (!bHandled && bool(widget.eFlags & Widget::FLAGS::DRAG))
+        {
+            s_pGrabbedWidget = &widget;
+            s_bGrabbed = true;
+        }
+    }
+
+    ret.xOff = xOff;
+    ret.yOff = yOff;
+    return ret;
+}
+
 void
 updateState()
 {
     const auto& win = app::windowInst();
     auto& mouse = control::g_mouse;
 
-    static bool s_bPressed = false;
+    if (win.m_bPointerRelativeMode) return;
 
     mouse.abs = math::V2{win.m_pointerSurfaceX, win.m_pointerSurfaceY};
 
@@ -84,70 +173,37 @@ updateState()
     if (!control::g_abPressed[BTN_LEFT])
     {
         s_bPressed = false;
+        s_bGrabbed = false;
+        static Widget s_dummyWidget;
+        s_pGrabbedWidget = &s_dummyWidget;
         return;
     }
 
-    constexpr f32 invWidth = 1.0f / WIDTH;
-    constexpr f32 invHeight = 1.0f / HEIGHT;
+    if (s_bPressed) return;
 
-    const f32 widthFactor = 1.0f / (win.m_winWidth * invWidth);
-    const f32 heightFactor = 1.0f / (win.m_winHeight * invHeight);
+    const f32 widthFactor = 1.0f / (win.m_winWidth * (1.0f/WIDTH));
+    const f32 heightFactor = 1.0f / (win.m_winHeight * (1.0f/HEIGHT));
 
     const f32 px = mouse.abs.x * widthFactor;
     const f32 py = mouse.abs.y * heightFactor;
 
-    const f32 dX = delta.x * widthFactor;
-    const f32 dY = delta.y * heightFactor;
+    const f32 dx = delta.x * widthFactor;
+    const f32 dy = delta.y * heightFactor;
 
-    /* TODO: very fast mouse moves breaks the grab */
+    if (s_bGrabbed)
+    {
+        s_pGrabbedWidget->x += dx;
+        s_pGrabbedWidget->y += dy;
+        return;
+    }
+
+    /* TODO: should probably be a rooted tree. */
+
     for (Widget& widget : g_poolWidgets)
     {
-        int yOff = 0;
-        bool bHandled = false;
-
-        if (px >= widget.x && px < widget.x + widget.width &&
-            py >= widget.y && py < widget.y + widget.height
-        )
-        {
-            if (bool(widget.eFlags & Widget::FLAGS::TITLE))
-                ++yOff;
-
-            for (Entry& entry : widget.vEntries)
-            {
-                if (py >= widget.y + widget.height - yOff - 1 && py < widget.y + widget.height - yOff)
-                {
-                    bHandled = true;
-                    switch (entry.eType)
-                    {
-                        case Entry::TYPE::ARROW_LIST:
-                        {
-                            if (!s_bPressed)
-                            {
-                                s_bPressed = true;
-                                ++entry.arrowList.selectedI %= entry.arrowList.vEntries.size();
-                            }
-                        }
-                        break;
-
-                        case Entry::TYPE::MENU:
-                        {
-                        }
-                        break;
-
-                        case Entry::TYPE::TEXT: break;
-                    }
-                }
-
-                ++yOff;
-            }
-
-            /* grab */
-            if (!bHandled && bool(widget.eFlags & Widget::FLAGS::DRAG))
-            {
-                widget.x += dX;
-                widget.y += dY;
-            }
-        }
+        ClickResult res = clickWidget(&widget, px, py, 0, 0);
+        if (res.eFlag == ClickResult::FLAG::GRAB)
+            break;
     }
 }
 

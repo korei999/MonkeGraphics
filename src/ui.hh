@@ -26,11 +26,6 @@ struct Entry
             adt::StringFixed<32> sfName {};
             adt::Vec<Entry> vEntries {};
             adt::ssize selectedI {};
-            struct
-            {
-                void (*pfn)(void*) {};
-                void* pArg {};
-            } action {};
         } menu;
         struct
         {

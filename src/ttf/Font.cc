@@ -472,7 +472,7 @@ Font::getGlyphIdx(u16 code)
     return idx;
 }
 
-Glyph
+Glyph*
 Font::readGlyph(u32 code)
 {
     const ssize savedPos = m_bin.m_pos;
@@ -483,7 +483,7 @@ Font::readGlyph(u32 code)
 
     /* FIXME: ' ' and '!' are mapped to the same glyph (using liberation font) */
     auto fCachedGlyph = m_mapOffsetToGlyph.search(offset);
-    if (fCachedGlyph) return fCachedGlyph.value();
+    if (fCachedGlyph) return &fCachedGlyph.pData->val;
 
     const auto fGlyf = getTable("glyf");
     const auto& glyfTable = *fGlyf.pData;
@@ -493,7 +493,10 @@ Font::readGlyph(u32 code)
     ADT_ASSERT(offset >= glyfTable.val.offset, " ");
 
     if (offset >= glyfTable.val.offset + glyfTable.val.length)
-        return {{}, false};
+    {
+        LOG_BAD("offset >= glyfTable.val.offset + glyfTable.val.length\n");
+        return nullptr;
+    }
 
     m_bin.m_pos = offset;
     Glyph g {
@@ -511,9 +514,9 @@ Font::readGlyph(u32 code)
     else readSimpleGlyph(&g);
 
     /* cache every used glyph */
-    m_mapOffsetToGlyph.emplace(m_pAlloc, offset, g);
+    auto placed = m_mapOffsetToGlyph.emplace(m_pAlloc, offset, g);
 
-    return g;
+    return &placed.pData->val;
 };
 
 void

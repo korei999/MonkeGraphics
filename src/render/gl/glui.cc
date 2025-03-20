@@ -12,7 +12,7 @@ using namespace adt;
 namespace render::gl::ui
 {
 
-static void drawArrowList( const ::ui::Widget& widget, const ::ui::Entry& entry, const math::M4& proj, int* pXOff, int* pYOff);
+static math::IV2 drawArrowList( const ::ui::Widget& widget, const ::ui::Entry& entry, const math::M4& proj, int pXOff, int pYOff);
 
 static Shader* s_pShTexMonoBlur;
 static Shader* s_pShTex;
@@ -31,7 +31,7 @@ init()
     ADT_ASSERT(pFont, " ");
     if (pFont)
     {
-        s_rastLiberation.rasterizeAscii(StdAllocator::inst(), pFont, 128.0f);
+        s_rastLiberation.rasterizeAscii(StdAllocator::inst(), pFont, 64.0f);
         s_texLiberation = Texture(s_rastLiberation.m_altas.spanMono(), GL_LINEAR);
         s_text = Text(100);
     }
@@ -39,83 +39,71 @@ init()
     s_quad0to1 = Quad(INIT, Quad::TYPE::ZERO_TO_ONE);
 }
 
-static void
+static math::IV2
 drawText(
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
     const math::M4& proj,
-    int* pXOff,
-    int* pYOff
+    int xOff,
+    int yOff
 )
 {
     s_texLiberation.bind(GL_TEXTURE0);
     s_pShTexMonoBlur->use();
 
     s_pShTexMonoBlur->setM4("u_trm", proj *
-        math::M4TranslationFrom({widget.x + *pXOff, widget.y + widget.height - 1 - *pYOff, 0.0f})
+        math::M4TranslationFrom({widget.x + xOff, widget.y + widget.height - 1 - yOff, 0.0f})
     );
     s_pShTexMonoBlur->setV4("u_color", entry.fgColor);
 
     s_text.update(s_rastLiberation, entry.text.sfText);
     s_text.draw();
 
-    *pXOff += entry.text.sfText.size();
-    ++(*pYOff);
+    return {entry.text.sfText.size(), 1};
 }
 
-static void
+static math::IV2
 drawText(
     const ::ui::Widget& widget,
     const StringView sv,
     const math::V4 fgColor,
     const math::M4& proj,
-    int* pXOff,
-    int* pYOff
+    int xOff,
+    int yOff
 )
 {
     s_texLiberation.bind(GL_TEXTURE0);
     s_pShTexMonoBlur->use();
 
     s_pShTexMonoBlur->setM4("u_trm", proj *
-        math::M4TranslationFrom({widget.x + *pXOff, widget.y + widget.height - 1 - *pYOff, 0.0f})
+        math::M4TranslationFrom({widget.x + xOff, widget.y + widget.height - 1 - yOff, 0.0f})
     );
     s_pShTexMonoBlur->setV4("u_color", fgColor);
 
     s_text.update(s_rastLiberation, sv);
     s_text.draw();
 
-    *pXOff += sv.size();
-    ++(*pYOff);
+    return {sv.size(), 1};
 }
 
-static void
+static math::IV2
 drawMenu(
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
     const math::M4& proj,
-    int* pXOff,
-    int* pYOff
+    int xOff,
+    int yOff
 )
 {
     ADT_ASSERT(entry.eType == ::ui::Entry::TYPE::MENU, " ");
 
-    int xNameOff = *pXOff;
-
-    {
-        int y = *pYOff;
-        drawText(widget, entry, proj, &xNameOff, &y);
-    }
-
-    int yOff2 = *pYOff + 1;
-
+    math::IV2 textOff {0, 1};
     for (const ::ui::Entry& child : entry.menu.vEntries)
     {
-        int xOff2 = *pXOff;
-
         switch (child.eType)
         {
             case ::ui::Entry::TYPE::TEXT:
-            drawText(widget, child, proj, &xOff2, &yOff2);
+            textOff += drawText(widget, child, proj, xOff, yOff + textOff.y);
             break;
 
             case ::ui::Entry::TYPE::ARROW_LIST:
@@ -128,29 +116,22 @@ drawMenu(
         }
     }
 
-    *pXOff = xNameOff;
+    return textOff;
 }
 
-static void
+static math::IV2
 drawArrowList(
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
     const math::M4& proj,
-    int* pXOff,
-    int* pYOff
+    int xOff,
+    int yOff
 )
 {
     ADT_ASSERT(entry.eType == ::ui::Entry::TYPE::ARROW_LIST, " ");
 
-    {
-        int y = *pYOff;
-        drawText(widget, "<", entry.arrowList.arrowColor, proj, pXOff, &y);
-    }
-
-    int xOff = 1;
-    int yOff = *pYOff;
-
-    int xNameOff = xOff;
+    auto xyArrow = drawText(widget, "<", entry.arrowList.arrowColor, proj, xOff, yOff);
+    xOff += xyArrow.x;
 
     if (entry.arrowList.vEntries.size() > 0)
     {
@@ -163,8 +144,11 @@ drawArrowList(
 
             case ::ui::Entry::TYPE::MENU:
             {
-                int yOff3 = yOff;
-                drawMenu(widget, sel, proj, &xNameOff, &yOff3);
+                /* draw menu name first */
+                auto textOff = drawText(widget, sel, proj, xOff, yOff);
+                xyArrow.x += textOff.x;
+
+                auto xyMenu = drawMenu(widget, sel, proj, xOff, yOff);
             }
             break;
 
@@ -174,7 +158,7 @@ drawArrowList(
         }
     }
 
-    drawText(widget, ">", entry.arrowList.arrowColor, proj, &xNameOff, pYOff);
+    return drawText(widget, ">", entry.arrowList.arrowColor, proj, xyArrow.x, yOff);
 }
 
 static void
@@ -209,13 +193,12 @@ drawWidget(const ::ui::Widget& widget, const math::M4& proj)
         /*    math::M4TranslationFrom({widget.x, widget.y + widget.height - 1 - yOff, 0.0f})*/
         /*);*/
 
-        int yOff2 = yOff;
         int xOff = 0;
 
         switch (entry.eType)
         {
             case ::ui::Entry::TYPE::ARROW_LIST:
-            drawArrowList(widget, entry, proj, &xOff, &yOff2);
+            drawArrowList(widget, entry, proj, xOff, yOff);
             break;
 
             case ::ui::Entry::TYPE::TEXT:

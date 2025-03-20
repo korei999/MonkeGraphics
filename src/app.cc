@@ -34,7 +34,8 @@ render::IRenderer* g_pRenderer {};
 
 adt::ThreadPool g_threadPool(adt::StdAllocator::inst());
 
-static thread_local u8 stl_aScratchMem[SIZE_1M];
+/* FIXME: big enough buffer causes stack overflow */
+static thread_local u8 stl_aScratchMem[SIZE_1K * 500];
 thread_local ScratchBuffer gtl_scratch(stl_aScratchMem);
 
 IWindow*

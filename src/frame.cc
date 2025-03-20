@@ -23,6 +23,32 @@ const f64 g_dt = FIXED_DELTA_TIME;
 f64 g_gameTime {};
 adt::StringFixed<100> g_sfFpsStatus;
 
+[[maybe_unused]] static void
+refresh(void* pArg)
+{
+    Arena* pArena = static_cast<Arena*>(pArg);
+    auto& renderer = app::rendererInst();
+
+    static f64 s_accumulator = 0.0;
+
+    f64 newTime = utils::timeNowS();
+    g_frameTime = newTime - g_time;
+    g_time = newTime;
+    /*if (frameTime > 0.25)*/
+    /*    frameTime = 0.25;*/
+
+    s_accumulator += g_frameTime;
+
+    while (s_accumulator >= g_dt)
+    {
+        game::updateState(pArena);
+        g_gameTime += g_dt;
+        s_accumulator -= g_dt;
+    }
+
+    renderer.drawGame(pArena);
+}
+
 static void
 eventLoop()
 {
@@ -67,28 +93,26 @@ renderLoop(void* pArg)
     defer( vFrameTimes.destroy() );
     f64 lastAvgFrameTimeUpdateTime {};
 
+    f64 accumulator = 0.0;
+
     while (win.m_bRunning)
     {
         const f64 t0 = utils::timeNowMS();
 
         {
-            static f64 s_accumulator = 0.0;
-
             f64 newTime = utils::timeNowS();
             g_frameTime = newTime - g_time;
             g_time = newTime;
-            /*if (frameTime > 0.25)*/
-            /*    frameTime = 0.25;*/
 
-            s_accumulator += g_frameTime;
+            accumulator += g_frameTime;
 
             control::procInput();
 
-            while (s_accumulator >= g_dt)
+            while (accumulator >= g_dt)
             {
                 game::updateState(pArena);
                 g_gameTime += g_dt;
-                s_accumulator -= g_dt;
+                accumulator -= g_dt;
             }
 
             renderer.drawGame(pArena);
@@ -139,8 +163,9 @@ mainLoop()
 
     game::updateState(&frameArena);
 
-    /* NOTE: Two threads, first for input and UI, second for
-     * input processing, game state updates and rendering */
+    /* NOTE: Two threads, first for input events and UI, second for
+     * input processing, game state updates and rendering.
+     * Its done so that swapBuffers() doesn't block new input events. */
 
     win.unbindContext();
     Thread renderThread(renderLoop, &frameArena, Thread::ATTR::JOINABLE);

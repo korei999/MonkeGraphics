@@ -25,7 +25,7 @@ struct Rasterizer
     void rasterizeAscii(adt::IAllocator* pAlloc, Font* pFont, adt::f32 scale);
 
 protected:
-    void rasterizeGlyph(adt::Arena* pArena, Font* pFont, Glyph* pGlyph, int xOff, int yOff);
+    void rasterizeGlyph(const Font& pFont, const Glyph& pGlyph, int xOff, int yOff);
 };
 
 } /* namespace ttf */

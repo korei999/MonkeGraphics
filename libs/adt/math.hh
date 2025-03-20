@@ -397,6 +397,24 @@ operator-(const IV2& l, const IV2& r)
     };
 }
 
+inline IV2&
+operator+=(IV2& l, const IV2& r)
+{
+    l.x += r.x;
+    l.y += r.y;
+
+    return l;
+}
+
+inline IV2&
+operator-=(IV2& l, const IV2& r)
+{
+    l.x -= r.x;
+    l.y -= r.y;
+
+    return l;
+}
+
 inline V2
 operator*(const V2& v, f32 s)
 {

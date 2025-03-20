@@ -1,6 +1,7 @@
 #include "Rasterizer.hh"
 
 #include "Font.hh"
+#include "app.hh"
 
 using namespace adt;
 
@@ -18,9 +19,9 @@ struct PointOnCurve
 };
 
 Vec<PointOnCurve>
-pointsWithMissingOnCurve(IAllocator* pAlloc, Glyph* g)
+pointsWithMissingOnCurve(IAllocator* pAlloc, const Glyph& g)
 {
-    const auto& aGlyphPoints = g->uGlyph.simple.vPoints;
+    const auto& aGlyphPoints = g.uGlyph.simple.vPoints;
     u32 size = aGlyphPoints.size();
 
     bool bCurrOnCurve = false;
@@ -38,7 +39,7 @@ pointsWithMissingOnCurve(IAllocator* pAlloc, Glyph* g)
         f32 y = f32(p.y);
 
         bool bEndOfCurve = false;
-        for (auto e : g->uGlyph.simple.vEndPtsOfContours)
+        for (auto e : g.uGlyph.simple.vEndPtsOfContours)
             if (e == pointIdx)
                 bEndOfCurve = true;
 
@@ -171,20 +172,23 @@ makeItCurvy(IAllocator* pAlloc, const Vec<PointOnCurve>& aNonCurvyPoints, CurveE
 }
 
 void
-Rasterizer::rasterizeGlyph(Arena* pArena, Font* pFont, Glyph* pGlyph, int xOff, int yOff)
+Rasterizer::rasterizeGlyph(const Font& font, const Glyph& glyph, int xOff, int yOff)
 {
-    CurveEndIdx endIdxs;
+    Span spMem = app::gtl_scratch.allMem<PointOnCurve>();
+    BufferAllocator allo(reinterpret_cast<u8*>(spMem.data()), spMem.size() * sizeof(PointOnCurve));
+
+    CurveEndIdx endIdxs {};
     Vec<PointOnCurve> vCurvyPoints = makeItCurvy(
-        pArena, pointsWithMissingOnCurve(pArena, pGlyph), &endIdxs, 6
+        &allo, pointsWithMissingOnCurve(&allo, glyph), &endIdxs, 6
     );
 
-    f32 xMax = pFont->m_head.xMax;
-    f32 xMin = pFont->m_head.xMin;
-    f32 yMax = pFont->m_head.yMax;
-    f32 yMin = pFont->m_head.yMin;
+    f32 xMax = font.m_head.xMax;
+    f32 xMin = font.m_head.xMin;
+    f32 yMax = font.m_head.yMax;
+    f32 yMin = font.m_head.yMin;
 
     Array<f32, 64> aIntersections {};
-    Span2D<u8> sp = m_altas.spanMono();
+    Span2D<u8> spAtlas = m_altas.spanMono();
 
     const f32 hScale = static_cast<f32>(m_scale) / static_cast<f32>(xMax - xMin);
     const f32 vScale = static_cast<f32>(m_scale) / static_cast<f32>(yMax - yMin);
@@ -224,11 +228,11 @@ Rasterizer::rasterizeGlyph(Arena* pArena, Font* pFont, Glyph* pGlyph, int xOff, 
 
             f32 intersection = -1.0f;
 
-            if (math::eq(dx, 0.0f))
-                intersection = x1;
+            if (math::eq(dx, 0.0f)) intersection = x1;
             else intersection = (scanline - y1)*(dx/dy) + x1;
 
             if (aIntersections.size() >= aIntersections.cap()) continue;
+
             aIntersections.push(intersection);
         }
 
@@ -247,13 +251,12 @@ Rasterizer::rasterizeGlyph(Arena* pArena, Font* pFont, Glyph* pGlyph, int xOff, 
                 f32 endCovered = end - endIdx;
 
                 if (startIdx >= 0)
-                    sp(xOff + startIdx, yOff + row) = utils::clamp(255.0f * startCovered, 0.0f, 255.0f);
+                    spAtlas(xOff + startIdx, yOff + row) = utils::clamp(255.0f * startCovered, 0.0f, 255.0f);
                 if (startIdx != endIdx)
-                    sp(xOff + endIdx, yOff + row) = utils::clamp(255.0f * endCovered, 0.0f, 255.0f);
+                    spAtlas(xOff + endIdx, yOff + row) = utils::clamp(255.0f * endCovered, 0.0f, 255.0f);
 
                 for (int col = startIdx + 1; col < endIdx; ++col)
-                    if (col >= 0)
-                        sp(xOff + col, yOff + row) = 255;
+                    if (col >= 0) spAtlas(xOff + col, yOff + row) = 255;
             }
         }
     }
@@ -285,29 +288,59 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
     m_altas.m_width = nSquares * scale;
     m_altas.m_height = nSquares * scale;
 
-    Arena arena(SIZE_8M);
-    defer( arena.freeAll() );
-
     i16 xOff = 0;
     i16 yOff = 0;
     const i16 xStep = iScale * X_STEP;
 
-    for (u32 ch = '!'; ch <= '~'; ++ch)
+    Arena arena(SIZE_8K);
+    defer( arena.freeAll() );
+
+    try
     {
-        m_mapCodeToXY.insert(pAlloc, ch, {xOff, yOff});
-
-        Glyph g = pFont->readGlyph(ch);
-        rasterizeGlyph(&arena, pFont, &g, xOff, yOff);
-
-        if ((xOff += xStep) >= (nSquares*iScale) - xStep)
+        for (u32 ch = '!'; ch <= '~'; ++ch)
         {
-            xOff = 0;
-            if ((yOff += iScale) >= (nSquares*iScale) - iScale)
-                break;
-        }
+            m_mapCodeToXY.insert(pAlloc, ch, {xOff, yOff});
 
-        arena.reset();
+            Glyph* pGlyph = pFont->readGlyph(ch);
+            if (!pGlyph) continue;
+
+            struct Arg
+            {
+                Rasterizer* self;
+                const Font& font;
+                const Glyph& glyph; /* just copy (data races) */
+                const int xOff;
+                const int yOff;
+            };
+
+            auto* arg = arena.alloc<Arg>(this, *pFont, *pGlyph, xOff, yOff);
+
+            /* no data contention between atlas sections */
+            app::g_threadPool.add(+[](void* pArg) -> THREAD_STATUS
+                {
+                    Arg a = *static_cast<Arg*>(pArg);
+                    a.self->rasterizeGlyph(a.font, a.glyph, a.xOff, a.yOff);
+
+                    return THREAD_STATUS(0);
+                },
+                arg
+            );
+
+            if ((xOff += xStep) >= (nSquares*iScale) - xStep)
+            {
+                xOff = 0;
+                if ((yOff += iScale) >= (nSquares*iScale) - iScale)
+                    break;
+            }
+        }
     }
+    catch (const AllocException& ex)
+    {
+        ex.printErrorMsg(stderr);
+        LOG_BAD("guess reusing thread_local buffers didn't pay out\n");
+    }
+
+    app::g_threadPool.wait();
 }
 
 void

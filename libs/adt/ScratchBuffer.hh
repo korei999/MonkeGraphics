@@ -35,6 +35,9 @@ struct ScratchBuffer
     template<typename T>
     [[nodiscard]] Span<T> nextMemZero(ssize mCount) noexcept;
 
+    template<typename T>
+    [[nodiscard]] Span<T> allMem() noexcept;
+
     void zeroOut() noexcept;
 
     ssize cap() noexcept { return m_sp.size(); }
@@ -70,6 +73,13 @@ ScratchBuffer::nextMemZero(ssize mCount) noexcept
     auto sp = nextMem<T>(mCount);
     memset(sp.data(), 0, sp.size() * sizeof(T));
     return sp;
+}
+
+template<typename T>
+Span<T>
+ScratchBuffer::allMem() noexcept
+{
+    return {reinterpret_cast<T*>(m_sp.data()), m_sp.size() / sizeof(T)};
 }
 
 inline void

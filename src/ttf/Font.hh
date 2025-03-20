@@ -27,7 +27,7 @@ struct Font
     /* */
 
     bool parse();
-    Glyph readGlyph(adt::u32 codePoint);
+    Glyph* readGlyph(adt::u32 codePoint);
     void printGlyphDBG(const Glyph& g, bool bNormalize = false);
     void destroy();
 
