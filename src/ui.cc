@@ -60,7 +60,7 @@ init()
                     .color = math::V4From(colors::get(colors::WHITESMOKE), 1.0f),
                     .selectedI = 0,
                     .action {
-                        .pfn = +[](Entry* self, void* p) { LOG_BAD("hello: {}\n", self->menu.selectedI); static_cast<Model*>(p)->m_animationIUsed = self->menu.selectedI; },
+                        .pfn = +[](Entry* self, void* p) { static_cast<Model*>(p)->m_animationIUsed = self->menu.selectedI; },
                         .pArg = &model,
                     },
                 },
@@ -113,7 +113,6 @@ clickMenu(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int xOff, 
             if (py < (pWidget->y + pWidget->height - yOff) && py >= (pWidget->y + pWidget->height - yOff - 1))
             {
                 menu.selectedI = menu.vEntries.idx(&child);
-                LOG_BAD("selI: {}\n", menu.selectedI);
 
                 if (menu.action.pfn) menu.action.pfn(pEntry, menu.action.pArg);
 
