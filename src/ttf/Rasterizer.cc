@@ -205,11 +205,11 @@ Rasterizer::rasterizeGlyph(const Font& font, const Glyph& glyph, int xOff, int y
 
         for (ssize pointIdx = 1; pointIdx < vCurvyPoints.size(); ++pointIdx)
         {
-            f32 x0 = (vCurvyPoints[pointIdx - 1].pos.x) * hScale;
-            f32 x1 = (vCurvyPoints[pointIdx - 0].pos.x) * hScale;
+            const f32 x0 = (vCurvyPoints[pointIdx - 1].pos.x) * hScale;
+            const f32 x1 = (vCurvyPoints[pointIdx - 0].pos.x) * hScale;
 
-            f32 y0 = (vCurvyPoints[pointIdx - 1].pos.y - yMin) * vScale;
-            f32 y1 = (vCurvyPoints[pointIdx - 0].pos.y - yMin) * vScale;
+            const f32 y0 = (vCurvyPoints[pointIdx - 1].pos.y - yMin) * vScale;
+            const f32 y1 = (vCurvyPoints[pointIdx - 0].pos.y - yMin) * vScale;
 
             if (vCurvyPoints[pointIdx].bEndOfCurve)
                 ++pointIdx;
