@@ -254,7 +254,7 @@ updateState()
         return;
     }
 
-    if (s_bPressed) return;
+    if (s_bPressed && !s_bGrabbed) return;
 
     const f32 widthFactor = 1.0f / (win.m_winWidth * (1.0f/WIDTH));
     const f32 heightFactor = 1.0f / (win.m_winHeight * (1.0f/HEIGHT));
