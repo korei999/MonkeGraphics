@@ -28,8 +28,8 @@ init()
     {
         Widget newWidget {
             .arena = {500},
-            .sfName = "EntityList",
-            .sfTitle = "Entity list",
+            .sfName = "Entities",
+            .sfTitle = "Entity animations",
             .x = WIDTH - 20.0f,
             .y = HEIGHT - 10.0f,
             .width = 20.0f,
