@@ -48,10 +48,9 @@ Text::makeStringMesh(
         ssize idx = vs.idx(&ch);
         if (idx >= m_maxSize) break;
 
-        const MapResult fCh = rast.m_mapCodeToXY.search(ch);
+        const MapResult fCh = rast.m_mapCodeToUV.search(ch);
 
-        if (!fCh)
-            SKIP;
+        if (!fCh) SKIP;
 
 #undef SKIP
 

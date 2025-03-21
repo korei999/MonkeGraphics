@@ -18,7 +18,7 @@ struct Rasterizer
     /* */
 
     Image m_altas {};
-    adt::Map<adt::u32, adt::Pair<adt::i16, adt::i16>, adt::hash::dumbFunc> m_mapCodeToXY {};
+    adt::Map<adt::u32, adt::Pair<adt::i16, adt::i16>, adt::hash::dumbFunc> m_mapCodeToUV {};
     adt::f32 m_scale {};
 
     /* */

@@ -20,7 +20,7 @@ struct PointOnCurve
     math::V2 pos;
     bool bOnCurve;
     bool bEndOfCurve;
-    f32 _pad {};
+    /*f32 _pad {};*/
 };
 
 Vec<PointOnCurve>
@@ -73,8 +73,8 @@ pointsWithMissingOnCurve(IAllocator* pAlloc, const Glyph& g)
         });
 
 #ifndef NDEBUG
-            if (!bCurrOnCurve && bEndOfCurve)
-                ADT_ASSERT(aGlyphPoints[firstInCurveIdx].bOnCurve == true, " ");
+        if (!bCurrOnCurve && bEndOfCurve)
+            ADT_ASSERT(aGlyphPoints[firstInCurveIdx].bOnCurve == true, " ");
 #endif
 
         if (bEndOfCurve) firstInCurveIdx = pointIdx + 1;
@@ -302,7 +302,7 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
 
     for (u32 ch = '!'; ch <= '~'; ++ch)
     {
-        m_mapCodeToXY.insert(pAlloc, ch, {xOff, yOff});
+        m_mapCodeToUV.insert(pAlloc, ch, {xOff, yOff});
 
         Glyph* pGlyph = pFont->readGlyph(ch);
         if (!pGlyph) continue;
@@ -311,14 +311,14 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
         {
             Rasterizer* self;
             const Font& font;
-            const Glyph& glyph; /* just copy (data races) */
+            const Glyph& glyph;
             const int xOff;
             const int yOff;
         };
 
         auto* arg = arena.alloc<Arg>(this, *pFont, *pGlyph, xOff, yOff);
 
-        /* no data contention between atlas sections */
+        /* no data dependency between altas regions */
         app::g_threadPool.add(+[](void* pArg) -> THREAD_STATUS
             {
                 Arg a = *static_cast<Arg*>(pArg);
@@ -330,7 +330,6 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
                 catch (const AllocException& ex)
                 {
                     ex.printErrorMsg(stderr);
-                    LOG_BAD("guess reusing thread_local buffers didn't pay out\n");
                 }
 
                 return THREAD_STATUS(0);
@@ -353,7 +352,7 @@ void
 Rasterizer::destroy(adt::IAllocator* pAlloc)
 {
     pAlloc->free(m_altas.m_uData.pMono);
-    m_mapCodeToXY.destroy(pAlloc);
+    m_mapCodeToUV.destroy(pAlloc);
     *this = {};
 }
 
