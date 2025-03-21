@@ -34,7 +34,7 @@ struct Entry
             adt::ssize selectedI {};
             struct
             {
-                void (*pfn)(adt::ssize selI, void*) {};
+                void (*pfn)(Entry* self, void* pArg) {};
                 void* pArg {};
             } action;
         } menu;

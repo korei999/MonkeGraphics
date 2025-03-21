@@ -60,7 +60,7 @@ init()
                     .color = math::V4From(colors::get(colors::WHITESMOKE), 1.0f),
                     .selectedI = 0,
                     .action {
-                        .pfn = +[](ssize selI, void* p) { static_cast<Model*>(p)->m_animationIUsed = selI; },
+                        .pfn = +[](Entry* self, void* p) { LOG_BAD("hello: {}\n", self->menu.selectedI); static_cast<Model*>(p)->m_animationIUsed = self->menu.selectedI; },
                         .pArg = &model,
                     },
                 },
@@ -106,22 +106,21 @@ clickMenu(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int xOff, 
 
     auto& menu = pEntry->menu;
 
-    if (py < (pWidget->y + pWidget->height - f32(yOff)) && py > (pWidget->y + pWidget->height - f32(yOff) - menu.vEntries.size()))
+    if (py < (pWidget->y + pWidget->height - yOff) && py > (pWidget->y + pWidget->height - yOff - menu.vEntries.size()))
     {
-        ssize selI = 0;
         for (auto& child : menu.vEntries)
         {
-            if (py < (pWidget->y + pWidget->height - yOff - selI) && py >= (pWidget->y + pWidget->height - yOff - 1 - selI))
+            if (py < (pWidget->y + pWidget->height - yOff) && py >= (pWidget->y + pWidget->height - yOff - 1))
             {
-                menu.selectedI = selI;
+                menu.selectedI = menu.vEntries.idx(&child);
+                LOG_BAD("selI: {}\n", menu.selectedI);
 
-                if (menu.action.pfn)
-                    menu.action.pfn(selI, menu.action.pArg);
+                if (menu.action.pfn) menu.action.pfn(pEntry, menu.action.pArg);
 
                 break;
             }
 
-            ++selI;
+            ++yOff;
         }
     }
 
@@ -182,8 +181,6 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, int xOff, int yOff)
     ClickResult ret {};
     bool bHandled = false;
 
-    LOG_NOTIFY("px: {}, py: {}\n", px, py);
-
     if (px >= widget.x && px < widget.x + widget.width &&
         py >= widget.y && py < widget.y + widget.height
     )
@@ -199,14 +196,11 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, int xOff, int yOff)
                 {
                     if (py < widget.y + widget.height - yOff)
                     {
-                        LOG_GOOD("py: {}, cnd: {}\n", py, widget.y + widget.height - yOff);
                         s_bPressed = true;
 
                         ClickResult res = clickArrowList(pWidget, &entry, px, py, xOff, yOff);
                         if (res.eFlag == ClickResult::FLAG::HANDLED)
-                        {
                             bHandled = true;
-                        }
 
                         xOff = res.xOff;
                         yOff = res.yOff;
