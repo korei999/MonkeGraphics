@@ -47,7 +47,7 @@ refresh(void* pArg)
         s_accumulator -= g_dt;
     }
 
-    renderer.drawGame(pArena);
+    renderer.draw(pArena);
 }
 
 static void
@@ -119,7 +119,7 @@ renderLoop(void* pArg)
                 accumulator -= g_dt;
             }
 
-            renderer.drawGame(pArena);
+            renderer.draw(pArena);
 
             pArena->shrinkToFirstBlock();
             pArena->reset();
@@ -189,6 +189,10 @@ start()
     auto& renderer = app::rendererInst();
 
     win.m_bRunning = true;
+
+    /* loadStuff() will need this */
+    app::allocScratchForThisThread(SIZE_1K);
+    defer( app::destroyScratchForThisThread() );
 
     game::loadStuff();
     win.bindContext();

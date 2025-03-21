@@ -88,13 +88,41 @@ loadStuff()
 
     {
         auto hnd = makeEntity("assets/cube/cube.gltf", "Cube", Entity::TYPE::REGULAR);
-        g_poolEntities.bindMember<&Entity::bNoDraw>(hnd) = true;
+        auto bind = g_poolEntities[hnd];
+        bind.bNoDraw = true;
     }
 
-    makeEntity("assets/Capo/capo.gltf", "Capo", Entity::TYPE::REGULAR);
-    makeEntity("assets/Fox/Fox.gltf", "Fox", Entity::TYPE::REGULAR);
-    makeEntity("assets/RecursiveSkeletons/glTF/RecursiveSkeletons.gltf", "RecursiveSkeletons", Entity::TYPE::REGULAR);
-    makeEntity("assets/BoxAnimated/BoxAnimated.gltf", "BoxAnimated", Entity::TYPE::REGULAR);
+    {
+        auto hnd = makeEntity("assets/Capo/capo.gltf", "Capo", Entity::TYPE::REGULAR);
+        auto bind = g_poolEntities[hnd];
+
+        auto& model = Model::fromI(bind.modelI);
+        model.m_animationIUsed = 0;
+    }
+
+    {
+        auto hnd = makeEntity("assets/Fox/Fox.gltf", "Fox", Entity::TYPE::REGULAR);
+        auto bind = g_poolEntities[hnd];
+
+        auto& model = Model::fromI(bind.modelI);
+        model.m_animationIUsed = 0;
+    }
+
+    {
+        auto hnd = makeEntity("assets/RecursiveSkeletons/glTF/RecursiveSkeletons.gltf", "RecursiveSkeletons", Entity::TYPE::REGULAR);
+        auto bind = g_poolEntities[hnd];
+
+        auto& model = Model::fromI(bind.modelI);
+        model.m_animationIUsed = 0;
+    }
+
+    {
+        auto hnd = makeEntity("assets/BoxAnimated/BoxAnimated.gltf", "BoxAnimated", Entity::TYPE::REGULAR);
+        auto bind = g_poolEntities[hnd];
+
+        auto& model = Model::fromI(bind.modelI);
+        model.m_animationIUsed = 0;
+    }
 
     {
         auto hnd = makeEntity("assets/cube/cube.gltf", "LightCube", Entity::TYPE::LIGHT);
@@ -128,7 +156,7 @@ updateState(adt::Arena*)
         entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
         /*entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, frame::g_time);*/
 
-        Model::fromI(entity.modelI).m_animationIUsed = 0;
+        /*Model::fromI(entity.modelI).m_animationIUsed = 0;*/
     }
 
     {
@@ -136,7 +164,7 @@ updateState(adt::Arena*)
         entity.pos = {0.0f, 0.0f, 5.0f};
         entity.scale = {0.01f, 0.01f, 0.01f};
         entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
-        Model::fromI(entity.modelI).m_animationIUsed = 2;
+        /*Model::fromI(entity.modelI).m_animationIUsed = 2;*/
     }
 
     {
@@ -144,7 +172,7 @@ updateState(adt::Arena*)
         entity.pos = {3.0f, 0.0f, 5.0f};
         entity.scale = {0.01f, 0.01f, 0.01f};
         entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
-        Model::fromI(entity.modelI).m_animationIUsed = 0;
+        /*Model::fromI(entity.modelI).m_animationIUsed = 0;*/
     }
 
     {
@@ -152,7 +180,7 @@ updateState(adt::Arena*)
         entity.pos = {-6.0f, 0.0f, 5.0f};
         entity.scale = {1.00f, 1.00f, 1.00f};
         entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
-        Model::fromI(entity.modelI).m_animationIUsed = 0;
+        /*Model::fromI(entity.modelI).m_animationIUsed = 0;*/
     }
 }
 

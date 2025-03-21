@@ -3,7 +3,6 @@
 #include "Thread.hh"
 #include "Queue.hh"
 #include "Span.hh"
-#include "guard.hh"
 #include "defer.hh"
 
 #include <atomic>
@@ -109,7 +108,7 @@ ThreadPool::loop()
         ThreadPoolTask task {};
 
         {
-            guard::Mtx qLock(&m_mtxQ);
+            MutexGuard qLock(&m_mtxQ);
 
             while (m_qTasks.empty() && !m_bDone.load(std::memory_order_relaxed))
                 m_cndQ.wait(&m_mtxQ);
@@ -125,7 +124,7 @@ ThreadPool::loop()
         m_nActiveTasks.fetch_sub(1, std::memory_order_seq_cst);
 
         {
-            guard::Mtx qLock(&m_mtxQ);
+            MutexGuard qLock(&m_mtxQ);
 
             if (m_qTasks.empty() && m_nActiveTasks.load(std::memory_order_acquire) == 0)
                 m_cndWait.signal();
@@ -154,7 +153,7 @@ ThreadPool::spawnThreads()
 inline void
 ThreadPool::wait()
 {
-    guard::Mtx qLock(&m_mtxQ);
+    MutexGuard qLock(&m_mtxQ);
 
     while (!m_qTasks.empty() || m_nActiveTasks.load(std::memory_order_relaxed) != 0)
         m_cndWait.wait(&m_mtxQ);
@@ -166,7 +165,7 @@ ThreadPool::destroy()
     wait();
 
     {
-        guard::Mtx qLock(&m_mtxQ);
+        MutexGuard qLock(&m_mtxQ);
         m_bDone.store(true, std::memory_order_relaxed);
     }
 
@@ -187,7 +186,7 @@ ThreadPool::destroy()
 inline void
 ThreadPool::add(ThreadPoolTask task)
 {
-    guard::Mtx lock(&m_mtxQ);
+    MutexGuard lock(&m_mtxQ);
 
     m_qTasks.pushBack(m_pAlloc, task);
     m_cndQ.signal();

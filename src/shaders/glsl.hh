@@ -144,7 +144,7 @@ main()
 {
     vec3 col = texture(u_tex0, vs_tex).rrr;
 
-    fs_fragColor = vec4(boxBlur(), col.x) * u_color;
+    fs_fragColor = vec4(boxBlur(), col.r) * u_color;
 }
 )";
 

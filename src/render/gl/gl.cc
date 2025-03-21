@@ -440,7 +440,7 @@ drawSkybox()
 }
 
 void
-Renderer::drawGame(Arena* pArena)
+Renderer::draw(Arena* pArena)
 {
     using namespace adt::math;
 
@@ -458,10 +458,12 @@ Renderer::drawGame(Arena* pArena)
         /* TODO: implement proper parallel for */
         for (auto& model : Model::g_poolModels)
         {
-            /* wait in drawNode */
+            /* don't even wait */
             app::g_threadPool.add(+[](void* p) -> THREAD_STATUS
                 {
-                    reinterpret_cast<Model*>(p)->updateAnimation();
+                    auto* pModel = reinterpret_cast<Model*>(p);
+                    pModel->updateAnimation();
+
                     return THREAD_STATUS(0);
                 }, &model
             );

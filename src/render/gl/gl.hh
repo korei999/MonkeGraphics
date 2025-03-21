@@ -8,7 +8,6 @@
 #include "adt/Pool.hh"
 
 #include "Image.hh"
-#include "ttf/Rasterizer.hh"
 
 namespace render::gl
 {
@@ -16,7 +15,7 @@ namespace render::gl
 struct Renderer : public IRenderer
 {
     virtual void init() override;
-    virtual void drawGame(adt::Arena* pArena) override;
+    virtual void draw(adt::Arena* pArena) override;
     virtual void destroy() override;
 };
 

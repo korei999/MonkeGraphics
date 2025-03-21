@@ -12,10 +12,8 @@ using namespace adt;
 Pool<Model, 128> Model::g_poolModels {};
 
 Model::Model(i16 assetModelI)
-    : m_modelAssetI(assetModelI)
+    : m_arena(SIZE_1M), m_modelAssetI(assetModelI)
 {
-    m_arena = {SIZE_1M};
-
     loadNodes();
     loadAnimations();
     loadSkins();

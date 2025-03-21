@@ -7,6 +7,8 @@
 #include "frame.hh"
 #include "ui.hh"
 
+#include "adt/logs.hh"
+
 using namespace adt;
 
 namespace render::gl::ui
@@ -54,7 +56,7 @@ drawText(
     s_pShTexMonoBlur->setM4("u_trm", proj *
         math::M4TranslationFrom({widget.x + xOff, widget.y + widget.height - 1 - yOff, 0.0f})
     );
-    s_pShTexMonoBlur->setV4("u_color", entry.fgColor);
+    s_pShTexMonoBlur->setV4("u_color", entry.text.color);
 
     s_text.update(s_rastLiberation, entry.text.sfText);
     s_text.draw();
@@ -100,10 +102,17 @@ drawMenu(
     math::IV2 textOff {0, 1};
     for (const ::ui::Entry& child : entry.menu.vEntries)
     {
+        const ssize idx = entry.menu.vEntries.idx(&child);
+
         switch (child.eType)
         {
             case ::ui::Entry::TYPE::TEXT:
-            textOff += drawText(widget, child, proj, xOff, yOff + textOff.y);
+            /*textOff += drawText(widget, child, proj, xOff, yOff + textOff.y);*/
+            math::V4 col;
+            if (idx == entry.menu.selectedI) col = entry.menu.selColor;
+            else col = entry.menu.color;
+
+            textOff += drawText(widget, child.text.sfText, col, proj, xOff + 2, yOff + textOff.y);
             break;
 
             case ::ui::Entry::TYPE::ARROW_LIST:
@@ -145,7 +154,9 @@ drawArrowList(
             case ::ui::Entry::TYPE::MENU:
             {
                 /* draw menu name first */
-                auto textOff = drawText(widget, sel, proj, xOff, yOff);
+                /*auto textOff = drawText(widget, sel, proj, xOff, yOff);*/
+                auto textOff = drawText(widget, sel.menu.sfName, sel.menu.color, proj, xOff, yOff);
+
                 xyArrow.x += textOff.x;
 
                 auto xyMenu = drawMenu(widget, sel, proj, xOff, yOff);

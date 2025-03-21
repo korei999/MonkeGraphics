@@ -6,6 +6,8 @@
 #include "game/game.hh"
 #include "Model.hh"
 
+#include "adt/logs.hh"
+
 using namespace adt;
 
 namespace ui
@@ -39,29 +41,39 @@ init()
         Vec<Entry> vEntityEntries(&newWidget.arena);
         for (auto en : game::g_poolEntities)
         {
-            const Model& model = Model::fromI(en.modelI);
+            Model& model = Model::fromI(en.modelI);
             Vec<Entry> vAnimations(&newWidget.arena);
 
             for (const auto& anim : model.m_vAnimations)
             {
                 vAnimations.push(&newWidget.arena, {
-                    .text {anim.sName},
-                    .fgColor = math::V4From(colors::get(colors::WHITESMOKE), 1.0f),
+                    .text {.sfText = anim.sName, .color = math::V4From(colors::get(colors::WHITESMOKE), 1.0f)},
                     .eType = Entry::TYPE::TEXT,
-                    });
+                });
             }
 
             Entry entityEntry {
-                .menu {.sfName {en.sfName}, .vEntries {vAnimations}, .selectedI = 0},
-                .fgColor = math::V4From(colors::get(colors::WHITE), 1.0f),
+                .menu {
+                    .sfName {en.sfName},
+                    .vEntries {vAnimations},
+                    .selColor = math::V4From(colors::get(colors::GREEN), 1.0f),
+                    .color = math::V4From(colors::get(colors::WHITESMOKE), 1.0f),
+                    .selectedI = 0,
+                    .pfn = +[](ssize selI, void* p) { static_cast<Model*>(p)->m_animationIUsed = selI; },
+                    .pArg = &model,
+                },
                 .eType = Entry::TYPE::MENU,
             };
             vEntityEntries.push(&newWidget.arena, entityEntry);
         }
 
         Entry entityList {
-            .arrowList {.vEntries = vEntityEntries, .selectedI = 0, .arrowColor = math::V4From(colors::get(colors::CYAN), 1.0f)},
-            .fgColor = math::V4From(colors::get(colors::WHITE), 1.0f),
+            .arrowList {
+                .vEntries = vEntityEntries,
+                .selectedI = 0,
+                .color = math::V4From(colors::get(colors::WHITE), 1.0f),
+                .arrowColor = math::V4From(colors::get(colors::CYAN), 1.0f)
+            },
             .eType = Entry::TYPE::ARROW_LIST,
         };
 
@@ -74,14 +86,46 @@ init()
 
 struct ClickResult
 {
-    enum class FLAG : u8 { HANDLED, GRAB };
+    enum class FLAG : u8 { UNHANDLED, HANDLED, GRAB };
 
     /* */
 
-    FLAG eFlag {};
     int xOff {};
     int yOff {};
+    FLAG eFlag {};
 };
+
+static ClickResult
+clickMenu(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int xOff, int yOff)
+{
+    ADT_ASSERT(pEntry->eType == Entry::TYPE::MENU, " ");
+
+    ClickResult ret {};
+
+    if (py < (pWidget->y + pWidget->height - f32(yOff)) && py > (pWidget->y + pWidget->height - f32(yOff) - pEntry->menu.vEntries.size()))
+    {
+        ssize selI = 0;
+        for (auto& child : pEntry->menu.vEntries)
+        {
+            if (py < (pWidget->y + pWidget->height - yOff - selI) && py >= (pWidget->y + pWidget->height - yOff - 1 - selI))
+            {
+                pEntry->menu.selectedI = selI;
+
+                if (pEntry->menu.pfn)
+                    pEntry->menu.pfn(selI, pEntry->menu.pArg);
+
+                break;
+            }
+
+            ++selI;
+        }
+    }
+
+    ret.xOff = xOff;
+    ret.yOff = yOff;
+
+    return ret;
+}
 
 static ClickResult
 clickArrowList(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int xOff, int yOff)
@@ -89,13 +133,39 @@ clickArrowList(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int x
     ADT_ASSERT(pEntry, " ");
     ADT_ASSERT(pEntry->eType == Entry::TYPE::ARROW_LIST, " ");
 
+
     ClickResult ret {};
 
-    if (py < pWidget->y + pWidget->height - yOff)
+    if (py < pWidget->y + pWidget->height - yOff && py >= pWidget->y + pWidget->height - yOff - 1)
+    {
         ++pEntry->arrowList.selectedI %= pEntry->arrowList.vEntries.size();
+        ret.eFlag = ClickResult::FLAG::HANDLED;
+        LOG_WARN("CLICEKD ON ARROWLIST\n");
 
-    ret.xOff = xOff;
-    ret.yOff = yOff;
+        return ret;
+    }
+
+    switch (pEntry->arrowList.vEntries[pEntry->arrowList.selectedI].eType)
+    {
+        case Entry::TYPE::MENU:
+        {
+            ++yOff;
+            ClickResult res = clickMenu(pWidget, &pEntry->arrowList.vEntries[pEntry->arrowList.selectedI], px, py, xOff, yOff);
+            ret = res;
+        }
+        break;
+
+        case Entry::TYPE::ARROW_LIST:
+        {
+        }
+        break;
+
+        case Entry::TYPE::TEXT:
+        {
+        }
+        break;
+    }
+
     return ret;
 }
 
@@ -107,6 +177,8 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, int xOff, int yOff)
     Widget& widget = *pWidget;
     ClickResult ret {};
     bool bHandled = false;
+
+    LOG_NOTIFY("px: {}, py: {}\n", px, py);
 
     if (px >= widget.x && px < widget.x + widget.width &&
         py >= widget.y && py < widget.y + widget.height
@@ -121,12 +193,17 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, int xOff, int yOff)
             {
                 case Entry::TYPE::ARROW_LIST:
                 {
-                    if (py >= widget.y + widget.height - yOff - 1)
+                    if (py < widget.y + widget.height - yOff)
                     {
-                        bHandled = true;
+                        LOG_GOOD("py: {}, cnd: {}\n", py, widget.y + widget.height - yOff);
                         s_bPressed = true;
 
                         ClickResult res = clickArrowList(pWidget, &entry, px, py, xOff, yOff);
+                        if (res.eFlag == ClickResult::FLAG::HANDLED)
+                        {
+                            bHandled = true;
+                        }
+
                         xOff = res.xOff;
                         yOff = res.yOff;
                     }
@@ -142,6 +219,7 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, int xOff, int yOff)
             }
 
             if (bHandled) break;
+
             ++yOff;
         }
 

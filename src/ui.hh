@@ -29,20 +29,25 @@ struct Entry
         {
             adt::StringFixed<32> sfName {};
             adt::Vec<Entry> vEntries {};
+            adt::math::V4 selColor {};
+            adt::math::V4 color {};
             adt::ssize selectedI {};
+            void (*pfn)(adt::ssize selI, void*) {};
+            void* pArg {};
         } menu;
         struct
         {
             adt::Vec<Entry> vEntries {};
             adt::ssize selectedI {};
+            adt::math::V4 color {};
             adt::math::V4 arrowColor {};
         } arrowList;
         struct
         {
             adt::StringFixed<32> sfText {};
+            adt::math::V4 color {};
         } text;
     };
-    adt::math::V4 fgColor {};
     TYPE eType {};
 };
 

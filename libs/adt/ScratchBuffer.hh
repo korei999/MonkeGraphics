@@ -13,6 +13,7 @@ struct ScratchBuffer
 {
     Span<u8> m_sp {};
     ssize m_pos {};
+    ssize m_typeCap {};
 
     /* */
 
@@ -20,15 +21,15 @@ struct ScratchBuffer
 
     template<typename T>
     ScratchBuffer(Span<T> sp) noexcept
-        : m_sp((u8*)sp.data(), sp.size() * sizeof(T)) {}
+        : m_sp((u8*)sp.data(), sp.size() * sizeof(T)), m_typeCap(calcTypeCap<T>()) {}
 
     template<typename T, usize SIZE>
     ScratchBuffer(T (&aBuff)[SIZE]) noexcept
-        : m_sp((u8*)aBuff, SIZE * sizeof(T)) {}
+        : m_sp((u8*)aBuff, SIZE * sizeof(T)), m_typeCap(calcTypeCap<T>()) {}
 
     template<typename T>
     ScratchBuffer(T* pMem, ssize size) noexcept
-        : m_sp((u8*)pMem, size) {}
+        : m_sp((u8*)pMem, size), m_typeCap(calcTypeCap<T>()) {}
 
     /* */
 
@@ -44,7 +45,12 @@ struct ScratchBuffer
 
     void zeroOut() noexcept;
 
-    ssize cap() noexcept { return m_sp.size(); }
+    ssize cap() const noexcept { return m_sp.size(); }
+    ssize typeCap() const noexcept { return m_typeCap; }
+
+protected:
+    template<typename T>
+    ssize calcTypeCap() const noexcept { return static_cast<ssize>(cap() / sizeof(T)); }
 };
 
 
@@ -59,7 +65,7 @@ ScratchBuffer::nextMem(ssize mCount) noexcept
     if (realSize >= m_sp.size())
     {
         fprintf(stderr, "ScratchBuffer::nextMem(): allocating more than capacity (%lld < %lld), returing full buffer\n", m_sp.size(), realSize);
-        return {(T*)m_sp.data(), ssize(cap() * (1.0/sizeof(T)))};
+        return {(T*)m_sp.data(), typeCap()};
     }
     else if (realSize + m_pos > m_sp.size())
     {
@@ -85,7 +91,7 @@ template<typename T>
 Span<T>
 ScratchBuffer::allMem() noexcept
 {
-    return {reinterpret_cast<T*>(m_sp.data()), static_cast<ssize>(m_sp.size() * (1.0/sizeof(T)))};
+    return {reinterpret_cast<T*>(m_sp.data()), typeCap()};
 }
 
 inline void
