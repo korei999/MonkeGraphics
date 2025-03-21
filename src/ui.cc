@@ -59,8 +59,10 @@ init()
                     .selColor = math::V4From(colors::get(colors::GREEN), 1.0f),
                     .color = math::V4From(colors::get(colors::WHITESMOKE), 1.0f),
                     .selectedI = 0,
-                    .pfn = +[](ssize selI, void* p) { static_cast<Model*>(p)->m_animationIUsed = selI; },
-                    .pArg = &model,
+                    .action {
+                        .pfn = +[](ssize selI, void* p) { static_cast<Model*>(p)->m_animationIUsed = selI; },
+                        .pArg = &model,
+                    },
                 },
                 .eType = Entry::TYPE::MENU,
             };
@@ -102,17 +104,19 @@ clickMenu(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int xOff, 
 
     ClickResult ret {};
 
-    if (py < (pWidget->y + pWidget->height - f32(yOff)) && py > (pWidget->y + pWidget->height - f32(yOff) - pEntry->menu.vEntries.size()))
+    auto& menu = pEntry->menu;
+
+    if (py < (pWidget->y + pWidget->height - f32(yOff)) && py > (pWidget->y + pWidget->height - f32(yOff) - menu.vEntries.size()))
     {
         ssize selI = 0;
-        for (auto& child : pEntry->menu.vEntries)
+        for (auto& child : menu.vEntries)
         {
             if (py < (pWidget->y + pWidget->height - yOff - selI) && py >= (pWidget->y + pWidget->height - yOff - 1 - selI))
             {
-                pEntry->menu.selectedI = selI;
+                menu.selectedI = selI;
 
-                if (pEntry->menu.pfn)
-                    pEntry->menu.pfn(selI, pEntry->menu.pArg);
+                if (menu.action.pfn)
+                    menu.action.pfn(selI, menu.action.pArg);
 
                 break;
             }

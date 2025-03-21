@@ -32,8 +32,11 @@ struct Entry
             adt::math::V4 selColor {};
             adt::math::V4 color {};
             adt::ssize selectedI {};
-            void (*pfn)(adt::ssize selI, void*) {};
-            void* pArg {};
+            struct
+            {
+                void (*pfn)(adt::ssize selI, void*) {};
+                void* pArg {};
+            } action;
         } menu;
         struct
         {
