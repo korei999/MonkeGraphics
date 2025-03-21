@@ -41,6 +41,8 @@ init()
         Vec<Entry> vEntityEntries(&newWidget.arena);
         for (auto en : game::g_poolEntities)
         {
+            if (en.bNoDraw) continue;
+
             Model& model = Model::fromI(en.modelI);
             Vec<Entry> vAnimations(&newWidget.arena);
 
@@ -63,7 +65,7 @@ init()
                     .vEntries {vAnimations},
                     .selColor = math::V4From(colors::get(colors::GREEN), 1.0f),
                     .color = math::V4From(colors::get(colors::WHITESMOKE), 1.0f),
-                    .selectedI = 0,
+                    .selectedI = model.m_animationIUsed,
                     .action {
                         .pfn = +[](Entry* self, void* p) { static_cast<Model*>(p)->m_animationIUsed = self->menu.selectedI; },
                         .pArg = &model,

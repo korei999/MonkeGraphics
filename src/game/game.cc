@@ -86,6 +86,7 @@ loadStuff()
             LOG_BAD("failed to load: '{}'\n", svPath);
     }
 
+    /* NOTE: Skybox needs this cube */
     {
         auto hnd = makeEntity("assets/cube/cube.gltf", "Cube", Entity::TYPE::REGULAR);
         auto bind = g_poolEntities[hnd];
@@ -105,7 +106,7 @@ loadStuff()
         auto bind = g_poolEntities[hnd];
 
         auto& model = Model::fromI(bind.modelI);
-        model.m_animationIUsed = -1;
+        model.m_animationIUsed = 2;
     }
 
     {
