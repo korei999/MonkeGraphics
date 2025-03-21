@@ -4,7 +4,6 @@
 #include "frame.hh"
 #include "asset.hh"
 
-#include "adt/logs.hh"
 #include "adt/View.hh"
 
 using namespace adt;
@@ -36,7 +35,6 @@ Model::updateAnimation(int animationI)
     }
     else if (animationI < 0 || animationI >= model.m_vAnimations.size())
     {
-        LOG_WARN("out of range: animationI: {} (size: {})\n", animationI, model.m_vAnimations.size());
         return;
     }
 

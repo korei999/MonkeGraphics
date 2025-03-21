@@ -105,7 +105,7 @@ loadStuff()
         auto bind = g_poolEntities[hnd];
 
         auto& model = Model::fromI(bind.modelI);
-        model.m_animationIUsed = 0;
+        model.m_animationIUsed = -1;
     }
 
     {

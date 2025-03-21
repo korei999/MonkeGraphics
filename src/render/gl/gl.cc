@@ -218,7 +218,10 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
 
             /*app::g_threadPool.wait();*/
 
-            if (primitive.attributes.JOINTS_0 != -1)
+            if (model.m_animationIUsed >= 0 &&
+                model.m_animationIUsed < model.m_vAnimations.size() &&
+                primitive.attributes.JOINTS_0 != -1
+            )
             {
                 ADT_ASSERT(primitive.attributes.WEIGHTS_0 != -1, "must have");
 

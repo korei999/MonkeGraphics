@@ -52,6 +52,11 @@ init()
                 });
             }
 
+            vAnimations.push(&newWidget.arena, {
+                .text = {.sfText = "off", .color = math::V4From(colors::get(colors::WHITESMOKE), 1.0f)},
+                .eType = Entry::TYPE::TEXT,
+            });
+
             Entry entityEntry {
                 .menu {
                     .sfName {en.sfName},
@@ -115,6 +120,7 @@ clickMenu(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int xOff, 
                 menu.selectedI = menu.vEntries.idx(&child);
 
                 if (menu.action.pfn) menu.action.pfn(pEntry, menu.action.pArg);
+                ret.eFlag = ClickResult::FLAG::HANDLED;
 
                 break;
             }
