@@ -148,7 +148,12 @@ clickArrowList(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int x
 
     if (py < pWidget->y + pWidget->height - yOff && py >= pWidget->y + pWidget->height - yOff - 1)
     {
-        ++pEntry->arrowList.selectedI %= pEntry->arrowList.vEntries.size();
+        auto& list = pEntry->arrowList;
+        if (control::g_abPressed[BTN_LEFT])
+            ++list.selectedI %= list.vEntries.size();
+        else if (control::g_abPressed[BTN_RIGHT])
+            (list.selectedI += (list.vEntries.size() - 1)) %= list.vEntries.size();
+
         ret.eFlag = ClickResult::FLAG::HANDLED;
         LOG_WARN("CLICEKD ON ARROWLIST\n");
 
@@ -253,7 +258,7 @@ updateState()
     const math::V2 delta = mouse.abs - mouse.prevAbs;
     mouse.prevAbs = mouse.abs;
 
-    if (!control::g_abPressed[BTN_LEFT])
+    if (!control::g_abPressed[BTN_LEFT] && !control::g_abPressed[BTN_RIGHT])
     {
         s_bPressed = false;
         s_bGrabbed = false;
@@ -280,7 +285,7 @@ updateState()
         return;
     }
 
-    /* TODO: should probably be a rooted tree. */
+    /* TODO: rework into a rooted tree. */
 
     for (Widget& widget : g_poolWidgets)
     {

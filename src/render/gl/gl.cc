@@ -573,8 +573,11 @@ Texture::loadRGBA(const ImagePixelRGBA* pData)
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-Shader::Shader(const adt::StringView svVertexShader, const adt::StringView svFragmentShader, const adt::StringView svMapTo)
-    : m_svMappedTo(svMapTo)
+Shader::Shader(
+    const adt::StringView svVertexShader,
+    const adt::StringView svFragmentShader,
+    const adt::StringView svMapTo
+) : m_svMappedTo(svMapTo)
 {
     GLint linked {};
     GLuint vertex = loadOne(GL_VERTEX_SHADER, svVertexShader);

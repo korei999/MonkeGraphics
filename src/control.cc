@@ -11,8 +11,8 @@ using namespace adt;
 namespace control
 {
 
-static void cameraForward() { g_camera.m_lastMove += g_camera.getForwardVecNoY(); }
-static void cameraBack() { g_camera.m_lastMove -= g_camera.getForwardVecNoY(); }
+static void cameraForward() { g_camera.m_lastMove += g_camera.forwardVecNoY(); }
+static void cameraBack() { g_camera.m_lastMove -= g_camera.forwardVecNoY(); }
 static void cameraRight() { g_camera.m_lastMove += g_camera.m_right; }
 static void cameraLeft() { g_camera.m_lastMove -= g_camera.m_right; }
 static void cameraUp() { g_camera.m_lastMove += CAMERA_UP; }

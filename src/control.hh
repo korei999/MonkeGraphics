@@ -54,7 +54,7 @@ struct Camera
     }
 
     adt::math::V3
-    getForwardVecNoY() const
+    forwardVecNoY() const
     {
         return {m_front.x, 0.0f, m_front.z};
     }
