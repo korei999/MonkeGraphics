@@ -445,17 +445,20 @@ Window::swapBuffers()
 void
 Window::procEvents()
 {
+    /*MSG msg;*/
+    /*while (GetMessageA(&msg, nullptr, 0, 0))*/
     MSG msg;
-    while (GetMessageA(&msg, nullptr, 0, 0))
+    WaitMessage();
+    while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
     {
         switch (msg.message)
         {
             case WM_QUIT:
-                m_bRunning = false;
-                break;
+            m_bRunning = false;
+            break;
 
             default:
-                break;
+            break;
         };
 
         TranslateMessage(&msg);
