@@ -11,11 +11,11 @@ Token
 Lexer::next()
 {
     skipWhitespace();
-    if (m_pos >= m_sJson.size()) return {};
+    if (m_pos >= m_svJson.size()) return {};
 
     Token tok {};
 
-    switch (m_sJson[m_pos])
+    switch (m_svJson[m_pos])
     {
         case '{':
         tok = nextChar(TOKEN_TYPE::L_BRACE);
@@ -75,9 +75,9 @@ Lexer::skipWhitespace()
         return false;
     };
 
-    while (m_pos < m_sJson.size() && oneOf(m_sJson[m_pos]))
+    while (m_pos < m_svJson.size() && oneOf(m_svJson[m_pos]))
     {
-        if (m_sJson[m_pos] == '\n')
+        if (m_svJson[m_pos] == '\n')
         {
             ++m_row;
             m_column = 0;
@@ -92,7 +92,7 @@ Lexer::nextChar(TOKEN_TYPE eType)
 {
     return {
         .eType = eType,
-        .svLiteral = {&m_sJson[m_pos], 1},
+        .svLiteral = {&m_svJson[m_pos], 1},
         .row = static_cast<decltype(Token::row)>(m_row),
         .column = static_cast<decltype(Token::column)>(m_column),
     };
@@ -102,7 +102,7 @@ Lexer::nextChar(TOKEN_TYPE eType)
 Token
 Lexer::nextString()
 {
-    ADT_ASSERT(m_sJson[m_pos] == '"', " ");
+    ADT_ASSERT(m_svJson[m_pos] == '"', " ");
 
     advanceOne();
     if (done()) return {};
@@ -110,21 +110,21 @@ Lexer::nextString()
     auto fPos = m_pos;
 
     bool bEsc = false;
-    for (; m_pos < m_sJson.size(); advanceOne())
+    for (; m_pos < m_svJson.size(); advanceOne())
     {
-        if (!bEsc && m_sJson[m_pos] == '\n')
+        if (!bEsc && m_svJson[m_pos] == '\n')
         {
             /* just allow this */
             ++m_row;
         }
 
-        if (!bEsc && m_sJson[m_pos] == '\\')
+        if (!bEsc && m_svJson[m_pos] == '\\')
         {
             bEsc = true;
             continue;
         }
 
-        if (m_sJson[m_pos] == '"' && !bEsc)
+        if (m_svJson[m_pos] == '"' && !bEsc)
             break;
 
         bEsc = false;
@@ -132,7 +132,7 @@ Lexer::nextString()
 
     return {
         .eType = TOKEN_TYPE::QUOTED_STRING,
-        .svLiteral = {&m_sJson[fPos], m_pos - fPos},
+        .svLiteral = {&m_svJson[fPos], m_pos - fPos},
         .row = static_cast<decltype(Token::row)>(m_row),
         .column = static_cast<decltype(Token::column)>(m_column - (m_pos - fPos + 1)),
     };
@@ -143,12 +143,12 @@ Lexer::nextStringNoQuotes()
 {
     auto fPos = m_pos;
 
-    while (m_pos < m_sJson.size() && isalnum(m_sJson[m_pos]))
+    while (m_pos < m_svJson.size() && isalnum(m_svJson[m_pos]))
         advanceOne();
 
     return {
         .eType = TOKEN_TYPE::STRING,
-        .svLiteral = {&m_sJson[fPos], m_pos - fPos},
+        .svLiteral = {&m_svJson[fPos], m_pos - fPos},
         .row = static_cast<decltype(Token::row)>(m_row),
         .column = static_cast<decltype(Token::column)>(m_column - (m_pos - fPos)),
     };
@@ -159,26 +159,26 @@ Lexer::nextNumber()
 {
     /* allow '.' for floats */
     ADT_ASSERT(
-        m_sJson[m_pos] == '.' ||
-        m_sJson[m_pos] == '-' ||
-        m_sJson[m_pos] == '+' ||
-        isxdigit(m_sJson[m_pos]),
-        "'%.*s'", 1, &m_sJson[m_pos]
+        m_svJson[m_pos] == '.' ||
+        m_svJson[m_pos] == '-' ||
+        m_svJson[m_pos] == '+' ||
+        isxdigit(m_svJson[m_pos]),
+        "'%.*s'", 1, &m_svJson[m_pos]
     );
 
     auto fPos = m_pos;
     TOKEN_TYPE eType = TOKEN_TYPE::NUMBER;
 
     while (
-        m_pos < m_sJson.size() &&
-        (isxdigit(m_sJson[m_pos])  ||
-            m_sJson[m_pos] == '.' ||
-            m_sJson[m_pos] == '+' ||
-            m_sJson[m_pos] == '-'
+        m_pos < m_svJson.size() &&
+        (isxdigit(m_svJson[m_pos])  ||
+            m_svJson[m_pos] == '.' ||
+            m_svJson[m_pos] == '+' ||
+            m_svJson[m_pos] == '-'
         )
     )
     {
-        if (m_sJson[m_pos] == '.') 
+        if (m_svJson[m_pos] == '.')
             eType = TOKEN_TYPE::FLOAT;
 
         advanceOne();
@@ -186,7 +186,7 @@ Lexer::nextNumber()
 
     return {
         .eType = eType,
-        .svLiteral = {&m_sJson[fPos], m_pos - fPos},
+        .svLiteral = {&m_svJson[fPos], m_pos - fPos},
         .row = static_cast<decltype(Token::row)>(m_row),
         .column = static_cast<decltype(Token::column)>(m_column - (m_pos - fPos)),
     };

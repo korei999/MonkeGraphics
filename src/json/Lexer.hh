@@ -33,7 +33,7 @@ struct Token
 
 class Lexer
 {
-    adt::StringView m_sJson {};
+    adt::StringView m_svJson {};
     adt::u32 m_pos {};
     adt::u32 m_row = 1;
     adt::u32 m_column = 1;
@@ -42,12 +42,12 @@ class Lexer
 
 public:
     Lexer() = default;
-    Lexer(adt::StringView sJson) : m_sJson(sJson), m_row(1), m_column(1) {}
+    Lexer(adt::StringView sJson) : m_svJson(sJson), m_row(1), m_column(1) {}
 
     /* */
 
     Token next();
-    bool done() const { return m_pos >= m_sJson.size(); }
+    bool done() const { return m_pos >= m_svJson.size(); }
 
     /* */
 
