@@ -56,7 +56,7 @@ Parser::expect(TOKEN_TYPE t)
     else
     {
         CERR("({}, {}): unexpected token: expected: '{}', got '{}' ('{}')\n",
-             tok.row, tok.column, t, m_token.eType, m_token.sLiteral
+             tok.row, tok.column, t, m_token.eType, m_token.svLiteral
         );
         return false;
     }
@@ -70,7 +70,7 @@ Parser::expectNot(TOKEN_TYPE t)
     if (bool(tok.eType & t))
     {
         CERR("({}, {}): unexpected token: not expected: '{}', got '{}' ('{}')\n",
-             tok.row, tok.column, t, m_token.eType, m_token.sLiteral
+             tok.row, tok.column, t, m_token.eType, m_token.svLiteral
         );
         return false;
     }
@@ -119,7 +119,7 @@ Parser::parseNode(Node* pNode)
 void
 Parser::parseString(TagVal* pTV)
 {
-    const auto& sLit = m_token.sLiteral;
+    const auto& sLit = m_token.svLiteral;
 
     if (sLit == "null")
         *pTV = {.eTag = TAG::NULL_, .val = {nullptr}};
@@ -128,7 +128,7 @@ Parser::parseString(TagVal* pTV)
     else if (sLit == "false")
         *pTV = {.eTag = TAG::BOOL, .val = {.b = false}};
     else
-        *pTV = {.eTag = TAG::STRING, .val {.s = m_token.sLiteral}};
+        *pTV = {.eTag = TAG::STRING, .val {.s = m_token.svLiteral}};
 
     next();
 }
@@ -136,21 +136,21 @@ Parser::parseString(TagVal* pTV)
 void
 Parser::parseIdent(TagVal* pTV)
 {
-    *pTV = {.eTag = TAG::STRING, .val {.s = m_token.sLiteral}};
+    *pTV = {.eTag = TAG::STRING, .val {.s = m_token.svLiteral}};
     next();
 }
 
 void
 Parser::parseNumber(TagVal* pTV)
 {
-    *pTV = {.eTag = TAG::LONG, .val = {.l = atoll(m_token.sLiteral.m_pData)}};
+    *pTV = {.eTag = TAG::LONG, .val = {.l = atoll(m_token.svLiteral.m_pData)}};
     next();
 }
 
 void
 Parser::parseFloat(TagVal* pTV)
 {
-    *pTV = {.eTag = TAG::DOUBLE, .val = {.d = atof(m_token.sLiteral.m_pData)}};
+    *pTV = {.eTag = TAG::DOUBLE, .val = {.d = atof(m_token.svLiteral.m_pData)}};
     next();
 }
 
@@ -166,7 +166,7 @@ Parser::parseObject(Node* pNode)
         /* make sure key is quoted */
         OK_OR_RET(expect(TOKEN_TYPE::QUOTED_STRING));
 
-        aObjs.push(m_pAlloc, {.svKey = m_token.sLiteral, .tagVal = {}});
+        aObjs.push(m_pAlloc, {.svKey = m_token.svLiteral, .tagVal = {}});
 
         /* skip identifier and ':' */
         next();

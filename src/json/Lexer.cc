@@ -92,7 +92,7 @@ Lexer::nextChar(TOKEN_TYPE eType)
 {
     return {
         .eType = eType,
-        .sLiteral = {&m_sJson[m_pos], 1},
+        .svLiteral = {&m_sJson[m_pos], 1},
         .row = static_cast<decltype(Token::row)>(m_row),
         .column = static_cast<decltype(Token::column)>(m_column),
     };
@@ -132,7 +132,7 @@ Lexer::nextString()
 
     return {
         .eType = TOKEN_TYPE::QUOTED_STRING,
-        .sLiteral = {&m_sJson[fPos], m_pos - fPos},
+        .svLiteral = {&m_sJson[fPos], m_pos - fPos},
         .row = static_cast<decltype(Token::row)>(m_row),
         .column = static_cast<decltype(Token::column)>(m_column - (m_pos - fPos + 1)),
     };
@@ -148,7 +148,7 @@ Lexer::nextStringNoQuotes()
 
     return {
         .eType = TOKEN_TYPE::STRING,
-        .sLiteral = {&m_sJson[fPos], m_pos - fPos},
+        .svLiteral = {&m_sJson[fPos], m_pos - fPos},
         .row = static_cast<decltype(Token::row)>(m_row),
         .column = static_cast<decltype(Token::column)>(m_column - (m_pos - fPos)),
     };
@@ -186,7 +186,7 @@ Lexer::nextNumber()
 
     return {
         .eType = eType,
-        .sLiteral = {&m_sJson[fPos], m_pos - fPos},
+        .svLiteral = {&m_sJson[fPos], m_pos - fPos},
         .row = static_cast<decltype(Token::row)>(m_row),
         .column = static_cast<decltype(Token::column)>(m_column - (m_pos - fPos)),
     };

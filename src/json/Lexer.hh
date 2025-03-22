@@ -26,7 +26,7 @@ ADT_ENUM_BITWISE_OPERATORS(TOKEN_TYPE);
 struct Token
 {
     TOKEN_TYPE eType {};
-    adt::StringView sLiteral {};
+    adt::StringView svLiteral {};
     adt::u32 row {};
     adt::u32 column {};
 };
