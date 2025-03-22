@@ -217,14 +217,10 @@ start()
         app::g_threadPool.destroy();
         renderer.destroy();
 
-#ifndef NDEBUG
-
         for (auto& asset : asset::g_poolObjects)
         asset.destroy();
 
         ui::destroy();
-
-#endif
     );
 }
 
