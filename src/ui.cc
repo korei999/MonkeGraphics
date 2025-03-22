@@ -143,12 +143,12 @@ clickArrowList(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int x
     ADT_ASSERT(pEntry, " ");
     ADT_ASSERT(pEntry->eType == Entry::TYPE::ARROW_LIST, " ");
 
-
     ClickResult ret {};
+
+    auto& list = pEntry->arrowList;
 
     if (py < pWidget->y + pWidget->height - yOff && py >= pWidget->y + pWidget->height - yOff - 1)
     {
-        auto& list = pEntry->arrowList;
         if (control::g_abPressed[BTN_LEFT])
             ++list.selectedI %= list.vEntries.size();
         else if (control::g_abPressed[BTN_RIGHT])
@@ -165,7 +165,7 @@ clickArrowList(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int x
         case Entry::TYPE::MENU:
         {
             ++yOff;
-            ClickResult res = clickMenu(pWidget, &pEntry->arrowList.vEntries[pEntry->arrowList.selectedI], px, py, xOff, yOff);
+            ClickResult res = clickMenu(pWidget, &list.vEntries[list.selectedI], px, py, xOff, yOff);
             ret = res;
         }
         break;
