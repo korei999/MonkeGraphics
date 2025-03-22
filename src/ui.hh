@@ -58,9 +58,9 @@ struct Widget
 {
     enum class FLAGS : adt::u8
     {
-        NO_DRAW = 1,
-        TITLE = 1 << 1,
-        DRAG = 1 << 2,
+        NO_DRAW = 1, /* skip on drawing */
+        TITLE = 1 << 1, /* show title */
+        DRAG = 1 << 2, /* allow dragging */
     };
 
     /* */

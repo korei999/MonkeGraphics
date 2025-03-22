@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IAllocator.hh"
+#include "assert.hh"
 
 #include <cstdlib>
 

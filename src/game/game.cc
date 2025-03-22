@@ -48,6 +48,7 @@ static const StringView s_aAssetsToLoad[] {
     "assets/Sphere/sphere.gltf",
     "assets/Capo/capo.gltf",
     "assets/RecursiveSkeletons/glTF/RecursiveSkeletons.gltf",
+    "assets/vampire/vampire.gltf",
     "assets/skybox",
     "assets/LiberationMono-Regular.ttf",
 };
@@ -90,6 +91,8 @@ loadStuff()
     {
         auto hnd = makeEntity("assets/cube/cube.gltf", "Cube", Entity::TYPE::REGULAR);
         auto bind = g_poolEntities[hnd];
+        bind.bNoDraw = true;
+
         bind.bNoDraw = true;
     }
 
@@ -137,6 +140,18 @@ loadStuff()
         g_dirLight = hnd;
     }
 
+    {
+        auto hnd = makeEntity("assets/vampire/vampire.gltf", "Vampire", Entity::TYPE::REGULAR);
+        auto bind = g_poolEntities[hnd];
+
+        bind.pos = {-9.0f, 0.0f, 5.0f};
+        bind.scale = {1.00f, 1.00f, 1.00f};
+        bind.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
+
+        auto& model = Model::fromI(bind.modelI);
+        model.m_animationIUsed = 0;
+    }
+
     Arena firstUpdateArena(SIZE_1K);
     defer( firstUpdateArena.freeAll() );
     updateState(&firstUpdateArena);
@@ -182,6 +197,11 @@ updateState(adt::Arena*)
         entity.scale = {1.00f, 1.00f, 1.00f};
         entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
         /*Model::fromI(entity.modelI).m_animationIUsed = 0;*/
+    }
+
+    {
+        auto entity = g_poolEntities[{6}];
+        /*entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, frame::g_time);*/
     }
 }
 

@@ -132,7 +132,7 @@ renderLoop(void* pArg)
         if (t1 > lastAvgFrameTimeUpdateTime + 1000.0)
         {
             f64 avg = 0;
-            for (f64 ft : vFrameTimes) avg += ft;
+            for (const f64 ft : vFrameTimes) avg += ft;
 
             char aBuff[128] {};
             ssize n = print::toBuffer(aBuff, sizeof(aBuff) - 1, "FPS: {} | avg frame time: {:.3} ms\n",
@@ -212,18 +212,20 @@ start()
     }
 
     /* wait for running tasks */
-    LOG_GOOD("cleaning up...\n");
-    app::g_threadPool.destroy();
-    renderer.destroy();
+    defer(
+        LOG_GOOD("cleaning up...\n");
+        app::g_threadPool.destroy();
+        renderer.destroy();
 
 #ifndef NDEBUG
 
-    for (auto& asset : asset::g_poolObjects)
+        for (auto& asset : asset::g_poolObjects)
         asset.destroy();
 
-    ui::destroy();
+        ui::destroy();
 
 #endif
+    );
 }
 
 } /* namespace frame */

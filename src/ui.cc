@@ -6,8 +6,6 @@
 #include "game/game.hh"
 #include "Model.hh"
 
-#include "adt/logs.hh"
-
 using namespace adt;
 
 namespace ui
@@ -27,7 +25,7 @@ init()
 
     {
         Widget newWidget {
-            .arena = {500},
+            .arena = Arena(SIZE_1K * 4),
             .sfName = "Entities",
             .sfTitle = "Entity animations",
             .x = WIDTH - 20.0f,
@@ -147,15 +145,16 @@ clickArrowList(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int x
 
     auto& list = pEntry->arrowList;
 
-    if (py < pWidget->y + pWidget->height - yOff && py >= pWidget->y + pWidget->height - yOff - 1)
+    if (py < pWidget->y + pWidget->height - yOff &&
+        py >= pWidget->y + pWidget->height - yOff - 1
+    )
     {
         if (control::g_abPressed[BTN_LEFT])
-            ++list.selectedI %= list.vEntries.size();
+            utils::cycleForward(&list.selectedI, list.vEntries.size());
         else if (control::g_abPressed[BTN_RIGHT])
-            (list.selectedI += (list.vEntries.size() - 1)) %= list.vEntries.size();
+            utils::cycleBackward(&list.selectedI, list.vEntries.size());
 
         ret.eFlag = ClickResult::FLAG::HANDLED;
-        LOG_WARN("CLICEKD ON ARROWLIST\n");
 
         return ret;
     }

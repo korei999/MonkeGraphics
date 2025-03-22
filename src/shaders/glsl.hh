@@ -406,6 +406,7 @@ uniform vec3 u_ambientColor;
 uniform mat4 u_a128TrmJoints[128];
 
 out vec4 vs_color;
+out vec2 vs_tex;
 
 void main()
 {
@@ -446,6 +447,76 @@ out vec4 fs_color;
 void main()
 {
     fs_color = vs_color;
+}
+)";
+
+static const char* ntsGouraudTexVert =
+R"(#version 320 es
+/* ntsGouraudTexVert */
+
+precision mediump float;
+
+layout(location = 0) in vec3 a_pos;
+layout(location = 1) in vec2 a_tex;
+layout(location = 2) in ivec4 a_joint;
+layout(location = 3) in vec4 a_weight;
+layout(location = 4) in vec3 a_norm;
+
+uniform mat4 u_model;
+uniform mat4 u_view;
+uniform mat4 u_projection;
+
+uniform vec3 u_lightPos;
+uniform vec3 u_lightColor;
+uniform vec3 u_ambientColor;
+uniform mat4 u_a128TrmJoints[128];
+
+out vec4 vs_color;
+out vec2 vs_tex;
+
+void main()
+{
+    mat4 trmSkin =
+        a_weight.x * u_a128TrmJoints[a_joint.x] +
+        a_weight.y * u_a128TrmJoints[a_joint.y] +
+        a_weight.z * u_a128TrmJoints[a_joint.z] +
+        a_weight.w * u_a128TrmJoints[a_joint.w];
+
+    mat4 finalTrm = u_model * trmSkin;
+
+    vec4 worldPos = finalTrm * vec4(a_pos, 1.0);
+
+    gl_Position = u_projection * u_view * worldPos;
+
+    mat3 normalTrm = transpose(inverse(mat3(finalTrm)));
+
+    vec3 norm = normalize(normalTrm * a_norm);
+    vec3 lightDir = normalize(u_lightPos - worldPos.xyz);
+
+    float diff = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse = diff * u_lightColor;
+
+    vs_tex = a_tex;
+    vs_color = vec4((u_ambientColor + diffuse), 1.0);
+}
+)";
+
+static const char* ntsGouraudTexFrag =
+R"(#version 320 es
+/* ntsGouraudTexFrag */
+
+precision mediump float;
+
+in vec4 vs_color;
+in vec2 vs_tex;
+
+uniform sampler2D u_tex0;
+
+out vec4 fs_color;
+
+void main()
+{
+    fs_color = texture(u_tex0, vs_tex) * vs_color;
 }
 )";
 

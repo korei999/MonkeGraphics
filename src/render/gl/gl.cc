@@ -76,6 +76,7 @@ static const ShaderMapping s_aShadersToLoad[] {
     {shaders::glsl::ntsSkyboxVert, shaders::glsl::ntsSkyboxFrag, "Skybox"},
     {shaders::glsl::nts2DVert, shaders::glsl::nts2DColorFrag, "2DColor"},
     {shaders::glsl::ntsGouraudVert, shaders::glsl::ntsGouraudFrag, "Gouraud"},
+    {shaders::glsl::ntsGouraudTexVert, shaders::glsl::ntsGouraudTexFrag, "GouraudTex"},
 };
 
 #ifndef NDEBUG
@@ -173,7 +174,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
 
     Shader* pSh {};
 
-    auto bindTexture = [&](const gltf::Primitive& primitive)
+    auto clBindTexture = [&](const gltf::Primitive& primitive)
     {
         if (primitive.materialI < 0) return;
 
@@ -201,6 +202,15 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
             pSh->setV4("u_color", mat.pbrMetallicRoughness.baseColorFactor);
         }
 
+    };
+
+    auto clSetGouraud = [&]
+    {
+        auto light = game::g_poolEntities[game::g_dirLight];
+
+        pSh->setV3("u_lightPos", light.pos);
+        pSh->setV3("u_lightColor", light.color.xyz);
+        pSh->setV3("u_ambientColor", game::g_ambientLight);
     };
 
     if (gltfNode.meshI > -1)
@@ -231,8 +241,18 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                     gltfModel.m_vMaterials[primitive.materialI].pbrMetallicRoughness.baseColorTexture.index > -1
                 )
                 {
-                    pSh = searchShader("SkinTexture");
-                    pSh->use();
+                    if (primitive.attributes.NORMAL > -1)
+                    {
+                        pSh = searchShader("GouraudTex");
+                        ADT_ASSERT(pSh, " ");
+                        pSh->use();
+                        clSetGouraud();
+                    }
+                    else
+                    {
+                        pSh = searchShader("SkinTexture");
+                        pSh->use();
+                    }
                 }
                 else
                 {
@@ -241,12 +261,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                         pSh = searchShader("Gouraud");
                         ADT_ASSERT(pSh, " ");
                         pSh->use();
-
-                        auto light = game::g_poolEntities[game::g_dirLight];
-
-                        pSh->setV3("u_lightPos", light.pos);
-                        pSh->setV3("u_lightColor", light.color.xyz);
-                        pSh->setV3("u_ambientColor", game::g_ambientLight);
+                        clSetGouraud();
                     }
                     else
                     {
@@ -265,7 +280,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                 pSh->setM4("u_projection", trmProj);
                 pSh->setM4("u_a128TrmJoints", Span<M4>(skin.vJointMatrices));
 
-                bindTexture(primitive);
+                clBindTexture(primitive);
             }
             else if (primitive.materialI != -1)
             {
