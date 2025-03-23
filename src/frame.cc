@@ -4,14 +4,11 @@
 #include "control.hh"
 #include "game/game.hh"
 #include "ui.hh"
+#include "asset.hh"
 
 #include "adt/Vec.hh"
 #include "adt/logs.hh"
 #include "adt/defer.hh"
-
-#if !defined NDEBUG
-    #include "asset.hh"
-#endif
 
 using namespace adt;
 
