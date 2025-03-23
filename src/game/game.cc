@@ -27,6 +27,8 @@ PoolSOA<Entity, Entity::Bind, MAX_ENTITIES,
     &Entity::vel,
     &Entity::assetI, &Entity::modelI,
     &Entity::eType,
+    &Entity::outlineColor,
+    &Entity::bOutline,
     &Entity::bNoDraw
 > g_poolEntities {};
 
