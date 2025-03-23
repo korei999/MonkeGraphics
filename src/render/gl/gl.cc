@@ -226,7 +226,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
             if (primitive.attributes.TEXCOORD_0 != -1)
                 accUV = gltfModel.m_vAccessors[primitive.attributes.TEXCOORD_0];
 
-            /*app::g_threadPool.wait();*/
+            app::g_threadPool.wait();
 
             if (model.m_animationIUsed >= 0 &&
                 model.m_animationIUsed < model.m_vAnimations.size() &&
@@ -476,7 +476,7 @@ Renderer::draw(Arena* pArena)
         /* TODO: implement proper parallel for */
         for (auto& model : Model::g_poolModels)
         {
-            /* don't even wait */
+            /* FIXME: waiting drops fps badly, but without it animations are very rough on low fps. */
             app::g_threadPool.add(+[](void* p) -> THREAD_STATUS
                 {
                     auto* pModel = reinterpret_cast<Model*>(p);
