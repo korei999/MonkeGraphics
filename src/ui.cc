@@ -11,6 +11,8 @@ using namespace adt;
 namespace ui
 {
 
+static void procCallbacks();
+
 Pool<Widget, 64> g_poolWidgets;
 MapManaged<StringFixed<16>, PoolHandle<Widget>> g_mapStringsToWidgetHandles(StdAllocator::inst(), g_poolWidgets.cap());
 
@@ -63,8 +65,12 @@ init()
                     .vEntries {vAnimations},
                     .selColor = math::V4From(colors::get(colors::GREEN), 1.0f),
                     .color = math::V4From(colors::get(colors::WHITESMOKE), 1.0f),
-                    .selectedI = model.m_animationIUsed,
-                    .action {
+                    .selectedI = 0,
+                    .onUpdate {
+                        .pfn = +[](Entry* self, void* p) { self->menu.selectedI = static_cast<Model*>(p)->m_animationIUsed; },
+                        .pArg = &model,
+                    },
+                    .onClick {
                         .pfn = +[](Entry* self, void* p) { static_cast<Model*>(p)->m_animationIUsed = self->menu.selectedI; },
                         .pArg = &model,
                     },
@@ -89,6 +95,8 @@ init()
         auto hTest = g_poolWidgets.make(newWidget);
         g_mapStringsToWidgetHandles.insert(g_poolWidgets[hTest].sfName, hTest);
     }
+
+    procCallbacks();
 }
 
 struct ClickResult
@@ -119,7 +127,7 @@ clickMenu(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int xOff, 
             {
                 menu.selectedI = menu.vEntries.idx(&child);
 
-                if (menu.action.pfn) menu.action.pfn(pEntry, menu.action.pArg);
+                if (menu.onClick.pfn) menu.onClick.pfn(pEntry, menu.onClick.pArg);
                 ret.eFlag = ClickResult::FLAG::HANDLED;
 
                 break;
@@ -244,9 +252,46 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, int xOff, int yOff)
     return ret;
 }
 
+static void
+entryCallback(Entry* pEntry)
+{
+    switch (pEntry->eType)
+    {
+        case Entry::TYPE::ARROW_LIST:
+        {
+            auto& list = pEntry->arrowList;
+            for (auto& entry : list.vEntries) entryCallback(&entry);
+        }
+        break;
+
+        case Entry::TYPE::MENU:
+        {
+            auto& menu = pEntry->menu;
+            if (menu.onUpdate.pfn) menu.onUpdate.pfn(pEntry, menu.onUpdate.pArg);
+
+            for (auto& child : menu.vEntries) entryCallback(&child);
+        }
+        break;
+
+        case Entry::TYPE::TEXT: break;
+    }
+}
+
+static void
+procCallbacks()
+{
+    for (Widget& widget : g_poolWidgets)
+    {
+        for (auto& entry : widget.vEntries)
+            entryCallback(&entry);
+    }
+}
+
 void
 updateState()
 {
+    procCallbacks();
+
     const auto& win = app::windowInst();
     auto& mouse = control::g_mouse;
 

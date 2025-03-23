@@ -627,4 +627,34 @@ Future::destroy()
     m_cnd.destroy();
 }
 
+struct SpinLock
+{
+    std::atomic<bool> m_atom_bDone {};
+
+    /* */
+
+    void wait();
+    void signal();
+    void reset();
+};
+
+inline void
+SpinLock::wait()
+{
+    while (!m_atom_bDone.load(std::memory_order_relaxed))
+        ;
+}
+
+inline void
+SpinLock::signal()
+{
+    m_atom_bDone.store(true, std::memory_order_relaxed);
+}
+
+inline void
+SpinLock::reset()
+{
+    m_atom_bDone.store(false, std::memory_order_relaxed);
+}
+
 } /* namespace adt */

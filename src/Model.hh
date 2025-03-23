@@ -46,6 +46,7 @@ struct Model
     /* */
 
     adt::Arena m_arena {};
+    void* m_pExtraData {};
 
     adt::Vec<Node> m_vNodes {};
     adt::Vec<Skin> m_vSkins {};

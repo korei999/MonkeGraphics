@@ -7,8 +7,6 @@
 #include "frame.hh"
 #include "ui.hh"
 
-#include "adt/logs.hh"
-
 using namespace adt;
 
 namespace render::gl::ui

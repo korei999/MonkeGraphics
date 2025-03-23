@@ -36,7 +36,12 @@ struct Entry
             {
                 void (*pfn)(Entry* self, void* pArg) {};
                 void* pArg {};
-            } action;
+            } onUpdate;
+            struct
+            {
+                void (*pfn)(Entry* self, void* pArg) {};
+                void* pArg {};
+            } onClick;
         } menu;
         struct
         {

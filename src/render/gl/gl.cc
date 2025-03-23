@@ -223,17 +223,18 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
              * which would be specified in baseColorTexture.texCoord.
              * But current gltf parser only reads the 0th. */
             gltf::Accessor accUV {};
-            if (primitive.attributes.TEXCOORD_0 != -1)
+            if (primitive.attributes.TEXCOORD_0 > -1)
                 accUV = gltfModel.m_vAccessors[primitive.attributes.TEXCOORD_0];
 
-            app::g_threadPool.wait();
+            /*app::g_threadPool.wait();*/
+            static_cast<SpinLock*>(model.m_pExtraData)->wait();
 
             if (model.m_animationIUsed >= 0 &&
                 model.m_animationIUsed < model.m_vAnimations.size() &&
-                primitive.attributes.JOINTS_0 != -1
+                primitive.attributes.JOINTS_0 > -1
             )
             {
-                ADT_ASSERT(primitive.attributes.WEIGHTS_0 != -1, "must have");
+                ADT_ASSERT(primitive.attributes.WEIGHTS_0 > -1, "must have");
 
                 /*goto GOTO_defaultShader;*/
 
@@ -282,11 +283,11 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
 
                 clBindTexture(primitive);
             }
-            else if (primitive.materialI != -1)
+            else if (primitive.materialI > -1)
             {
                 auto& mat = gltfModel.m_vMaterials[primitive.materialI];
 
-                if (mat.pbrMetallicRoughness.baseColorTexture.index != -1)
+                if (mat.pbrMetallicRoughness.baseColorTexture.index > -1)
                 {
                     auto& tex = gltfModel.m_vTextures[mat.pbrMetallicRoughness.baseColorTexture.index];
                     auto& img = gltfModel.m_vImages[tex.sourceI];
@@ -331,7 +332,7 @@ GOTO_defaultShader:
             {
                 glBindVertexArray(pPrimitiveData->vao);
 
-                if (primitive.indicesI != -1)
+                if (primitive.indicesI > -1)
                 {
                     const gltf::Accessor& accIndices = gltfModel.m_vAccessors[primitive.indicesI];
 
@@ -377,7 +378,7 @@ drawNodeMesh(const Model& model, const Model::Node& node)
             {
                 glBindVertexArray(pPrimitiveData->vao);
 
-                if (primitive.indicesI != -1)
+                if (primitive.indicesI > -1)
                 {
                     const gltf::Accessor& accIndices = gltfModel.m_vAccessors[primitive.indicesI];
 
@@ -476,11 +477,17 @@ Renderer::draw(Arena* pArena)
         /* TODO: implement proper parallel for */
         for (auto& model : Model::g_poolModels)
         {
-            /* FIXME: waiting drops fps badly, but without it animations are very rough on low fps. */
+            auto* pLock = (SpinLock*)pArena->zalloc(1, sizeof(SpinLock));
+            model.m_pExtraData = pLock;
+
+            /* FIXME: waiting drops fps badly, but without it animations stutter on low fps. */
             app::g_threadPool.add(+[](void* p) -> THREAD_STATUS
                 {
-                    auto* pModel = reinterpret_cast<Model*>(p);
+                    auto* pModel = static_cast<Model*>(p);
+
+                    static_cast<SpinLock*>(pModel->m_pExtraData)->reset();
                     pModel->updateAnimation();
+                    static_cast<SpinLock*>(pModel->m_pExtraData)->signal();
 
                     return THREAD_STATUS(0);
                 }, &model
@@ -506,6 +513,7 @@ Renderer::draw(Arena* pArena)
                 {
                     Model& model = Model::fromI(entity.modelI);
                     drawModel(model, math::transformation(entity.pos, entity.rot, entity.scale));
+                    model.m_pExtraData = nullptr;
                 }
                 break;
             }
@@ -940,7 +948,7 @@ loadGLTF(gltf::Model* pModel)
                 glBindVertexArray(newPrimitiveData.vao);
                 defer( glBindVertexArray(0) );
 
-                if (primitive.indicesI != -1)
+                if (primitive.indicesI > -1)
                 {
                     auto& accInd = pModel->m_vAccessors[primitive.indicesI];
                     auto& viewInd = pModel->m_vBufferViews[accInd.bufferViewI];
@@ -961,7 +969,7 @@ loadGLTF(gltf::Model* pModel)
 
                 /* positions */
                 {
-                    ADT_ASSERT(primitive.attributes.POSITION != -1, " ");
+                    ADT_ASSERT(primitive.attributes.POSITION > -1, " ");
                     auto& accPos = pModel->m_vAccessors[primitive.attributes.POSITION];
                     auto& viewPos = pModel->m_vBufferViews[accPos.bufferViewI];
                     auto& buffPos = pModel->m_vBufferViews[viewPos.bufferI];
@@ -981,7 +989,7 @@ loadGLTF(gltf::Model* pModel)
                 }
 
                 /* uv's */
-                if (primitive.attributes.TEXCOORD_0 != -1)
+                if (primitive.attributes.TEXCOORD_0 > -1)
                 {
                     gltf::Accessor accUV = pModel->m_vAccessors[primitive.attributes.TEXCOORD_0];
                     gltf::BufferView viewUV = pModel->m_vBufferViews[accUV.bufferViewI];
@@ -998,7 +1006,7 @@ loadGLTF(gltf::Model* pModel)
                 }
 
                 /* normals */
-                if (primitive.attributes.NORMAL != -1)
+                if (primitive.attributes.NORMAL > -1)
                 {
                     gltf::Accessor accNorm = pModel->m_vAccessors[primitive.attributes.NORMAL];
                     gltf::BufferView viewNorm = pModel->m_vBufferViews[accNorm.bufferViewI];
@@ -1030,7 +1038,7 @@ loadGLTF(gltf::Model* pModel)
                  * WEIGHTS_n: float, or normalized unsigned byte, or normalized unsigned short */
 
                 /* joints */
-                if (primitive.attributes.JOINTS_0 != -1)
+                if (primitive.attributes.JOINTS_0 > -1)
                 {
                     gltf::Accessor accJoints = pModel->m_vAccessors[primitive.attributes.JOINTS_0];
 
@@ -1061,11 +1069,11 @@ loadGLTF(gltf::Model* pModel)
                 }
 
                 /* weights */
-                if (primitive.attributes.JOINTS_0 != -1 && primitive.attributes.WEIGHTS_0 == -1)
+                if (primitive.attributes.JOINTS_0 > -1 && primitive.attributes.WEIGHTS_0 == -1)
                 {
                     LOG_BAD("Skinned nodes must contain WEIGHTS_*\n");
                 }
-                else if (primitive.attributes.JOINTS_0 != -1 && primitive.attributes.WEIGHTS_0 != -1)
+                else if (primitive.attributes.JOINTS_0 > -1 && primitive.attributes.WEIGHTS_0 > -1)
                 {
                     gltf::Accessor accWeights = pModel->m_vAccessors[primitive.attributes.WEIGHTS_0];
 
