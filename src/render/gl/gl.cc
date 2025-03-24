@@ -474,18 +474,21 @@ Renderer::draw(Arena* pArena)
     {
         auto& entities = game::g_poolEntities;
 
+        Span spLocks(pArena->zallocV<SpinLock>(Model::g_poolModels.size()),
+            Model::g_poolModels.size()
+        );
+
         /* TODO: implement proper parallel for */
         for (auto& model : Model::g_poolModels)
         {
-            auto* pLock = (SpinLock*)pArena->zalloc(1, sizeof(SpinLock));
-            model.m_pExtraData = pLock;
+            const ssize idx = Model::g_poolModels.idx(&model);
+            model.m_pExtraData = &spLocks[idx];
 
             /* FIXME: waiting drops fps badly, but without it animations stutter on low fps. */
             app::g_threadPool.add(+[](void* p) -> THREAD_STATUS
                 {
                     auto* pModel = static_cast<Model*>(p);
 
-                    static_cast<SpinLock*>(pModel->m_pExtraData)->reset();
                     pModel->updateAnimation();
                     static_cast<SpinLock*>(pModel->m_pExtraData)->signal();
 

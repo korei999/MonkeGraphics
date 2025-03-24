@@ -641,20 +641,21 @@ struct SpinLock
 inline void
 SpinLock::wait()
 {
-    while (!m_atom_bDone.load(std::memory_order_relaxed))
-        ;
+    while (!m_atom_bDone.load(std::memory_order_acquire))
+    {
+    }
 }
 
 inline void
 SpinLock::signal()
 {
-    m_atom_bDone.store(true, std::memory_order_relaxed);
+    m_atom_bDone.store(true, std::memory_order_release);
 }
 
 inline void
 SpinLock::reset()
 {
-    m_atom_bDone.store(false, std::memory_order_relaxed);
+    m_atom_bDone.store(false, std::memory_order_release);
 }
 
 } /* namespace adt */
