@@ -53,6 +53,7 @@ static const StringView s_aAssetsToLoad[] {
     "assets/vampire/vampire.gltf",
     "assets/skybox",
     "assets/LiberationMono-Regular.ttf",
+    "assets/whale/whale.CYCLES.gltf",
 };
 
 static PoolSOAHandle<Entity>
@@ -143,7 +144,7 @@ loadStuff()
     }
 
     {
-        auto hnd = makeEntity("assets/vampire/vampire.gltf", "Vampire", Entity::TYPE::REGULAR);
+        auto hnd = makeEntity("assets/whale/whale.CYCLES.gltf", "Whale", Entity::TYPE::REGULAR);
         auto bind = g_poolEntities[hnd];
 
         bind.pos = {-9.0f, 0.0f, 5.0f};
