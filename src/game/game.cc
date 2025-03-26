@@ -27,8 +27,6 @@ PoolSOA<Entity, Entity::Bind, MAX_ENTITIES,
     &Entity::vel,
     &Entity::assetI, &Entity::modelI,
     &Entity::eType,
-    &Entity::outlineColor,
-    &Entity::bOutline,
     &Entity::bNoDraw
 > g_poolEntities {};
 
@@ -113,6 +111,8 @@ loadStuff()
 
         auto& model = Model::fromI(bind.modelI);
         model.m_animationIUsed = 1;
+        model.m_bDrawOutline = true;
+        model.m_outlineColor = math::V4From(colors::get(colors::GREEN), 1.0f);
     }
 
     {

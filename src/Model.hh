@@ -55,10 +55,13 @@ struct Model
 
     adt::f64 m_time {};
 
-    adt::SpinLock m_spinLock {};
+    adt::BusyWait m_waitLock {};
 
     int m_animationIUsed = -1;
     adt::i16 m_modelAssetI {};
+
+    bool m_bDrawOutline {};
+    adt::math::V4 m_outlineColor {};
 
     /* */
 

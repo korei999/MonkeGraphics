@@ -42,7 +42,7 @@ thread_local ScratchBuffer gtl_scratch;
 adt::ThreadPool g_threadPool(adt::StdAllocator::inst(),
     +[](void* pArg) -> void
     {
-        allocScratchForThisThread(SIZE_1M);
+        allocScratchForThisThread(SCRATCH_SIZE);
     },
     nullptr,
     +[](void*) -> void
@@ -55,7 +55,7 @@ adt::ThreadPool g_threadPool(adt::StdAllocator::inst(),
 void
 allocScratchForThisThread(ssize size)
 {
-    ADT_ASSERT(stl_pScratchMem == nullptr, " ");
+    ADT_ASSERT(stl_pScratchMem == nullptr, "already allocated");
 
     stl_pScratchMem = static_cast<u8*>(calloc(1, size));
     gtl_scratch = {stl_pScratchMem, size};

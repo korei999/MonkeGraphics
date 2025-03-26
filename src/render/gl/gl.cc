@@ -227,7 +227,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                 accUV = gltfModel.m_vAccessors[primitive.attributes.TEXCOORD_0];
 
             /*app::g_threadPool.wait();*/
-            ((SpinLock&)model.m_spinLock).wait();
+            ((BusyWait&)model.m_waitLock).wait();
 
             if (model.m_animationIUsed >= 0 &&
                 model.m_animationIUsed < model.m_vAnimations.size() &&
@@ -236,7 +236,9 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
             {
                 ADT_ASSERT(primitive.attributes.WEIGHTS_0 > -1, "must have");
 
-                /*goto GOTO_defaultShader;*/
+                if (model.m_bDrawOutline)
+                {
+                }
 
                 if (primitive.materialI > -1 &&
                     gltfModel.m_vMaterials[primitive.materialI].pbrMetallicRoughness.baseColorTexture.index > -1
@@ -483,7 +485,7 @@ Renderer::draw(Arena* pArena)
                     auto* pModel = static_cast<Model*>(p);
 
                     pModel->updateAnimation();
-                    pModel->m_spinLock.signal();
+                    pModel->m_waitLock.signal();
 
                     return THREAD_STATUS(0);
                 }, &model
@@ -509,7 +511,7 @@ Renderer::draw(Arena* pArena)
                 {
                     Model& model = Model::fromI(entity.modelI);
                     drawModel(model, math::transformation(entity.pos, entity.rot, entity.scale));
-                    model.m_spinLock.reset();
+                    model.m_waitLock.reset();
                 }
                 break;
             }
@@ -547,6 +549,7 @@ Texture::Texture(const adt::Span2D<adt::u8> spImgMono, GLint minMagParam)
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glGenTextures(1, &m_id);
     glBindTexture(GL_TEXTURE_2D, m_id);
+
     defer(
         glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
         glBindTexture(GL_TEXTURE_2D, 0);
@@ -661,6 +664,7 @@ Shader::loadOne(GLenum type, adt::StringView sShader)
             LOG_BAD("error compiling shader:\n{}\n", StringView{aBuff, len});
             exit(1);
         }
+
         glDeleteShader(shader);
         return 0;
     }
@@ -1184,8 +1188,9 @@ Skybox::Skybox(Image a6Images[6])
         Image& img = a6Images[i];
 
         glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-                     0, GL_RGBA, img.m_width, img.m_height,
-                     0, GL_RGBA, GL_UNSIGNED_BYTE, img.m_uData.pRGBA);
+            0, GL_RGBA, img.m_width, img.m_height,
+            0, GL_RGBA, GL_UNSIGNED_BYTE, img.m_uData.pRGBA
+        );
     }
 
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

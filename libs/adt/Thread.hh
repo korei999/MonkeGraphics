@@ -629,7 +629,7 @@ Future::destroy()
     m_cnd.destroy();
 }
 
-struct SpinLock
+struct BusyWait
 {
     atomic::Int m_atom_bDone {};
 
@@ -641,7 +641,7 @@ struct SpinLock
 };
 
 inline void
-SpinLock::wait()
+BusyWait::wait()
 {
     while (!m_atom_bDone.load(atomic::ORDER::ACQUIRE))
     {
@@ -649,13 +649,13 @@ SpinLock::wait()
 }
 
 inline void
-SpinLock::signal()
+BusyWait::signal()
 {
     m_atom_bDone.store(1, atomic::ORDER::RELEASE);
 }
 
 inline void
-SpinLock::reset()
+BusyWait::reset()
 {
     m_atom_bDone.store(0, atomic::ORDER::RELEASE);
 }

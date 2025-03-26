@@ -1,6 +1,6 @@
 #pragma once
 
-#include "colors.hh"
+#include "adt/math.hh"
 
 namespace game
 {
@@ -29,9 +29,6 @@ struct Entity
 
         Entity::TYPE& eType;
 
-        adt::math::V4& outlineColor;
-        bool& bOutline;
-
         bool& bNoDraw;
     };
 
@@ -51,9 +48,6 @@ struct Entity
     adt::i16 modelI = -1;
 
     TYPE eType = TYPE::REGULAR;
-
-    adt::math::V4 outlineColor = adt::math::V4From(colors::get(colors::GREEN), 1.0f);
-    bool bOutline = false;
 
     bool bNoDraw = false;
 };
@@ -81,7 +75,7 @@ formatToContext(Context ctx, FormatArgs, const game::Entity::Bind& x)
     ;
 
     ctx.fmtIdx = 0;
-    return printArgs(ctx, x.sfName, x.color, x.pos, x.rot, x.scale, x.vel, x.assetI, x.modelI, x.outlineColor, x.bOutline, x.bNoDraw);
+    return printArgs(ctx, x.sfName, x.color, x.pos, x.rot, x.scale, x.vel, x.assetI, x.modelI, x.bNoDraw);
 }
 
 } /* namespace adt::print */
