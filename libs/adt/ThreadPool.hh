@@ -4,8 +4,7 @@
 #include "Queue.hh"
 #include "Span.hh"
 #include "defer.hh"
-
-#include <atomic>
+#include "atomic.hh"
 
 namespace adt
 {
@@ -28,8 +27,8 @@ struct ThreadPool
     void* m_pLoopStartArg {};
     void (*m_pfnLoopEnd)(void*) {};
     void* m_pLoopEndArg {};
-    std::atomic<int> m_nActiveTasks {};
-    std::atomic<bool> m_bDone {};
+    atomic::Int m_atom_nActiveTasks {};
+    atomic::Int m_atom_bDone {};
 
     /* */
 
@@ -70,7 +69,7 @@ ThreadPool::ThreadPool(IAllocator* pAlloc, int nThreads)
       m_mtxQ(Mutex::TYPE::PLAIN),
       m_cndQ(INIT),
       m_cndWait(INIT),
-      m_bDone(false)
+      m_atom_bDone(false)
 {
     spawnThreads();
 }
@@ -92,7 +91,7 @@ ThreadPool::ThreadPool(
       m_pLoopStartArg(pLoopStartArg),
       m_pfnLoopEnd(pfnLoopEnd),
       m_pLoopEndArg(pLoopEndArg),
-      m_bDone(false)
+      m_atom_bDone(false)
 {
     spawnThreads();
 }
@@ -110,23 +109,23 @@ ThreadPool::loop()
         {
             MutexGuard qLock(&m_mtxQ);
 
-            while (m_qTasks.empty() && !m_bDone.load(std::memory_order_relaxed))
+            while (m_qTasks.empty() && !m_atom_bDone.load(atomic::ORDER::RELAXED))
                 m_cndQ.wait(&m_mtxQ);
 
-            if (m_bDone.load(std::memory_order_relaxed))
+            if (m_atom_bDone.load(atomic::ORDER::RELAXED))
                 return 0;
 
             task = *m_qTasks.popFront();
-            m_nActiveTasks.fetch_add(1, std::memory_order_seq_cst);
+            m_atom_nActiveTasks.fetchAdd(1, atomic::ORDER::SEQ_CST);
         }
 
         task.pfn(task.pArg);
-        m_nActiveTasks.fetch_sub(1, std::memory_order_seq_cst);
+        m_atom_nActiveTasks.fetchSub(1, atomic::ORDER::SEQ_CST);
 
         {
             MutexGuard qLock(&m_mtxQ);
 
-            if (m_qTasks.empty() && m_nActiveTasks.load(std::memory_order_acquire) == 0)
+            if (m_qTasks.empty() && m_atom_nActiveTasks.load(atomic::ORDER::ACQUIRE) == 0)
                 m_cndWait.signal();
         }
     }
@@ -155,7 +154,7 @@ ThreadPool::wait()
 {
     MutexGuard qLock(&m_mtxQ);
 
-    while (!m_qTasks.empty() || m_nActiveTasks.load(std::memory_order_relaxed) != 0)
+    while (!m_qTasks.empty() || m_atom_nActiveTasks.load(atomic::ORDER::RELAXED) != 0)
         m_cndWait.wait(&m_mtxQ);
 }
 
@@ -166,7 +165,7 @@ ThreadPool::destroy()
 
     {
         MutexGuard qLock(&m_mtxQ);
-        m_bDone.store(true, std::memory_order_relaxed);
+        m_atom_bDone.store(1, atomic::ORDER::RELAXED);
     }
 
     m_cndQ.broadcast();

@@ -2,6 +2,7 @@
 
 #include "gltf/Model.hh"
 
+#include "adt/Thread.hh"
 #include "adt/Pool.hh"
 #include "adt/Arena.hh"
 
@@ -46,7 +47,6 @@ struct Model
     /* */
 
     adt::Arena m_arena {};
-    void* m_pExtraData {};
 
     adt::Vec<Node> m_vNodes {};
     adt::Vec<Skin> m_vSkins {};
@@ -54,9 +54,11 @@ struct Model
     adt::Vec<int> m_vSkinnedNodes {};
 
     adt::f64 m_time {};
-    adt::i16 m_modelAssetI {};
+
+    adt::SpinLock m_spinLock {};
 
     int m_animationIUsed = -1;
+    adt::i16 m_modelAssetI {};
 
     /* */
 

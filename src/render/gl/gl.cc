@@ -227,7 +227,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                 accUV = gltfModel.m_vAccessors[primitive.attributes.TEXCOORD_0];
 
             /*app::g_threadPool.wait();*/
-            static_cast<SpinLock*>(model.m_pExtraData)->wait();
+            ((SpinLock&)model.m_spinLock).wait();
 
             if (model.m_animationIUsed >= 0 &&
                 model.m_animationIUsed < model.m_vAnimations.size() &&
@@ -474,23 +474,16 @@ Renderer::draw(Arena* pArena)
     {
         auto& entities = game::g_poolEntities;
 
-        Span spLocks(pArena->zallocV<SpinLock>(Model::g_poolModels.size()),
-            Model::g_poolModels.size()
-        );
-
         /* TODO: implement proper parallel for */
         for (auto& model : Model::g_poolModels)
         {
-            const ssize idx = Model::g_poolModels.idx(&model);
-            model.m_pExtraData = &spLocks[idx];
-
             /* FIXME: waiting drops fps badly, but without it animations stutter on low fps. */
             app::g_threadPool.add(+[](void* p) -> THREAD_STATUS
                 {
                     auto* pModel = static_cast<Model*>(p);
 
                     pModel->updateAnimation();
-                    static_cast<SpinLock*>(pModel->m_pExtraData)->signal();
+                    pModel->m_spinLock.signal();
 
                     return THREAD_STATUS(0);
                 }, &model
@@ -516,7 +509,7 @@ Renderer::draw(Arena* pArena)
                 {
                     Model& model = Model::fromI(entity.modelI);
                     drawModel(model, math::transformation(entity.pos, entity.rot, entity.scale));
-                    model.m_pExtraData = nullptr;
+                    model.m_spinLock.reset();
                 }
                 break;
             }

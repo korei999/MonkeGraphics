@@ -1,6 +1,8 @@
 #pragma once
 
 #include "types.hh"
+#include "assert.hh"
+#include "atomic.hh"
 
 #include <type_traits>
 
@@ -629,7 +631,7 @@ Future::destroy()
 
 struct SpinLock
 {
-    std::atomic<bool> m_atom_bDone {};
+    atomic::Int m_atom_bDone {};
 
     /* */
 
@@ -641,7 +643,7 @@ struct SpinLock
 inline void
 SpinLock::wait()
 {
-    while (!m_atom_bDone.load(std::memory_order_acquire))
+    while (!m_atom_bDone.load(atomic::ORDER::ACQUIRE))
     {
     }
 }
@@ -649,13 +651,13 @@ SpinLock::wait()
 inline void
 SpinLock::signal()
 {
-    m_atom_bDone.store(true, std::memory_order_release);
+    m_atom_bDone.store(1, atomic::ORDER::RELEASE);
 }
 
 inline void
 SpinLock::reset()
 {
-    m_atom_bDone.store(false, std::memory_order_release);
+    m_atom_bDone.store(0, atomic::ORDER::RELEASE);
 }
 
 } /* namespace adt */

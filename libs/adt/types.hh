@@ -87,6 +87,14 @@ constexpr InitFlag INIT {};
     #define ADT_LOGS_FILE __FILE__
 #endif
 
+#if defined __clang__ || __GNUC__
+    #define ADT_ALWAYS_INLINE inline __attribute__((__always_inline__))
+#elif defined _WIN32
+    #define ADT_ALWAYS_INLINE
+#else
+    #define ADT_ALWAYS_INLINE
+#endif
+
 #if defined _WIN32
     #define ADT_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
 #else
