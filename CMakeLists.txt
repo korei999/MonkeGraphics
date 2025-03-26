@@ -164,8 +164,9 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 
     # add_compile_options(/openmp)
 else()
-    add_compile_options(-Wall -Wextra -Wshadow -fms-extensions)
+    add_compile_options(-Wall -Wextra -Wshadow)
     add_compile_options(-Wno-missing-braces)
+    add_compile_options(-fvisibility=hidden -fms-extensions)
 
     # add_compile_options(-fopenmp)
     # add_link_options(-fopenmp)
