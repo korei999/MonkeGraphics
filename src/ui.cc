@@ -39,11 +39,14 @@ init()
         };
 
         Vec<Entry> vEntityEntries(&newWidget.arena);
-        for (auto en : game::g_poolEntities)
+        ssize entityI = 0;
+        for (auto entity : game::g_poolEntities)
         {
-            if (en.bNoDraw) continue;
+            defer( ++entityI );
 
-            Model& model = Model::fromI(en.modelI);
+            if (entity.bNoDraw) continue;
+
+            Model& model = Model::fromI(entity.modelI);
             Vec<Entry> vAnimations(&newWidget.arena);
 
             for (const auto& anim : model.m_vAnimations)
@@ -61,18 +64,30 @@ init()
 
             Entry entityEntry {
                 .menu {
-                    .sfName {en.sfName},
+                    .sfName {entity.sfName},
                     .vEntries {vAnimations},
                     .selColor = math::V4From(colors::get(colors::GREEN), 1.0f),
                     .color = math::V4From(colors::get(colors::WHITESMOKE), 1.0f),
                     .selectedI = 0,
                     .onUpdate {
-                        .pfn = +[](Entry* self, void* p) { self->menu.selectedI = static_cast<Model*>(p)->m_animationIUsed; },
-                        .pArg = &model,
+                        .pfn = +[](Entry* self, void* p) -> void
+                        {
+                            ssize enI = reinterpret_cast<ssize>(p);
+                            auto enBind = game::g_poolEntities[{static_cast<int>(enI)}];
+                            const Model& m = Model::fromI(enBind.modelI);
+                            self->menu.selectedI = m.m_animationIUsed;
+                        },
+                        .pArg = reinterpret_cast<void*>(entityI),
                     },
                     .onClick {
-                        .pfn = +[](Entry* self, void* p) { static_cast<Model*>(p)->m_animationIUsed = self->menu.selectedI; },
-                        .pArg = &model,
+                        .pfn = +[](Entry* self, void* p) -> void
+                        {
+                            ssize enI = reinterpret_cast<ssize>(p);
+                            auto enBind = game::g_poolEntities[{static_cast<int>(enI)}];
+                            Model& m = Model::fromI(enBind.modelI);
+                            m.m_animationIUsed = self->menu.selectedI;
+                        },
+                        .pArg = reinterpret_cast<void*>(entityI),
                     },
                 },
                 .eType = Entry::TYPE::MENU,
@@ -84,8 +99,39 @@ init()
             .arrowList {
                 .vEntries = vEntityEntries,
                 .selectedI = 0,
+                .prevSelectedI = 0,
                 .color = math::V4From(colors::get(colors::WHITE), 1.0f),
-                .arrowColor = math::V4From(colors::get(colors::CYAN), 1.0f)
+                .arrowColor = math::V4From(colors::get(colors::CYAN), 1.0f),
+                .onUpdate {
+                    .pfn = +[](Entry* self, void* p) -> void
+                    {
+                        auto& list = self->arrowList;
+
+                        auto set = [&]<bool B_SET>(ssize selI) -> void
+                        {
+                            if (selI >= 0 && selI < list.vEntries.size())
+                            {
+                                auto& entry = list.vEntries[selI];
+                                ADT_ASSERT(entry.eType == Entry::TYPE::MENU, " ");
+
+                                auto& menu = entry.menu;
+                                ssize enI = reinterpret_cast<ssize>(menu.onClick.pArg);
+                                auto enBind = game::g_poolEntities[{static_cast<int>(enI)}];
+                                Model& mod = Model::fromI(enBind.modelI);
+
+                                if constexpr (B_SET)
+                                    mod.m_oOutlineColor = math::V4From(colors::get(colors::GAINSBORO), 1.0f);
+                                else mod.m_oOutlineColor = {};
+                            }
+                        };
+
+                        if (list.prevSelectedI != list.selectedI)
+                            set.operator()<false>(list.prevSelectedI);
+
+                        set.operator()<true>(list.selectedI);
+                    },
+                    .pArg {},
+                },
             },
             .eType = Entry::TYPE::ARROW_LIST,
         };
@@ -157,6 +203,8 @@ clickArrowList(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int x
         py >= pWidget->y + pWidget->height - yOff - 1
     )
     {
+        list.prevSelectedI = list.selectedI;
+
         if (control::g_abPressed[BTN_LEFT])
             utils::cycleForward(&list.selectedI, list.vEntries.size());
         else if (control::g_abPressed[BTN_RIGHT])
@@ -261,6 +309,8 @@ entryCallback(Entry* pEntry)
         {
             auto& list = pEntry->arrowList;
             for (auto& entry : list.vEntries) entryCallback(&entry);
+
+            if (list.onUpdate.pfn) list.onUpdate.pfn(pEntry, list.onUpdate.pArg);
         }
         break;
 

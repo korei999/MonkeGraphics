@@ -111,8 +111,6 @@ loadStuff()
 
         auto& model = Model::fromI(bind.modelI);
         model.m_animationIUsed = 1;
-        model.m_bDrawOutline = true;
-        model.m_outlineColor = math::V4From(colors::get(colors::GREEN), 1.0f);
     }
 
     {
@@ -152,7 +150,7 @@ loadStuff()
         bind.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
 
         auto& model = Model::fromI(bind.modelI);
-        model.m_animationIUsed = 0;
+        model.m_animationIUsed = 1;
     }
 
     Arena firstUpdateArena(SIZE_1K);

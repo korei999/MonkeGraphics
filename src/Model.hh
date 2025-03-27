@@ -5,6 +5,7 @@
 #include "adt/Thread.hh"
 #include "adt/Pool.hh"
 #include "adt/Arena.hh"
+#include "adt/Opt.hh"
 
 /* Model holds the same order of nodes as the gltf::Model that it refers to */
 struct Model
@@ -60,8 +61,7 @@ struct Model
     int m_animationIUsed = -1;
     adt::i16 m_modelAssetI {};
 
-    bool m_bDrawOutline {};
-    adt::math::V4 m_outlineColor {};
+    adt::Opt<adt::math::V4> m_oOutlineColor {};
 
     /* */
 

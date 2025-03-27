@@ -286,7 +286,7 @@ namespace colors
         adt::math::V3{0.662745f, 0.662745f, 0.662745f}, /* DARKGREY */
         adt::math::V3{0.752941f, 0.752941f, 0.752941f}, /* SILVER */
         adt::math::V3{0.827451f, 0.827451f, 0.827451f}, /* LIGHTGREY */
-        adt::math::V3{0.862745f, 0.862745f, 0.862745f}, /* GAINSBOR */
+        adt::math::V3{0.862745f, 0.862745f, 0.862745f}, /* GAINSBORO */
         adt::math::V3{0.960784f, 0.960784f, 0.960784f}, /* WHITESMOKE */
         adt::math::V3{1.0f, 1.0f, 1.0f}, /* WHITE */
     };

@@ -1,12 +1,12 @@
 #pragma once
 
+#include "types.hh"
+
 #include <cstdio>
 #include <cstdlib>
 
 namespace adt
 {
-
-struct StringView;
 
 inline void
 assertionFailed(const char* cnd, const char* msg, const char* file, int line, const char* func)

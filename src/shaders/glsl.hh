@@ -169,14 +169,14 @@ R"(#version 300 es
 
 precision mediump float;
 
-out vec4 fs_fragColor;
+out vec4 fs_color;
 
 uniform vec4 u_color;
 
 void
 main()
 {
-    fs_fragColor = u_color;
+    fs_color = u_color;
 }
 )";
 

@@ -1,7 +1,5 @@
 #include "ClientGL.hh"
 
-#include "render/gl/glfunc.hh"
-
 #include "adt/Array.hh"
 #include "adt/logs.hh"
 

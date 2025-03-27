@@ -21,6 +21,12 @@ struct Entry
         TEXT, ARROW_LIST, MENU,
     };
 
+    struct Action
+    {
+        void (*pfn)(Entry* self, void* pArg) {};
+        void* pArg {};
+    };
+
     /* */
 
     union
@@ -32,23 +38,17 @@ struct Entry
             adt::math::V4 selColor {};
             adt::math::V4 color {};
             adt::ssize selectedI {};
-            struct
-            {
-                void (*pfn)(Entry* self, void* pArg) {};
-                void* pArg {};
-            } onUpdate;
-            struct
-            {
-                void (*pfn)(Entry* self, void* pArg) {};
-                void* pArg {};
-            } onClick;
+            Action onUpdate;
+            Action onClick;
         } menu;
         struct
         {
             adt::Vec<Entry> vEntries {};
             adt::ssize selectedI {};
+            adt::ssize prevSelectedI {};
             adt::math::V4 color {};
             adt::math::V4 arrowColor {};
+            Action onUpdate {};
         } arrowList;
         struct
         {

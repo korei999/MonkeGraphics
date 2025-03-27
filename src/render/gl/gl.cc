@@ -137,6 +137,7 @@ Renderer::init()
 #endif
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_STENCIL_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -157,22 +158,27 @@ Renderer::init()
     ui::init();
 };
 
+/* FIXME: codepath horror */
 static void
-drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
+drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const math::M4& trmProj)
 {
     using namespace adt::math;
     const gltf::Node& gltfNode = model.gltfNode(node);
     const auto& win = app::windowInst();
     const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
     const auto& camera = control::g_camera;
-    const M4 trmProj = M4Pers(toRad(camera.m_fov), aspectRatio, 0.01f, 1000.0f);
     const M4& trmView = camera.m_trm;
     const auto& gltfModel = model.gltfModel();
 
     for (const int& child : gltfNode.vChildren)
-        drawNode(model, model.m_vNodes[child], trm);
+        drawNode(model, model.m_vNodes[child], trm, trmProj);
 
     Shader* pSh {};
+    Shader* pStencilShader {};
+    void (*pfnStencilUpdate)(Shader* pShader, const M4& mat, const V4& color, void* pExtra) {};
+    M4 stencilTrm {};
+    V4 stencilColor {};
+    void* pStencilExtra {};
 
     auto clBindTexture = [&](const gltf::Primitive& primitive)
     {
@@ -204,6 +210,23 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
 
     };
 
+    auto clStencilTrmColor = [&](Shader* pStShader, const M4& stencilFullTrm)
+    {
+        if (model.m_oOutlineColor && pStShader)
+        {
+            pStencilShader = pStShader;
+            stencilTrm = stencilFullTrm * M4ScaleFrom(1.05f);
+            stencilColor = model.m_oOutlineColor.valueOr({});
+
+            pfnStencilUpdate = +[](Shader* pShader, const M4& stencilMat, const V4& color, void* pExtra) -> void
+            {
+                pShader->use();
+                pShader->setV4("u_color", color);
+                pShader->setM4("u_trm", stencilMat);
+            };
+        }
+    };
+
     auto clSetGouraud = [&]
     {
         auto light = game::g_poolEntities[game::g_dirLight];
@@ -211,6 +234,20 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
         pSh->setV3("u_lightPos", light.pos);
         pSh->setV3("u_lightColor", light.color.xyz);
         pSh->setV3("u_ambientColor", game::g_ambientLight);
+    };
+
+    auto clStencilNormalDraw = [&]
+    {
+        glStencilFunc(GL_ALWAYS, 1, 0xff);
+        glStencilMask(0xff);
+        glEnable(GL_DEPTH_TEST);
+    };
+
+    auto clStencilOutlineDraw = [&]
+    {
+        glStencilFunc(GL_NOTEQUAL, 1, 0xff);
+        glStencilMask(0x00);
+        glDisable(GL_DEPTH_TEST);
     };
 
     if (gltfNode.meshI > -1)
@@ -235,10 +272,6 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
             )
             {
                 ADT_ASSERT(primitive.attributes.WEIGHTS_0 > -1, "must have");
-
-                if (model.m_bDrawOutline)
-                {
-                }
 
                 if (primitive.materialI > -1 &&
                     gltfModel.m_vMaterials[primitive.materialI].pbrMetallicRoughness.baseColorTexture.index > -1
@@ -283,7 +316,38 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                 pSh->setM4("u_projection", trmProj);
                 pSh->setM4("u_a128TrmJoints", Span<M4>(skin.vJointMatrices));
 
-                clBindTexture(primitive);
+                clBindTexture(primitive); /* calls nextMem */
+
+                if (model.m_oOutlineColor)
+                {
+                    pStencilShader = searchShader("Skin");
+                    stencilTrm = trm * M4ScaleFrom(1.05f) * node.finalTransform;
+                    stencilColor = model.m_oOutlineColor.valueOr({});
+
+                    struct Arg
+                    {
+                        math::M4 trmProj;
+                        Span<M4> spJointMatrcies;
+                    };
+
+                    Span<Arg> spArg = app::gtl_scratch.nextMem<Arg>(1);
+                    spArg[0].trmProj = trmProj;
+                    spArg[0].spJointMatrcies = Span<M4>(skin.vJointMatrices);
+
+                    pStencilExtra = &spArg[0];
+
+                    pfnStencilUpdate = +[](Shader* pShader, const M4& stencilMat, const V4& color, void* pExtra) -> void
+                    {
+                        Arg* a = static_cast<Arg*>(pExtra);
+
+                        pShader->use();
+                        pShader->setM4("u_model", stencilMat);
+                        pShader->setM4("u_view", trmView);
+                        pShader->setV4("u_color", color);
+                        pShader->setM4("u_projection", a->trmProj);
+                        pShader->setM4("u_a128TrmJoints", a->spJointMatrcies);
+                    };
+                }
             }
             else if (primitive.materialI > -1)
             {
@@ -308,7 +372,11 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                         if (pTex) pTex->bind(GL_TEXTURE0);
                         else g_texDefault.bind(GL_TEXTURE0);
 
-                        pSh->setM4("u_trm", trmProj * trmView * trm * node.finalTransform);
+                        M4 transform = trmProj * trmView * trm * node.finalTransform;
+                        pSh->setM4("u_trm", transform);
+
+                        auto* pShSimpleCol = searchShader("SimpleColor");
+                        clStencilTrmColor(pShSimpleCol, transform);
                     }
                     else goto GOTO_defaultShader;
                 }
@@ -317,7 +385,10 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm)
                     pSh = searchShader("SimpleColor");
                     pSh->use();
                     pSh->setV4("u_color", mat.pbrMetallicRoughness.baseColorFactor);
-                    pSh->setM4("u_trm", trmProj * trmView * trm * node.finalTransform);
+                    M4 transform = trmProj * trmView * trm * node.finalTransform;
+                    pSh->setM4("u_trm", transform);
+
+                    clStencilTrmColor(pSh, transform);
                 }
             }
             else
@@ -344,6 +415,29 @@ GOTO_defaultShader:
                         static_cast<GLenum>(accIndices.eComponentType),
                         {}
                     );
+
+                    if (model.m_oOutlineColor)
+                    {
+                        ADT_ASSERT(pStencilShader, " ");
+                        if (pStencilShader)
+                        {
+                            pStencilShader->use();
+
+                            if (pfnStencilUpdate)
+                                pfnStencilUpdate(pStencilShader, stencilTrm, stencilColor, pStencilExtra);
+
+                            clStencilOutlineDraw();
+
+                            glDrawElements(
+                                static_cast<GLenum>(primitive.eMode),
+                                accIndices.count,
+                                static_cast<GLenum>(accIndices.eComponentType),
+                                {}
+                            );
+
+                            clStencilNormalDraw();
+                        }
+                    }
                 }
                 else
                 {
@@ -354,6 +448,28 @@ GOTO_defaultShader:
                         0,
                         accPos.count
                     );
+
+                    if (model.m_oOutlineColor)
+                    {
+                        ADT_ASSERT(pStencilShader, " ");
+                        if (pStencilShader)
+                        {
+                            pStencilShader->use();
+
+                            if (pfnStencilUpdate)
+                                pfnStencilUpdate(pStencilShader, stencilTrm, stencilColor, pStencilExtra);
+
+                            clStencilOutlineDraw();
+
+                            glDrawArrays(
+                                static_cast<GLenum>(primitive.eMode),
+                                0,
+                                accPos.count
+                            );
+
+                            clStencilNormalDraw();
+                        }
+                    }
                 }
             }
         }
@@ -409,13 +525,18 @@ drawNodeMesh(const Model& model, const Model::Node& node)
 static void
 drawModel(const Model& model, math::M4 trm)
 {
+    auto& win = app::windowInst();
+
     const gltf::Model& gltfModel = model.gltfModel();
     const gltf::Scene& scene = gltfModel.m_vScenes[gltfModel.m_defaultSceneI];
+
+    const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
+    const math::M4 trmProj = math::M4Pers(math::toRad(control::g_camera.m_fov), aspectRatio, 0.01f, 1000.0f);
 
     for (const int& nodeI : scene.vNodes)
     {
         const Model::Node& node = model.m_vNodes[nodeI];
-        drawNode(model, node, trm);
+        drawNode(model, node, trm, trmProj);
     }
 }
 
@@ -468,10 +589,19 @@ Renderer::draw(Arena* pArena)
     auto& win = app::windowInst();
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
     glViewport(0, 0, win.m_winWidth, win.m_winHeight);
 
+    glStencilMask(0x00);
+
     drawSkybox();
+
+    glStencilFunc(GL_ALWAYS, 1, 0xff);
+    glStencilMask(0xff);
 
     {
         auto& entities = game::g_poolEntities;
