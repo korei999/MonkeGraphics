@@ -188,6 +188,14 @@ windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         control::g_abPressed[BTN_LEFT] = false;
         break;
 
+        case WM_RBUTTONDOWN:
+        control::g_abPressed[BTN_RIGHT] = true;
+        break;
+
+        case WM_RBUTTONUP:
+        control::g_abPressed[BTN_RIGHT] = false;
+        break;
+
         case WM_SYSKEYUP:
         case WM_SYSKEYDOWN:
         case WM_KEYUP:

@@ -327,11 +327,13 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
                     struct Arg
                     {
                         math::M4 trmProj;
+                        math::M4 trmView;
                         Span<M4> spJointMatrcies;
                     };
 
                     Span<Arg> spArg = app::gtl_scratch.nextMem<Arg>(1);
                     spArg[0].trmProj = trmProj;
+                    spArg[0].trmView = trmView;
                     spArg[0].spJointMatrcies = Span<M4>(skin.vJointMatrices);
 
                     pStencilExtra = &spArg[0];
@@ -342,9 +344,9 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
 
                         pShader->use();
                         pShader->setM4("u_model", stencilMat);
-                        pShader->setM4("u_view", trmView);
                         pShader->setV4("u_color", color);
                         pShader->setM4("u_projection", a->trmProj);
+                        pShader->setM4("u_view", a->trmView);
                         pShader->setM4("u_a128TrmJoints", a->spJointMatrcies);
                     };
                 }

@@ -45,6 +45,10 @@ struct Int
 
         return __atomic_load_n(&m_int, orderMap(eOrder));
 
+#elif defined ADT_USE_WIN32_ATOMICS
+
+        return InterlockedCompareExchange(const_cast<volatile LONG*>(&m_int), 0, 0);
+
 #endif
     }
 
@@ -54,6 +58,10 @@ struct Int
 #ifdef ADT_USE_LINUX_ATOMICS
 
         __atomic_store_n(&m_int, val, orderMap(eOrder));
+
+#elif defined ADT_USE_WIN32_ATOMICS
+
+        InterlockedExchange(&m_int, val);
 
 #endif
     }
@@ -65,6 +73,10 @@ struct Int
 
         return __atomic_fetch_add(&m_int, val, orderMap(eOrder));
 
+#elif defined ADT_USE_WIN32_ATOMICS
+
+        return InterlockedExchangeAdd(&m_int, val);
+
 #endif
     }
 
@@ -74,6 +86,10 @@ struct Int
 #ifdef ADT_USE_LINUX_ATOMICS
 
         return __atomic_fetch_sub(&m_int, val, orderMap(eOrder));
+
+#elif defined ADT_USE_WIN32_ATOMICS
+
+        return InterlockedExchangeAdd(&m_int, -val);
 
 #endif
     }
@@ -85,7 +101,13 @@ protected:
     orderMap(const ORDER eOrder) noexcept
     {
 #ifdef ADT_USE_LINUX_ATOMICS
+
         return static_cast<int>(eOrder);
+
+#elif defined ADT_USE_WIN32_ATOMICS
+
+        return {};
+
 #endif
     }
 };
