@@ -27,7 +27,9 @@ namespace render::gl
 struct PrimitiveData
 {
     GLuint vao {};
-    GLuint vbo {};
+    GLuint vboPos {};
+    GLuint vboUVs {};
+    GLuint vboNormals {};
     GLuint vboJoints {};
     GLuint vboWeights {};
     GLuint ebo {};
@@ -277,33 +279,17 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
                     gltfModel.m_vMaterials[primitive.materialI].pbrMetallicRoughness.baseColorTexture.index > -1
                 )
                 {
-                    if (primitive.attributes.NORMAL > -1)
-                    {
-                        pSh = searchShader("GouraudTex");
-                        ADT_ASSERT(pSh, " ");
-                        pSh->use();
-                        clSetGouraud();
-                    }
-                    else
-                    {
-                        pSh = searchShader("SkinTexture");
-                        pSh->use();
-                    }
+                    pSh = searchShader("GouraudTex");
+                    ADT_ASSERT(pSh, " ");
+                    pSh->use();
+                    clSetGouraud();
                 }
                 else
                 {
-                    if (primitive.attributes.NORMAL > -1)
-                    {
-                        pSh = searchShader("Gouraud");
-                        ADT_ASSERT(pSh, " ");
-                        pSh->use();
-                        clSetGouraud();
-                    }
-                    else
-                    {
-                        pSh = searchShader("Skin");
-                        pSh->use();
-                    }
+                    pSh = searchShader("Gouraud");
+                    ADT_ASSERT(pSh, " ");
+                    pSh->use();
+                    clSetGouraud();
                 }
 
                 ADT_ASSERT(gltfNode.skinI > -1, " ");
@@ -1051,199 +1037,256 @@ loadGLTF(gltf::Model* pModel)
 
     auto& obj = *reinterpret_cast<asset::Object*>(pModel);
 
-    VecManaged<GLuint> vVBOs(StdAllocator::inst());;
-    defer( vVBOs.destroy() );
+    if (pModel->m_vBuffers.empty())
     {
-        for (auto& buffer : pModel->m_vBuffers)
-        {
-            GLuint vbo;
-            glGenBuffers(1, &vbo);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo);
-            glBufferData(GL_ARRAY_BUFFER, buffer.byteLength, buffer.sBin.data(), GL_STATIC_DRAW);
-            vVBOs.push(vbo);
-        }
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        LOG_WARN("no buffers in '{}'\n", obj.m_sMappedWith);
+        return;
     }
 
-    /* if no buffers there is nothing to do */
-    if (vVBOs.empty()) return;
-
+    for (auto& mesh : pModel->m_vMeshes)
     {
-        for (auto& mesh : pModel->m_vMeshes)
+        LOG_GOOD("loading mesh: '{}'...\n", mesh.sName);
+        for (auto& primitive : mesh.vPrimitives)
         {
-            LOG_GOOD("loading mesh: '{}'...\n", mesh.sName);
-            for (auto& primitive : mesh.vPrimitives)
+            PrimitiveData newPrimitiveData {};
+
+            glGenVertexArrays(1, &newPrimitiveData.vao);
+            glBindVertexArray(newPrimitiveData.vao);
+            defer( glBindVertexArray(0) );
+
+            /* indices */
+            if (primitive.indicesI > -1)
             {
-                PrimitiveData newPrimitiveData {};
+                auto& accInd = pModel->m_vAccessors[primitive.indicesI];
+                auto& viewInd = pModel->m_vBufferViews[accInd.bufferViewI];
+                auto& buffInd = pModel->m_vBuffers[viewInd.bufferI];
 
-                glGenVertexArrays(1, &newPrimitiveData.vao);
-                glBindVertexArray(newPrimitiveData.vao);
-                defer( glBindVertexArray(0) );
+                glGenBuffers(1, &newPrimitiveData.ebo);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, newPrimitiveData.ebo);
+                glBufferData(
+                    GL_ELEMENT_ARRAY_BUFFER,
+                    viewInd.byteLength,
+                    &buffInd.sBin[accInd.byteOffset + viewInd.byteOffset],
+                    GL_STATIC_DRAW
+                );
+            }
 
-                if (primitive.indicesI > -1)
-                {
-                    auto& accInd = pModel->m_vAccessors[primitive.indicesI];
-                    auto& viewInd = pModel->m_vBufferViews[accInd.bufferViewI];
-                    auto& buffInd = pModel->m_vBuffers[viewInd.bufferI];
+            /* positions */
+            {
+                ADT_ASSERT(primitive.attributes.POSITION > -1, " ");
+                glGenBuffers(1, &newPrimitiveData.vboPos);
+                glBindBuffer(GL_ARRAY_BUFFER, newPrimitiveData.vboPos);
 
-                    {
-                        /* NOTE: we are duplicating index buffer here */
-                        glGenBuffers(1, &newPrimitiveData.ebo);
-                        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, newPrimitiveData.ebo);
-                        glBufferData(
-                            GL_ELEMENT_ARRAY_BUFFER,
-                            viewInd.byteLength,
-                            &buffInd.sBin[accInd.byteOffset + viewInd.byteOffset],
-                            GL_STATIC_DRAW
-                        );
-                    }
-                }
+                View<math::V3> vwPos = pModel->accessorView<math::V3>(primitive.attributes.POSITION);
+                VecManaged<math::V3> vPos(StdAllocator::inst(), vwPos.size());
+                defer( vPos.destroy() );
 
-                /* positions */
-                {
-                    ADT_ASSERT(primitive.attributes.POSITION > -1, " ");
-                    auto& accPos = pModel->m_vAccessors[primitive.attributes.POSITION];
-                    auto& viewPos = pModel->m_vBufferViews[accPos.bufferViewI];
-                    auto& buffPos = pModel->m_vBufferViews[viewPos.bufferI];
+                for (const auto& pos : vwPos) vPos.push(pos);
+                glBufferData(GL_ARRAY_BUFFER, vPos.size()*sizeof(vPos[0]), vPos.data(), GL_STATIC_DRAW);
 
-                    newPrimitiveData.vbo = vVBOs[buffPos.bufferI];
-                    glBindBuffer(GL_ARRAY_BUFFER, newPrimitiveData.vbo);
+                glEnableVertexAttribArray(shaders::glsl::POS_LOCATION);
+                glVertexAttribPointer(
+                    shaders::glsl::POS_LOCATION,
+                    3, /* positions are 3 f32s */
+                    static_cast<GLenum>(GL_FLOAT),
+                    false,
+                    0,
+                    0
+                );
+            }
 
-                    glEnableVertexAttribArray(shaders::glsl::POS_LOCATION);
-                    glVertexAttribPointer(
-                        shaders::glsl::POS_LOCATION,
-                        3, /* positions are 3 f32s */
-                        static_cast<GLenum>(accPos.eComponentType),
-                        false,
-                        viewPos.byteStride,
-                        reinterpret_cast<void*>(accPos.byteOffset + viewPos.byteOffset)
-                    );
-                }
+            /* uv's */
+            if (primitive.attributes.TEXCOORD_0 > -1)
+            {
+                const gltf::Accessor& accUV = pModel->m_vAccessors[primitive.attributes.TEXCOORD_0];
+                const gltf::BufferView& viewUV = pModel->m_vBufferViews[accUV.bufferViewI];
+                const gltf::Buffer& buffUV = pModel->m_vBuffers[viewUV.bufferI];
 
-                /* uv's */
-                if (primitive.attributes.TEXCOORD_0 > -1)
-                {
-                    gltf::Accessor accUV = pModel->m_vAccessors[primitive.attributes.TEXCOORD_0];
-                    gltf::BufferView viewUV = pModel->m_vBufferViews[accUV.bufferViewI];
+                glGenBuffers(1, &newPrimitiveData.vboUVs);
+                glBindBuffer(GL_ARRAY_BUFFER, newPrimitiveData.vboUVs);
+                glBufferData(
+                    GL_ARRAY_BUFFER,
+                    viewUV.byteLength,
+                    &buffUV.sBin[accUV.byteOffset + viewUV.byteOffset],
+                    GL_STATIC_DRAW
+                );
 
-                    glEnableVertexAttribArray(shaders::glsl::TEX_LOCATION);
-                    glVertexAttribPointer(
-                        shaders::glsl::TEX_LOCATION,
-                        2, /* uvs are 2 f32s */
-                        static_cast<GLenum>(accUV.eComponentType),
-                        false,
-                        viewUV.byteStride,
-                        reinterpret_cast<void*>(accUV.byteOffset + viewUV.byteOffset)
-                    );
-                }
+                glEnableVertexAttribArray(shaders::glsl::TEX_LOCATION);
+                glVertexAttribPointer(
+                    shaders::glsl::TEX_LOCATION,
+                    2, /* uvs are 2 f32s */
+                    static_cast<GLenum>(accUV.eComponentType),
+                    false,
+                    viewUV.byteStride,
+                    0
+                );
+            }
 
-                /* normals */
-                if (primitive.attributes.NORMAL > -1)
-                {
-                    gltf::Accessor accNorm = pModel->m_vAccessors[primitive.attributes.NORMAL];
-                    gltf::BufferView viewNorm = pModel->m_vBufferViews[accNorm.bufferViewI];
+            /* normals */
+            if (primitive.attributes.NORMAL > -1)
+            {
+                const gltf::Accessor& accNorm = pModel->m_vAccessors[primitive.attributes.NORMAL];
+                const gltf::BufferView& viewNorm = pModel->m_vBufferViews[accNorm.bufferViewI];
+                const gltf::Buffer& buffNorm = pModel->m_vBuffers[viewNorm.bufferI];
+
+                glGenBuffers(1, &newPrimitiveData.vboNormals);
+                glBindBuffer(GL_ARRAY_BUFFER, newPrimitiveData.vboNormals);
+                glBufferData(
+                    GL_ARRAY_BUFFER,
+                    viewNorm.byteLength,
+                    &buffNorm.sBin[accNorm.byteOffset + viewNorm.byteOffset],
+                    GL_STATIC_DRAW
+                );
+
+                glEnableVertexAttribArray(shaders::glsl::NORMAL_LOCATION);
+                glVertexAttribPointer(
+                    shaders::glsl::NORMAL_LOCATION,
+                    3, /* normals are 3 f32s */
+                    static_cast<GLenum>(accNorm.eComponentType),
+                    false,
+                    viewNorm.byteStride,
+                    0
+                );
+            }
+            else /* calculate from positions */
+            {
+                const View<math::V3> vwPos = pModel->accessorView<math::V3>(primitive.attributes.POSITION);
+
+                /* TODO: maybe keep normals */
+                VecManaged<math::V3> vNormals(StdAllocator::inst());
+                defer( vNormals.destroy() );
+
+                defer(
+                    glGenBuffers(1, &newPrimitiveData.vboNormals);
+                    glBindBuffer(GL_ARRAY_BUFFER, newPrimitiveData.vboNormals);
+                    glBufferData(GL_ARRAY_BUFFER, vNormals.size() * sizeof(vNormals[0]), vNormals.data(), GL_STATIC_DRAW);
 
                     glEnableVertexAttribArray(shaders::glsl::NORMAL_LOCATION);
                     glVertexAttribPointer(
                         shaders::glsl::NORMAL_LOCATION,
                         3, /* normals are 3 f32s */
-                        static_cast<GLenum>(accNorm.eComponentType),
+                        static_cast<GLenum>(GL_FLOAT),
                         false,
-                        viewNorm.byteStride,
-                        reinterpret_cast<void*>(accNorm.byteOffset + viewNorm.byteOffset)
+                        0,
+                        0
                     );
-                }
-                else /* calculate from positions */
+                );
+
+                if (primitive.indicesI > -1)
                 {
-                    /*const View<math::V3> vwPos = pModel->accessorView<math::V3>(primitive.attributes.POSITION);*/
-                    /*VecManaged<math::V3> vNorms(StdAllocator::inst(), vwPos.size());*/
-                    /*defer( vNorms.destroy() );*/
+                    const auto& accInd = pModel->m_vAccessors[primitive.indicesI];
+                    ADT_ASSERT(accInd.eComponentType == gltf::COMPONENT_TYPE::UNSIGNED_SHORT, "TODO: implement the rest");
 
-                    /*ADT_ASSERT(vwPos.size() % 3 == 0, "size: %lld", vwPos.size());*/
-                    /*for (auto& pos : vwPos)*/
-                    /*{*/
-                    /*}*/
-                }
+                    const View<u16> vwInd = pModel->accessorView<u16>(primitive.indicesI);
+                    ADT_ASSERT(vwInd.size() >= 3 && vwInd.size() % 3 == 0, " ");
 
-                /* NOTE:
-                 * JOINTS_n: unsigned byte or unsigned short
-                 * WEIGHTS_n: float, or normalized unsigned byte, or normalized unsigned short */
-
-                /* joints */
-                if (primitive.attributes.JOINTS_0 > -1)
-                {
-                    gltf::Accessor accJoints = pModel->m_vAccessors[primitive.attributes.JOINTS_0];
-
-                    switch (accJoints.eComponentType)
+                    for (ssize i = 0; i < vwInd.size(); i += 3)
                     {
-                        default: LOG_BAD("unexpected component type\n"); break;
+                        math::V3 tri[3] {
+                            vwPos[ vwInd[i + 0] ], vwPos[ vwInd[i + 1] ], vwPos[ vwInd[i + 2] ]
+                        };
 
-                        case gltf::COMPONENT_TYPE::UNSIGNED_BYTE:
-                        {
-                            View<math::IV4u8> vwU8(pModel->accessorView<math::IV4u8>(primitive.attributes.JOINTS_0));
-
-                            bufferViewConvert<math::IV4u8, math::IV4>(
-                                vwU8, accJoints.count, shaders::glsl::JOINT_LOCATION, 4, GL_INT, &newPrimitiveData.vboJoints
-                            );
-                        }
-                        break;
-
-                        case gltf::COMPONENT_TYPE::UNSIGNED_SHORT:
-                        {
-                            View<math::IV4u16> vwU16(pModel->accessorView<math::IV4u16>(primitive.attributes.JOINTS_0));
-
-                            bufferViewConvert<math::IV4u16, math::IV4>(
-                                vwU16, accJoints.count, shaders::glsl::JOINT_LOCATION, 4, GL_INT, &newPrimitiveData.vboJoints
-                            );
-                        }
-                        break;
+                        math::V3 normal = math::V3Norm(math::V3Cross(tri[0] - tri[1], tri[0] - tri[2]));
+                        math::V3 aNormals[3] {normal, normal, normal};
+                        vNormals.pushSpan(aNormals);
                     }
                 }
-
-                /* weights */
-                if (primitive.attributes.JOINTS_0 > -1 && primitive.attributes.WEIGHTS_0 == -1)
+                else
                 {
-                    LOG_BAD("Skinned nodes must contain WEIGHTS_*\n");
-                }
-                else if (primitive.attributes.JOINTS_0 > -1 && primitive.attributes.WEIGHTS_0 > -1)
-                {
-                    gltf::Accessor accWeights = pModel->m_vAccessors[primitive.attributes.WEIGHTS_0];
+                    ADT_ASSERT(vwPos.size() >= 0 && vwPos.size() % 3 == 0, " ");
 
-                    switch (accWeights.eComponentType)
+                    for (ssize i = 0; i < vwPos.size(); i += 3)
                     {
-                        default: LOG_BAD("unhandled component type\n"); break;
+                        math::V3 tri[3] {
+                            vwPos[i + 0], vwPos[i + 1], vwPos[i + 2]
+                        };
 
-                        case gltf::COMPONENT_TYPE::UNSIGNED_BYTE:
-                        {
-                        }
-                        break;
-
-                        case gltf::COMPONENT_TYPE::UNSIGNED_SHORT:
-                        {
-                            const View<math::IV4u16> vwU16(pModel->accessorView<math::IV4u16>(primitive.attributes.WEIGHTS_0));
-
-                            bufferViewConvert<math::IV4u16, math::V4>(
-                                vwU16, accWeights.count, shaders::glsl::WEIGHT_LOCATION, 4, GL_FLOAT, &newPrimitiveData.vboWeights
-                            );
-                        }
-                        break;
-
-                        case gltf::COMPONENT_TYPE::FLOAT:
-                        {
-                            const View<math::V4> vwV4(pModel->accessorView<math::V4>(primitive.attributes.WEIGHTS_0));
-
-                            bufferViewConvert<math::V4, math::V4>(
-                                vwV4, accWeights.count,
-                                shaders::glsl::WEIGHT_LOCATION, 4, static_cast<GLenum>(accWeights.eComponentType),
-                                &newPrimitiveData.vboWeights
-                            );
-                        }
-                        break;
+                        math::V3 normal = math::V3Norm(math::V3Cross(tri[0] - tri[1], tri[0] - tri[2]));
+                        math::V3 aNormals[3] {normal, normal, normal};
+                        vNormals.pushSpan(aNormals);
                     }
-                }
 
-                primitive.pData = obj.m_arena.alloc<PrimitiveData>(newPrimitiveData);
+                }
             }
+
+            /* NOTE:
+             * JOINTS_n: unsigned byte or unsigned short
+             * WEIGHTS_n: float, or normalized unsigned byte, or normalized unsigned short */
+
+            /* joints */
+            if (primitive.attributes.JOINTS_0 > -1)
+            {
+                gltf::Accessor accJoints = pModel->m_vAccessors[primitive.attributes.JOINTS_0];
+
+                switch (accJoints.eComponentType)
+                {
+                    default: LOG_BAD("unexpected component type\n"); break;
+
+                    case gltf::COMPONENT_TYPE::UNSIGNED_BYTE:
+                    {
+                        View<math::IV4u8> vwU8(pModel->accessorView<math::IV4u8>(primitive.attributes.JOINTS_0));
+
+                        bufferViewConvert<math::IV4u8, math::IV4>(
+                            vwU8, accJoints.count, shaders::glsl::JOINT_LOCATION, 4, GL_INT, &newPrimitiveData.vboJoints
+                        );
+                    }
+                    break;
+
+                    case gltf::COMPONENT_TYPE::UNSIGNED_SHORT:
+                    {
+                        View<math::IV4u16> vwU16(pModel->accessorView<math::IV4u16>(primitive.attributes.JOINTS_0));
+
+                        bufferViewConvert<math::IV4u16, math::IV4>(
+                            vwU16, accJoints.count, shaders::glsl::JOINT_LOCATION, 4, GL_INT, &newPrimitiveData.vboJoints
+                        );
+                    }
+                    break;
+                }
+            }
+
+            /* weights */
+            if (primitive.attributes.JOINTS_0 > -1 && primitive.attributes.WEIGHTS_0 == -1)
+            {
+                LOG_BAD("Skinned nodes must contain WEIGHTS_*\n");
+            }
+            else if (primitive.attributes.JOINTS_0 > -1 && primitive.attributes.WEIGHTS_0 > -1)
+            {
+                gltf::Accessor accWeights = pModel->m_vAccessors[primitive.attributes.WEIGHTS_0];
+
+                switch (accWeights.eComponentType)
+                {
+                    default: LOG_BAD("unhandled component type\n"); break;
+
+                    case gltf::COMPONENT_TYPE::UNSIGNED_BYTE:
+                    {
+                    }
+                    break;
+
+                    case gltf::COMPONENT_TYPE::UNSIGNED_SHORT:
+                    {
+                        const View<math::IV4u16> vwU16(pModel->accessorView<math::IV4u16>(primitive.attributes.WEIGHTS_0));
+
+                        bufferViewConvert<math::IV4u16, math::V4>(
+                            vwU16, accWeights.count, shaders::glsl::WEIGHT_LOCATION, 4, GL_FLOAT, &newPrimitiveData.vboWeights
+                        );
+                    }
+                    break;
+
+                    case gltf::COMPONENT_TYPE::FLOAT:
+                    {
+                        const View<math::V4> vwV4(pModel->accessorView<math::V4>(primitive.attributes.WEIGHTS_0));
+
+                        bufferViewConvert<math::V4, math::V4>(
+                            vwV4, accWeights.count,
+                            shaders::glsl::WEIGHT_LOCATION, 4, static_cast<GLenum>(accWeights.eComponentType),
+                            &newPrimitiveData.vboWeights
+                        );
+                    }
+                    break;
+                }
+            }
+
+            primitive.pData = obj.m_arena.alloc<PrimitiveData>(newPrimitiveData);
         }
     }
 }
