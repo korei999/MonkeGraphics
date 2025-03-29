@@ -1180,20 +1180,30 @@ loadGLTF(gltf::Model* pModel)
                     const View<u16> vwInd = pModel->accessorView<u16>(primitive.indicesI);
                     ADT_ASSERT(vwInd.size() >= 3 && vwInd.size() % 3 == 0, " ");
 
+                    vNormals.setSize(vwInd.size() * 3);
+
                     for (ssize i = 0; i < vwInd.size(); i += 3)
                     {
+                        const ssize i0 = vwInd[i + 0];
+                        const ssize i1 = vwInd[i + 1];
+                        const ssize i2 = vwInd[i + 2];
+
                         math::V3 tri[3] {
-                            vwPos[ vwInd[i + 0] ], vwPos[ vwInd[i + 1] ], vwPos[ vwInd[i + 2] ]
+                            vwPos[i0], vwPos[i1], vwPos[i2]
                         };
 
                         math::V3 normal = math::V3Norm(math::V3Cross(tri[0] - tri[1], tri[0] - tri[2]));
-                        math::V3 aNormals[3] {normal, normal, normal};
-                        vNormals.pushSpan(aNormals);
+
+                        vNormals[i0] = normal;
+                        vNormals[i1] = normal;
+                        vNormals[i2] = normal;
                     }
                 }
                 else
                 {
                     ADT_ASSERT(vwPos.size() >= 0 && vwPos.size() % 3 == 0, " ");
+
+                    vNormals.setSize(vwPos.size() * 3);
 
                     for (ssize i = 0; i < vwPos.size(); i += 3)
                     {
@@ -1202,10 +1212,11 @@ loadGLTF(gltf::Model* pModel)
                         };
 
                         math::V3 normal = math::V3Norm(math::V3Cross(tri[0] - tri[1], tri[0] - tri[2]));
-                        math::V3 aNormals[3] {normal, normal, normal};
-                        vNormals.pushSpan(aNormals);
-                    }
 
+                        vNormals[i + 0] = normal;
+                        vNormals[i + 1] = normal;
+                        vNormals[i + 2] = normal;
+                    }
                 }
             }
 

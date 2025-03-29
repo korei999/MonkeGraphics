@@ -132,7 +132,8 @@ renderLoop(void* pArg)
             for (const f64 ft : vFrameTimes) avg += ft;
 
             char aBuff[128] {};
-            ssize n = print::toBuffer(aBuff, sizeof(aBuff) - 1, "FPS: {} | avg frame time: {:.3} ms\n",
+            ssize n = print::toBuffer(aBuff, sizeof(aBuff) - 1,
+                "FPS: {} | avg frame time: {:.3} ms\n",
                 vFrameTimes.size(), avg / vFrameTimes.size()
             );
             g_sfFpsStatus = StringView(aBuff, n);

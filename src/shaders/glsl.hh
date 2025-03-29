@@ -356,7 +356,8 @@ uniform mat4 u_projection;
 
 out vec2 vs_tex;
 
-void main()
+void
+main()
 {
     vs_tex = a_tex;
     gl_Position = u_projection * vec4(a_pos, 0.0, 1.0);
@@ -408,7 +409,8 @@ uniform mat4 u_a128TrmJoints[128];
 out vec4 vs_color;
 out vec2 vs_tex;
 
-void main()
+void
+main()
 {
     mat4 trmSkin =
         a_weight.x * u_a128TrmJoints[a_joint.x] +
@@ -444,7 +446,8 @@ in vec4 vs_color;
 
 out vec4 fs_color;
 
-void main()
+void
+main()
 {
     fs_color = vs_color;
 }
@@ -474,7 +477,8 @@ uniform mat4 u_a128TrmJoints[128];
 out vec4 vs_color;
 out vec2 vs_tex;
 
-void main()
+void
+main()
 {
     mat4 trmSkin =
         a_weight.x * u_a128TrmJoints[a_joint.x] +
@@ -514,10 +518,57 @@ uniform sampler2D u_tex0;
 
 out vec4 fs_color;
 
-void main()
+void
+main()
 {
     fs_color = texture(u_tex0, vs_tex) * vs_color;
 }
+)";
+
+static const char* ntsNormalsJointsVert =
+R"(#version 320 es
+/* ntsNormalsJointsVert */
+
+precision mediump float;
+
+)";
+
+static const char* ntsNormalsJointsGeom =
+R"(#version 320 es
+/* ntsNormalsJointsGeom */
+
+precision mediump float;
+
+layout(triangles) in;
+layout(line_strip, max_vertices = 6) out;
+
+in vec3 vs_norm[];
+
+uniform mat4 u_proj;
+
+const float MAGNINTUDE = 0.4;
+
+void
+generateLine(int idx)
+{
+    gl_Position = u_proj * gl_in[idx].gl_Position;
+    EmitVertex();
+
+    gl_Position = u_proj * (gl_in[idx].gl_Position +
+        vec4(vs_norm[idx], 0.0) * MAGNINTUDE);
+
+    EmitVertex();
+    EndPrimitive();
+}
+
+void
+main()
+{
+    generateLine(0);
+    generateLine(1);
+    generateLine(2);
+}
+
 )";
 
 } /* namespace gl::glsl */
