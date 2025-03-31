@@ -69,8 +69,6 @@ formatToContext(Context ctx, FormatArgs, const game::Entity::Bind& x)
         "\n\tvel: [{}]"
         "\n\tassetI: {}"
         "\n\tmodelI: {}"
-        "\n\toutlineColor: [{}]"
-        "\n\tbOutline: {}"
         "\n\tbNoDraw: {}"
     ;
 

@@ -604,7 +604,7 @@ drawGLTFNode(Arena* pArena, gltf::Model& model, gltf::Node& node, math::M4 trm)
 
             ADT_ASSERT(accIndices.eComponentType == gltf::COMPONENT_TYPE::UNSIGNED_SHORT ||
                 accIndices.eComponentType == gltf::COMPONENT_TYPE::UNSIGNED_INT,
-                "exp: %d or %d, got: %d",
+                "exp: {} or %d, got: {}",
                 (int)gltf::COMPONENT_TYPE::UNSIGNED_SHORT,
                 (int)gltf::COMPONENT_TYPE::UNSIGNED_INT,
                 (int)accIndices.eComponentType

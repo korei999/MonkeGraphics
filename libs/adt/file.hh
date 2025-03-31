@@ -105,7 +105,7 @@ fileType(const char* ntsPath)
     if (err != 0)
     {
 #ifndef NDEBUG
-        fprintf(stderr, "stat(): err: %d\n", err);
+        print::err("stat(): err: {}\n", err);
 #endif
         return TYPE::UNHANDLED;
     }

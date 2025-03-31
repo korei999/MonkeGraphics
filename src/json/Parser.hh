@@ -64,7 +64,7 @@ struct Node
     operator[](adt::u32 i)
     {
         ADT_ASSERT((tagVal.eTag == TAG::OBJECT || tagVal.eTag == TAG::ARRAY),
-            "not an ARRAY or OBJECT, tag is: '%s'", getTAGString(tagVal.eTag).data()
+            "not an ARRAY or OBJECT, tag is: '{}'", getTAGString(tagVal.eTag).data()
         );
         return tagVal.val.o[i];
     }
@@ -73,7 +73,7 @@ struct Node
     first()
     {
         ADT_ASSERT((tagVal.eTag == TAG::OBJECT || tagVal.eTag == TAG::ARRAY),
-            "not an ARRAY or OBJECT, tag is: '%s'", getTAGString(tagVal.eTag).data()
+            "not an ARRAY or OBJECT, tag is: '{}'", getTAGString(tagVal.eTag).data()
         );
         return tagVal.val.o.first();
     }
@@ -82,7 +82,7 @@ struct Node
     last()
     {
         ADT_ASSERT((tagVal.eTag == TAG::OBJECT || tagVal.eTag == TAG::ARRAY),
-            "not an ARRAY or OBJECT, tag is: '%s'", getTAGString(tagVal.eTag).data()
+            "not an ARRAY or OBJECT, tag is: '{}'", getTAGString(tagVal.eTag).data()
         );
         return tagVal.val.o.last();
     }
@@ -90,14 +90,14 @@ struct Node
     adt::u32
     pushToArray(adt::IAllocator* pAlloc, const Node& o)
     {
-        ADT_ASSERT(tagVal.eTag == TAG::ARRAY, "not an ARRAY, tag is: '%s'", getTAGString(tagVal.eTag).data());
+        ADT_ASSERT(tagVal.eTag == TAG::ARRAY, "not an ARRAY, tag is: '{}'", getTAGString(tagVal.eTag).data());
         return tagVal.val.a.push(pAlloc, o);
     }
 
     adt::u32
     pushToObject(adt::IAllocator* pAlloc, const Node& o)
     {
-        ADT_ASSERT(tagVal.eTag == TAG::OBJECT, "not an OBJECT, tag is: '%s'", getTAGString(tagVal.eTag).data());
+        ADT_ASSERT(tagVal.eTag == TAG::OBJECT, "not an OBJECT, tag is: '{}'", getTAGString(tagVal.eTag).data());
         return tagVal.val.o.push(pAlloc, o);
     }
 };

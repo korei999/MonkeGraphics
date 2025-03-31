@@ -553,7 +553,7 @@ drawSkybox()
         glBindTexture(GL_TEXTURE_CUBE_MAP, s_skyboxDefault.m_tex);
 
         PoolSOAHandle<game::Entity> enCube = game::searchEntity("Cube");
-        ADT_ASSERT(enCube, "failed to find entity '%s'\n", "Cube");
+        ADT_ASSERT(enCube, "failed to find entity '{}'\n", "Cube");
 
         if (enCube)
         {
@@ -953,7 +953,7 @@ componentByteSize(gltf::COMPONENT_TYPE eType)
 
     char aBuff[127] {};
     print::toSpan(aBuff, "invalid component type: '{}'", eType);
-    ADT_ASSERT(false, "%s", aBuff);
+    ADT_ASSERT(false, "{}", aBuff);
     return 0;
 }
 
@@ -972,7 +972,7 @@ bufferViewConvert(
 
     Span<B> spB(StdAllocator::inst()->zallocV<B>(accessorCount), accessorCount);
     defer( StdAllocator::inst()->free(spB.data()) );
-    ADT_ASSERT(spB.size() == accessorCount, "sp.size: %lld, acc.count: %d", spB.size(), accessorCount);
+    ADT_ASSERT(spB.size() == accessorCount, "sp.size: {}, acc.count: {}", spB.size(), accessorCount);
 
     ssize maxSize = utils::min(spB.size(), spA.size());
 

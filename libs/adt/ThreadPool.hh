@@ -2,7 +2,6 @@
 
 #include "Thread.hh"
 #include "Queue.hh"
-#include "Span.hh"
 #include "defer.hh"
 #include "atomic.hh"
 
@@ -38,9 +37,9 @@ struct ThreadPool
 
     ThreadPool(
         IAllocator* pAlloc,
-        void (*pfnLoopStart)(void*),
+        void (*pfnLoopStart)(void*), /* call on entering the loop */ 
         void* pLoopStartArg,
-        void (*pfnLoopEnd)(void*),
+        void (*pfnLoopEnd)(void*), /* call on exiting the loop */
         void* pLoopEndArg,
         int nThreads = ADT_GET_NPROCS()
     );
@@ -145,7 +144,7 @@ ThreadPool::spawnThreads()
     }
 
 #ifndef NDEBUG
-    fprintf(stderr, "ThreadPool: new pool with %lld threads\n", m_spThreads.size());
+    print::err("ThreadPool: new pool with {} threads\n", m_spThreads.size());
 #endif
 }
 

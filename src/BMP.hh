@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "adt/String.hh"
+#include "adt/String.hh" /* IWYU pragma: keep */
 
 #include "Image.hh"
 

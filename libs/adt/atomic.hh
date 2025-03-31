@@ -117,7 +117,6 @@ protected:
 namespace adt::print
 {
 
-template<typename T>
 inline ssize
 formatToContext(Context ctx, FormatArgs fmtArgs, const atomic::Int& x) noexcept
 {

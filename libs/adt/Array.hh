@@ -30,7 +30,7 @@ struct Array
 
     /* */
 
-#define ADT_RANGE_CHECK ADT_ASSERT(i >= 0 && i < m_size, "i: %lld, m_size: %lld", i, m_size);
+#define ADT_RANGE_CHECK ADT_ASSERT(i >= 0 && i < m_size, "i: {}, m_size: {}", i, m_size);
 
     constexpr T& operator[](ssize i)             { ADT_RANGE_CHECK; return m_aData[i]; }
     constexpr const T& operator[](ssize i) const { ADT_RANGE_CHECK; return m_aData[i]; }
@@ -163,7 +163,7 @@ constexpr ssize
 Array<T, CAP>::idx(const T* const p) const
 {
     ssize r = ssize(p - m_aData);
-    ADT_ASSERT(r >= 0 && r < size(), "out of range, r: %lld, size: %lld", r, size());
+    ADT_ASSERT(r >= 0 && r < size(), "out of range, r: {}, size: {}", r, size());
     return r;
 }
 

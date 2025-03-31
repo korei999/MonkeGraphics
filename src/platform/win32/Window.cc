@@ -103,7 +103,7 @@ loadGLFunctions()
         if (p == 0 || (p == (void*)0x1) || (p == (void*)0x2) || (p == (void*)0x3) || (p == (void*)-1))
             p = (void*)GetProcAddress(module, ntsFnName);
 
-        ADT_ASSERT_ALWAYS(p, "failed to load '%s' function", ntsFnName);
+        ADT_ASSERT_ALWAYS(p, "failed to load '{}' function", ntsFnName);
 
         pfn = reinterpret_cast<decltype(pfn)>(p);
     };

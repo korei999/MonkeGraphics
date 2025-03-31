@@ -3,6 +3,7 @@
 #include "adt/IAllocator.hh"
 #include "adt/Span2D.hh"
 #include "adt/types.hh"
+#include "adt/print.hh" /* IWYU pragma: keep */
 
 union ImagePixelRGBA
 {

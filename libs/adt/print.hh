@@ -1,8 +1,8 @@
 #pragma once
 
-#include "String.hh"
-#include "utils.hh"
-#include "Span.hh"
+#include "printTypes.hh"
+#include "String.hh" /* IWYU pragma: keep */
+
 #include "enum.hh"
 
 #include <ctype.h> /* win32 */
@@ -45,9 +45,6 @@ struct Context
     FormatArgs prevFmtArgs {};
     bool bUpdateFmtArgs {};
 };
-
-template<typename ...ARGS_T> inline ssize out(const StringView fmt, const ARGS_T&... tArgs) noexcept;
-template<typename ...ARGS_T> inline ssize err(const StringView fmt, const ARGS_T&... tArgs) noexcept;
 
 inline ssize
 printArgs(Context ctx) noexcept
@@ -472,7 +469,7 @@ printArgs(Context ctx, const T& tFirst, const ARGS_T&... tArgs) noexcept
     return nRead;
 }
 
-template<ssize SIZE = 512, typename ...ARGS_T>
+template<ssize SIZE, typename ...ARGS_T>
 inline ssize
 toFILE(FILE* fp, const StringView fmt, const ARGS_T&... tArgs) noexcept
 {
