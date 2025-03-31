@@ -1,6 +1,6 @@
 #pragma once
 
-#include "StringTypes.hh"
+#include "StringDecl.hh"
 
 #include "assert.hh"
 #include "IAllocator.hh"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mathTypes.hh"
+#include "mathDecl.hh"
 
 #include "utils.hh"
 #include "types.hh"

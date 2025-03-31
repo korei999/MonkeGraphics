@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SpanTypes.hh"
+#include "SpanDecl.hh"
 
 #include "types.hh"
 #include "assert.hh"

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hh"
-#include "printTypes.hh" /* IWYU pragma: keep */
+#include "printDecl.hh" /* IWYU pragma: keep */
 
 #include <cstdio>
 #include <cstdlib>

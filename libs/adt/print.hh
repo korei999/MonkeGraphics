@@ -1,6 +1,6 @@
 #pragma once
 
-#include "printTypes.hh"
+#include "printDecl.hh"
 #include "String.hh" /* IWYU pragma: keep */
 
 #include "enum.hh"
