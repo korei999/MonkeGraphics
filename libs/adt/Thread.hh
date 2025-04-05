@@ -98,6 +98,10 @@ struct Thread
 
     /* */
 
+    static void yield();
+
+    /* */
+
     THREAD_STATUS join();
     THREAD_STATUS detach();
 
@@ -174,6 +178,20 @@ Thread::Thread(LAMBDA& l, [[maybe_unused]] ATTR eAttr)
 #if defined __GNUC__
     #pragma GCC diagnostic pop
 #endif
+
+inline void
+Thread::yield()
+{
+#ifdef ADT_USE_PTHREAD
+
+    sched_yield();
+
+#elif defined ADT_USE_WIN32THREAD
+
+    ADT_ASSERT(false, "not implemented");
+
+#endif
+}
 
 inline THREAD_STATUS
 Thread::join()
@@ -337,7 +355,7 @@ Mutex::tryLock()
 {
 #ifdef ADT_USE_PTHREAD
 
-    return pthread_mutex_trylock(&m_mtx);
+    return pthread_mutex_trylock(&m_mtx) == 0;
 
 #elif defined ADT_USE_WIN32THREAD
 
@@ -369,7 +387,7 @@ Mutex::destroy()
     /* In the LinuxThreads implementation, no resources are associated with mutex objects,
      * thus pthread_mutex_destroy actually does nothing except checking that the mutex is unlocked. */
     [[maybe_unused]] int err = pthread_mutex_destroy(&m_mtx);
-    ADT_ASSERT(err == 0, "err: {}", err);
+    ADT_ASSERT(err == 0, "err: {}, ({})", err, strerror(err));
     err = pthread_mutexattr_destroy(&m_attr);
     ADT_ASSERT(err == 0, "err: {}", err);
     *this = {};

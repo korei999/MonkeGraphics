@@ -34,6 +34,8 @@ option(OPT_MIMALLOC "" OFF)
 option(OPT_SW "" OFF)
 option(OPT_GL "" ON)
 option(OPT_WAYLAND_GL "" ON)
+option(OPT_FAST_MATH "" OFF)
+option(OPT_PRECOMPILE_ADT "" OFF)
 
 if (OPT_MIMALLOC)
     include(FetchContent)
@@ -220,16 +222,18 @@ add_executable(
     src/game/game.cc
 )
 
-# file(GLOB_RECURSE ADT_PRECOMPILED_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/libs/*.hh")
-# 
-# if (NOT OPT_MIMALLOC)
-#     list(FILTER ADT_PRECOMPILED_HEADERS EXCLUDE REGEX ".*/adt/MiMalloc.hh")
-# endif()
-# 
-# target_precompile_headers(
-#     ${CMAKE_PROJECT_NAME} PRIVATE
-#     "$<$<COMPILE_LANGUAGE:CXX>:${ADT_PRECOMPILED_HEADERS}>"
-# )
+if (OPT_PRECOMPILE_ADT)
+    file(GLOB_RECURSE ADT_PRECOMPILED_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/libs/adt/*.hh")
+
+    if (NOT OPT_MIMALLOC)
+        list(FILTER ADT_PRECOMPILED_HEADERS EXCLUDE REGEX ".*/adt/MiMalloc.hh")
+    endif()
+
+    target_precompile_headers(
+        ${CMAKE_PROJECT_NAME} PRIVATE
+        "$<$<COMPILE_LANGUAGE:CXX>:${ADT_PRECOMPILED_HEADERS}>"
+    )
+endif()
 
 if (OPT_MIMALLOC)
     target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE mimalloc-static)

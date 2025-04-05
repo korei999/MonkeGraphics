@@ -206,9 +206,9 @@ clickArrowList(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int x
         list.prevSelectedI = list.selectedI;
 
         if (control::g_abPressed[BTN_LEFT])
-            utils::cycleForward(&list.selectedI, list.vEntries.size());
+            list.selectedI = utils::cycleForward(list.selectedI, list.vEntries.size());
         else if (control::g_abPressed[BTN_RIGHT])
-            utils::cycleBackward(&list.selectedI, list.vEntries.size());
+            list.selectedI = utils::cycleBackward(list.selectedI, list.vEntries.size());
 
         ret.eFlag = ClickResult::FLAG::HANDLED;
 

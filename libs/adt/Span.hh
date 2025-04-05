@@ -12,7 +12,8 @@ template<typename T>
 inline constexpr ssize
 Span<T>::lastI() const noexcept
 {
-    ADT_ASSERT(m_size > 0, "empty: size: {}", m_size); return m_size - 1;
+    ADT_ASSERT(m_size > 0, "empty: size: {}", m_size);
+    return m_size - 1;
 }
 
 #define ADT_RANGE_CHECK ADT_ASSERT(i >= 0 && i < m_size, "i: {}, m_size: {}", i, m_size);

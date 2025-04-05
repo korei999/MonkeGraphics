@@ -160,6 +160,37 @@ Renderer::init()
     ui::init();
 };
 
+static void
+drawGltfPrimitives(const gltf::Primitive& primitive, const gltf::Model& gltfModel)
+{
+    auto* pPrimitiveData = reinterpret_cast<PrimitiveData*>(primitive.pData);
+    if (!pPrimitiveData) return;
+
+    glBindVertexArray(pPrimitiveData->vao);
+
+    if (primitive.indicesI > -1)
+    {
+        const gltf::Accessor& accIndices = gltfModel.m_vAccessors[primitive.indicesI];
+
+        glDrawElements(
+            static_cast<GLenum>(primitive.eMode),
+            accIndices.count,
+            static_cast<GLenum>(accIndices.eComponentType),
+            {}
+        );
+    }
+    else
+    {
+        const auto& accPos = gltfModel.m_vAccessors[primitive.attributes.POSITION];
+
+        glDrawArrays(
+            static_cast<GLenum>(primitive.eMode),
+            0,
+            accPos.count
+        );
+    }
+}
+
 /* FIXME: codepath horror */
 static void
 drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const math::M4& trmProj)
@@ -387,6 +418,8 @@ GOTO_defaultShader:
                 g_texDefault.bind(GL_TEXTURE0);
                 pSh->setM4("u_trm", trmProj * trmView * trm * node.finalTransform);
             }
+
+            /*drawGltfPrimitives(primitive, gltfModel);*/
 
             auto* pPrimitiveData = reinterpret_cast<PrimitiveData*>(primitive.pData);
             if (pPrimitiveData)

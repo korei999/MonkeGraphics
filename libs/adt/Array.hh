@@ -19,6 +19,8 @@ struct Array
 
     constexpr Array() = default;
 
+    constexpr Array(ssize size);
+
     template<typename ...ARGS> requires(std::is_constructible_v<T, ARGS...>)
     constexpr Array(ssize size, ARGS&&... args);
 
@@ -194,6 +196,10 @@ Array<T, CAP>::last() const
 {
     return operator[](m_size - 1);
 }
+
+template<typename T, ssize CAP> requires(CAP > 0)
+inline constexpr
+Array<T, CAP>::Array(ssize size) : m_size(size) {}
 
 template<typename T, ssize CAP> requires(CAP > 0)
 template<typename ...ARGS> requires(std::is_constructible_v<T, ARGS...>)

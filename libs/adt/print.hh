@@ -245,7 +245,7 @@ copyBackToContext(Context ctx, FormatArgs fmtArgs, const Span<char> spSrc) noexc
 
     auto clCopySpan = [&]
     {
-        for (; i < spSrc.size() && spSrc[i] && ctx.buffIdx < ctx.buffSize; ++i)
+        for (; i < spSrc.size() && spSrc[i] && ctx.buffIdx < ctx.buffSize && i < fmtArgs.maxLen; ++i)
             ctx.pBuff[ctx.buffIdx++] = spSrc[i];
     };
 
