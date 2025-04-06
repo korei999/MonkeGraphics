@@ -134,8 +134,7 @@ Client::pointerMotion(
     if (!win.m_bPointerRelativeMode)
     {
         win.m_pointerSurfaceX = static_cast<f32>(wl_fixed_to_double(surfaceX));
-        win.m_pointerSurfaceY = static_cast<f32>(win.m_winHeight) -
-            static_cast<f32>(wl_fixed_to_double(surfaceY));
+        win.m_pointerSurfaceY = static_cast<f32>(wl_fixed_to_double(surfaceY));
     }
 }
 

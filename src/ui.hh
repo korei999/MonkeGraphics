@@ -1,11 +1,10 @@
 #pragma once
 
 #include "adt/Arena.hh"
-#include "adt/String.hh"
 #include "adt/Pool.hh"
 #include "adt/Vec.hh"
 #include "adt/enum.hh"
-#include "adt/math.hh"
+#include "adt/mathDecl.hh"
 #include "adt/Map.hh"
 
 namespace ui
@@ -68,6 +67,8 @@ struct Widget
         DRAG = 1 << 2, /* allow dragging */
     };
 
+    static constexpr adt::f32 AUTO_POS = -1.0f;
+
     /* */
 
     adt::Arena arena {};
@@ -81,6 +82,8 @@ struct Widget
     adt::f32 y {};
     adt::f32 width {}; /* -1 to expand automatically */
     adt::f32 height {}; /* -1 to expand automatically */
+    adt::f32 grabWidth {}; /* recalculates each update */
+    adt::f32 grabHeight {}; /* recalculates each update */
 
     adt::math::V4 bgColor {};
 

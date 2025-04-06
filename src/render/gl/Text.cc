@@ -11,7 +11,8 @@ namespace render::gl
 Vec<CharQuad2Pos2UV>
 Text::makeStringMesh(
     const ttf::Rasterizer& rast,
-    const StringView vs
+    const StringView vs,
+    const bool bVerticalFlip
 )
 {
     auto spMem = app::gtl_scratch.nextMem<CharQuad2Pos2UV>(m_maxSize);
@@ -32,6 +33,8 @@ Text::makeStringMesh(
 
 #define SKIP { xOff += 1.0f; continue; }
 
+    const f32 addY = bVerticalFlip ? +1.0f : -1.0f;
+
     for (const char& ch : vs)
     {
         if (ch == ' ')
@@ -41,7 +44,7 @@ Text::makeStringMesh(
         else if (ch == '\n')
         {
             xOff = 0.0f;
-            yOff -= 1.0f;
+            yOff += addY;
             continue;
         }
 
@@ -59,29 +62,63 @@ Text::makeStringMesh(
         const f32 v = uv.second * norm;
 
         /* tl */
-        f32 x0 = u;
-        f32 y0 = v + yCoordOff;
-
+        f32 x0;
+        f32 y0;
         /* tr */
-        f32 x1 = u + xCoordOff;
-        f32 y1 = v + yCoordOff;
-
+        f32 x1;
+        f32 y1;
         /* bl */
-        f32 x2 = u;
-        f32 y2 = v;
-
+        f32 x2;
+        f32 y2;
         /* br */
-        f32 x3 = u + xCoordOff;
-        f32 y3 = v;
+        f32 x3;
+        f32 y3;
+
+        if (!bVerticalFlip)
+        {
+            /* tl */
+            x0 = u;
+            y0 = v + yCoordOff;
+
+            /* tr */
+            x1 = u + xCoordOff;
+            y1 = v + yCoordOff;
+
+            /* bl */
+            x2 = u;
+            y2 = v;
+
+            /* br */
+            x3 = u + xCoordOff;
+            y3 = v;
+        }
+        else
+        {
+            /* tl (flipped) */
+            x0 = u;
+            y0 = v;
+
+            /* tr (flipped) */
+            x1 = u + xCoordOff;
+            y1 = v;
+
+            /* bl (flipped) */
+            x2 = u;
+            y2 = v + yCoordOff;
+
+            /* br (flipped) */
+            x3 = u + xCoordOff;
+            y3 = v + yCoordOff;
+        }
 
         vQuads[idx] = {
-             0.0f + xOff, 1.0f + yOff, x0, y0,
-             1.0f + xOff, 0.0f + yOff, x3, y3,
-             0.0f + xOff, 0.0f + yOff, x2, y2,
+            0.0f + xOff, 1.0f + yOff, x0, y0,
+            1.0f + xOff, 0.0f + yOff, x3, y3,
+            0.0f + xOff, 0.0f + yOff, x2, y2,
 
-             0.0f + xOff, 1.0f + yOff, x0, y0,
-             1.0f + xOff, 1.0f + yOff, x1, y1,
-             1.0f + xOff, 0.0f + yOff, x3, y3,
+            0.0f + xOff, 1.0f + yOff, x0, y0,
+            1.0f + xOff, 1.0f + yOff, x1, y1,
+            1.0f + xOff, 0.0f + yOff, x3, y3,
         };
 
         xOff += 1.0f;
@@ -110,10 +147,10 @@ Text::Text(const int maxSize)
 }
 
 void
-Text::update(const ttf::Rasterizer& rast, const StringView sv)
+Text::update(const ttf::Rasterizer& rast, const StringView sv, const bool bVerticalFlip)
 {
     /* construct from gtl_scratch */
-    Vec<CharQuad2Pos2UV> vQuads = makeStringMesh(rast, sv);
+    Vec<CharQuad2Pos2UV> vQuads = makeStringMesh(rast, sv, bVerticalFlip);
     m_vboSize = vQuads.size() * 6; /* 6 vertices for 1 quad */
 
     if (m_vboSize > 0)

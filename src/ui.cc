@@ -30,10 +30,10 @@ init()
             .arena = Arena(SIZE_1K * 4),
             .sfName = "Entities",
             .sfTitle = "Entity animations",
-            .x = WIDTH - 20.0f,
-            .y = HEIGHT - 10.0f,
-            .width = 20.0f,
-            .height = 10.0f,
+            .x = WIDTH - 30.0f,
+            .y = 0.0f,
+            .width = Widget::AUTO_POS,
+            .height = Widget::AUTO_POS,
             .bgColor = math::V4From(colors::get(colors::BLACK), 0.5f),
             .eFlags = Widget::FLAGS::TITLE | Widget::FLAGS::DRAG,
         };
@@ -165,11 +165,11 @@ clickMenu(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int xOff, 
 
     auto& menu = pEntry->menu;
 
-    if (py < (pWidget->y + pWidget->height - yOff) && py > (pWidget->y + pWidget->height - yOff - menu.vEntries.size()))
+    if (py < (pWidget->y + yOff + menu.vEntries.size()) && py >= (pWidget->y + yOff))
     {
         for (auto& child : menu.vEntries)
         {
-            if (py < (pWidget->y + pWidget->height - yOff) && py >= (pWidget->y + pWidget->height - yOff - 1))
+            if (py < (pWidget->y + yOff + 1) && py >= (pWidget->y + yOff))
             {
                 menu.selectedI = menu.vEntries.idx(&child);
 
@@ -199,8 +199,8 @@ clickArrowList(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int x
 
     auto& list = pEntry->arrowList;
 
-    if (py < pWidget->y + pWidget->height - yOff &&
-        py >= pWidget->y + pWidget->height - yOff - 1
+    if (py < pWidget->y + yOff + 1 &&
+        py >= pWidget->y + yOff
     )
     {
         list.prevSelectedI = list.selectedI;
@@ -248,8 +248,8 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, int xOff, int yOff)
     ClickResult ret {};
     bool bHandled = false;
 
-    if (px >= widget.x && px < widget.x + widget.width &&
-        py >= widget.y && py < widget.y + widget.height
+    if (px >= widget.x && px < widget.x + widget.grabWidth &&
+        py >= widget.y && py < widget.y + widget.grabHeight
     )
     {
         if (bool(widget.eFlags & Widget::FLAGS::TITLE))
@@ -261,7 +261,7 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, int xOff, int yOff)
             {
                 case Entry::TYPE::ARROW_LIST:
                 {
-                    if (py < widget.y + widget.height - yOff)
+                    if (py < widget.y + widget.grabHeight - yOff)
                     {
                         s_bPressed = true;
 
@@ -356,7 +356,7 @@ updateState()
     {
         s_bPressed = false;
         s_bGrabbed = false;
-        static Widget s_dummyWidget;
+        static Widget s_dummyWidget {};
         s_pGrabbedWidget = &s_dummyWidget;
         return;
     }
@@ -380,7 +380,6 @@ updateState()
     }
 
     /* TODO: rework into a rooted tree. */
-
     for (Widget& widget : g_poolWidgets)
     {
         ClickResult res = clickWidget(&widget, px, py, 0, 0);
