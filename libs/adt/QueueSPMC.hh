@@ -7,7 +7,7 @@ namespace adt
 {
 
 template<typename T, int CAP>
-struct QueueLockFree
+struct QueueSPMC
 {
     static_assert(isPowerOf2(CAP), "CAP must be a power of 2");
 
@@ -30,7 +30,7 @@ struct QueueLockFree
 
 template<typename T, int CAP>
 inline int
-QueueLockFree<T, CAP>::pushBack(const T& x)
+QueueSPMC<T, CAP>::pushBack(const T& x)
 {
     int tailI = m_atom_tailI.load(atomic::ORDER::RELAXED);
     int nextTailI = (tailI + 1) & (CAP - 1); /* power of 2 wrapping */
@@ -46,7 +46,7 @@ QueueLockFree<T, CAP>::pushBack(const T& x)
 
 template<typename T, int CAP>
 inline T*
-QueueLockFree<T, CAP>::popFront()
+QueueSPMC<T, CAP>::popFront()
 {
     int headI;
 
@@ -69,7 +69,7 @@ QueueLockFree<T, CAP>::popFront()
 
 template<typename T, int CAP>
 inline bool
-QueueLockFree<T, CAP>::empty() const noexcept
+QueueSPMC<T, CAP>::empty() const noexcept
 {
     return m_atom_headI.load(atomic::ORDER::ACQUIRE) ==
         m_atom_tailI.load(atomic::ORDER::ACQUIRE);

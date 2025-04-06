@@ -52,7 +52,7 @@ drawText(
     s_pShTexMonoBlur->use();
 
     s_pShTexMonoBlur->setM4("u_trm", proj *
-        math::M4TranslationFrom({widget.x + xOff, widget.y + widget.height - 1 - yOff, 0.0f})
+        math::M4TranslationFrom({widget.x + xOff, widget.y + widget.height - 1 - yOff, -1.0f})
     );
     s_pShTexMonoBlur->setV4("u_color", entry.text.color);
 
@@ -76,7 +76,7 @@ drawText(
     s_pShTexMonoBlur->use();
 
     s_pShTexMonoBlur->setM4("u_trm", proj *
-        math::M4TranslationFrom({widget.x + xOff, widget.y + widget.height - 1 - yOff, 0.0f})
+        math::M4TranslationFrom({widget.x + xOff, widget.y + widget.height - 1 - yOff, -1.0f})
     );
     s_pShTexMonoBlur->setV4("u_color", fgColor);
 
@@ -173,22 +173,24 @@ drawArrowList(
 static void
 drawWidget(const ::ui::Widget& widget, const math::M4& proj)
 {
+    int yOff = 0;
+
+    /*glDisable(GL_BLEND);*/
+
     /* bg rectangle */
     g_pShColor->use();
     g_pShColor->setM4("u_trm", proj *
-        math::M4TranslationFrom({widget.x, widget.y, -1.0f}) *
+        math::M4TranslationFrom({widget.x, widget.y, 1.0f}) *
         math::M4ScaleFrom({widget.width, widget.height, 0.0f})
     );
     g_pShColor->setV4("u_color", widget.bgColor);
     g_quad.draw();
 
-    int yOff = 0;
-
     s_pShTexMonoBlur->use();
     if (bool(widget.eFlags & ::ui::Widget::FLAGS::TITLE))
     {
         s_pShTexMonoBlur->setM4("u_trm", proj *
-            math::M4TranslationFrom({widget.x, widget.y + widget.height - 1, 0.0f})
+            math::M4TranslationFrom({widget.x, widget.y + widget.height - 1, -1.0f})
         );
 
         s_text.update(s_rastLiberation, widget.sfTitle);
@@ -219,6 +221,10 @@ drawWidget(const ::ui::Widget& widget, const math::M4& proj)
             break;
         }
     }
+
+    /*glEnable(GL_BLEND);*/
+    /*glBlendFunc(GL_ONE, GL_ZERO);*/
+    /*defer( glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA) );*/
 }
 
 static void

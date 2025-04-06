@@ -69,7 +69,7 @@ struct StringView
     {
         char* p;
 
-        constexpr It(char* pFirst) : p{pFirst} {}
+        constexpr It(const char* pFirst) : p{const_cast<char*>(pFirst)} {}
 
         constexpr char& operator*() { return *p; }
         constexpr char* operator->() { return p; }
