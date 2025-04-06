@@ -4,7 +4,7 @@
 #include "logs.hh"
 #include "defer.hh"
 
-#if __has_include(<sys/stat.h>)
+#ifdef __linux__
 
     #define ADT_USE_LINUX_FILE
 
@@ -12,10 +12,12 @@
     #include <sys/stat.h>
     #include <fcntl.h>
 
-#ifdef _WIN32
+#elif defined _WIN32
+
     #define ADT_USE_WIN32_FILE
     #define ADT_USE_WIN32_STAT
-#endif
+
+    #include <sys/stat.h>
 
 #endif
 

@@ -8,7 +8,7 @@ using namespace adt;
 namespace platform::win32
 {
 
-static const int s_aAsciiToLinuxKeyCodes[300] {
+static const int s_mapAsciiToLinuxKeyCode[300] {
     0,
     0,
     0,
@@ -142,21 +142,27 @@ static const int s_aAsciiToLinuxKeyCodes[300] {
 static void
 setMods(WPARAM keyCode, bool bDown)
 {
-    switch (s_aAsciiToLinuxKeyCodes[keyCode])
+    switch (s_mapAsciiToLinuxKeyCode[keyCode])
     {
         case KEY_LEFTSHIFT:
-        if (bDown) control::g_ePressedMods |= MOD_STATE::SHIFT;
-        else control::g_ePressedMods &= ~MOD_STATE::SHIFT;
+        {
+            if (bDown) control::g_ePressedMods |= MOD_STATE::SHIFT;
+            else control::g_ePressedMods &= ~MOD_STATE::SHIFT;
+        }
         break;
 
         case KEY_LEFTALT:
-        if (bDown) control::g_ePressedMods |= MOD_STATE::ALT;
-        else control::g_ePressedMods &= ~MOD_STATE::ALT;
+        {
+            if (bDown) control::g_ePressedMods |= MOD_STATE::ALT;
+            else control::g_ePressedMods &= ~MOD_STATE::ALT;
+        }
         break;
 
         case KEY_LEFTCTRL:
-        if (bDown) control::g_ePressedMods |= MOD_STATE::CTRL;
-        else control::g_ePressedMods &= ~MOD_STATE::CTRL;
+        {
+            if (bDown) control::g_ePressedMods |= MOD_STATE::CTRL;
+            else control::g_ePressedMods &= ~MOD_STATE::CTRL;
+        }
         break;
     }
 }
@@ -164,8 +170,8 @@ setMods(WPARAM keyCode, bool bDown)
 void
 Window::procKey(WPARAM keyCode, bool bDown)
 {
-    ADT_ASSERT(keyCode < utils::size(s_aAsciiToLinuxKeyCodes), " ");
-    control::g_abPressed[ s_aAsciiToLinuxKeyCodes[keyCode] ] = bDown;
+    ADT_ASSERT(keyCode < utils::size(s_mapAsciiToLinuxKeyCode), " ");
+    control::g_abPressed[ s_mapAsciiToLinuxKeyCode[keyCode] ] = bDown;
     setMods(keyCode, bDown);
 }
 

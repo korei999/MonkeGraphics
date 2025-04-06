@@ -215,7 +215,7 @@ windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         case WM_MOUSEMOVE:
         {
             s->m_pointerSurfaceX = static_cast<f32>(GET_X_LPARAM(lParam));
-            s->m_pointerSurfaceY = static_cast<f32>(s->m_winHeight) - static_cast<f32>(GET_Y_LPARAM(lParam));
+            s->m_pointerSurfaceY = static_cast<f32>(GET_Y_LPARAM(lParam));
         }
         break;
 
