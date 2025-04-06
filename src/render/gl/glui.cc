@@ -12,7 +12,13 @@ using namespace adt;
 namespace render::gl::ui
 {
 
-static math::IV2 drawArrowList( const ::ui::Widget& widget, const ::ui::Entry& entry, const math::M4& proj, int pXOff, int pYOff);
+struct DrawCommand
+{
+    void (*pfn)(void* pArg) {};
+    void* pArg {};
+};
+
+static math::IV2 drawArrowList(VecManaged<DrawCommand>* pVCommands, const ::ui::Widget& widget, const ::ui::Entry& entry, const math::M4& proj, int pXOff, int pYOff);
 
 static Shader* s_pShTexMonoBlur;
 static Shader* s_pShTex;
@@ -41,29 +47,7 @@ init()
 
 static math::IV2
 drawText(
-    const ::ui::Widget& widget,
-    const ::ui::Entry& entry,
-    const math::M4& proj,
-    int xOff,
-    int yOff
-)
-{
-    s_texLiberation.bind(GL_TEXTURE0);
-    s_pShTexMonoBlur->use();
-
-    s_pShTexMonoBlur->setM4("u_trm", proj *
-        math::M4TranslationFrom({widget.x + xOff, widget.y + widget.height - 1 - yOff, -1.0f})
-    );
-    s_pShTexMonoBlur->setV4("u_color", entry.text.color);
-
-    s_text.update(s_rastLiberation, entry.text.sfText);
-    s_text.draw();
-
-    return {static_cast<int>(entry.text.sfText.size()), 1};
-}
-
-static math::IV2
-drawText(
+    VecManaged<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const StringView sv,
     const math::V4 fgColor,
@@ -72,22 +56,35 @@ drawText(
     int yOff
 )
 {
-    s_texLiberation.bind(GL_TEXTURE0);
-    s_pShTexMonoBlur->use();
+    auto clDraw = [&widget, sv, proj, fgColor, xOff, yOff]
+    {
+        s_texLiberation.bind(GL_TEXTURE0);
+        s_pShTexMonoBlur->use();
 
-    s_pShTexMonoBlur->setM4("u_trm", proj *
-        math::M4TranslationFrom({widget.x + xOff, widget.y + widget.height - 1 - yOff, -1.0f})
+        s_pShTexMonoBlur->setM4("u_trm", proj *
+            math::M4TranslationFrom({widget.x + xOff, widget.y + widget.height - 1 - yOff, -1.0f})
+        );
+        s_pShTexMonoBlur->setV4("u_color", fgColor);
+
+        s_text.update(s_rastLiberation, sv);
+        s_text.draw();
+    };
+
+    auto* pClDraw = pVCommands->m_pAlloc->alloc<decltype(clDraw)>(clDraw);
+
+    pVCommands->emplace(+[](void* p)
+        {
+        auto* pCl = static_cast<decltype(clDraw)*>(p);
+        pCl->operator()();
+        }, pClDraw
     );
-    s_pShTexMonoBlur->setV4("u_color", fgColor);
-
-    s_text.update(s_rastLiberation, sv);
-    s_text.draw();
 
     return {static_cast<int>(sv.size()), 1};
 }
 
 static math::IV2
 drawMenu(
+    VecManaged<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
     const math::M4& proj,
@@ -110,7 +107,7 @@ drawMenu(
             if (idx == entry.menu.selectedI) col = entry.menu.selColor;
             else col = entry.menu.color;
 
-            textOff += drawText(widget, child.text.sfText, col, proj, xOff + 2, yOff + textOff.y);
+            textOff += drawText(pVCommands, widget, child.text.sfText, col, proj, xOff + 2, yOff + textOff.y);
             break;
 
             case ::ui::Entry::TYPE::ARROW_LIST:
@@ -128,6 +125,7 @@ drawMenu(
 
 static math::IV2
 drawArrowList(
+    VecManaged<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
     const math::M4& proj,
@@ -137,8 +135,10 @@ drawArrowList(
 {
     ADT_ASSERT(entry.eType == ::ui::Entry::TYPE::ARROW_LIST, " ");
 
-    auto xyArrow = drawText(widget, "<", entry.arrowList.arrowColor, proj, xOff, yOff);
+    auto xyArrow = drawText(pVCommands, widget, "<", entry.arrowList.arrowColor, proj, xOff, yOff);
     xOff += xyArrow.x;
+
+    int maxx = xyArrow.x;
 
     if (entry.arrowList.vEntries.size() > 0)
     {
@@ -153,11 +153,15 @@ drawArrowList(
             {
                 /* draw menu name first */
                 /*auto textOff = drawText(widget, sel, proj, xOff, yOff);*/
-                auto textOff = drawText(widget, sel.menu.sfName, sel.menu.color, proj, xOff, yOff);
+                auto textOff = drawText(pVCommands, widget, sel.menu.sfName, sel.menu.color, proj, xOff, yOff);
 
                 xyArrow.x += textOff.x;
 
-                auto xyMenu = drawMenu(widget, sel, proj, xOff, yOff);
+                if (maxx <= xyArrow.x) maxx = xyArrow.x;
+
+                auto xyMenu = drawMenu(pVCommands, widget, sel, proj, xOff, yOff);
+
+                if (maxx <= xyMenu.x) maxx = xyMenu.x;
             }
             break;
 
@@ -167,35 +171,26 @@ drawArrowList(
         }
     }
 
-    return drawText(widget, ">", entry.arrowList.arrowColor, proj, xyArrow.x, yOff);
+    math::IV2 xyRet = drawText(pVCommands, widget, ">", entry.arrowList.arrowColor, proj, xyArrow.x, yOff);
+
+    return {maxx, xyRet.y};
 }
 
 static void
-drawWidget(const ::ui::Widget& widget, const math::M4& proj)
+drawWidget(VecManaged<DrawCommand>* pVCommands, const ::ui::Widget& widget, const math::M4& proj)
 {
     int yOff = 0;
 
-    /*glDisable(GL_BLEND);*/
+    int maxx = 0;
 
-    /* bg rectangle */
-    g_pShColor->use();
-    g_pShColor->setM4("u_trm", proj *
-        math::M4TranslationFrom({widget.x, widget.y, 1.0f}) *
-        math::M4ScaleFrom({widget.width, widget.height, 0.0f})
-    );
-    g_pShColor->setV4("u_color", widget.bgColor);
-    g_quad.draw();
-
-    s_pShTexMonoBlur->use();
     if (bool(widget.eFlags & ::ui::Widget::FLAGS::TITLE))
     {
-        s_pShTexMonoBlur->setM4("u_trm", proj *
-            math::M4TranslationFrom({widget.x, widget.y + widget.height - 1, -1.0f})
+        math::IV2 xy = drawText(pVCommands, widget, widget.sfTitle,
+            V4From(colors::get(colors::WHITE), 0.75f), proj, 0, 0
         );
+        yOff += xy.y;
 
-        s_text.update(s_rastLiberation, widget.sfTitle);
-        s_text.draw();
-        yOff += 1;
+        if (maxx < xy.x) maxx = xy.x;
     }
 
     for (const auto& entry : widget.vEntries)
@@ -209,7 +204,10 @@ drawWidget(const ::ui::Widget& widget, const math::M4& proj)
         switch (entry.eType)
         {
             case ::ui::Entry::TYPE::ARROW_LIST:
-            drawArrowList(widget, entry, proj, xOff, yOff);
+            {
+                math::IV2 xy = drawArrowList(pVCommands, widget, entry, proj, xOff, yOff);
+                if (maxx < xy.x) maxx = xy.x;
+            }
             break;
 
             case ::ui::Entry::TYPE::TEXT:
@@ -222,13 +220,18 @@ drawWidget(const ::ui::Widget& widget, const math::M4& proj)
         }
     }
 
-    /*glEnable(GL_BLEND);*/
-    /*glBlendFunc(GL_ONE, GL_ZERO);*/
-    /*defer( glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA) );*/
+    /* bg rectangle */
+    g_pShColor->use();
+    g_pShColor->setM4("u_trm", proj *
+        math::M4TranslationFrom({widget.x, widget.y, -5.0f}) *
+        math::M4ScaleFrom({maxx, widget.height, 0.0f})
+    );
+    g_pShColor->setV4("u_color", widget.bgColor);
+    g_quad.draw();
 }
 
 static void
-drawWidgets(Arena*)
+drawWidgets(Arena*, VecManaged<DrawCommand>* pVCommands)
 {
     const math::M4 proj = math::M4Ortho(0, ::ui::WIDTH, 0, ::ui::HEIGHT, -10.0f, 10.0f);
 
@@ -237,13 +240,17 @@ drawWidgets(Arena*)
         if (bool(widget.eFlags & ::ui::Widget::FLAGS::NO_DRAW))
             continue;
 
-        drawWidget(widget, proj);
+        drawWidget(pVCommands, widget, proj);
     }
 }
 
 void
 draw(Arena* pArena)
 {
+    /* we need to draw text over the rectangle because of blending, so we just buffer up
+     * the draw calls, collect all the offsets and draw them after the rectangle. */
+    VecManaged<DrawCommand> vCommands(pArena, 1 << 4);
+
     glDisable(GL_DEPTH_TEST);
     defer( glEnable(GL_DEPTH_TEST) );
 
@@ -281,7 +288,10 @@ draw(Arena* pArena)
         s_text.draw();
     }
 
-    drawWidgets(pArena);
+    drawWidgets(pArena, &vCommands);
+
+    for (auto& command : vCommands)
+        command.pfn(command.pArg);
 }
 
 } /* namespace render::gl::ui */

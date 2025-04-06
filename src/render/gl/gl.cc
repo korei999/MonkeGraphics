@@ -617,12 +617,14 @@ Renderer::draw(Arena* pArena)
 
     glViewport(0, 0, win.m_winWidth, win.m_winHeight);
 
-    glStencilMask(0x00);
+    {
+        glStencilMask(0x00);
 
-    drawSkybox();
+        drawSkybox();
 
-    glStencilFunc(GL_ALWAYS, 1, 0xff);
-    glStencilMask(0xff);
+        glStencilFunc(GL_ALWAYS, 1, 0xff);
+        glStencilMask(0xff);
+    }
 
     {
         auto& entities = game::g_poolEntities;
