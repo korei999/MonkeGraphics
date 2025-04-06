@@ -165,7 +165,7 @@ clickMenu(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int xOff, 
 
     auto& menu = pEntry->menu;
 
-    if (py < (pWidget->y + yOff + menu.vEntries.size()) && py >= (pWidget->y + yOff))
+    if (py <= (pWidget->y + yOff + menu.vEntries.size()) && py >= (pWidget->y + yOff))
     {
         for (auto& child : menu.vEntries)
         {
@@ -261,7 +261,7 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, int xOff, int yOff)
             {
                 case Entry::TYPE::ARROW_LIST:
                 {
-                    if (py < widget.y + widget.grabHeight - yOff)
+                    if (py < widget.y + widget.grabHeight - yOff + 1)
                     {
                         s_bPressed = true;
 

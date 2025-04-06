@@ -23,8 +23,8 @@ static math::IV2 drawArrowList(
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
     const math::M4& proj,
-    int pXOff,
-    int pYOff
+    int xOff,
+    int yOff
 );
 
 static Shader* s_pShTexMonoBlur;
@@ -236,7 +236,7 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
 
     pWidget->grabWidth = maxx;
     /*pWidget->grabHeight = pWidget->height;*/
-    pWidget->grabHeight = maxy;
+    pWidget->grabHeight = maxy - 1;
 
     /* bg rectangle */
     g_pShColor->use();
