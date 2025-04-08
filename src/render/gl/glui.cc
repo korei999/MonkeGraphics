@@ -238,11 +238,13 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
     /*pWidget->grabHeight = pWidget->height;*/
     pWidget->grabHeight = maxy - 1;
 
+    // constexpr f32 uiWidthToUiHeightInv = 1.0f / (::ui::WIDTH / ::ui::HEIGHT);
+
     /* bg rectangle */
     g_pShColor->use();
     g_pShColor->setM4("u_trm", proj *
-        math::M4TranslationFrom({pWidget->x, pWidget->y, -5.0f}) *
-        math::M4ScaleFrom({pWidget->grabWidth, pWidget->grabHeight, 0.0f})
+        math::M4TranslationFrom({pWidget->x - pWidget->border, pWidget->y - pWidget->border/* *uiWidthToUiHeightInv */, -5.0f}) *
+        math::M4ScaleFrom({pWidget->grabWidth + pWidget->border*2, pWidget->grabHeight + pWidget->border*2 /* *uiWidthToUiHeightInv */, 0.0f})
     );
     g_pShColor->setV4("u_color", pWidget->bgColor);
     g_quad.draw();

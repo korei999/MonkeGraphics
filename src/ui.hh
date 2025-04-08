@@ -67,7 +67,7 @@ struct Widget
         DRAG = 1 << 2, /* allow dragging */
     };
 
-    static constexpr adt::f32 AUTO_POS = -1.0f;
+    static constexpr adt::f32 AUTO_SIZE = -1.0f;
 
     /* */
 
@@ -84,6 +84,7 @@ struct Widget
     adt::f32 height {}; /* -1 to expand automatically */
     adt::f32 grabWidth {}; /* recalculates each update */
     adt::f32 grabHeight {}; /* recalculates each update */
+    adt::f32 border {};
 
     adt::math::V4 bgColor {};
 

@@ -39,17 +39,12 @@ static constexpr ssize SCRATCH_SIZE = SIZE_1M;
 static thread_local u8* stl_pScratchMem;
 thread_local ScratchBuffer gtl_scratch;
 
-adt::ThreadPool<256> g_threadPool(adt::StdAllocator::inst(),
-    +[](void* pArg) -> void
-    {
-        allocScratchForThisThread(SCRATCH_SIZE);
-    },
+adt::ThreadPool<128> g_threadPool(adt::StdAllocator::inst(),
+    +[](void* pArg) { allocScratchForThisThread(SCRATCH_SIZE); },
     nullptr,
-    +[](void*) -> void
-    {
-        destroyScratchForThisThread();
-    },
-    nullptr
+    +[](void*) { destroyScratchForThisThread(); },
+    nullptr,
+    utils::min(ADT_GET_NPROCS() - 1, 2)
 );
 
 void
@@ -57,7 +52,7 @@ allocScratchForThisThread(ssize size)
 {
     ADT_ASSERT(stl_pScratchMem == nullptr, "already allocated");
 
-    stl_pScratchMem = static_cast<u8*>(calloc(1, size));
+    stl_pScratchMem = static_cast<u8*>(::calloc(1, size));
     gtl_scratch = {stl_pScratchMem, size};
 }
 

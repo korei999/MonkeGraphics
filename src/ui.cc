@@ -32,8 +32,9 @@ init()
             .sfTitle = "Entity animations",
             .x = WIDTH - 30.0f,
             .y = 0.0f,
-            .width = Widget::AUTO_POS,
-            .height = Widget::AUTO_POS,
+            .width = Widget::AUTO_SIZE,
+            .height = Widget::AUTO_SIZE,
+            .border = 0.5f,
             .bgColor = math::V4From(colors::get(colors::BLACK), 0.5f),
             .eFlags = Widget::FLAGS::TITLE | Widget::FLAGS::DRAG,
         };
@@ -117,11 +118,11 @@ init()
                                 auto& menu = entry.menu;
                                 ssize enI = reinterpret_cast<ssize>(menu.onClick.pArg);
                                 auto enBind = game::g_poolEntities[{static_cast<int>(enI)}];
-                                Model& mod = Model::fromI(enBind.modelI);
+                                Model& model = Model::fromI(enBind.modelI);
 
                                 if constexpr (B_SET)
-                                    mod.m_oOutlineColor = math::V4From(colors::get(colors::GAINSBORO), 1.0f);
-                                else mod.m_oOutlineColor = {};
+                                    model.m_oOutlineColor = math::V4From(colors::get(colors::GAINSBORO), 1.0f);
+                                else model.m_oOutlineColor = {};
                             }
                         };
 
@@ -169,7 +170,9 @@ clickMenu(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int xOff, 
     {
         for (auto& child : menu.vEntries)
         {
-            if (py < (pWidget->y + yOff + 1) && py >= (pWidget->y + yOff))
+            if (py < (pWidget->y + yOff + 1) && py >= (pWidget->y + yOff) &&
+                px >= pWidget->x + xOff && px < pWidget->x + xOff + child.text.sfText.size()
+            )
             {
                 menu.selectedI = menu.vEntries.idx(&child);
 
@@ -200,7 +203,9 @@ clickArrowList(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int x
     auto& list = pEntry->arrowList;
 
     if (py < pWidget->y + yOff + 1 &&
-        py >= pWidget->y + yOff
+        py >= pWidget->y + yOff &&
+        px >= pWidget->x + xOff &&
+        px < pWidget->x + xOff + list.vEntries[list.selectedI].text.sfText.size() + 2 /* 2 arrows */
     )
     {
         list.prevSelectedI = list.selectedI;
@@ -220,7 +225,9 @@ clickArrowList(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int x
         case Entry::TYPE::MENU:
         {
             ++yOff;
-            ClickResult res = clickMenu(pWidget, &list.vEntries[list.selectedI], px, py, xOff, yOff);
+            ClickResult res = clickMenu(
+                pWidget, &list.vEntries[list.selectedI], px, py, xOff + 3, yOff
+            );
             ret = res;
         }
         break;
@@ -248,8 +255,8 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, int xOff, int yOff)
     ClickResult ret {};
     bool bHandled = false;
 
-    if (px >= widget.x && px < widget.x + widget.grabWidth &&
-        py >= widget.y && py < widget.y + widget.grabHeight
+    if (px + widget.border >= widget.x && px - widget.border < widget.x + widget.grabWidth &&
+        py + widget.border >= widget.y && py - widget.border < widget.y + widget.grabHeight
     )
     {
         if (bool(widget.eFlags & Widget::FLAGS::TITLE))
