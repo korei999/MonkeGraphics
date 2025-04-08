@@ -24,12 +24,12 @@
 
     #include <sysinfoapi.h>
 
-inline DWORD
+inline int
 getLogicalCoresCountWIN32()
 {
     SYSTEM_INFO info;
     GetSystemInfo(&info);
-    return info.dwNumberOfProcessors;
+    return static_cast<int>(info.dwNumberOfProcessors);
 }
 
     #define ADT_GET_NPROCS() getLogicalCoresCountWIN32()
