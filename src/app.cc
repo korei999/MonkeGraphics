@@ -39,7 +39,7 @@ static constexpr ssize SCRATCH_SIZE = SIZE_1M;
 static thread_local u8* stl_pScratchMem;
 thread_local ScratchBuffer gtl_scratch;
 
-adt::ThreadPool g_threadPool(adt::StdAllocator::inst(),
+adt::ThreadPool<256> g_threadPool(adt::StdAllocator::inst(),
     +[](void* pArg) -> void
     {
         allocScratchForThisThread(SCRATCH_SIZE);

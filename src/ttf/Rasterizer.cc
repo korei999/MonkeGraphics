@@ -319,7 +319,7 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
         auto* arg = arena.alloc<Arg>(this, *pFont, *pGlyph, xOff, yOff);
 
         /* no data dependency between altas regions */
-        app::g_threadPool.add(+[](void* pArg) -> THREAD_STATUS
+        app::g_threadPool.addRetry(+[](void* pArg) -> THREAD_STATUS
             {
                 Arg a = *static_cast<Arg*>(pArg);
 

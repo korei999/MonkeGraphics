@@ -3,9 +3,6 @@
 #include "types.hh"
 #include "printDecl.hh" /* IWYU pragma: keep */
 
-#include <cstdio>
-#include <cstdlib>
-
 namespace adt
 {
 
@@ -30,16 +27,13 @@ assertionFailed(const char* cnd, const char* msg, const char* file, int line, co
     fflush(stderr);
 #endif
 
-#ifndef NDEBUG
-    abort();
-#endif
+    *(volatile int*)0 = 0; /* die */
 }
 
 } /* namespace adt */
 
 #ifndef NDEBUG
     #define ADT_ASSERT(CND, ...)                                                                                       \
-        /* this has to be formatted with standard printf because of mutual inclusion problem */                        \
         do                                                                                                             \
         {                                                                                                              \
             if (!static_cast<bool>(CND))                                                                               \

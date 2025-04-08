@@ -4,6 +4,8 @@
 #include "assert.hh"
 #include "atomic.hh"
 
+#include <emmintrin.h>
+
 #include <type_traits>
 
 #if __has_include(<windows.h>)
@@ -662,8 +664,7 @@ inline void
 BusyWait::wait()
 {
     while (!m_atom_bDone.load(atomic::ORDER::ACQUIRE))
-    {
-    }
+        _mm_pause();
 }
 
 inline void

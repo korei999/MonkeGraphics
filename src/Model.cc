@@ -80,32 +80,35 @@ Model::updateAnimation(int animationI)
                     prevTimeI = i;
             }
 
-            prevTime = vwTimeStamps[prevTimeI + 0];
-            nextTime = vwTimeStamps[prevTimeI + 1];
-
-            ADT_ASSERT(nextTime - prevTime != 0.0f, " ");
-            const f32 interpolationValue = (m_time - prevTime) / (nextTime - prevTime);
-
-            if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::TRANSLATION)
+            if (prevTimeI + 0 < vwTimeStamps.size() && prevTimeI + 1 < vwTimeStamps.size())
             {
-                const View<math::V3> vwOutTranslations(model.accessorView<math::V3>(sampler.outputI));
+                prevTime = vwTimeStamps[prevTimeI + 0];
+                nextTime = vwTimeStamps[prevTimeI + 1];
 
-                node.uTransform.tra = lerp(vwOutTranslations[prevTimeI], vwOutTranslations[prevTimeI + 1], interpolationValue);
-            }
-            else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::ROTATION)
-            {
-                const View<math::Qt> vwOutRotations(model.accessorView<math::Qt>(sampler.outputI));
+                ADT_ASSERT(nextTime - prevTime != 0.0f, " ");
+                const f32 interpolationValue = (m_time - prevTime) / (nextTime - prevTime);
 
-                math::Qt prevRot = vwOutRotations[prevTimeI + 0];
-                math::Qt nextRot = vwOutRotations[prevTimeI + 1];
+                if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::TRANSLATION)
+                {
+                    const View<math::V3> vwOutTranslations(model.accessorView<math::V3>(sampler.outputI));
 
-                node.uTransform.rot = slerp(prevRot, nextRot, interpolationValue);
-            }
-            else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::SCALE)
-            {
-                const View<math::V3> vwOutScales(model.accessorView<math::V3>(sampler.outputI));
+                    node.uTransform.tra = lerp(vwOutTranslations[prevTimeI], vwOutTranslations[prevTimeI + 1], interpolationValue);
+                }
+                else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::ROTATION)
+                {
+                    const View<math::Qt> vwOutRotations(model.accessorView<math::Qt>(sampler.outputI));
 
-                node.uTransform.sca = lerp(vwOutScales[prevTimeI], vwOutScales[prevTimeI + 1], interpolationValue);
+                    math::Qt prevRot = vwOutRotations[prevTimeI + 0];
+                    math::Qt nextRot = vwOutRotations[prevTimeI + 1];
+
+                    node.uTransform.rot = slerp(prevRot, nextRot, interpolationValue);
+                }
+                else if (channel.target.ePath == gltf::Animation::Channel::Target::PATH_TYPE::SCALE)
+                {
+                    const View<math::V3> vwOutScales(model.accessorView<math::V3>(sampler.outputI));
+
+                    node.uTransform.sca = lerp(vwOutScales[prevTimeI], vwOutScales[prevTimeI + 1], interpolationValue);
+                }
             }
         }
     }

@@ -633,7 +633,7 @@ Renderer::draw(Arena* pArena)
         for (auto& model : Model::g_poolModels)
         {
             /* FIXME: waiting drops fps badly, but without it animations stutter on low fps. */
-            app::g_threadPool.add(+[](void* p) -> THREAD_STATUS
+            app::g_threadPool.addRetry(+[](void* p) -> THREAD_STATUS
                 {
                     auto* pModel = static_cast<Model*>(p);
 
