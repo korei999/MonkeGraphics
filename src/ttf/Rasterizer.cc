@@ -321,7 +321,7 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
         /* no data dependency between altas regions */
         app::g_threadPool.addRetry(+[](void* pArg) -> THREAD_STATUS
             {
-                Arg a = *static_cast<Arg*>(pArg);
+                const Arg& a = *static_cast<Arg*>(pArg);
 
                 try
                 {

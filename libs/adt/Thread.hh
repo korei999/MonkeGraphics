@@ -655,13 +655,13 @@ struct BusyWait
 
     /* */
 
-    void wait();
+    void wait() const;
     void signal();
     void reset();
 };
 
 inline void
-BusyWait::wait()
+BusyWait::wait() const
 {
     while (!m_atom_bDone.load(atomic::ORDER::ACQUIRE))
         _mm_pause();

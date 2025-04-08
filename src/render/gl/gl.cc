@@ -243,12 +243,12 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
 
     };
 
-    auto clStencilTrmColor = [&](Shader* pStShader, const M4& stencilFullTrm)
+    auto clSetStencilTrmColor = [&](Shader* pStShader, const M4& stencilFullTrm)
     {
         if (model.m_oOutlineColor && pStShader)
         {
             pStencilShader = pStShader;
-            stencilTrm = stencilFullTrm * M4ScaleFrom(1.05f);
+            stencilTrm = stencilFullTrm;
             stencilColor = model.m_oOutlineColor.valueOr({});
 
             pfnStencilUpdate = +[](Shader* pShader, const M4& stencilMat, const V4& color, void* pExtra) -> void
@@ -269,14 +269,14 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
         pSh->setV3("u_ambientColor", game::g_ambientLight);
     };
 
-    auto clStencilNormalDraw = [&]
+    auto clSetStencilNormalDraw = [&]
     {
         glStencilFunc(GL_ALWAYS, 1, 0xff);
         glStencilMask(0xff);
         glEnable(GL_DEPTH_TEST);
     };
 
-    auto clStencilOutlineDraw = [&]
+    auto clSetStencilOutlineDraw = [&]
     {
         glStencilFunc(GL_NOTEQUAL, 1, 0xff);
         glStencilMask(0x00);
@@ -297,7 +297,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
                 accUV = gltfModel.m_vAccessors[primitive.attributes.TEXCOORD_0];
 
             /*app::g_threadPool.wait();*/
-            ((BusyWait&)model.m_waitLock).wait();
+            model.m_waitLock.wait();
 
             if (model.m_animationIUsed >= 0 &&
                 model.m_animationIUsed < model.m_vAnimations.size() &&
@@ -338,7 +338,8 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
                 if (model.m_oOutlineColor)
                 {
                     pStencilShader = searchShader("Skin");
-                    stencilTrm = trm * M4ScaleFrom(1.05f) * node.finalTransform;
+
+                    stencilTrm = trm * node.finalTransform;
                     stencilColor = model.m_oOutlineColor.valueOr({});
 
                     struct Arg
@@ -395,7 +396,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
                         pSh->setM4("u_trm", transform);
 
                         auto* pShSimpleCol = searchShader("SimpleColor");
-                        clStencilTrmColor(pShSimpleCol, transform);
+                        clSetStencilTrmColor(pShSimpleCol, transform);
                     }
                     else goto GOTO_defaultShader;
                 }
@@ -407,7 +408,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
                     M4 transform = trmProj * trmView * trm * node.finalTransform;
                     pSh->setM4("u_trm", transform);
 
-                    clStencilTrmColor(pSh, transform);
+                    clSetStencilTrmColor(pSh, transform);
                 }
             }
             else
@@ -447,16 +448,20 @@ GOTO_defaultShader:
                             if (pfnStencilUpdate)
                                 pfnStencilUpdate(pStencilShader, stencilTrm, stencilColor, pStencilExtra);
 
-                            clStencilOutlineDraw();
+                            clSetStencilOutlineDraw();
 
+                            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                            glLineWidth(10.0f);
                             glDrawElements(
                                 static_cast<GLenum>(primitive.eMode),
                                 accIndices.count,
                                 static_cast<GLenum>(accIndices.eComponentType),
                                 {}
                             );
+                            glLineWidth(1.0f);
+                            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-                            clStencilNormalDraw();
+                            clSetStencilNormalDraw();
                         }
                     }
                 }
@@ -480,15 +485,19 @@ GOTO_defaultShader:
                             if (pfnStencilUpdate)
                                 pfnStencilUpdate(pStencilShader, stencilTrm, stencilColor, pStencilExtra);
 
-                            clStencilOutlineDraw();
+                            clSetStencilOutlineDraw();
 
+                            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                            glLineWidth(10.0f);
                             glDrawArrays(
                                 static_cast<GLenum>(primitive.eMode),
                                 0,
                                 accPos.count
                             );
+                            glLineWidth(1.0f);
+                            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-                            clStencilNormalDraw();
+                            clSetStencilNormalDraw();
                         }
                     }
                 }
@@ -632,7 +641,6 @@ Renderer::draw(Arena* pArena)
         /* TODO: implement proper parallel for */
         for (auto& model : Model::g_poolModels)
         {
-            /* FIXME: waiting drops fps badly, but without it animations stutter on low fps. */
             app::g_threadPool.addRetry(+[](void* p) -> THREAD_STATUS
                 {
                     auto* pModel = static_cast<Model*>(p);
@@ -998,8 +1006,8 @@ bufferViewConvert(
     const View<A> spA,
     const int accessorCount,
     const int attrLocation,
-    GLint size,
-    GLenum eType,
+    const GLint size,
+    const GLenum eType,
     GLuint* pVbo
 )
 {
@@ -1027,21 +1035,14 @@ bufferViewConvert(
     {
         glVertexAttribIPointer(
             attrLocation, /* enabled index */
-            size,
-            eType,
-            0,
-            0
+            size, eType, 0, 0
         );
     }
     else
     {
         glVertexAttribPointer(
             attrLocation, /* enabled index */
-            size,
-            eType,
-            false,
-            0,
-            0
+            size, eType, false, 0, 0
         );
     }
 }
