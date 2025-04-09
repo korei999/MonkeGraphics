@@ -156,14 +156,12 @@ loadStuff()
     updateState(&firstUpdateArena);
 
     for (auto& model : Model::g_poolModels)
-        model.updateAnimation();
+        model.updateAnimation(model.m_time + frame::g_frameTime);
 }
 
 void
 updateState(adt::Arena*)
 {
-    control::g_camera.updatePos();
-
     {
         auto entity = g_poolEntities[{1}];
         entity.pos = {-3.0f, 0.0f, 5.0f};

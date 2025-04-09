@@ -269,7 +269,7 @@ operator==(const StringView& l, const StringView& r)
     if (l.size() != r.size())
         return false;
 
-    return strncmp(l.data(), r.data(), l.size()) == 0; /* strncmp is as fast as AVX2 version (on my 8700k) */
+    return strncmp(l.data(), r.data(), l.size()) == 0; /* strncmp is as fast as handmade AVX2 function. */
 }
 
 inline bool

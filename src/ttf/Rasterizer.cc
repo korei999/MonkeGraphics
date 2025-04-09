@@ -307,25 +307,21 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
         Glyph* pGlyph = pFont->readGlyph(ch);
         if (!pGlyph) continue;
 
-        struct Arg
+        auto clRasterize = [this, pFont, pGlyph, xOff, yOff]
         {
-            Rasterizer* self;
-            const Font& font;
-            const Glyph& glyph;
-            const int xOff;
-            const int yOff;
+            rasterizeGlyph(*pFont, *pGlyph, xOff, yOff);
         };
 
-        auto* arg = arena.alloc<Arg>(this, *pFont, *pGlyph, xOff, yOff);
+        auto* pCl = arena.alloc<decltype(clRasterize)>(clRasterize);
 
         /* no data dependency between altas regions */
         app::g_threadPool.addRetry(+[](void* pArg) -> THREAD_STATUS
             {
-                const Arg& a = *static_cast<Arg*>(pArg);
+                auto* pTask = static_cast<decltype(clRasterize)*>(pArg);
 
                 try
                 {
-                    a.self->rasterizeGlyph(a.font, a.glyph, a.xOff, a.yOff);
+                    (*pTask)();
                 }
                 catch (const AllocException& ex)
                 {
@@ -334,7 +330,7 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
 
                 return THREAD_STATUS(0);
             },
-            arg
+            pCl
         );
 
         if ((xOff += xStep) >= (nSquares*iScale) - xStep)

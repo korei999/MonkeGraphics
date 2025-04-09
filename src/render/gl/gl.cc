@@ -45,7 +45,7 @@ struct Skybox
     /* */
 
     Skybox() = default;
-    Skybox(Image a6Images[6]);
+    Skybox(const Array<Image, 6>& a6Images);
 
     /* */
 
@@ -251,7 +251,9 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
             stencilTrm = stencilFullTrm;
             stencilColor = model.m_oOutlineColor.valueOr({});
 
-            pfnStencilUpdate = +[](Shader* pShader, const M4& stencilMat, const V4& color, void* pExtra) -> void
+            pfnStencilUpdate = +[](
+                Shader* pShader, const M4& stencilMat, const V4& color, void* pExtra
+            ) -> void
             {
                 pShader->use();
                 pShader->setV4("u_color", color);
@@ -641,16 +643,23 @@ Renderer::draw(Arena* pArena)
         /* TODO: implement proper parallel for */
         for (auto& model : Model::g_poolModels)
         {
-            app::g_threadPool.addRetry(+[](void* p) -> THREAD_STATUS
-                {
-                    auto* pModel = static_cast<Model*>(p);
+            if (control::g_bPauseSimulation)
+            {
+                model.m_waitLock.m_atom_bDone.store(1, atomic::ORDER::RELAXED);
+            }
+            else
+            {
+                app::g_threadPool.addRetry(+[](void* p) -> THREAD_STATUS
+                    {
+                        auto* pModel = static_cast<Model*>(p);
 
-                    pModel->updateAnimation();
-                    pModel->m_waitLock.signal();
+                        pModel->updateAnimation(pModel->m_time + frame::g_frameTime);
+                        pModel->m_waitLock.signal();
 
-                    return THREAD_STATUS(0);
-                }, &model
-            );
+                        return THREAD_STATUS(0);
+                    }, &model
+                );
+            }
         }
 
         for (int entityI = entities.firstI();
@@ -1372,7 +1381,7 @@ loadSkybox()
     Image* i4 = asset::searchImage("assets/skybox/front.bmp");
     Image* i5 = asset::searchImage("assets/skybox/back.bmp");
 
-    Image a6Images[6] {};
+    Array<Image, 6> a6Images {6};
 
     if (!i0 || !i1 || !i2 || !i3 || !i4 || !i5)
     {
@@ -1400,14 +1409,14 @@ loadSkybox()
     s_skyboxDefault = Skybox(a6Images);
 }
 
-Skybox::Skybox(Image a6Images[6])
+Skybox::Skybox(const Array<Image, 6>& a6Images)
 {
     glGenTextures(1, &m_tex);
     glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex);
 
     for (ssize i = 0; i < 6; ++i)
     {
-        Image& img = a6Images[i];
+        const Image& img = a6Images[i];
 
         glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
             0, GL_RGBA, img.m_width, img.m_height,

@@ -91,7 +91,7 @@ struct Array
 };
 
 template<typename T, ssize CAP> requires(CAP > 0)
-constexpr ssize
+inline constexpr ssize
 Array<T, CAP>::push(const T& x)
 {
     ADT_ASSERT(size() < CAP, "pushing over capacity");

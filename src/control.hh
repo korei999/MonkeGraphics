@@ -86,6 +86,7 @@ extern Camera g_camera;
 extern Mouse g_mouse;
 extern bool g_abPrevPressed[MAX_KEY_VALUE];
 extern bool g_abPressed[MAX_KEY_VALUE];
+extern bool g_bPauseSimulation;
 extern MOD_STATE g_ePressedMods;
 
 extern adt::Array<Keybind, MAX_KEYBINDS> g_aKeybinds;

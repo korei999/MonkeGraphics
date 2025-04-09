@@ -1,7 +1,6 @@
 #include "Model.hh"
 
 #include "app.hh"
-#include "frame.hh"
 #include "asset.hh"
 
 #include "adt/View.hh"
@@ -25,20 +24,14 @@ Model::gltfModel() const
 }
 
 void
-Model::updateAnimation(int animationI)
+Model::updateAnimation(int animationI, f64 time)
 {
     const gltf::Model& model = gltfModel();
 
-    if (model.m_vAnimations.empty())
-    {
+    if (model.m_vAnimations.empty() || (animationI < 0 || animationI >= model.m_vAnimations.size()))
         return;
-    }
-    else if (animationI < 0 || animationI >= model.m_vAnimations.size())
-    {
-        return;
-    }
 
-    m_time += frame::g_frameTime;
+    m_time = time;
 
     const gltf::Animation& gltfAnimation = model.m_vAnimations[animationI];
     const Animation& animation = m_vAnimations[animationI];
@@ -80,7 +73,7 @@ Model::updateAnimation(int animationI)
                     prevTimeI = i;
             }
 
-            if (prevTimeI + 0 < vwTimeStamps.size() && prevTimeI + 1 < vwTimeStamps.size())
+            if (prevTimeI + 1 < vwTimeStamps.size()) [[likely]]
             {
                 prevTime = vwTimeStamps[prevTimeI + 0];
                 nextTime = vwTimeStamps[prevTimeI + 1];

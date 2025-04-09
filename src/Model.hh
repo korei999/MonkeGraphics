@@ -90,8 +90,8 @@ struct Model
     gltf::Model& gltfModel() const;
     gltf::Node& gltfNode(const Node& node) const { return gltfModel().m_vNodes[m_vNodes.idx(&node)]; };
 
-    void updateAnimation(int animationI);
-    void updateAnimation() { updateAnimation(m_animationIUsed); }
+    void updateAnimation(int animationI, adt::f64 time);
+    void updateAnimation(adt::f64 time) { updateAnimation(m_animationIUsed, time); }
 
 private:
     void loadNodes();

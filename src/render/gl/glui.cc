@@ -1,6 +1,8 @@
 #include "gl.hh"
 #include "glui.hh"
 
+#include "control.hh"
+#include "app.hh"
 #include "Text.hh"
 #include "asset.hh"
 #include "colors.hh"
@@ -46,7 +48,7 @@ init()
     {
         s_rastLiberation.rasterizeAscii(StdAllocator::inst(), pFont, 64.0f);
         s_texLiberation = Texture(s_rastLiberation.m_altas.spanMono(), GL_LINEAR);
-        s_text = Text(100);
+        s_text = Text(255);
     }
 
     s_quad0to1 = Quad(INIT, Quad::TYPE::ZERO_TO_ONE);
@@ -81,9 +83,10 @@ drawText(
 
     pVCommands->emplace(+[](void* p)
         {
-        auto* pCl = static_cast<decltype(clDraw)*>(p);
-        pCl->operator()();
-        }, pClDraw
+            auto* pCl = static_cast<decltype(clDraw)*>(p);
+            pCl->operator()();
+        },
+        pClDraw
     );
 
     return {static_cast<int>(sv.size()), 1};
@@ -279,11 +282,11 @@ draw(Arena* pArena)
 
     const math::M4 proj = math::M4Ortho(0, ::ui::WIDTH, ::ui::HEIGHT, 0, -10.0f, 10.0f);
 
-    s_pShTexMonoBlur->setV4("u_color", V4From(colors::get(colors::WHITE), 0.75f));
     s_pShTexMonoBlur->setV2("u_texelSize", math::V2From(1.0f/s_texLiberation.m_width, 1.0f/s_texLiberation.m_height));
 
     /* fps */
     {
+        s_pShTexMonoBlur->setV4("u_color", V4From(colors::get(colors::GREEN), 0.75f));
         s_pShTexMonoBlur->setM4("u_trm", proj * math::M4TranslationFrom({0.0f, 0.0f, -1.0f}));
 
         s_text.update(s_rastLiberation, frame::g_sfFpsStatus, true);
@@ -292,15 +295,26 @@ draw(Arena* pArena)
 
     /* info */
     {
-        StringView sv =
-            "F: toggle fullscreen\n"
-            "V: toggle VSync\n"
-            "R: lock/unlock mouse\n"
-            "Q/Escape: quit\n";
+        Span<char> spBuff = app::gtl_scratch.nextMemZero<char>(1 << 9);
+        ssize n = print::toSpan(spBuff,
+            "F: toggle fullscreen ({})\n"
+            "V: toggle VSync ({})\n"
+            "R: lock/unlock mouse ({})\n"
+            "P: pause/unpause simulation ({})\n"
+            "Q/Escape: quit\n"
+            ,
+            app::windowInst().m_bFullscreen ? "on" : "off",
+            app::windowInst().m_swapInterval == 1 ? "on" : "off",
+            app::windowInst().m_bPointerRelativeMode ? "locked" : "unlocked",
+            control::g_bPauseSimulation ? "paused" : "unpaused"
+        );
+
+        StringView sv = {spBuff.data(), n};
 
         int nSpaces = 0;
         for (auto ch : sv) if (ch == '\n') ++nSpaces;
 
+        s_pShTexMonoBlur->setV4("u_color", V4From(colors::get(colors::WHITE), 0.75f));
         s_pShTexMonoBlur->setM4("u_trm", proj * math::M4TranslationFrom(
                 {0.0f, ::ui::HEIGHT - static_cast<f32>(nSpaces), -1.0f}
             )

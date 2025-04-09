@@ -60,12 +60,12 @@ struct Int
 
     /* */
 
-    volatile Type m_int {};
+    volatile Type m_int;
 
     /* */
 
-    Int() = default;
-    Int(const int val) { store(val, ORDER::RELAXED); }
+    Int() { store(0, ORDER::RELAXED); }
+    explicit Int(const int val) { store(val, ORDER::RELAXED); }
 
     /* */
 

@@ -6,6 +6,7 @@
 #include "ui.hh"
 #include "asset.hh"
 
+#include "adt/Opt.hh"
 #include "adt/Vec.hh"
 #include "adt/logs.hh"
 #include "adt/defer.hh"
@@ -93,6 +94,8 @@ renderLoop(void* pArg)
     VecManaged<f64> vFrameTimes(StdAllocator::inst(), 1000);
     defer( vFrameTimes.destroy() );
     f64 lastAvgFrameTimeUpdateTime {};
+    f64 pauseDiff = 0;
+    Opt<f64> optLastTimeBeforePause {};
 
     f64 accumulator = 0.0;
 
@@ -101,18 +104,25 @@ renderLoop(void* pArg)
         const f64 t0 = utils::timeNowMS();
 
         {
-            f64 newTime = utils::timeNowS();
+            f64 newTime = t0 / 1000.0;
+
             g_frameTime = newTime - g_time;
-            g_time = newTime;
 
             accumulator += g_frameTime;
+            g_time = newTime;
 
             control::procInput();
 
             while (accumulator >= g_dt)
             {
-                game::updateState(pArena);
-                g_gameTime += g_dt;
+                control::g_camera.updatePos();
+
+                if (!control::g_bPauseSimulation)
+                {
+                    game::updateState(pArena);
+                    g_gameTime += g_dt;
+                }
+
                 accumulator -= g_dt;
             }
 

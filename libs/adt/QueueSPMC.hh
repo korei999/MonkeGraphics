@@ -18,8 +18,8 @@ struct QueueSPMC
 
     /* */
 
-    T& data() { return m_aData; }
-    const T& data() const { return m_aData; }
+    T& data() noexcept { return m_aData; }
+    const T& data() const noexcept { return m_aData; }
 
     int pushBack(const T& x); /* -1 on false */
     T* popFront(); /* nullptr on empty */

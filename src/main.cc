@@ -26,7 +26,7 @@ WinMain(
 int
 main(int argc, char** argv)
 {
-    startup(argc, argv);
+    return startup(argc, argv);
 }
 
 #endif
@@ -92,6 +92,7 @@ startup(int argc, char** argv)
     catch (IException& ex)
     {
         ex.printErrorMsg(stdout);
+        ADT_ASSERT_ALWAYS(false, ex.getMsg());
     }
 
     return 0;

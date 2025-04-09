@@ -24,14 +24,17 @@ static void toggleFullscreen() { app::windowInst().toggleFullscreen(); }
 static void quit() { LOG_WARN("QUIT\n"); app::windowInst().m_bRunning = false; }
 static void toggleRelativePointer() { app::windowInst().togglePointerRelativeMode(); }
 static void toggleVSync() { app::windowInst().toggleVSync(); }
+static void togglePause() { utils::toggle(&g_bPauseSimulation); LOG_WARN("PAUSE: {}\n", g_bPauseSimulation); }
 
-Camera g_camera {.m_pos {0, 0, -3}, .m_lastMove {}, .m_sens = 0.05f, .m_speed = 4.0f};
+Camera g_camera {.m_pos {0, 0, -3}, .m_lastMove {}, .m_sens = 0.05f, .m_speed = 4.0f, .m_fov = 60.0f};
 Mouse g_mouse;
 bool g_abPrevPressed[MAX_KEY_VALUE];
 bool g_abPressed[MAX_KEY_VALUE];
+bool g_bPauseSimulation = false;
 MOD_STATE g_ePressedMods;
 
 Array<Keybind, MAX_KEYBINDS> g_aKeybinds {
+    {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_P,        togglePause          },
     {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_F,        toggleFullscreen     },
     {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_R,        toggleRelativePointer},
     {REPEAT::ONCE,       EXEC_ON::PRESS,   MOD_STATE::ANY,   KEY_V,        toggleVSync          },
