@@ -36,6 +36,11 @@ option(OPT_GL "" ON)
 option(OPT_WAYLAND_GL "" ON)
 option(OPT_FAST_MATH "" OFF)
 option(OPT_PRECOMPILE_ADT "" OFF)
+option(OPT_ANALYZE "" OFF)
+
+if (OPT_ANALYZE)
+    add_compile_options(-fanalyzer)
+endif()
 
 if (OPT_MIMALLOC)
     include(FetchContent)
@@ -51,30 +56,6 @@ if (OPT_MIMALLOC)
     )
 
     add_definitions("-DADT_USE_MIMALLOC")
-endif()
-
-if (CMAKE_BUILD_TYPE MATCHES "DebugMingw" OR CMAKE_BUILD_TYPE MATCHES "ReleaseMingw")
-    set(TOOLCHAIN_PREFIX x86_64-w64-mingw32)
-    set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}-gcc)
-    set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}-g++)
-
-    set(CMAKE_FIND_ROOT_PATH /usr/${TOOLCHAIN_PREFIX})
-    set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-    set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-    set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-
-    set(CMAKE_SYSTEM_NAME "Windows")
-
-    if (CMAKE_BUILD_TYPE MATCHES "DebugMingw")
-        set(CMAKE_BUILD_TYPE "Debug")
-    else()
-        set(CMAKE_BUILD_TYPE "Release")
-    endif()
-endif()
-
-if (CMAKE_SYSTEM_NAME MATCHES "Windows")
-    add_definitions("-D_CRT_SECURE_NO_WARNINGS")
-    add_definitions("-DADT_STD_TYPES")
 endif()
 
 if (OPT_MARCH_NATIVE)
@@ -102,6 +83,30 @@ if (OPT_AVX2)
     else()
         add_compile_options(-mavx2)
     endif()
+endif()
+
+if (CMAKE_BUILD_TYPE MATCHES "DebugMingw" OR CMAKE_BUILD_TYPE MATCHES "ReleaseMingw")
+    set(TOOLCHAIN_PREFIX x86_64-w64-mingw32)
+    set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}-gcc)
+    set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}-g++)
+
+    set(CMAKE_FIND_ROOT_PATH /usr/${TOOLCHAIN_PREFIX})
+    set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+    set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+    set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
+    set(CMAKE_SYSTEM_NAME "Windows")
+
+    if (CMAKE_BUILD_TYPE MATCHES "DebugMingw")
+        set(CMAKE_BUILD_TYPE "Debug")
+    else()
+        set(CMAKE_BUILD_TYPE "Release")
+    endif()
+endif()
+
+if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+    add_definitions("-D_CRT_SECURE_NO_WARNINGS")
+    add_definitions("-DADT_STD_TYPES")
 endif()
 
 include_directories(BEFORE "libs")

@@ -66,9 +66,9 @@ ClientGL::destroy()
 {
     Client::destroy();
 
-    if (!eglDestroySurface(m_eglDisplay, m_eglSurface)) LOG_BAD("!eglDestroySurface\n");
-    if (!eglDestroyContext(m_eglDisplay, m_eglContext)) LOG_BAD("!eglDestroyContext\n");
-    if (!eglTerminate(m_eglDisplay)) LOG_BAD("!eglTerminate\n");
+    /*if (!eglDestroySurface(m_eglDisplay, m_eglSurface)) LOG_BAD("!eglDestroySurface\n");*/
+    /*if (!eglDestroyContext(m_eglDisplay, m_eglContext)) LOG_BAD("!eglDestroyContext\n");*/
+    /*if (!eglTerminate(m_eglDisplay)) LOG_BAD("!eglTerminate\n");*/
 }
 
 void
