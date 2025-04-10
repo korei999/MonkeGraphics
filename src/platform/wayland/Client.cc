@@ -84,6 +84,10 @@ static const zwp_relative_pointer_v1_listener s_relativePointerListener {
     .relative_motion = reinterpret_cast<decltype(zwp_relative_pointer_v1_listener::relative_motion)>(methodPointer(&Client::relativePointerMotion))
 };
 
+static const zxdg_toplevel_decoration_v1_listener s_decorationListener {
+    .configure = reinterpret_cast<decltype(zxdg_toplevel_decoration_v1_listener::configure)>(methodPointer(&Client::decorationConfigure))
+};
+
 #if defined __clang__
     #pragma clang diagnostic pop
 #endif
@@ -136,6 +140,14 @@ Client::Client(adt::IAllocator* pAlloc, const char* ntsName)
     ADT_ASSERT_ALWAYS(m_pRelPointer, "zwp_relative_pointer_manager_v1_get_relative_pointer() failed");
 
     zwp_relative_pointer_v1_add_listener(m_pRelPointer, &s_relativePointerListener, this);
+
+    if (m_pXdgDecorationManager)
+    {
+        m_pXdgDecoration = zxdg_decoration_manager_v1_get_toplevel_decoration(m_pXdgDecorationManager, m_pXdgToplevel);
+        zxdg_toplevel_decoration_v1_add_listener(m_pXdgDecoration, &s_decorationListener, this);
+
+        zxdg_toplevel_decoration_v1_set_mode(m_pXdgDecoration, ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+    }
 
     wl_surface_commit(m_pSurface);
     wl_display_roundtrip(m_pDisplay);
@@ -290,6 +302,8 @@ Client::destroy()
     if (m_pSeat) wl_seat_destroy(m_pSeat);
     if (m_pKeyboard) wl_keyboard_destroy(m_pKeyboard);
     if (m_pPointer) wl_pointer_destroy(m_pPointer);
+    if (m_pXdgDecorationManager) zxdg_decoration_manager_v1_destroy(m_pXdgDecorationManager);
+    if (m_pXdgDecoration) zxdg_toplevel_decoration_v1_destroy(m_pXdgDecoration);
     if (m_pRelPointerMgr) zwp_relative_pointer_manager_v1_destroy(m_pRelPointerMgr);
     if (m_pRelPointer) zwp_relative_pointer_v1_destroy(m_pRelPointer);
     if (m_pLockedPointer) disableRelativeMode();
@@ -417,8 +431,19 @@ Client::global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, 
     }
     else if (svInterface == zwp_pointer_constraints_v1_interface.name)
     {
-        m_pPointerConstraints = static_cast<zwp_pointer_constraints_v1*>(wl_registry_bind(pRegistry, name, &zwp_pointer_constraints_v1_interface, version));
+        m_pPointerConstraints = static_cast<zwp_pointer_constraints_v1*>(
+            wl_registry_bind(pRegistry, name, &zwp_pointer_constraints_v1_interface, version)
+        );
         ADT_ASSERT_ALWAYS(m_pPointerConstraints, "failed to bind `zwp_pointer_constraints_v1_interface`");
+    }
+    else if (svInterface == zxdg_decoration_manager_v1_interface.name)
+    {
+        m_pXdgDecorationManager = static_cast<zxdg_decoration_manager_v1*>(
+            wl_registry_bind(pRegistry, name, &zxdg_decoration_manager_v1_interface, version)
+        );
+
+        if (!m_pXdgDecorationManager)
+            LOG_WARN("failed to bind `zxdg_decoration_manager_v1_interface`\n");
     }
 }
 

@@ -6,6 +6,7 @@
 #include "wayland-protocols/viewporter.h"
 #include "wayland-protocols/relative-pointer-unstable-v1.h"
 #include "wayland-protocols/pointer-constraints-unstable-v1.h"
+#include "wayland-protocols/xdg-decoration.h"
 
 #include "adt/Vec.hh"
 
@@ -53,6 +54,9 @@ struct Client : public IWindow
 
     wp_viewporter* m_pViewporter {};
     wp_viewport* m_pViewport {};
+
+    zxdg_decoration_manager_v1* m_pXdgDecorationManager {};
+    zxdg_toplevel_decoration_v1* m_pXdgDecoration {};
 
     bool m_bKeyboardUnfocused {};
     bool m_bPointerUnfocused {};
@@ -148,6 +152,8 @@ struct Client : public IWindow
     void pointerAxisRelativeDirection(wl_pointer* pPointer, uint32_t axis, uint32_t direction);
 
     void relativePointerMotion(zwp_relative_pointer_v1* pRelPointerV1, uint32_t utimeHi, uint32_t utimeLo, wl_fixed_t dx, wl_fixed_t dy, wl_fixed_t dxUnaccel, wl_fixed_t dyUnaccel);
+
+    void decorationConfigure(zxdg_toplevel_decoration_v1* pZXdgToplevelDecoration_v1, uint32_t mode);
     /* */
 
     void callbackDone(wl_callback* pCallback, uint32_t callbackData);

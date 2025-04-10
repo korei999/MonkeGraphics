@@ -2,7 +2,8 @@
 
 #include "app.hh"
 #include "control.hh"
-#include "ui.hh"
+
+#include "adt/logs.hh"
 
 using namespace adt;
 
@@ -228,6 +229,12 @@ Client::relativePointerMotion(
         m_relMotionX += static_cast<f32>(wl_fixed_to_double(dxUnaccel));
         m_relMotionY += static_cast<f32>(wl_fixed_to_double(dyUnaccel));
     }
+}
+
+void
+Client::decorationConfigure(zxdg_toplevel_decoration_v1* pZXdgToplevelDecorationV1, uint32_t mode)
+{
+    LOG_WARN("decorationConfigure()\n");
 }
 
 } /* namespace platform::wayland */

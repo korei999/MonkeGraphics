@@ -280,6 +280,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     set(POINTER_CONSTRAINTS "${WAYLAND_PROTOCOLS_DIR}/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml")
     set(RELATIVE_POINTER "${WAYLAND_PROTOCOLS_DIR}/unstable/relative-pointer/relative-pointer-unstable-v1.xml")
     set(VIEWPORTER "${WAYLAND_PROTOCOLS_DIR}/stable/viewporter/viewporter.xml")
+    set(XDG_DECORATION "${WAYLAND_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml")
     # set(TEARING "${WAYLAND_PROTOCOLS_DIR}/staging/tearing-control/tearing-control-v1.xml")
 
     message(STATUS "WLP: '${WLP}'")
@@ -300,6 +301,8 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     execute_process(COMMAND ${WAYLAND_SCANNER} private-code  ${XDG_SHELL}           ${CMAKE_SOURCE_DIR}/${WLPD}/xdg-shell.c)
     execute_process(COMMAND ${WAYLAND_SCANNER} client-header ${VIEWPORTER}          ${CMAKE_SOURCE_DIR}/${WLPD}/viewporter.h)
     execute_process(COMMAND ${WAYLAND_SCANNER} private-code  ${VIEWPORTER}          ${CMAKE_SOURCE_DIR}/${WLPD}/viewporter.c)
+    execute_process(COMMAND ${WAYLAND_SCANNER} client-header ${XDG_DECORATION}      ${CMAKE_SOURCE_DIR}/${WLPD}/xdg-decoration.h)
+    execute_process(COMMAND ${WAYLAND_SCANNER} private-code  ${XDG_DECORATION}      ${CMAKE_SOURCE_DIR}/${WLPD}/xdg-decoration.c)
 
     target_sources(
         ${CMAKE_PROJECT_NAME} PRIVATE
@@ -309,6 +312,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
         ${WLPD}/relative-pointer-unstable-v1.c
         ${WLPD}/xdg-shell.c
         ${WLPD}/viewporter.c
+        ${WLPD}/xdg-decoration.c
     )
 
     if (OPT_WAYLAND_GL)
