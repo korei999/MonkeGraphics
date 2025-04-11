@@ -166,7 +166,19 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const adt::math::V2& x)
 }
 
 inline ssize
+formatToContext(Context ctx, FormatArgs fmtArgs, const adt::math::IV2& x)
+{
+    return formatToContext(ctx, fmtArgs, x.data());
+}
+
+inline ssize
 formatToContext(Context ctx, FormatArgs fmtArgs, const adt::math::V3& x)
+{
+    return formatToContext(ctx, fmtArgs, x.data());
+}
+
+inline ssize
+formatToContext(Context ctx, FormatArgs fmtArgs, const adt::math::IV3& x)
 {
     return formatToContext(ctx, fmtArgs, x.data());
 }

@@ -35,8 +35,6 @@ what()
 
     LOG_BAD("m3: {}\n", m3);
     LOG_BAD("m4: {}\n", m4);
-
-    exit(0);
 }
 
 int

@@ -115,6 +115,11 @@ struct IV3
 
     IV3();
     IV3(i32 x, i32 y, i32 z);
+
+    /* */
+
+    i32 (&data())[3] { return *reinterpret_cast<i32(*)[3]>(this); }
+    const i32 (&data() const)[3] { return *reinterpret_cast<const i32(*)[3]>(this); }
 };
 
 struct V4
