@@ -5,6 +5,8 @@
 #include "app.hh"
 #include "frame.hh"
 
+#include "adt/math2.hh"
+
 using namespace adt;
 
 static int startup(int argc, char** argv);
@@ -23,9 +25,25 @@ WinMain(
 
 #else
 
+static void
+what()
+{
+    using namespace adt::math;
+
+    M3 m3 = M3::iden();
+    M4 m4 = M4::iden();
+
+    LOG_BAD("m3: {}\n", m3);
+    LOG_BAD("m4: {}\n", m4);
+
+    exit(0);
+}
+
 int
 main(int argc, char** argv)
 {
+    what();
+
     return startup(argc, argv);
 }
 

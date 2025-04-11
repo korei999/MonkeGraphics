@@ -9,6 +9,11 @@
 namespace adt::math
 {
 
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+#endif
+
 constexpr f64 PI64 = 3.14159265358979323846;
 constexpr f32 PI32 = static_cast<f32>(PI64);
 constexpr f64 EPS64 = std::numeric_limits<f64>::epsilon();
@@ -531,6 +536,10 @@ bezier(
 inline M4 transformation(const V3& translation, const Qt& rot, const V3& scale);
 
 inline M4 transformation(const V3& translation, const V3& scale);
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 } /* namespace adt::math */
 

@@ -3,8 +3,7 @@
 #include "glfunc.hh" /* IWYU pragma: keep */
 #include "../IRenderer.hh"
 
-#include "adt/String.hh"
-#include "adt/math.hh"
+#include "adt/mathDecl.hh"
 #include "adt/Pool.hh"
 
 #include "Image.hh"
