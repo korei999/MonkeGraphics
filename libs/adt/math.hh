@@ -1302,7 +1302,7 @@ normalize(const V4& v)
 constexpr inline auto
 lerp(const auto& a, const auto& b, const auto& t)
 {
-    return (1.0 - t) * a + t * b;
+    return (static_cast<decltype(t)>(1.0) - t) * a + t * b;
 }
 
 inline Qt

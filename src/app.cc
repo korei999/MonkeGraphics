@@ -44,7 +44,7 @@ adt::ThreadPool<128> g_threadPool(adt::StdAllocator::inst(),
     nullptr,
     +[](void*) { destroyScratchForThisThread(); },
     nullptr,
-    utils::min(ADT_GET_NPROCS() - 1, 2)
+    utils::max(ADT_GET_NPROCS() - 2, 2)
 );
 
 void
