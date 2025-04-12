@@ -299,7 +299,8 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
                 accUV = gltfModel.m_vAccessors[primitive.attributes.TEXCOORD_0];
 
             /*app::g_threadPool.wait();*/
-            model.m_waitLock.wait();
+            if (!control::g_bPauseSimulation)
+                model.m_waitLock.wait();
 
             if (model.m_animationIUsed >= 0 &&
                 model.m_animationIUsed < model.m_vAnimations.size() &&
@@ -639,14 +640,9 @@ Renderer::draw(Arena* pArena)
     {
         auto& entities = game::g_poolEntities;
 
-        /* TODO: implement proper parallel for */
-        for (auto& model : Model::g_poolModels)
+        if (!control::g_bPauseSimulation)
         {
-            if (control::g_bPauseSimulation)
-            {
-                model.m_waitLock.m_atom_bDone.store(1, atomic::ORDER::RELAXED);
-            }
-            else
+            for (auto& model : Model::g_poolModels)
             {
                 app::g_threadPool.addRetry(+[](void* p) -> THREAD_STATUS
                     {

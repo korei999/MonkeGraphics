@@ -201,7 +201,7 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
     if (bool(pWidget->eFlags & ::ui::Widget::FLAGS::TITLE))
     {
         math::IV2 xy = drawText(pVCommands, *pWidget, pWidget->sfTitle,
-            V4From(colors::get(colors::WHITE), 0.75f), proj, 0, 0
+            V4From(colors::WHITE, 0.75f), proj, 0, 0
         );
         yOff += xy.y;
 
@@ -286,7 +286,7 @@ draw(Arena* pArena)
 
     /* fps */
     {
-        s_pShTexMonoBlur->setV4("u_color", V4From(colors::get(colors::GREEN), 0.75f));
+        s_pShTexMonoBlur->setV4("u_color", V4From(colors::GREEN, 0.75f));
         s_pShTexMonoBlur->setM4("u_trm", proj * math::M4TranslationFrom({0.0f, 0.0f, -1.0f}));
 
         s_text.update(s_rastLiberation, frame::g_sfFpsStatus, true);
@@ -314,7 +314,7 @@ draw(Arena* pArena)
         int nSpaces = 0;
         for (auto ch : sv) if (ch == '\n') ++nSpaces;
 
-        s_pShTexMonoBlur->setV4("u_color", V4From(colors::get(colors::WHITE), 0.75f));
+        s_pShTexMonoBlur->setV4("u_color", V4From(colors::WHITE, 0.75f));
         s_pShTexMonoBlur->setM4("u_trm", proj * math::M4TranslationFrom(
                 {0.0f, ::ui::HEIGHT - static_cast<f32>(nSpaces), -1.0f}
             )

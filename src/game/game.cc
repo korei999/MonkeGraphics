@@ -4,7 +4,7 @@
 #include "Model.hh"
 #include "asset.hh"
 #include "colors.hh"
-#include "control.hh"
+#include "frame.hh"
 
 #include "adt/PoolSOA.hh"
 #include "adt/logs.hh"
@@ -37,7 +37,7 @@ adt::MapManaged<
 
 /* TODO: should probably be just a separate array of light sources */
 PoolSOAHandle<Entity> g_dirLight;
-math::V3 g_ambientLight = colors::get(colors::WHITE) * 0.6f;
+math::V3 g_ambientLight = colors::WHITE * 0.6f;
 
 static const StringView s_aAssetsToLoad[] {
     "assets/cube/cube.gltf",
@@ -133,7 +133,7 @@ loadStuff()
 
         bind.pos = {-10.0f, 8.0f, -8.0f};
         bind.scale = {0.2f, 0.2f, 0.2f};
-        bind.color = math::V4From(colors::get(colors::WHITESMOKE), 1.0f);
+        bind.color = math::V4From(colors::WHITESMOKE, 1.0f);
         /*bind.bNoDraw = true;*/
 
         g_dirLight = hnd;
