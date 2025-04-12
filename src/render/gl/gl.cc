@@ -644,8 +644,7 @@ Renderer::draw(Arena* pArena)
         {
             if (control::g_bPauseSimulation)
             {
-                /*model.m_waitLock.m_atom_bDone.store(1, atomic::ORDER::RELAXED);*/
-                model.m_waitLock.reset();
+                model.m_waitLock.m_atom_bDone.store(1, atomic::ORDER::RELAXED);
             }
             else
             {
