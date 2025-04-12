@@ -71,7 +71,7 @@ drawText(
         s_pShTexMonoBlur->use();
 
         s_pShTexMonoBlur->setM4("u_trm", proj *
-            math::M4TranslationFrom({widget.x + xOff, widget.y + yOff, -1.0f})
+            math::M4Tra(math::V3(widget.x + xOff, widget.y + yOff, -1.0f))
         );
         s_pShTexMonoBlur->setV4("u_color", fgColor);
 
@@ -117,7 +117,7 @@ drawMenu(
             if (idx == entry.menu.selectedI) col = entry.menu.selColor;
             else col = entry.menu.color;
 
-            textOff += drawText(pVCommands, widget, child.text.sfText, col, proj, xOff + 2, yOff + textOff.y);
+            textOff += drawText(pVCommands, widget, child.text.sfText, col, proj, xOff + 2, yOff + textOff.y());
             break;
 
             case ::ui::Entry::TYPE::ARROW_LIST:
@@ -146,9 +146,9 @@ drawArrowList(
     ADT_ASSERT(entry.eType == ::ui::Entry::TYPE::ARROW_LIST, " ");
 
     auto xyArrow = drawText(pVCommands, widget, "<", entry.arrowList.arrowColor, proj, xOff, yOff);
-    xOff += xyArrow.x;
+    xOff += xyArrow.x();
 
-    int maxx = xyArrow.x;
+    int maxx = xyArrow.x();
     int maxy = yOff;
 
     if (entry.arrowList.vEntries.size() > 0)
@@ -166,15 +166,15 @@ drawArrowList(
                 /*auto textOff = drawText(widget, sel, proj, xOff, yOff);*/
                 auto textOff = drawText(pVCommands, widget, sel.menu.sfName, sel.menu.color, proj, xOff, yOff);
 
-                xyArrow.x += textOff.x;
+                xyArrow.x() += textOff.x();
 
-                if (maxx <= xyArrow.x) maxx = xyArrow.x;
-                maxy += textOff.y;
+                if (maxx <= xyArrow.x()) maxx = xyArrow.x();
+                maxy += textOff.y();
 
                 auto xyMenu = drawMenu(pVCommands, widget, sel, proj, xOff, yOff);
 
-                if (maxx <= xyMenu.x) maxx = xyMenu.x;
-                maxy += xyMenu.y;
+                if (maxx <= xyMenu.x()) maxx = xyMenu.x();
+                maxy += xyMenu.y();
             }
             break;
 
@@ -184,8 +184,8 @@ drawArrowList(
         }
     }
 
-    math::IV2 xyRet = drawText(pVCommands, widget, ">", entry.arrowList.arrowColor, proj, xyArrow.x, yOff);
-    if (maxx < xyArrow.x + 1) maxx = xyArrow.x + 1;
+    math::IV2 xyRet = drawText(pVCommands, widget, ">", entry.arrowList.arrowColor, proj, xyArrow.x(), yOff);
+    if (maxx < xyArrow.x() + 1) maxx = xyArrow.x() + 1;
 
     return {maxx, maxy};
 }
@@ -201,11 +201,11 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
     if (bool(pWidget->eFlags & ::ui::Widget::FLAGS::TITLE))
     {
         math::IV2 xy = drawText(pVCommands, *pWidget, pWidget->sfTitle,
-            V4From(colors::get(colors::WHITE), 0.75f), proj, 0, 0
+            math::V4(colors::get(colors::WHITE), 0.75f), proj, 0, 0
         );
-        yOff += xy.y;
+        yOff += xy.y();
 
-        if (maxx < xy.x) maxx = xy.x;
+        if (maxx < xy.x()) maxx = xy.x();
         ++maxy;
     }
 
@@ -222,8 +222,8 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
             case ::ui::Entry::TYPE::ARROW_LIST:
             {
                 math::IV2 xy = drawArrowList(pVCommands, *pWidget, entry, proj, xOff, yOff);
-                if (maxx < xy.x) maxx = xy.x;
-                if (maxy < xy.y) maxy = xy.y;
+                if (maxx < xy.x()) maxx = xy.x();
+                if (maxy < xy.y()) maxy = xy.y();
             }
             break;
 
@@ -246,8 +246,8 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
     /* bg rectangle */
     g_pShColor->use();
     g_pShColor->setM4("u_trm", proj *
-        math::M4TranslationFrom({pWidget->x - pWidget->border, pWidget->y - pWidget->border/* *uiWidthToUiHeightInv */, -5.0f}) *
-        math::M4ScaleFrom({pWidget->grabWidth + pWidget->border*2, pWidget->grabHeight + pWidget->border*2 /* *uiWidthToUiHeightInv */, 0.0f})
+        math::M4Tra(math::V3{pWidget->x - pWidget->border, pWidget->y - pWidget->border/* *uiWidthToUiHeightInv */, -5.0f}) *
+        math::M4Sca(math::V3{pWidget->grabWidth + pWidget->border*2, pWidget->grabHeight + pWidget->border*2 /* *uiWidthToUiHeightInv */, 0.0f})
     );
     g_pShColor->setV4("u_color", pWidget->bgColor);
     g_quad.draw();
@@ -282,12 +282,12 @@ draw(Arena* pArena)
 
     const math::M4 proj = math::M4Ortho(0, ::ui::WIDTH, ::ui::HEIGHT, 0, -10.0f, 10.0f);
 
-    s_pShTexMonoBlur->setV2("u_texelSize", math::V2From(1.0f/s_texLiberation.m_width, 1.0f/s_texLiberation.m_height));
+    s_pShTexMonoBlur->setV2("u_texelSize", math::V2(1.0f/s_texLiberation.m_width, 1.0f/s_texLiberation.m_height));
 
     /* fps */
     {
-        s_pShTexMonoBlur->setV4("u_color", V4From(colors::get(colors::GREEN), 0.75f));
-        s_pShTexMonoBlur->setM4("u_trm", proj * math::M4TranslationFrom({0.0f, 0.0f, -1.0f}));
+        s_pShTexMonoBlur->setV4("u_color", math::V4(colors::get(colors::GREEN), 0.75f));
+        s_pShTexMonoBlur->setM4("u_trm", proj * math::M4Tra(math::V3{0.0f, 0.0f, -1.0f}));
 
         s_text.update(s_rastLiberation, frame::g_sfFpsStatus, true);
         s_text.draw();
@@ -314,9 +314,9 @@ draw(Arena* pArena)
         int nSpaces = 0;
         for (auto ch : sv) if (ch == '\n') ++nSpaces;
 
-        s_pShTexMonoBlur->setV4("u_color", V4From(colors::get(colors::WHITE), 0.75f));
-        s_pShTexMonoBlur->setM4("u_trm", proj * math::M4TranslationFrom(
-                {0.0f, ::ui::HEIGHT - static_cast<f32>(nSpaces), -1.0f}
+        s_pShTexMonoBlur->setV4("u_color", math::V4(colors::get(colors::WHITE), 0.75f));
+        s_pShTexMonoBlur->setM4("u_trm", proj * math::M4Tra(
+                math::V3{0.0f, ::ui::HEIGHT - static_cast<f32>(nSpaces), -1.0f}
             )
         );
 

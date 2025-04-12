@@ -72,8 +72,8 @@ assignUnionType(json::Node* obj, int n)
     for (int i = 0; i < n; i++)
     {
         if (arr[i].tagVal.eTag == json::TAG::LONG)
-            type.MAT4.d[i] = f32(json::getInteger(&arr[i]));
-        else type.MAT4.d[i] = f32(json::getFloat(&arr[i]));
+            type.MAT4.ptr()[i] = f32(json::getInteger(&arr[i]));
+        else type.MAT4.ptr()[i] = f32(json::getFloat(&arr[i]));
     }
 
     return type;
@@ -771,7 +771,7 @@ Model::procNodes(IAllocator* pAlloc)
         if (pRotation)
         {
             auto ut = assignUnionType(pRotation, 4);
-            newNode.uTransformation.animation.rotation.base = ut.VEC4;
+            newNode.uTransformation.animation.rotation = ut.VEC4;
             newNode.eTransformationType = Node::TRANSFORMATION_TYPE::ANIMATION;
         }
 

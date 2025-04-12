@@ -2,22 +2,6 @@
 
 #include "mathDecl.hh"
 
-#include "utils.hh"
-#include "types.hh"
-
-#include <cmath>
-#include <concepts>
-
-#if defined __clang__
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wmissing-braces"
-#endif
-
-#if defined __GNUC__
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wmissing-braces"
-#endif
-
 namespace adt::math
 {
 
@@ -46,1035 +30,642 @@ eq(const f32 l, const f32 r)
 constexpr inline auto sq(const auto& x) { return x * x; }
 constexpr inline auto cube(const auto& x) { return x*x*x; }
 
-constexpr inline i64
-sign(i64 x)
-{
-    return (x > 0) - (x < 0);
-}
+/* V2 */
 
-constexpr inline
-V4::operator IV4() const
+template<typename T>
+inline constexpr
+V2Base<T>::V2Base(T x, T y) : m_aData {x, y} {}
+
+template<typename T>
+inline constexpr
+V2Base<T>::V2Base(const T (&a)[2]) : m_aData {a[0], a[1]} {}
+
+template<typename T>
+template<typename Y>
+inline constexpr
+V2Base<T>::V2Base(V2Base<Y> v2) : m_aData {T(v2.x()), T(v2.y())} {}
+
+template<typename T>
+template<typename Y>
+inline constexpr
+V2Base<T>::V2Base(V3Base<Y> v3) : m_aData {v3.x(), v3.y()} {}
+
+template<typename T>
+inline V2Base<T>
+V2Base<T>::operator-() const
 {
     return {
-        static_cast<i32>(x),
-        static_cast<i32>(y),
-        static_cast<i32>(z),
-        static_cast<i32>(w),
+        -x(), -y()
     };
 }
 
-constexpr
-M3::operator M4() const
+template<typename T>
+inline V2Base<T>
+V2Base<T>::operator+(const V2Base<T> b) const
 {
     return {
-        e[0][0], e[0][1], e[0][2], 0,
-        e[1][0], e[1][1], e[1][2], 0,
-        e[2][0], e[2][1], e[2][2], 0,
-        0,       0,       0,       0
+        x() + b.x(),
+        y() + b.y()
     };
 }
 
-constexpr V2
-V2From(const f32 x, const f32 y)
-{
-    return {x, y};
-}
-
-constexpr V3
-V3From(V2 xy, f32 z)
-{
-    return {xy.x, xy.y, z};
-}
-
-constexpr V3
-V3From(f32 x, V2 yz)
-{
-    return {x, yz.x, yz.y};
-}
-
-constexpr V3
-V3From(f32 x, f32 y, f32 z)
-{
-    return {x, y, z};
-}
-
-constexpr V3
-V3From(const V3& v)
-{
-    return v;
-}
-
-constexpr V3
-V3From(const V4& v)
-{
-    return {v.x, v.y, v.z};
-}
-
-constexpr V4
-V4From(const V4& v)
-{
-    return v;
-}
-
-constexpr V4
-V4From(const V3& xyz, f32 w)
-{
-    V4 res; res.xyz = xyz; res.w = w;
-    return res;
-}
-
-constexpr V4
-V4From(const V2& xy, const V2& zw)
-{
-    V4 res; res.xy = xy; res.zw = zw;
-    return res;
-}
-
-constexpr V4
-V4From(f32 x, const V3& yzw)
-{
-    V4 res; res.x = x; res.y = yzw.x; res.z = yzw.y; res.w = yzw.z;
-    return res;
-}
-
-constexpr V4
-V4From(f32 x, f32 y, f32 z, f32 w)
+template<typename T>
+inline V2Base<T>
+V2Base<T>::operator+(T b) const
 {
     return {
-        x, y, z, w
+        x() + b,
+        y() + b
     };
 }
 
-inline IV2
-IV2_F24_8(const V2 v)
+template<typename T>
+inline V2Base<T>
+V2Base<T>::operator-(const V2Base<T> b) const
 {
     return {
-        .x = static_cast<i32>(std::round(v.x * 256.0f)),
-        .y = static_cast<i32>(std::round(v.y * 256.0f)),
+        x() - b.x(),
+        y() - b.y()
     };
 }
 
-inline V2
-operator-(const V2& s)
-{
-    return {.x = -s.x, .y = -s.y};
-}
-
-inline V2
-operator+(const V2& l, const V2& r)
+template<typename T>
+inline V2Base<T>
+V2Base<T>::operator-(T b) const
 {
     return {
-        .x = l.x + r.x,
-        .y = l.y + r.y
+        x() - b,
+        y() - b
     };
 }
 
-inline V2
-operator-(const V2& l, const V2& r)
+template<typename T>
+inline V2Base<T>
+V2Base<T>::operator*(const V2Base<T> b) const
 {
     return {
-        .x = l.x - r.x,
-        .y = l.y - r.y
+        x() * b.x(),
+        y() * b.y()
     };
 }
 
-inline IV2
-operator-(const IV2& l, const IV2& r)
+template<typename T>
+inline V2Base<T>
+V2Base<T>::operator*(T b) const
 {
     return {
-        .x = l.x - r.x,
-        .y = l.y - r.y
+        x() * b,
+        y() * b
     };
 }
 
-inline IV2&
-operator+=(IV2& l, const IV2& r)
-{
-    l.x += r.x;
-    l.y += r.y;
-
-    return l;
-}
-
-inline IV2&
-operator-=(IV2& l, const IV2& r)
-{
-    l.x -= r.x;
-    l.y -= r.y;
-
-    return l;
-}
-
-inline V2
-operator*(const V2& v, f32 s)
+template<typename T>
+inline V2Base<T>
+V2Base<T>::operator/(const V2Base<T> b) const
 {
     return {
-        .x = v.x * s,
-        .y = v.y * s
+        x() / b.x(),
+        y() / b.y()
     };
 }
 
-inline V2
-operator*(f32 s, const V2& v)
+template<typename T>
+inline V2Base<T>
+V2Base<T>::operator/(T b) const
 {
     return {
-        .x = v.x * s,
-        .y = v.y * s
+        x() / b,
+        y() / b
     };
 }
 
-inline V2
-operator*(const V2& l, const V2& r)
+template<typename T>
+inline V2Base<T>&
+V2Base<T>::operator+=(const V2Base b)
+{
+    x() += b.x();
+    y() += b.y();
+
+    return *this;
+}
+
+template<typename T>
+inline V2Base<T>&
+V2Base<T>::operator+=(T b)
+{
+    x() += b;
+    y() += b;
+
+    return *this;
+}
+
+template<typename T>
+inline V2Base<T>&
+V2Base<T>::operator-=(const V2Base b)
+{
+    x() -= b.x();
+    y() -= b.y();
+
+    return *this;
+}
+
+template<typename T>
+inline V2Base<T>&
+V2Base<T>::operator-=(T b)
+{
+    x() -= b;
+    y() -= b;
+
+    return *this;
+}
+
+template<typename T>
+inline V2Base<T>&
+V2Base<T>::operator*=(const V2Base b)
+{
+    x() *= b.x();
+    y() *= b.y();
+
+    return *this;
+}
+
+template<typename T>
+inline V2Base<T>&
+V2Base<T>::operator*=(T b)
+{
+    x() *= b;
+    y() *= b;
+
+    return *this;
+}
+
+template<typename T>
+inline V2Base<T>&
+V2Base<T>::operator/=(const V2Base b)
+{
+    x() /= b.x();
+    y() /= b.y();
+
+    return *this;
+}
+
+/* V2 end */
+
+/* V3 */
+
+template<typename T>
+inline constexpr V3Base<T>::V3Base(const T (&a)[3]) : V2Base<T> {a[0], a[1]}, m_z {a[2]} {}
+
+template<typename T>
+inline constexpr V3Base<T>::V3Base(T x, T y, T z) : V2Base<T> {x, y}, m_z {z} {}
+
+template<typename T>
+inline V3Base<T>
+operator-(const V3Base<T>& a)
 {
     return {
-        l.x * r.x,
-        l.y * r.y
+        -a.x(), -a.y(), -a.z()
     };
 }
 
-inline V2&
-operator*=(V2& l, const V2& r)
-{
-    return l = l * r;
-}
-
-inline V2
-operator/(const V2& v, f32 s)
+template<typename T>
+inline V3Base<T>
+operator+(const V3Base<T>& a, const V3Base<T>& b)
 {
     return {
-        .x = v.x / s,
-        .y = v.y / s
+        a.x() + b.x(),
+        a.y() + b.y(),
+        a.z() + b.z(),
     };
 }
 
-inline V2&
-operator+=(V2& l, const V2& r)
+template<typename T>
+inline V3Base<T>&
+operator+=(V3Base<T>& a, const V3Base<T>& b)
 {
-    return l = l + r;
-}
+    a.x() += b.x();
+    a.y() += b.y();
+    a.z() += b.z();
 
-inline V2&
-operator-=(V2& l, const V2& r)
-{
-    return l = l - r;
-}
-
-inline V2&
-operator*=(V2& l, f32 r)
-{
-    return l = l * r;
-}
-
-inline V2&
-operator/=(V2& l, f32 r)
-{
-    return l = l / r;
-}
-
-inline V3
-operator+(const V3& l, const V3& r)
-{
-    return {
-        .x = l.x + r.x,
-        .y = l.y + r.y,
-        .z = l.z + r.z
-    };
-}
-
-inline V3
-operator-(const V3& l, const V3& r)
-{
-    return {
-        .x = l.x - r.x,
-        .y = l.y - r.y,
-        .z = l.z - r.z
-    };
-}
-
-inline V3
-operator-(const V3& v)
-{
-    return {
-        -v.x, -v.y, -v.z
-    };
-}
-
-inline V3
-operator*(const V3& v, f32 s)
-{
-    return {
-        .x = v.x * s,
-        .y = v.y * s,
-        .z = v.z * s
-    };
-}
-
-inline V3
-operator*(f32 s, const V3& v)
-{
-    return v * s;
-}
-
-inline V3
-operator*(const V3& l, const V3& r)
-{
-    return {
-        l.x * r.x,
-        l.y * r.y,
-        l.z * r.z
-    };
-}
-
-inline V3
-operator/(const V3& v, f32 s)
-{
-    return {
-        .x = v.x / s,
-        .y = v.y / s,
-        .z = v.z / s
-    };
-}
-
-inline V3
-operator+(V3 a, f32 b)
-{
-    a.x += b;
-    a.y += b;
-    a.z += b;
     return a;
 }
 
-inline V3&
-operator+=(V3& a, f32 b)
-{
-    return a = a + b;
-}
-
-inline V3&
-operator+=(V3& l, const V3& r)
-{
-    return l = l + r;
-}
-
-inline V3&
-operator-=(V3& l, const V3& r)
-{
-    return l = l - r;
-}
-
-inline V3&
-operator*=(V3& v, f32 s)
-{
-    return v = v * s;
-}
-
-inline V3&
-operator/=(V3& v, f32 s)
-{
-    return v = v / s;
-}
-
-inline V4
-operator+(const V4& l, const V4& r)
+template<typename T>
+inline V3Base<T>
+operator+(const V3Base<T>& a, T b)
 {
     return {
-        .x = l.x + r.x,
-        .y = l.y + r.y,
-        .z = l.z + r.z,
-        .w = l.w + r.w
+        a.x() + b,
+        a.y() + b,
+        a.z() + b,
     };
 }
 
-inline V4
-operator-(const V4& l)
+template<typename T>
+inline V3Base<T>&
+operator+=(V3Base<T>& a, T b)
 {
-    V4 res;
-    res.x = -l.x;
-    res.y = -l.y;
-    res.z = -l.z;
-    res.w = -l.w;
-    return res;
+    a.x() += b;
+    a.y() += b;
+    a.z() += b;
+
+    return a;
 }
 
-inline V4
-operator-(const V4& l, const V4& r)
+template<typename T>
+inline V3Base<T>
+operator-(const V3Base<T>& a, const V3Base<T>& b)
 {
     return {
-        .x = l.x - r.x,
-        .y = l.y - r.y,
-        .z = l.z - r.z,
-        .w = l.w - r.w
+        a.x() - b.x(),
+        a.y() - b.y(),
+        a.z() - b.z(),
     };
 }
 
-inline V4
-operator*(const V4& l, f32 r)
+template<typename T>
+inline V3Base<T>&
+operator-=(V3Base<T>& a, const V3Base<T>& b)
+{
+    a.x() -= b.x();
+    a.y() -= b.y();
+    a.z() -= b.z();
+
+    return a;
+}
+
+template<typename T>
+inline V3Base<T>&
+operator-=(V3Base<T>& a, T b)
+{
+    a.x() -= b;
+    a.y() -= b;
+    a.z() -= b;
+
+    return a;
+}
+
+template<typename T>
+inline V3Base<T>
+operator-(const V3Base<T>& a, T b)
 {
     return {
-        .x = l.x * r,
-        .y = l.y * r,
-        .z = l.z * r,
-        .w = l.w * r
+        a.x() - b,
+        a.y() - b,
+        a.z() - b,
     };
 }
 
-inline V4
-operator*(f32 l, const V4& r)
-{
-    return r * l;
-}
-
-inline V4
-operator/(const V4& l, f32 r)
+template<typename T>
+inline V3Base<T>
+operator*(const V3Base<T>& a, const V3Base<T>& b)
 {
     return {
-        .x = l.x / r,
-        .y = l.y / r,
-        .z = l.z / r,
-        .w = l.w / r
+        a.x() * b.x(),
+        a.y() * b.y(),
+        a.z() * b.z(),
     };
 }
 
-inline V4
-operator/(f32 l, const V4& r)
+template<typename T>
+inline V3Base<T>&
+operator*=(V3Base<T>& a, const V3Base<T>& b)
 {
-    return r * l;
+    a.x() *= b.x();
+    a.y() *= b.y();
+    a.z() *= b.z();
+
+    return a;
 }
 
-inline V4&
-operator+=(V4& l, const V4& r)
-{
-    return l = l + r;
-}
-
-inline V4&
-operator-=(V4& l, const V4& r)
-{
-    return l = l - r;
-}
-
-inline V4&
-operator*=(V4& l, f32 r)
-{
-    return l = l * r;
-}
-
-inline V4&
-operator/=(V4& l, f32 r)
-{
-    return l = l / r;
-}
-
-constexpr M2
-M2Iden()
+template<typename T>
+inline V3Base<T>
+operator*(const V3Base<T>& a, T b)
 {
     return {
-        1, 0,
-        0, 1,
+        a.x() * b,
+        a.y() * b,
+        a.z() * b,
     };
 }
 
-constexpr M3
-M3Iden()
+template<typename T>
+inline V3Base<T> operator*(T a, const V3Base<T>& b)
+{
+    return b * a;
+}
+
+template<typename T>
+inline V3Base<T>&
+operator*=(V3Base<T>& a, T b)
+{
+    a.x() *= b;
+    a.y() *= b;
+    a.z() *= b;
+
+    return a;
+}
+
+template<typename T>
+inline V3Base<T>
+operator/(const V3Base<T>& a, const V3Base<T>& b)
 {
     return {
+        a.x() / b.x(),
+        a.y() / b.y(),
+        a.z() / b.z(),
+    };
+}
+
+template<typename T>
+inline V3Base<T>&
+operator/=(V3Base<T>& a, const V3Base<T>& b)
+{
+    a.x() /= b.x();
+    a.y() /= b.y();
+    a.z() /= b.z();
+
+    return a;
+}
+
+template<typename T>
+inline V3Base<T>
+operator/(const V3Base<T>& a, T b)
+{
+    return {
+        a.x() / b,
+        a.y() / b,
+        a.z() / b,
+    };
+}
+
+template<typename T>
+inline V3Base<T>& operator/=(V3Base<T>& a, T b)
+{
+    a.x() /= b;
+    a.y() /= b;
+    a.z() /= b;
+
+    return a;
+}
+
+/* V3 end */
+
+/* V4 */
+
+template<typename T>
+inline V4Base<T>
+operator-(const V4Base<T>& a)
+{
+    return {
+        -a.x(), -a.y(), -a.z(), -a.w()
+    };
+}
+
+template<typename T>
+inline V4Base<T>
+operator+(const V4Base<T>& a, const V4Base<T>& b)
+{
+    return {
+        a.x() + b.x(),
+        a.y() + b.y(),
+        a.z() + b.z(),
+        a.w() + b.w()
+    };
+}
+
+template<typename T>
+inline V4Base<T>
+operator+(const V4Base<T>& a, T b)
+{
+    return {
+        a.x() + b,
+        a.y() + b,
+        a.z() + b,
+        a.w() + b
+    };
+}
+
+template<typename T>
+inline V4Base<T>
+operator-(const V4Base<T>& a, const V4Base<T>& b)
+{
+    return {
+        a.x() - b.x(),
+        a.y() - b.y(),
+        a.z() - b.z(),
+        a.w() - b.w()
+    };
+}
+
+template<typename T>
+inline V4Base<T>
+operator-(const V4Base<T>& a, T b)
+{
+    return {
+        a.x() - b,
+        a.y() - b,
+        a.z() - b,
+        a.w() - b
+    };
+}
+
+template<typename T>
+inline V4Base<T> operator*(const V4Base<T>& a, const V4Base<T>& b)
+{
+    return {
+        a.x() * b.x(),
+        a.y() * b.y(),
+        a.z() * b.z(),
+        a.w() * b.w()
+    };
+}
+
+template<typename T>
+inline V4Base<T>
+operator*(const V4Base<T>& a, T b)
+{
+    return {
+        a.x() * b,
+        a.y() * b,
+        a.z() * b,
+        a.w() * b
+    };
+}
+
+/* V4 end */
+
+/* M3 */
+
+template<typename T>
+inline M3Base<T>::M3Base(InitFlag)
+    : m_aData {
+        {1, 0, 0},
+        {0, 1, 0},
+        {0, 0, 1}
+    }
+{
+}
+
+template<typename T>
+template<typename Y>
+inline M3Base<T>::M3Base(const M4Base<Y>& m4)
+    : m_aData {{m4.m_aData[0]}, {m4.m_aData[1]}, {m4.m_aData[2]}}
+{
+}
+
+template<typename T>
+inline M3Base<T> M3Iden()
+{
+    return {{
         1, 0, 0,
         0, 1, 0,
         0, 0, 1
-    };
+    }};
 }
 
-constexpr M4
-M4Iden()
+template<typename T>
+inline M3Base<T>
+operator*(const M3Base<T>& a, const M3Base<T>& b)
 {
-    return {
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1
-    };
-}
+    M3Base<T> r {};
 
-constexpr Qt
-QtIden()
-{
-    return {0, 0, 0, 1};
-}
-
-inline f32
-M2Det(const M2& s)
-{
-    auto& d = s.d;
-    return d[0]*d[3] - d[1]*d[2];
-}
-
-inline f32
-M3Det(const M3& s)
-{
-    auto& e = s.e;
-    return (
-        e[0][0] * (e[1][1] * e[2][2] - e[2][1] * e[1][2]) -
-        e[0][1] * (e[1][0] * e[2][2] - e[1][2] * e[2][0]) +
-        e[0][2] * (e[1][0] * e[2][1] - e[1][1] * e[2][0])
-    );
-}
-
-inline f32
-M4Det(const M4& s)
-{
-    auto& e = s.e;
-    return (
-        e[0][3] * e[1][2] * e[2][1] * e[3][0] - e[0][2] * e[1][3] * e[2][1] * e[3][0] -
-        e[0][3] * e[1][1] * e[2][2] * e[3][0] + e[0][1] * e[1][3] * e[2][2] * e[3][0] +
-        e[0][2] * e[1][1] * e[2][3] * e[3][0] - e[0][1] * e[1][2] * e[2][3] * e[3][0] -
-        e[0][3] * e[1][2] * e[2][0] * e[3][1] + e[0][2] * e[1][3] * e[2][0] * e[3][1] +
-        e[0][3] * e[1][0] * e[2][2] * e[3][1] - e[0][0] * e[1][3] * e[2][2] * e[3][1] -
-        e[0][2] * e[1][0] * e[2][3] * e[3][1] + e[0][0] * e[1][2] * e[2][3] * e[3][1] +
-        e[0][3] * e[1][1] * e[2][0] * e[3][2] - e[0][1] * e[1][3] * e[2][0] * e[3][2] -
-        e[0][3] * e[1][0] * e[2][1] * e[3][2] + e[0][0] * e[1][3] * e[2][1] * e[3][2] +
-        e[0][1] * e[1][0] * e[2][3] * e[3][2] - e[0][0] * e[1][1] * e[2][3] * e[3][2] -
-        e[0][2] * e[1][1] * e[2][0] * e[3][3] + e[0][1] * e[1][2] * e[2][0] * e[3][3] +
-        e[0][2] * e[1][0] * e[2][1] * e[3][3] - e[0][0] * e[1][2] * e[2][1] * e[3][3] -
-        e[0][1] * e[1][0] * e[2][2] * e[3][3] + e[0][0] * e[1][1] * e[2][2] * e[3][3]
-    );
-}
-
-inline M3
-M3Minors(const M3& s)
-{
-    const auto& e = s.e;
-    return {.d {
-            M2Det({.d {e[1][1], e[1][2], e[2][1], e[2][2]} }),
-            M2Det({.d {e[1][0], e[1][2], e[2][0], e[2][2]} }),
-            M2Det({.d {e[1][0], e[1][1], e[2][0], e[2][1]} }),
-
-            M2Det({.d {e[0][1], e[0][2], e[2][1], e[2][2]} }),
-            M2Det({.d {e[0][0], e[0][2], e[2][0], e[2][2]} }),
-            M2Det({.d {e[0][0], e[0][1], e[2][0], e[2][1]} }),
-
-            M2Det({.d {e[0][1], e[0][2], e[1][1], e[1][2]} }),
-            M2Det({.d {e[0][0], e[0][2], e[1][0], e[1][2]} }),
-            M2Det({.d {e[0][0], e[0][1], e[1][0], e[1][1]} })
-        }
-    };
-}
-
-inline M4
-M4Minors(const M4& s)
-{
-    const auto& e = s.e;
-    return {.d {
-            M3Det({.d {e[1][1], e[1][2], e[1][3],    e[2][1], e[2][2], e[2][3],    e[3][1], e[3][2], e[3][3]} }),
-            M3Det({.d {e[1][0], e[1][2], e[1][3],    e[2][0], e[2][2], e[2][3],    e[3][0], e[3][2], e[3][3]} }),
-            M3Det({.d {e[1][0], e[1][1], e[1][3],    e[2][0], e[2][1], e[2][3],    e[3][0], e[3][1], e[3][3]} }),
-            M3Det({.d {e[1][0], e[1][1], e[1][2],    e[2][0], e[2][1], e[2][2],    e[3][0], e[3][1], e[3][2]} }),
-
-            M3Det({.d {e[0][1], e[0][2], e[0][3],    e[2][1], e[2][2], e[2][3],    e[3][1], e[3][2], e[3][3]} }),
-            M3Det({.d {e[0][0], e[0][2], e[0][3],    e[2][0], e[2][2], e[2][3],    e[3][0], e[3][2], e[3][3]} }),
-            M3Det({.d {e[0][0], e[0][1], e[0][3],    e[2][0], e[2][1], e[2][3],    e[3][0], e[3][1], e[3][3]} }),
-            M3Det({.d {e[0][0], e[0][1], e[0][2],    e[2][0], e[2][1], e[2][2],    e[3][0], e[3][1], e[3][2]} }),
-
-            M3Det({.d {e[0][1], e[0][2], e[0][3],    e[1][1], e[1][2], e[1][3],    e[3][1], e[3][2], e[3][3]} }),
-            M3Det({.d {e[0][0], e[0][2], e[0][3],    e[1][0], e[1][2], e[1][3],    e[3][0], e[3][2], e[3][3]} }),
-            M3Det({.d {e[0][0], e[0][1], e[0][3],    e[1][0], e[1][1], e[1][3],    e[3][0], e[3][1], e[3][3]} }),
-            M3Det({.d {e[0][0], e[0][1], e[0][2],    e[1][0], e[1][1], e[1][2],    e[3][0], e[3][1], e[3][2]} }),
-
-            M3Det({.d {e[0][1], e[0][2], e[0][3],    e[1][1], e[1][2], e[1][3],    e[2][1], e[2][2], e[2][3]} }),
-            M3Det({.d {e[0][0], e[0][2], e[0][3],    e[1][0], e[1][2], e[1][3],    e[2][0], e[2][2], e[2][3]} }),
-            M3Det({.d {e[0][0], e[0][1], e[0][3],    e[1][0], e[1][1], e[1][3],    e[2][0], e[2][1], e[2][3]} }),
-            M3Det({.d {e[0][0], e[0][1], e[0][2],    e[1][0], e[1][1], e[1][2],    e[2][0], e[2][1], e[2][2]} })
-        }
-    };
-}
-
-inline M3
-M3Cofactors(const M3& s)
-{
-    M3 m = M3Minors(s);
-    auto& e = m.e;
-
-    e[0][0] *= +1, e[0][1] *= -1, e[0][2] *= +1;
-    e[1][0] *= -1, e[1][1] *= +1, e[1][2] *= -1;
-    e[2][0] *= +1, e[2][1] *= -1, e[2][2] *= +1;
-
-    return m;
-}
-
-inline M4
-M4Cofactors(const M4& s)
-{
-    M4 m = M4Minors(s);
-    auto& e = m.e;
-
-    e[0][0] *= +1, e[0][1] *= -1, e[0][2] *= +1, e[0][3] *= -1;
-    e[1][0] *= -1, e[1][1] *= +1, e[1][2] *= -1, e[1][3] *= +1;
-    e[2][0] *= +1, e[2][1] *= -1, e[2][2] *= +1, e[2][3] *= -1;
-    e[3][0] *= -1, e[3][1] *= +1, e[3][2] *= -1, e[3][3] *= +1;
-
-    return m;
-}
-
-inline M3
-M3Transpose(const M3& s)
-{
-    auto& e = s.e;
-    return {
-        e[0][0], e[1][0], e[2][0],
-        e[0][1], e[1][1], e[2][1],
-        e[0][2], e[1][2], e[2][2]
-    };
-}
-
-inline M4
-M4Transpose(const M4& s)
-{
-    auto& e = s.e;
-    return {
-        e[0][0], e[1][0], e[2][0], e[3][0],
-        e[0][1], e[1][1], e[2][1], e[3][1],
-        e[0][2], e[1][2], e[2][2], e[3][2],
-        e[0][3], e[1][3], e[2][3], e[3][3]
-    };
-}
-
-inline M3
-M3Adj(const M3& s)
-{
-    return M3Transpose(M3Cofactors(s));
-}
-
-inline M4
-M4Adj(const M4& s)
-{
-    return M4Transpose(M4Cofactors(s));
-}
-
-inline M3
-operator*(const M3& l, const f32 r)
-{
-    M3 m {};
-
-    for (int i = 0; i < 9; ++i)
-        m.d[i] = l.d[i] * r;
-
-    return m;
-}
-
-inline M4
-operator*(const M4& l, const f32 r)
-{
-    M4 m {};
-
-    for (int i = 0; i < 16; ++i)
-        m.d[i] = l.d[i] * r;
-
-    return m;
-}
-
-inline M4
-operator*(const M4& a, bool)
-{
-    ADT_ASSERT(false, "mul with bool is no good");
-    return a;
-}
-
-inline M3&
-operator*=(M3& l, const f32 r)
-{
-    for (int i = 0; i < 9; ++i)
-        l.d[i] *= r;
-
-    return l;
-}
-
-inline M4&
-operator*=(M4& l, const f32 r)
-{
-    for (int i = 0; i < 16; ++i)
-        l.d[i] *= r;
-
-    return l;
-}
-
-inline M4&
-operator*=(M4& a, bool)
-{
-    ADT_ASSERT(false, "mul with bool is no good");
-    return a;
-}
-
-inline M3
-operator*(const f32 l, const M3& r)
-{
-    return r * l;
-}
-
-inline M4
-operator*(const f32 l, const M4& r)
-{
-    return r * l;
-}
-
-inline M3
-M3Inv(const M3& s)
-{
-    return (1.0f/M3Det(s)) * M3Adj(s);
-}
-
-inline M4
-M4Inv(const M4& s)
-{
-    return (1.0f/M4Det(s)) * M4Adj(s);
-}
-
-inline M3 
-M3Normal(const M3& m)
-{
-    return M3Transpose(M3Inv(m));
-}
-
-inline V3
-operator*(const M3& l, const V3& r)
-{
-    return l.v[0] * r.x + l.v[1] * r.y + l.v[2] * r.z;
-}
-
-inline V4
-operator*(const M4& l, const V4& r)
-{
-    return l.v[0] * r.x + l.v[1] * r.y + l.v[2] * r.z + l.v[3] * r.w;
-}
-
-inline M3
-operator*(const M3& l, const M3& r)
-{
-    M3 m;
-
-    m.v[0] = l * r.v[0];
-    m.v[1] = l * r.v[1];
-    m.v[2] = l * r.v[2];
-
-    return m;
-}
-
-inline M3&
-operator*=(M3& l, const M3& r)
-{
-    return l = l * r;
-}
-
-inline M4
-operator*(const M4& l, const M4& r)
-{
-    M4 m;
-
-    m.v[0] = l * r.v[0];
-    m.v[1] = l * r.v[1];
-    m.v[2] = l * r.v[2];
-    m.v[3] = l * r.v[3];
-
-    return m;
-}
-
-inline M4&
-operator*=(M4& l, const M4& r)
-{
-    return l = l * r;
-}
-
-inline bool
-operator==(const V3& l, const V3& r)
-{
     for (int i = 0; i < 3; ++i)
-        if (!eq(l.e[i], r.e[i]))
-            return false;
-
-    return true;
-}
-
-inline bool
-operator==(const V4& l, const V4& r)
-{
-    for (int i = 0; i < 4; ++i)
-        if (!eq(l.e[i], r.e[i]))
-            return false;
-
-    return true;
-}
-
-inline bool
-operator==(const M3& l, const M3& r)
-{
-    for (int i = 0; i < 9; ++i)
-        if (!eq(l.d[i], r.d[i]))
-            return false;
-
-    return true;
-}
-
-inline bool
-operator==(const M4& l, const M4& r)
-{
-    for (int i = 0; i < 16; ++i)
-        if (!eq(l.d[i], r.d[i]))
-            return false;
-
-    return true;
-}
-
-inline f32
-V2Length(const V2& s)
-{
-    return hypotf(s.x, s.y);
-}
-
-inline f32
-V3Length(const V3& s)
-{
-    return sqrtf(sq(s.x) + sq(s.y) + sq(s.z));
-}
-
-inline f32
-V4Length(const V4& s)
-{
-    return sqrtf(sq(s.x) + sq(s.y) + sq(s.z) + sq(s.w));
-}
-
-inline V2
-V2Norm(const V2& s)
-{
-    f32 len = V2Length(s);
-    return V2 {s.x / len, s.y / len};
-}
-
-inline V3
-V3Norm(const V3& s, const f32 len)
-{
-    return V3 {s.x / len, s.y / len, s.z / len};
-}
-
-inline V3
-V3Norm(const V3& s)
-{
-    f32 len = V3Length(s);
-    return V3Norm(s, len);
-}
-
-inline V4
-V4Norm(const V4& s)
-{
-    f32 len = V4Length(s);
-    return {s.x / len, s.y / len, s.z / len, s.w / len};
-}
-
-inline V2
-V2Clamp(const V2& x, const V2& min, const V2& max)
-{
-    V2 r {};
-
-    f32 minX = utils::min(min.x, max.x);
-    f32 minY = utils::min(min.y, max.y);
-
-    f32 maxX = utils::max(min.x, max.x);
-    f32 maxY = utils::max(min.y, max.y);
-
-    r.x = utils::clamp(x.x, minX, maxX);
-    r.y = utils::clamp(x.y, minY, maxY);
+        for (int j = 0; j < 3; ++j)
+            for (int k = 0; k < 3; ++k)
+                r[i][j] += a[i][k] * b[k][j];
 
     return r;
 }
 
-inline f32
-V2Dot(const V2& l, const V2& r)
+template<typename T>
+inline T
+M3Det(const M3Base<T>& a)
 {
-    return (l.x * r.x) + (l.y * r.y);
+    return (
+        a[0][0] * (a[1][1] * a[2][2] - a[2][1] * a[1][2]) -
+        a[0][1] * (a[1][0] * a[2][2] - a[1][2] * a[2][0]) +
+        a[0][2] * (a[1][0] * a[2][1] - a[1][1] * a[2][0])
+    );
 }
 
-inline f32
-V3Dot(const V3& l, const V3& r)
+/* M3 end */
+
+/* M4 */
+
+template<typename T>
+inline M4Base<T>::M4Base(T _0, T _1, T _2, T _3, T _4, T _5, T _6, T _7, T _8, T _9, T _10, T _11, T _12, T _13, T _14, T _15)
+    : m_aData{{_0, _1, _2, _3}, {_4, _5, _6, _7}, {_8, _9, _10, _11}, {_12, _13, _14, _15}}
 {
-    return (l.x * r.x) + (l.y * r.y) + (l.z * r.z);
 }
 
-inline f32
-V4Dot(const V4& l, const V4& r)
+template<typename T>
+inline M4Base<T>::M4Base(InitFlag)
+    : m_aData {
+        {1, 0, 0, 0},
+        {0, 1, 0, 0},
+        {0, 0, 1, 0},
+        {0, 0, 0, 1}
+    }
 {
-    return (l.x * r.x) + (l.y * r.y) + (l.z * r.z) + (l.w * r.w);
 }
 
-inline f32
-V3Rad(const V3& l, const V3& r)
+template<typename T>
+inline M4Base<T>
+M4Iden()
 {
-    return std::acos(V3Dot(l, r) / (V3Length(l) * V3Length(r)));
+    return {{
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    }};
 }
 
-inline f32
-V2Dist(const V2& l, const V2& r)
-{
-    return sqrtf(sq(r.x - l.x) + sq(r.y - l.y));
-}
-
-inline f32
-V3Dist(const V3& l, const V3& r)
-{
-    return sqrtf(sq(r.x - l.x) + sq(r.y - l.y) + sq(r.z - l.z));
-}
-
-constexpr M4
-M4TranslationFrom(const V3& tv)
-{
-    return {
-        1,    0,    0,    0,
-        0,    1,    0,    0,
-        0,    0,    1,    0,
-        tv.x, tv.y, tv.z, 1
-    };
-}
-
-constexpr M4
-M4TranslationFrom(const f32 x, const f32 y, const f32 z)
-{
-    return M4TranslationFrom(V3{x, y, z});
-}
-
-inline M4
-M4Translate(const M4& m, const V3& tv)
-{
-    return m * M4TranslationFrom(tv);
-}
-
-inline M3
-M3Scale(const M3& m, const f32 s)
-{
-    M3 sm {
-        s, 0, 0,
-        0, s, 0,
-        0, 0, 1
-    };
-
-    return m * sm;
-}
-
-constexpr M4
-M4ScaleFrom(const f32 s)
+template<typename T>
+inline M4Base<T>
+M4Sca(T s)
 {
     return {
         s, 0, 0, 0,
         0, s, 0, 0,
         0, 0, s, 0,
-        0, 0, 0, 1
+        0, 0, 0, s
     };
 }
 
-constexpr M4
-M4ScaleFrom(const V3& v)
+template<typename T>
+inline M4Base<T>
+M4Sca(V3Base<T> s)
 {
     return {
-        v.x, 0,   0,   0,
-        0,   v.y, 0,   0,
-        0,   0,   v.z, 0,
-        0,   0,   0,   1
+        s.x(), 0,     0,     0,
+        0,     s.y(), 0,     0,
+        0,     0,     s.z(), 0,
+        0,     0,     0,     1
     };
 }
 
-constexpr M4
-M4ScaleFrom(f32 x, f32 y, f32 z)
+template<typename T>
+inline T
+M4Det(const M4Base<T>& a)
 {
-    return M4ScaleFrom({x, y, z});
+    return (
+        a[0][3] * a[1][2] * a[2][1] * a[3][0] - a[0][2] * a[1][3] * a[2][1] * a[3][0] -
+        a[0][3] * a[1][1] * a[2][2] * a[3][0] + a[0][1] * a[1][3] * a[2][2] * a[3][0] +
+        a[0][2] * a[1][1] * a[2][3] * a[3][0] - a[0][1] * a[1][2] * a[2][3] * a[3][0] -
+        a[0][3] * a[1][2] * a[2][0] * a[3][1] + a[0][2] * a[1][3] * a[2][0] * a[3][1] +
+        a[0][3] * a[1][0] * a[2][2] * a[3][1] - a[0][0] * a[1][3] * a[2][2] * a[3][1] -
+        a[0][2] * a[1][0] * a[2][3] * a[3][1] + a[0][0] * a[1][2] * a[2][3] * a[3][1] +
+        a[0][3] * a[1][1] * a[2][0] * a[3][2] - a[0][1] * a[1][3] * a[2][0] * a[3][2] -
+        a[0][3] * a[1][0] * a[2][1] * a[3][2] + a[0][0] * a[1][3] * a[2][1] * a[3][2] +
+        a[0][1] * a[1][0] * a[2][3] * a[3][2] - a[0][0] * a[1][1] * a[2][3] * a[3][2] -
+        a[0][2] * a[1][1] * a[2][0] * a[3][3] + a[0][1] * a[1][2] * a[2][0] * a[3][3] +
+        a[0][2] * a[1][0] * a[2][1] * a[3][3] - a[0][0] * a[1][2] * a[2][1] * a[3][3] -
+        a[0][1] * a[1][0] * a[2][2] * a[3][3] + a[0][0] * a[1][1] * a[2][2] * a[3][3]
+    );
 }
 
-inline M4
-M4Scale(const M4& m, const f32 s)
+template<typename T>
+inline M4Base<T>
+M4Adj(const M4Base<T>& s)
 {
-    return m * M4ScaleFrom(s);
+    return transpose(cofactors(s));
 }
 
-inline M3
-M3Scale(const M3& m, const V2& s)
-{
-    M3 sm {
-        s.x, 0,   0,
-        0,   s.y, 0,
-        0,   0,   1
-    };
-
-    return m * sm;
-}
-
-inline M4
-M4Scale(const M4& m, const V3& s)
-{
-    return m * M4ScaleFrom(s);
-}
-
-inline M4
-M4Pers(const f32 fov, const f32 asp, const f32 n, const f32 f)
-{
-    M4 res {};
-    res.v[0].x = 1.0f / (asp * std::tan(fov * 0.5f));
-    res.v[1].y = 1.0f / (std::tan(fov * 0.5f));
-    res.v[2].z = -f / (n - f);
-    res.v[3].z = n * f / (n - f);
-    res.v[2].w = 1.0f;
-
-    return res;
-}
-
-inline M4
-M4Ortho(const f32 l, const f32 r, const f32 b, const f32 t, const f32 n, const f32 f)
+template<typename T>
+inline M4Base<T>
+M4Tra(T x, T y, T z)
 {
     return {
-        2/(r-l),       0,            0,           0,
-        0,             2/(t-b),      0,           0,
-        0,             0,           -2/(f-n),     0,
-        -(r+l)/(r-l), -(t+b)/(t-b), -(f+n)/(f-n), 1
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        x, z, y, 1
     };
 }
 
-inline f32
-V2Cross(const V2& l, const V2& r)
-{
-    return l.x * r.y - l.y * r.x;
-}
-
-inline i64
-IV2Cross(const IV2& l, const IV2& r)
-{
-    return i64(l.x) * i64(r.y) - i64(l.y) * i64(r.x);
-}
-
-inline V3
-V3Cross(const V3& l, const V3& r)
+template<typename T>
+inline M4Base<T> M4Tra(V3Base<T> t)
 {
     return {
-        (l.y * r.z) - (r.y * l.z),
-        (l.z * r.x) - (r.z * l.x),
-        (l.x * r.y) - (r.x * l.y)
+        1,     0,     0,     0,
+        0,     1,     0,     0,
+        0,     0,     1,     0,
+        t.x(), t.y(), t.z(), 1
     };
 }
 
-inline M4
-M4LookAt(const V3& R, const V3& U, const V3& D, const V3& P)
+template<typename T>
+inline M4Base<T>
+M4Rot(T theta, V3Base<T> axis)
 {
-    M4 m0 {
-        R.x,  U.x,  D.x,  0,
-        R.y,  U.y,  D.y,  0,
-        R.z,  U.z,  D.z,  0,
-        0,    0,    0,    1
-    };
+    const f32 c = std::cos(theta);
+    const f32 s = std::sin(theta);
 
-    return (M4Translate(m0, {-P.x, -P.y, -P.z}));
-}
-
-inline M4
-M4RotFrom(const f32 th, const V3& ax)
-{
-    const f32 c = std::cos(th);
-    const f32 s = std::sin(th);
-
-    const f32 x = ax.x;
-    const f32 y = ax.y;
-    const f32 z = ax.z;
+    const f32 x = axis.x;
+    const f32 y = axis.y;
+    const f32 z = axis.z;
 
     return {
         ((1 - c)*sq(x)) + c, ((1 - c)*x*y) - s*z, ((1 - c)*x*z) + s*y, 0,
@@ -1084,14 +675,16 @@ M4RotFrom(const f32 th, const V3& ax)
     };
 }
 
-inline M4
-M4Rot(const M4& m, const f32 th, const V3& ax)
+template<typename T>
+inline M4Base<T>
+M4Rot(T x, T y, T z)
 {
-    return m * M4RotFrom(th, ax);
+    return M4RotZ(z) * M4RotY(y) * M4RotX(x);
 }
 
-inline M4
-M4RotXFrom(const f32 th)
+template<typename T>
+inline M4Base<T>
+M4RotX(T th)
 {
     return {
         1,  0,            0,            0,
@@ -1101,14 +694,9 @@ M4RotXFrom(const f32 th)
     };
 }
 
-inline M4
-M4RotX(const M4& m, const f32 th)
-{
-    return m * M4RotXFrom(th);
-}
-
-inline M4
-M4RotYFrom(const f32 th)
+template<typename T>
+inline M4Base<T>
+M4RotY(T th)
 {
     return {
         std::cos(th), 0,  std::sin(th),  0,
@@ -1118,14 +706,9 @@ M4RotYFrom(const f32 th)
     };
 }
 
-inline M4
-M4RotY(const M4& m, const f32 th)
-{
-    return m * M4RotYFrom(th);
-}
-
-inline M4
-M4RotZFrom(const f32 th)
+template<typename T>
+inline M4Base<T>
+M4RotZ(T th)
 {
     return {
         std::cos(th),  std::sin(th), 0, 0,
@@ -1135,256 +718,215 @@ M4RotZFrom(const f32 th)
     };
 }
 
-inline M4
-M4RotZ(const M4& m, const f32 th)
+template<typename T>
+inline M4Base<T>
+operator*(const M4Base<T>& a, const M4Base<T>& b)
 {
-    return m * M4RotZFrom(th);
+    M4Base<T> r {};
+
+    for (int i = 0; i < 4; ++i)
+        for (int j = 0; j < 4; ++j)
+            for (int k = 0; k < 4; ++k)
+                r[i][j] += a[i][k] * b[k][j];
+
+    return r;
+}
+
+template<typename T>
+inline M4Base<T> operator*=(M4Base<T>& a, const M4Base<T>& b)
+{
+    return a * b;
+}
+
+template<typename T>
+inline V4Base<T>
+operator*(const M4Base<T>& a, const V4Base<T>& b)
+{
+    V4Base<T> r {};
+
+    return r;
+}
+
+/* M4 end */
+
+/* Qt */
+
+inline Qt::Qt(V4Base<f32> v4)
+    : V4Base<f32>(v4)
+{
 }
 
 inline M4
-M4RotFrom(const f32 x, const f32 y, const f32 z)
+Qt::matrix() const
 {
-    return M4RotZFrom(z) * M4RotYFrom(y) * M4RotXFrom(x);
+    return {
+        1 - 2*y()*y() - 2*z()*z(), 2*x()*y() + 2*w()*z(),     2*x()*z() - 2*w()*y(),     0,
+        2*x()*y() - 2*w()*z(),     1 - 2*x()*x() - 2*z()*z(), 2*y()*z() + 2*w()*x(),     0,
+        2*x()*z() + 2*w()*y(),     2*y()*z() - 2*w()*x(),     1 - 2*x()*x() - 2*y()*y(), 0,
+        0,                         0,                         0,                         1
+    };
 }
 
-inline M4
-M4LookAt(const V3& eyeV, const V3& centerV, const V3& upV)
+inline Qt
+QtIden()
 {
-    V3 camDir = V3Norm(eyeV - centerV);
-    V3 camRight = V3Norm(V3Cross(upV, camDir));
-    V3 camUp = V3Cross(camDir, camRight);
-
-    return M4LookAt(camRight, camUp, camDir, eyeV);
+    return {0, 0, 0, 1};
 }
 
 inline Qt
 QtAxisAngle(const V3& axis, f32 th)
 {
-    f32 sinTh = std::sin(th / 2.0f);
+    const f32 sinTh = std::sin(th / 2.0f);
 
     return {
-        axis.x * sinTh,
-        axis.y * sinTh,
-        axis.z * sinTh,
+        axis.x() * sinTh,
+        axis.y() * sinTh,
+        axis.z() * sinTh,
         std::cos(th / 2.0f)
     };
 }
 
-inline M4
-QtRot(const Qt& q)
-{
-    auto& x = q.x;
-    auto& y = q.y;
-    auto& z = q.z;
-    auto& w = q.w;
+/* Qt end */
 
-    return {
-        1 - 2*y*y - 2*z*z, 2*x*y + 2*w*z,     2*x*z - 2*w*y,     0,
-        2*x*y - 2*w*z,     1 - 2*x*x - 2*z*z, 2*y*z + 2*w*x,     0,
-        2*x*z + 2*w*y,     2*y*z - 2*w*x,     1 - 2*x*x - 2*y*y, 0,
-        0,                 0,                 0,                 1
-    };
+template<typename T>
+inline T
+length(const V3Base<T>& v)
+{
+    return std::sqrt(sq(v.x()) + sq(v.y()) + sq(v.z()));
 }
 
-inline M4
-QtRot2(const Qt& q)
+template<typename T>
+inline V3Base<T>
+norm(const V3Base<T>& v)
 {
-    f32 x = q.x, y = q.y, z = q.z, w = q.w;
+    return norm(v, length(v));
+}
 
-    f32 xx = x * x;
-    f32 yy = y * y;
-    f32 zz = z * z;
-    f32 xy = x * y;
-    f32 xz = x * z;
-    f32 yz = y * z;
-    f32 wx = w * x;
-    f32 wy = w * y;
-    f32 wz = w * z;
-
-    M4 m;
-    m.e[0][0] = 1.0f - 2.0f * (yy + zz);
-    m.e[0][1] = 2.0f * (xy + wz);
-    m.e[0][2] = 2.0f * (xz - wy);
-    m.e[0][3] = 0.0f;
-
-    m.e[1][0] = 2.0f * (xy - wz);
-    m.e[1][1] = 1.0f - 2.0f * (xx + zz);
-    m.e[1][2] = 2.0f * (yz + wx);
-    m.e[1][3] = 0.0f;
-
-    m.e[2][0] = 2.0f * (xz + wy);
-    m.e[2][1] = 2.0f * (yz - wx);
-    m.e[2][2] = 1.0f - 2.0f * (xx + yy);
-    m.e[2][3] = 0.0f;
-
-    m.e[3][0] = 0.0f;
-    m.e[3][1] = 0.0f;
-    m.e[3][2] = 0.0f;
-    m.e[3][3] = 1.0f;
-
-    return m;
+template<typename T>
+inline V3Base<T>
+norm(const V3Base<T>& v, T len)
+{
+    return {v.x() / len, v.y() / len, v.z() / len};
 }
 
 inline Qt
-QtConj(const Qt& q)
+norm(const Qt& a)
 {
-    return {-q.x, -q.y, -q.z, q.w};
-}
-
-inline Qt
-operator-(const Qt& l)
-{
-    Qt res;
-    res.base = -l.base;
-    return res;
-}
-
-inline Qt
-operator*(const Qt& l, const Qt& r)
-{
-    return {
-        l.w*r.x + l.x*r.w + l.y*r.z - l.z*r.y,
-        l.w*r.y - l.x*r.z + l.y*r.w + l.z*r.x,
-        l.w*r.z + l.x*r.y - l.y*r.x + l.z*r.w,
-        l.w*r.w - l.x*r.x - l.y*r.y - l.z*r.z,
-    };
-}
-
-inline Qt
-operator*(const Qt& l, const V4& r)
-{
-    return l * (*(Qt*)&r);
-}
-
-inline Qt
-operator*=(Qt& l, const Qt& r)
-{
-    return l = l * r;
-}
-
-inline Qt
-operator*=(Qt& l, const V4& r)
-{
-    return l = l * r;
-}
-
-inline bool
-operator==(const Qt& a, const Qt& b)
-{
-    return a.base == b.base;
-}
-
-inline Qt
-QtNorm(Qt a)
-{
-    f32 mag = std::sqrt(a.w * a.w + a.x * a.x + a.y * a.y + a.z * a.z);
-    return {a.x / mag, a.y / mag, a.z / mag, a.w / mag};
-}
-
-inline V2
-normalize(const V2& v)
-{
-    return V2Norm(v);
-}
-
-inline V3
-normalize(const V3& v)
-{
-    return V3Norm(v);
-}
-
-inline V4
-normalize(const V4& v)
-{
-    return V4Norm(v);
+    f32 mag = std::sqrt(a.w() * a.w() + a.x() * a.x() + a.y() * a.y() + a.z() * a.z());
+    return {a.x() / mag, a.y() / mag, a.z() / mag, a.w() / mag};
 }
 
 constexpr inline auto
 lerp(const auto& a, const auto& b, const auto& t)
 {
-    return (1.0 - t) * a + t * b;
+    return (decltype(t)(1.0) - t) * a + t * b;
 }
 
 inline Qt
 slerp(const Qt& q1, const Qt& q2, f32 t)
 {
-    auto dot = V4Dot(q1.base, q2.base);
+    f32 d = dot(q1, q2);
 
     Qt q2b = q2;
-    if (dot < 0.0f)
+    if (d < 0.0f)
     {
         q2b = -q2b;
-        dot = -dot;
+        d = -d;
     }
 
-    if (dot > 0.9995f)
+    if (d > 0.9995f)
     {
         Qt res;
-        res.x = q1.x + t * (q2b.x - q1.x);
-        res.y = q1.y + t * (q2b.y - q1.y);
-        res.z = q1.z + t * (q2b.z - q1.z);
-        res.w = q1.w + t * (q2b.w - q1.w);
-        return QtNorm(res);
+        res.x() = q1.x() + t * (q2b.x() - q1.x());
+        res.y() = q1.y() + t * (q2b.y() - q1.y());
+        res.z() = q1.z() + t * (q2b.z() - q1.z());
+        res.w() = q1.w() + t * (q2b.w() - q1.w());
+        return norm(res);
     }
 
-    f32 theta0 = std::acos(dot);
+    f32 theta0 = std::acos(d);
     f32 theta = theta0 * t;
 
     f32 sinTheta0 = std::sin(theta0);
     f32 sinTheta = std::sin(theta);
 
-    f32 s1 = std::cos(theta) - dot * (sinTheta / sinTheta0);
+    f32 s1 = std::cos(theta) - d * (sinTheta / sinTheta0);
     f32 s2 = sinTheta / sinTheta0;
 
     Qt res;
-    res.x = (s1 * q1.x) + (s2 * q2b.x);
-    res.y = (s1 * q1.y) + (s2 * q2b.y);
-    res.z = (s1 * q1.z) + (s2 * q2b.z);
-    res.w = (s1 * q1.w) + (s2 * q2b.w);
+    res.x() = (s1 * q1.x()) + (s2 * q2b.x());
+    res.y() = (s1 * q1.y()) + (s2 * q2b.y());
+    res.z() = (s1 * q1.z()) + (s2 * q2b.z());
+    res.w() = (s1 * q1.w()) + (s2 * q2b.w());
     return res;
 }
 
 template<typename T>
-constexpr T
-bezier(
-    const T& p0,
-    const T& p1,
-    const T& p2,
-    const std::floating_point auto t)
+inline V3
+cross(const V3Base<T>& a, const V3Base<T>& b)
 {
-    return sq(1-t)*p0 + 2*(1-t)*t*p1 + sq(t)*p2;
+    return {
+        (a.y() * b.z()) - (b.y() * a.z()),
+        (a.z() * b.x()) - (b.z() * a.x()),
+        (a.x() * b.y()) - (b.x() * a.y())
+    };
 }
 
 template<typename T>
-constexpr T
-bezier(
-    const T& p0,
-    const T& p1,
-    const T& p2,
-    const T& p3,
-    const std::floating_point auto t)
+inline T
+dot(const V3Base<T>& a, const V3Base<T>& b)
 {
-    return cube(1-t)*p0 + 3*sq(1-t)*t*p1 + 3*(1-t)*sq(t)*p2 + cube(t)*p3;
+    return (a.x() * b.x()) + (a.y() * b.y()) + (a.z() * b.z());
+}
+
+template<typename T>
+inline T
+dot(const V4Base<T>& a, const V4Base<T>& b)
+{
+    return (a.x() * b.x()) + (a.y() * b.y()) + (a.z() * b.z()) + (a.w() * b.w());
+}
+
+template<typename T>
+inline M4Base<T>
+transpose(const M4Base<T>& m)
+{
+    return {
+        m[0][0], m[1][0], m[2][0], m[3][0],
+        m[0][1], m[1][1], m[2][1], m[3][1],
+        m[0][2], m[1][2], m[2][2], m[3][2],
+        m[0][3], m[1][3], m[2][3], m[3][3],
+    };
 }
 
 inline M4
-transformation(const V3& translation, const Qt& rot, const V3& scale)
+M4Pers(f32 fov, f32 asp, f32 n, f32 f)
 {
-    return M4TranslationFrom(translation) * QtRot(rot) * M4ScaleFrom(scale);
+    M4 res {};
+
+    res[0].x() = 1.0f / (asp * std::tan(fov * 0.5f));
+    res[1].y() = 1.0f / (std::tan(fov * 0.5f));
+    res[2].z() = -f / (n - f);
+    res[3].z() = n * f / (n - f);
+    res[2].w() = 1.0f;
+
+    return res;
 }
 
 inline M4
-transformation(const V3& translation, const V3& scale)
+M4Ortho(f32 l, f32 r, f32 b, f32 t, f32 n, f32 f)
 {
-    return M4TranslationFrom(translation) * M4ScaleFrom(scale);
+    return {
+        2/(r-l),       0,            0,           0,
+        0,             2/(t-b),      0,           0,
+        0,             0,           -2/(f-n),     0,
+        -(r+l)/(r-l), -(t+b)/(t-b), -(f+n)/(f-n), 1
+    };
+}
+
+inline M4
+transform(const V3& pos, const Qt& rot, const V3& scale)
+{
+    return M4Tra(pos) * rot.matrix() * M4Sca(scale);
 }
 
 } /* namespace adt::math */
-
-#if defined __clang__
-    #pragma clang diagnostic pop
-#endif
-
-#if defined __GNUC__
-    #pragma GCC diagnostic pop
-#endif

@@ -3,7 +3,7 @@
 #include "glfunc.hh" /* IWYU pragma: keep */
 #include "../IRenderer.hh"
 
-#include "adt/mathDecl.hh"
+#include "adt/math.hh"
 #include "adt/Pool.hh"
 
 #include "Image.hh"
@@ -83,14 +83,14 @@ struct Shader
     setM3(const char* ntsUnifromVar, const adt::math::M3& m)
     {
         GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
-        glUniformMatrix3fv(ul, 1, GL_FALSE, reinterpret_cast<const GLfloat*>(m.e));
+        glUniformMatrix3fv(ul, 1, GL_FALSE, reinterpret_cast<const GLfloat*>(m.data()));
     }
     
     void 
     setM4(const char* ntsUnifromVar, const adt::math::M4& m)
     {
         GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
-        glUniformMatrix4fv(ul, 1, GL_FALSE, reinterpret_cast<const GLfloat*>(m.e));
+        glUniformMatrix4fv(ul, 1, GL_FALSE, reinterpret_cast<const GLfloat*>(m.data()));
     }
 
     void 
@@ -104,21 +104,21 @@ struct Shader
     setV2(const char* ntsUnifromVar, const adt::math::V2& v)
     {
         GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
-        glUniform2fv(ul, 1, reinterpret_cast<const GLfloat*>(v.e));
+        glUniform2fv(ul, 1, reinterpret_cast<const GLfloat*>(v.data()));
     }
     
     void
     setV3(const char* ntsUnifromVar, const adt::math::V3& v)
     {
         GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
-        glUniform3fv(ul, 1, reinterpret_cast<const GLfloat*>(v.e));
+        glUniform3fv(ul, 1, v.data());
     }
     
     void
     setV4(const char* ntsUnifromVar, const adt::math::V4& v)
     {
         GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
-        glUniform4fv(ul, 1, reinterpret_cast<const GLfloat*>(v.e));
+        glUniform4fv(ul, 1, v.data());
     }
     
     void

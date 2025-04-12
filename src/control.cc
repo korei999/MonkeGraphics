@@ -102,31 +102,31 @@ procMouse()
 
     const auto& win = app::windowInst();
 
-    g_mouse.rel.x = win.m_relMotionX;
-    g_mouse.rel.y = win.m_relMotionY;
+    g_mouse.rel.x() = win.m_relMotionX;
+    g_mouse.rel.y() = win.m_relMotionY;
 
     V2 delta = (g_mouse.rel - g_mouse.prevRel) * g_camera.m_sens;
     g_mouse.prevRel = g_mouse.rel;
 
-    g_camera.m_yaw += delta.x;
-    g_camera.m_pitch += delta.y;
+    g_camera.m_yaw += delta.x();
+    g_camera.m_pitch += delta.y();
 
     if (g_camera.m_pitch > 89.9f) g_camera.m_pitch = 89.9f;
     if (g_camera.m_pitch < -89.9f) g_camera.m_pitch = -89.9f;
 
-    const M4 yawTrm = M4RotFrom(0, toRad(-g_camera.m_yaw), 0);
-    const M4 pitchTrm = M4RotFrom(toRad(g_camera.m_pitch), 0, 0);
+    const M4 yawTrm = M4Rot(0.0f, toRad(-g_camera.m_yaw), 0.0f);
+    const M4 pitchTrm = M4Rot(toRad(g_camera.m_pitch), 0.0f, 0.0f);
     const M4 axisTrm = yawTrm * pitchTrm;
 
-    const V3 right = V3Norm((axisTrm * V4From(CAMERA_RIGHT, 0.0f)).xyz);
-    const V3 up = V3Norm((axisTrm * V4From(CAMERA_UP, 0.0f)).xyz);
-    const V3 lookAt = V3Norm((axisTrm * V4From(CAMERA_FRONT, 0.0f)).xyz);
+    const V3 right = norm((axisTrm * V4(CAMERA_RIGHT, 0.0f)).xyz());
+    const V3 up = norm((axisTrm * V4(CAMERA_UP, 0.0f)).xyz());
+    const V3 lookAt = norm((axisTrm * V4(CAMERA_FRONT, 0.0f)).xyz());
 
     const M4 viewTrm {
-        right.x, up.x, lookAt.x, 0,
-        right.y, up.y, lookAt.y, 0,
-        right.z, up.z, lookAt.z, 0,
-        0,       0,    0,        1,
+        right.x(), up.x(), lookAt.x(), 0,
+        right.y(), up.y(), lookAt.y(), 0,
+        right.z(), up.z(), lookAt.z(), 0,
+        0,         0,      0,          1,
     };
 
     g_camera.m_front = lookAt;

@@ -267,7 +267,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
         auto light = game::g_poolEntities[game::g_dirLight];
 
         pSh->setV3("u_lightPos", light.pos);
-        pSh->setV3("u_lightColor", light.color.xyz);
+        pSh->setV3("u_lightColor", light.color.xyz());
         pSh->setV3("u_ambientColor", game::g_ambientLight);
     };
 
@@ -575,7 +575,7 @@ drawSkybox()
 {
     math::M4 view = control::g_camera.m_trm;
     /* remove translation */
-    view.e[3][0] = view.e[3][1] = view.e[3][2] = 0.0f;
+    view[3].xyz() = {};
 
     auto& win = app::windowInst();
     const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
@@ -678,7 +678,7 @@ Renderer::draw(Arena* pArena)
                 case asset::Object::TYPE::MODEL:
                 {
                     Model& model = Model::fromI(entity.modelI);
-                    drawModel(model, math::transformation(entity.pos, entity.rot, entity.scale));
+                    drawModel(model, math::transform(entity.pos, entity.rot, entity.scale));
                     model.m_waitLock.reset();
                 }
                 break;
@@ -1235,7 +1235,7 @@ loadGLTF(gltf::Model* pModel)
                             vwPos[i0], vwPos[i1], vwPos[i2]
                         };
 
-                        math::V3 normal = math::V3Norm(math::V3Cross(tri[0] - tri[1], tri[0] - tri[2]));
+                        math::V3 normal = math::norm(math::cross(tri[0] - tri[1], tri[0] - tri[2]));
 
                         vNormals[i0] = normal;
                         vNormals[i1] = normal;
@@ -1254,7 +1254,7 @@ loadGLTF(gltf::Model* pModel)
                             vwPos[i + 0], vwPos[i + 1], vwPos[i + 2]
                         };
 
-                        math::V3 normal = math::V3Norm(math::V3Cross(tri[0] - tri[1], tri[0] - tri[2]));
+                        math::V3 normal = math::norm(math::cross(tri[0] - tri[1], tri[0] - tri[2]));
 
                         vNormals[i + 0] = normal;
                         vNormals[i + 1] = normal;
@@ -1278,9 +1278,9 @@ loadGLTF(gltf::Model* pModel)
 
                     case gltf::COMPONENT_TYPE::UNSIGNED_BYTE:
                     {
-                        View<math::IV4u8> vwU8(pModel->accessorView<math::IV4u8>(primitive.attributes.JOINTS_0));
+                        View<math::V4Base<u8>> vwU8(pModel->accessorView<math::V4Base<u8>>(primitive.attributes.JOINTS_0));
 
-                        bufferViewConvert<math::IV4u8, math::IV4>(
+                        bufferViewConvert<math::V4Base<u8>, math::IV4>(
                             vwU8, accJoints.count, shaders::glsl::JOINT_LOCATION, 4, GL_INT, &newPrimitiveData.vboJoints
                         );
                     }
@@ -1288,9 +1288,9 @@ loadGLTF(gltf::Model* pModel)
 
                     case gltf::COMPONENT_TYPE::UNSIGNED_SHORT:
                     {
-                        View<math::IV4u16> vwU16(pModel->accessorView<math::IV4u16>(primitive.attributes.JOINTS_0));
+                        View<math::V4Base<u16>> vwU16(pModel->accessorView<math::V4Base<u16>>(primitive.attributes.JOINTS_0));
 
-                        bufferViewConvert<math::IV4u16, math::IV4>(
+                        bufferViewConvert<math::V4Base<u16>, math::IV4>(
                             vwU16, accJoints.count, shaders::glsl::JOINT_LOCATION, 4, GL_INT, &newPrimitiveData.vboJoints
                         );
                     }
@@ -1318,9 +1318,9 @@ loadGLTF(gltf::Model* pModel)
 
                     case gltf::COMPONENT_TYPE::UNSIGNED_SHORT:
                     {
-                        const View<math::IV4u16> vwU16(pModel->accessorView<math::IV4u16>(primitive.attributes.WEIGHTS_0));
+                        const View<math::V4Base<u16>> vwU16(pModel->accessorView<math::V4Base<u16>>(primitive.attributes.WEIGHTS_0));
 
-                        bufferViewConvert<math::IV4u16, math::V4>(
+                        bufferViewConvert<math::V4Base<u16>, math::V4>(
                             vwU16, accWeights.count, shaders::glsl::WEIGHT_LOCATION, 4, GL_FLOAT, &newPrimitiveData.vboWeights
                         );
                     }

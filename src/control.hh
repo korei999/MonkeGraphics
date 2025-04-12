@@ -42,21 +42,21 @@ struct Camera
     void
     updatePos()
     {
-        adt::f32 len = adt::math::V3Length(m_lastMove);
+        adt::f32 len = adt::math::length(m_lastMove);
         if (len > 0)
         {
-            m_trm = m_view * adt::math::M4TranslationFrom(
-                -(m_pos += (adt::math::V3Norm(m_lastMove, len)*(frame::g_dt)*m_speed*m_lastBoost))
+            m_trm = m_view * adt::math::M4Tra(
+                -(m_pos += (adt::math::norm(m_lastMove, len)*static_cast<adt::f32>(frame::g_dt*m_speed*m_lastBoost)))
             );
         }
 
-        m_trm = m_view * adt::math::M4TranslationFrom(-m_pos);
+        m_trm = m_view * adt::math::M4Tra(-m_pos);
     }
 
     adt::math::V3
     forwardVecNoY() const
     {
-        return {m_front.x, 0.0f, m_front.z};
+        return {m_front.x(), 0.0f, m_front.z()};
     }
 };
 

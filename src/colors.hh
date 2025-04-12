@@ -316,37 +316,37 @@ namespace colors
         };
     }
 
-    inline constexpr adt::u32
+    inline adt::u32
     V4ToARGB(adt::math::V4 v)
     {
         adt::u32 r {};
-        r |= (adt::u32(v.r * 255.0f) << 8 * 3);
-        r |= (adt::u32(v.g * 255.0f) << 8 * 2);
-        r |= (adt::u32(v.b * 255.0f) << 8 * 1);
-        r |=  adt::u32(v.a * 255.0f);
+        r |= (adt::u32(v.r() * 255.0f) << 8 * 3);
+        r |= (adt::u32(v.g() * 255.0f) << 8 * 2);
+        r |= (adt::u32(v.b() * 255.0f) << 8 * 1);
+        r |=  adt::u32(v.a() * 255.0f);
 
         return r;
     }
 
-    inline constexpr adt::u32
+    inline adt::u32
     V4ToRGBA(adt::math::V4 v)
     {
         adt::u32 r {};
-        r |= (adt::u32(v.r * 255.0f) << 8 * 0);
-        r |= (adt::u32(v.g * 255.0f) << 8 * 1);
-        r |= (adt::u32(v.b * 255.0f) << 8 * 2);
-        r |=  adt::u32(v.a * 255.0f) << 8 * 3;
+        r |= (adt::u32(v.r() * 255.0f) << 8 * 0);
+        r |= (adt::u32(v.g() * 255.0f) << 8 * 1);
+        r |= (adt::u32(v.b() * 255.0f) << 8 * 2);
+        r |=  adt::u32(v.a() * 255.0f) << 8 * 3;
 
         return r;
     }
 
-    inline constexpr adt::u32
+    inline adt::u32
     V3ToHex(adt::math::V3 v)
     {
         adt::u32 r {};
-        r |= (adt::u32(v.x * 255.0f) << 8 * 2);
-        r |= (adt::u32(v.y * 255.0f) << 8 * 1);
-        r |=  adt::u32(v.z * 255.0f);
+        r |= (adt::u32(v.x() * 255.0f) << 8 * 2);
+        r |= (adt::u32(v.y() * 255.0f) << 8 * 1);
+        r |=  adt::u32(v.z() * 255.0f);
 
         return r;
     }

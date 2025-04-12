@@ -156,9 +156,9 @@ Model::updateNode(Node* pNode, math::M4 trm)
     {
         case Node::TRANSFORMATION_TYPE::ANIMATION:
         {
-            trm *= math::M4TranslationFrom(pNode->uTransform.tra) *
-                math::QtRot(pNode->uTransform.rot) *
-                math::M4ScaleFrom(pNode->uTransform.sca);
+            trm *= math::M4Tra(pNode->uTransform.tra) *
+                pNode->uTransform.rot.matrix() *
+                math::M4Sca(pNode->uTransform.sca);
         }
         break;
 

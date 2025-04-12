@@ -35,7 +35,7 @@ init()
             .width = Widget::AUTO_SIZE,
             .height = Widget::AUTO_SIZE,
             .border = 0.5f,
-            .bgColor = math::V4From(colors::get(colors::BLACK), 0.5f),
+            .bgColor = math::V4(colors::get(colors::BLACK), 0.5f),
             .eFlags = Widget::FLAGS::TITLE | Widget::FLAGS::DRAG,
         };
 
@@ -53,13 +53,13 @@ init()
             for (const auto& anim : model.m_vAnimations)
             {
                 vAnimations.push(&newWidget.arena, {
-                    .text {.sfText = anim.sName, .color = math::V4From(colors::get(colors::WHITESMOKE), 1.0f)},
+                    .text {.sfText = anim.sName, .color = math::V4(colors::get(colors::WHITESMOKE), 1.0f)},
                     .eType = Entry::TYPE::TEXT,
                 });
             }
 
             vAnimations.push(&newWidget.arena, {
-                .text = {.sfText = "off", .color = math::V4From(colors::get(colors::WHITESMOKE), 1.0f)},
+                .text = {.sfText = "off", .color = math::V4(colors::get(colors::WHITESMOKE), 1.0f)},
                 .eType = Entry::TYPE::TEXT,
             });
 
@@ -67,8 +67,8 @@ init()
                 .menu {
                     .sfName {entity.sfName},
                     .vEntries {vAnimations},
-                    .selColor = math::V4From(colors::get(colors::GREEN), 1.0f),
-                    .color = math::V4From(colors::get(colors::WHITESMOKE), 1.0f),
+                    .selColor = math::V4(colors::get(colors::GREEN), 1.0f),
+                    .color = math::V4(colors::get(colors::WHITESMOKE), 1.0f),
                     .selectedI = 0,
                     .onUpdate {
                         .pfn = +[](Entry* self, void* p) -> void
@@ -101,8 +101,8 @@ init()
                 .vEntries = vEntityEntries,
                 .selectedI = 0,
                 .prevSelectedI = 0,
-                .color = math::V4From(colors::get(colors::WHITE), 1.0f),
-                .arrowColor = math::V4From(colors::get(colors::CYAN), 1.0f),
+                .color = math::V4(colors::get(colors::WHITE), 1.0f),
+                .arrowColor = math::V4(colors::get(colors::CYAN), 1.0f),
                 .onUpdate {
                     .pfn = +[](Entry* self, void* p) -> void
                     {
@@ -121,7 +121,7 @@ init()
                                 Model& model = Model::fromI(enBind.modelI);
 
                                 if constexpr (B_SET)
-                                    model.m_oOutlineColor = math::V4From(colors::get(colors::GAINSBORO), 1.0f);
+                                    model.m_oOutlineColor = math::V4(colors::get(colors::GAINSBORO), 1.0f);
                                 else model.m_oOutlineColor = {};
                             }
                         };
@@ -373,11 +373,11 @@ updateState()
     const f32 widthFactor = 1.0f / (win.m_winWidth * (1.0f/WIDTH));
     const f32 heightFactor = 1.0f / (win.m_winHeight * (1.0f/HEIGHT));
 
-    const f32 px = mouse.abs.x * widthFactor;
-    const f32 py = mouse.abs.y * heightFactor;
+    const f32 px = mouse.abs.x() * widthFactor;
+    const f32 py = mouse.abs.y() * heightFactor;
 
-    const f32 dx = delta.x * widthFactor;
-    const f32 dy = delta.y * heightFactor;
+    const f32 dx = delta.x() * widthFactor;
+    const f32 dy = delta.y() * heightFactor;
 
     if (s_bGrabbed)
     {
