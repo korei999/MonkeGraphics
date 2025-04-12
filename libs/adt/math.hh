@@ -386,34 +386,62 @@ operator/=(V3& v, f32 s)
 inline V4
 operator+(const V4& l, const V4& r)
 {
+#ifdef ADT_SSE4_2
+
+    return V4(
+        simd::f32x4(l) + simd::f32x4(r)
+    );
+
+#else
+
     return {
         .x = l.x + r.x,
         .y = l.y + r.y,
         .z = l.z + r.z,
         .w = l.w + r.w
     };
+
+#endif
 }
 
 inline V4
 operator-(const V4& l)
 {
+#ifdef ADT_SSE4_2
+
+    return V4(-simd::f32x4(l));
+
+#else
+
     V4 res;
+
     res.x = -l.x;
     res.y = -l.y;
     res.z = -l.z;
     res.w = -l.w;
+
     return res;
+
+#endif
 }
 
 inline V4
 operator-(const V4& l, const V4& r)
 {
+#ifdef ADT_SSE4_2
+
+    return V4(simd::f32x4(l) - simd::f32x4(r));
+
+#else
+
     return {
         .x = l.x - r.x,
         .y = l.y - r.y,
         .z = l.z - r.z,
         .w = l.w - r.w
     };
+
+#endif
 }
 
 inline V4
@@ -421,8 +449,7 @@ operator*(const V4& l, f32 r)
 {
 #ifdef ADT_SSE4_2
 
-    simd::f32x4 x4(l);
-    return math::V4(x4 * r);
+    return V4(simd::f32x4(l) * r);
 
 #else
 
@@ -447,10 +474,7 @@ operator*(const V4& l, const V4& r)
 {
 #ifdef ADT_SSE4_2
 
-    simd::f32x4 x0(l);
-    simd::f32x4 x1(r);
-
-    return V4(x0 * x1);
+    return V4(simd::f32x4Load(l.e) * simd::f32x4Load(r.e));
 
 #else
 
@@ -473,12 +497,22 @@ operator*=(V4& l, const V4& r)
 inline V4
 operator/(const V4& l, f32 r)
 {
+#ifdef ADT_SSE4_2
+
+    return V4(
+        simd::f32x4(l) / r
+    );
+
+#else
+
     return {
         .x = l.x / r,
         .y = l.y / r,
         .z = l.z / r,
         .w = l.w / r
     };
+
+#endif
 }
 
 inline V4
@@ -959,7 +993,20 @@ V3Dot(const V3& l, const V3& r)
 inline f32
 V4Dot(const V4& l, const V4& r)
 {
+#ifdef ADT_SSE4_2
+
+    auto mul = simd::f32x4(l) * simd::f32x4(r);
+
+    __m128 sum1 = _mm_hadd_ps(mul.pack, mul.pack);
+    __m128 sum2 = _mm_hadd_ps(sum1, sum1);
+
+    return _mm_cvtss_f32(sum2);
+
+#else
+
     return (l.x * r.x) + (l.y * r.y) + (l.z * r.z) + (l.w * r.w);
+
+#endif
 }
 
 inline f32
@@ -1285,6 +1332,12 @@ QtRot2(const Qt& q)
     return m;
 }
 
+inline
+V4::operator Qt() const
+{
+    return (Qt&)*this;
+}
+
 inline Qt
 QtConj(const Qt& q)
 {
@@ -1313,7 +1366,7 @@ operator*(const Qt& l, const Qt& r)
 inline Qt
 operator*(const Qt& l, const V4& r)
 {
-    return l * (*(Qt*)&r);
+    return l * ((Qt&)r);
 }
 
 inline Qt
@@ -1377,6 +1430,21 @@ slerp(const Qt& q1, const Qt& q2, f32 t)
         dot = -dot;
     }
 
+#ifdef ADT_SSE4_2
+
+    if (dot > 0.9995f)
+    {
+        auto q1Pack = simd::f32x4(q1.base);
+
+        auto diff = simd::f32x4(q2b.base) - q1Pack;
+        auto mul = diff * t;
+        auto sum = q1Pack + mul;
+
+        return QtNorm(Qt(sum));
+    }
+
+#else
+
     if (dot > 0.9995f)
     {
         Qt res;
@@ -1387,6 +1455,8 @@ slerp(const Qt& q1, const Qt& q2, f32 t)
         return QtNorm(res);
     }
 
+#endif
+
     f32 theta0 = std::acos(dot);
     f32 theta = theta0 * t;
 
@@ -1396,12 +1466,24 @@ slerp(const Qt& q1, const Qt& q2, f32 t)
     f32 s1 = std::cos(theta) - dot * (sinTheta / sinTheta0);
     f32 s2 = sinTheta / sinTheta0;
 
+#ifdef ADT_SSE4_2
+
+    auto res = V4((simd::f32x4(q1.base) * s1) + (simd::f32x4(q2b.base) * s2));
+    return Qt(res);
+
+#else
+
     Qt res;
+
     res.x = (s1 * q1.x) + (s2 * q2b.x);
     res.y = (s1 * q1.y) + (s2 * q2b.y);
     res.z = (s1 * q1.z) + (s2 * q2b.z);
     res.w = (s1 * q1.w) + (s2 * q2b.w);
+
     return res;
+
+#endif
+
 }
 
 template<typename T>

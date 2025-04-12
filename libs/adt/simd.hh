@@ -76,6 +76,8 @@ struct f32x4
 
     explicit operator math::V4() const { return *reinterpret_cast<const math::V4*>(this); }
 
+    explicit operator math::Qt() const { return reinterpret_cast<const math::Qt&>(*this); }
+
     explicit operator i32x4() const { return _mm_cvtps_epi32(pack); }
 };
 

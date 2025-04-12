@@ -96,6 +96,7 @@ union IV3
 };
 
 union IV4;
+union Qt;
 
 union V4
 {
@@ -108,6 +109,7 @@ union V4
     /* */
 
     constexpr explicit operator IV4() const;
+    explicit operator Qt() const;
 
     f32& operator[](int i) { ADT_ASSERT(i >= 0 && i < 4, "i: {}", i); return e[i]; }
     const f32& operator[](int i) const { ADT_ASSERT(i >= 0 && i < 4, "i: {}", i); return e[i]; }
