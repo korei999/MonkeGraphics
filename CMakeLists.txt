@@ -26,7 +26,7 @@ endif()
 
 # add_compile_options(-ftime-trace)
 
-option(OPT_SSE4_2 "" ON)
+option(OPT_SSE4_2 "" OFF)
 option(OPT_AVX2 "" OFF)
 option(OPT_MARCH_NATIVE "" OFF)
 
@@ -81,7 +81,7 @@ if (OPT_AVX2)
     if (MSVC)
         add_compile_options(/arch:AVX2)
     else()
-        add_compile_options(-mavx2)
+        add_compile_options(-mavx2 -mfma)
     endif()
 endif()
 

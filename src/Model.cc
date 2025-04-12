@@ -125,6 +125,7 @@ Model::updateSkins()
         Skin& skin = m_vSkins[gltfNode.skinI];
 
         const math::M4 invBindMatrix = math::M4Inv(node.finalTransform);
+        /*const math::M4 invBindMatrix = math::M4Iden();*/
 
         for (const int& jointNodeI : gltfSkin.vJoints)
         {

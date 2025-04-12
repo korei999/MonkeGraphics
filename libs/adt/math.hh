@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mathDecl.hh"
+#include "simd.hh"
 
 #include "utils.hh"
 #include "types.hh"
@@ -142,6 +143,14 @@ V4From(f32 x, f32 y, f32 z, f32 w)
 {
     return {
         x, y, z, w
+    };
+}
+
+constexpr V4
+V4From(f32 x)
+{
+    return {
+        x, x, x, x
     };
 }
 
@@ -410,18 +419,55 @@ operator-(const V4& l, const V4& r)
 inline V4
 operator*(const V4& l, f32 r)
 {
+#ifdef ADT_SSE4_2
+
+    simd::f32x4 x4(l);
+    return math::V4(x4 * r);
+
+#else
+
     return {
         .x = l.x * r,
         .y = l.y * r,
         .z = l.z * r,
         .w = l.w * r
     };
+
+#endif
 }
 
 inline V4
 operator*(f32 l, const V4& r)
 {
     return r * l;
+}
+
+inline V4
+operator*(const V4& l, const V4& r)
+{
+#ifdef ADT_SSE4_2
+
+    simd::f32x4 x0(l);
+    simd::f32x4 x1(r);
+
+    return V4(x0 * x1);
+
+#else
+
+    return {
+        .x = l.x * r.x,
+        .y = l.y * r.y,
+        .z = l.z * r.z,
+        .w = l.w * r.w
+    };
+
+#endif
+}
+
+inline V4&
+operator*=(V4& l, const V4& r)
+{
+    return l = l * r;
 }
 
 inline V4
@@ -604,12 +650,20 @@ inline M4
 M4Cofactors(const M4& s)
 {
     M4 m = M4Minors(s);
-    auto& e = m.e;
 
-    e[0][0] *= +1, e[0][1] *= -1, e[0][2] *= +1, e[0][3] *= -1;
-    e[1][0] *= -1, e[1][1] *= +1, e[1][2] *= -1, e[1][3] *= +1;
-    e[2][0] *= +1, e[2][1] *= -1, e[2][2] *= +1, e[2][3] *= -1;
-    e[3][0] *= -1, e[3][1] *= +1, e[3][2] *= -1, e[3][3] *= +1;
+    V4 plusMinus{+1, -1, +1, -1};
+    V4 minusPlus{-1, +1, -1, +1};
+
+    m.v[0] *= plusMinus;
+    m.v[1] *= minusPlus;
+    m.v[2] *= plusMinus;
+    m.v[3] *= minusPlus;
+
+    /*auto& e = m.e;*/
+    /*e[0][0] *= +1; e[0][1] *= -1; e[0][2] *= +1; e[0][3] *= -1;*/
+    /*e[1][0] *= -1; e[1][1] *= +1; e[1][2] *= -1; e[1][3] *= +1;*/
+    /*e[2][0] *= +1; e[2][1] *= -1; e[2][2] *= +1; e[2][3] *= -1;*/
+    /*e[3][0] *= -1; e[3][1] *= +1; e[3][2] *= -1; e[3][3] *= +1;*/
 
     return m;
 }
@@ -652,7 +706,7 @@ M4Adj(const M4& s)
 inline M3
 operator*(const M3& l, const f32 r)
 {
-    M3 m {};
+    M3 m;
 
     for (int i = 0; i < 9; ++i)
         m.d[i] = l.d[i] * r;
@@ -663,19 +717,12 @@ operator*(const M3& l, const f32 r)
 inline M4
 operator*(const M4& l, const f32 r)
 {
-    M4 m {};
+    M4 m;
 
     for (int i = 0; i < 16; ++i)
         m.d[i] = l.d[i] * r;
 
     return m;
-}
-
-inline M4
-operator*(const M4& a, bool)
-{
-    ADT_ASSERT(false, "mul with bool is no good");
-    return a;
 }
 
 inline M3&
@@ -742,7 +789,20 @@ operator*(const M3& l, const V3& r)
 inline V4
 operator*(const M4& l, const V4& r)
 {
+#ifdef ADT_AVX2
+
+    auto x3 = l.v[3] * r.w;
+    auto x2 = simd::fma(l.v[2], r.z, x3);
+    auto x1 = simd::fma(l.v[1], r.y, x2);
+    auto x0 = simd::fma(l.v[0], r.x, x1);
+
+    return V4(x0);
+
+#else
+
     return l.v[0] * r.x + l.v[1] * r.y + l.v[2] * r.z + l.v[3] * r.w;
+
+#endif
 }
 
 inline M3
@@ -766,7 +826,7 @@ operator*=(M3& l, const M3& r)
 inline M4
 operator*(const M4& l, const M4& r)
 {
-    M4 m;
+    M4 m {};
 
     m.v[0] = l * r.v[0];
     m.v[1] = l * r.v[1];
