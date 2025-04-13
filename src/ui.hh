@@ -1,11 +1,12 @@
 #pragma once
 
+#include "colors.hh"
+
 #include "adt/Arena.hh"
 #include "adt/Pool.hh"
 #include "adt/Vec.hh"
 #include "adt/enum.hh"
 #include "adt/mathDecl.hh"
-#include "adt/Map.hh"
 
 namespace ui
 {
@@ -34,14 +35,15 @@ struct Entry
         {
             adt::StringFixed<32> sfName {};
             adt::Vec<Entry> vEntries {};
-            adt::math::V4 selColor {};
-            adt::math::V4 color {};
-            adt::ssize selectedI {};
-            Action onUpdate;
-            Action onClick;
+            adt::math::V4 selColor = adt::math::V4From(colors::GREEN, 1.0f);
+            adt::math::V4 color = adt::math::V4From(colors::WHITESMOKE, 1.0f);
+            adt::ssize selectedI = -1;
+            Action onUpdate {};
+            Action onClick {};
         } menu;
         struct
         {
+            /* arrowList picks up the name of its content */
             adt::Vec<Entry> vEntries {};
             adt::ssize selectedI {};
             adt::ssize prevSelectedI {};
@@ -51,8 +53,8 @@ struct Entry
         } arrowList;
         struct
         {
-            adt::StringFixed<32> sfText {};
-            adt::math::V4 color {};
+            adt::StringFixed<32> sfName {};
+            adt::math::V4 color = adt::math::V4From(colors::WHITESMOKE, 1.0f);
         } text;
     };
     TYPE eType {};
@@ -73,7 +75,6 @@ struct Widget
 
     adt::Arena arena {};
 
-    adt::StringFixed<16> sfName {};
     adt::StringFixed<32> sfTitle {};
 
     adt::Vec<Entry> vEntries {};
@@ -97,6 +98,5 @@ void updateState();
 void destroy();
 
 extern adt::Pool<Widget, 64> g_poolWidgets;
-extern adt::MapManaged<adt::StringFixed<16>, adt::PoolHandle<Widget>> g_mapStringsToWidgetHandles;
 
 } /* namespace ui */

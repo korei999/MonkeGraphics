@@ -1,10 +1,11 @@
 #include "ui.hh"
 
 #include "app.hh"
-#include "colors.hh"
 #include "control.hh"
 #include "game/game.hh"
 #include "Model.hh"
+
+#include "adt/logs.hh"
 
 using namespace adt;
 
@@ -14,7 +15,6 @@ namespace ui
 static void procCallbacks();
 
 Pool<Widget, 64> g_poolWidgets;
-MapManaged<StringFixed<16>, PoolHandle<Widget>> g_mapStringsToWidgetHandles(StdAllocator::inst(), g_poolWidgets.cap());
 
 static bool s_bGrabbed = false;
 static Widget* s_pGrabbedWidget {};
@@ -25,10 +25,10 @@ init()
 {
     const auto& win = app::windowInst();
 
+    /* FIXME: grabWidth and grabHeight are restricting the clickable area. */
     {
         Widget newWidget {
             .arena = Arena(SIZE_1K * 4),
-            .sfName = "Entities",
             .sfTitle = "Entity animations",
             .x = WIDTH - 30.0f,
             .y = 0.0f,
@@ -53,13 +53,13 @@ init()
             for (const auto& anim : model.m_vAnimations)
             {
                 vAnimations.push(&newWidget.arena, {
-                    .text {.sfText = anim.sName, .color = math::V4From(colors::WHITESMOKE, 1.0f)},
+                    .text {.sfName = anim.sName, .color = math::V4From(colors::WHITESMOKE, 1.0f)},
                     .eType = Entry::TYPE::TEXT,
                 });
             }
 
             vAnimations.push(&newWidget.arena, {
-                .text = {.sfText = "off", .color = math::V4From(colors::WHITESMOKE, 1.0f)},
+                .text = {.sfName = "off", .color = math::V4From(colors::WHITESMOKE, 1.0f)},
                 .eType = Entry::TYPE::TEXT,
             });
 
@@ -140,7 +140,45 @@ init()
         newWidget.vEntries.push(&newWidget.arena, entityList);
 
         auto hTest = g_poolWidgets.make(newWidget);
-        g_mapStringsToWidgetHandles.insert(g_poolWidgets[hTest].sfName, hTest);
+    }
+
+    {
+        Widget newWidget {
+            .arena = Arena{SIZE_1K},
+            .sfTitle = "~TEST~ (menu entry)",
+            .x = WIDTH - 30.0f,
+            .y = 10.0f,
+            .width = Widget::AUTO_SIZE,
+            .height = Widget::AUTO_SIZE,
+            .border = 0.5f,
+            .bgColor = math::V4From(colors::BLACK, 0.5f),
+            .eFlags = Widget::FLAGS::TITLE | Widget::FLAGS::DRAG,
+        };
+
+        Vec<Entry> vEntries(&newWidget.arena, 3);
+        for (ssize i = 0; i < 3; ++i)
+        {
+            char aBuff[16] {};
+            ssize n = print::toSpan(aBuff, "Test #{}", i);
+            vEntries.push(&newWidget.arena, {
+                    .text {.sfName = StringView{aBuff, n}},
+                    .eType = Entry::TYPE::TEXT,
+                }
+            );
+        }
+
+        Entry menu {
+            .menu {
+                .sfName = "What",
+                .vEntries = vEntries,
+                .selectedI = -1,
+            },
+            .eType = Entry::TYPE::MENU,
+        };
+
+        newWidget.vEntries.push(&newWidget.arena, menu);
+
+        auto h = g_poolWidgets.make(newWidget);
     }
 
     procCallbacks();
@@ -158,20 +196,31 @@ struct ClickResult
 };
 
 static ClickResult
-clickMenu(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int xOff, int yOff)
+clickMenu(Widget* pWidget, Entry* pParentEntry, Entry* pEntry, const f32 px, const f32 py, int xOff, int yOff)
 {
     ADT_ASSERT(pEntry->eType == Entry::TYPE::MENU, " ");
 
     ClickResult ret {};
 
+    LOG_GOOD("CLICK MENU:\n");
+
     auto& menu = pEntry->menu;
 
-    if (py <= (pWidget->y + yOff + menu.vEntries.size()) && py >= (pWidget->y + yOff))
+    LOG_BAD("entryPtr: '{}'\n", pEntry);
+    LOG_BAD("p: [{}, {}], (first: {})\n", px, py, pWidget->y + yOff + menu.vEntries.size());
+    LOG_GOOD("menu.size: {}\n", menu.vEntries.size());
+    LOG_GOOD("yOff: {}\n", yOff);
+
+    CERR("\n");
+
+    if (py <= (pWidget->y + yOff + menu.vEntries.size()) &&
+        py >= (pWidget->y + yOff)
+    )
     {
         for (auto& child : menu.vEntries)
         {
             if (py < (pWidget->y + yOff + 1) && py >= (pWidget->y + yOff) &&
-                px >= pWidget->x + xOff && px < pWidget->x + xOff + child.text.sfText.size()
+                px >= pWidget->x + xOff && px < pWidget->x + xOff + child.text.sfName.size()
             )
             {
                 menu.selectedI = menu.vEntries.idx(&child);
@@ -205,7 +254,7 @@ clickArrowList(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int x
     if (py < pWidget->y + yOff + 1 &&
         py >= pWidget->y + yOff &&
         px >= pWidget->x + xOff &&
-        px < pWidget->x + xOff + list.vEntries[list.selectedI].text.sfText.size() + 2 /* 2 arrows */
+        px < pWidget->x + xOff + list.vEntries[list.selectedI].text.sfName.size() + 2 /* 2 arrows */
     )
     {
         list.prevSelectedI = list.selectedI;
@@ -226,7 +275,7 @@ clickArrowList(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int x
         {
             ++yOff;
             ClickResult res = clickMenu(
-                pWidget, &list.vEntries[list.selectedI], px, py, xOff + 3, yOff
+                pWidget, pEntry, &list.vEntries[list.selectedI], px, py, xOff + 3, yOff
             );
             ret = res;
         }
@@ -276,8 +325,9 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, int xOff, int yOff)
                         if (res.eFlag == ClickResult::FLAG::HANDLED)
                             bHandled = true;
 
-                        xOff = res.xOff;
-                        yOff = res.yOff;
+                        /*xOff = res.xOff;*/
+                        /*yOff = res.yOff;*/
+                        yOff = utils::max(yOff, res.yOff);
                     }
                 }
                 break;
@@ -400,8 +450,6 @@ destroy()
 {
     for (auto& widget : g_poolWidgets)
         widget.arena.freeAll();
-
-    g_mapStringsToWidgetHandles.destroy();
 }
 
 } /* namespace ui */

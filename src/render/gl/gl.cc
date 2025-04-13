@@ -479,7 +479,6 @@ GOTO_defaultShader:
 
                     if (model.m_oOutlineColor)
                     {
-                        ADT_ASSERT(pStencilShader, " ");
                         if (pStencilShader)
                         {
                             pStencilShader->use();

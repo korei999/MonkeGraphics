@@ -9,6 +9,8 @@
 #include "frame.hh"
 #include "ui.hh"
 
+#include "adt/logs.hh"
+
 using namespace adt;
 
 namespace render::gl::ui
@@ -97,6 +99,7 @@ drawMenu(
     VecManaged<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
+    const bool bDrawName,
     const math::M4& proj,
     int xOff,
     int yOff
@@ -104,32 +107,48 @@ drawMenu(
 {
     ADT_ASSERT(entry.eType == ::ui::Entry::TYPE::MENU, " ");
 
+    auto& menu = entry.menu;
+
     math::IV2 textOff {0, 1};
+    int yNameOff = 0;
+
+    if (bDrawName)
+    {
+        drawText(pVCommands, widget, menu.sfName, menu.color, proj, xOff, yOff);
+        yNameOff += 2;
+    }
+
     for (const ::ui::Entry& child : entry.menu.vEntries)
     {
-        const ssize idx = entry.menu.vEntries.idx(&child);
+        const ssize idx = menu.vEntries.idx(&child);
 
         switch (child.eType)
         {
             case ::ui::Entry::TYPE::TEXT:
-            /*textOff += drawText(widget, child, proj, xOff, yOff + textOff.y);*/
-            math::V4 col;
-            if (idx == entry.menu.selectedI) col = entry.menu.selColor;
-            else col = entry.menu.color;
+            {
+                math::V4 col;
+                if (idx == menu.selectedI) col = menu.selColor;
+                else col = menu.color;
 
-            textOff += drawText(pVCommands, widget, child.text.sfText, col, proj, xOff + 2, yOff + textOff.y);
+                textOff += drawText(pVCommands, widget, child.text.sfName, col, proj, xOff + 2, yOff + textOff.y);
+            }
             break;
 
             case ::ui::Entry::TYPE::ARROW_LIST:
-            /*drawArrowList(widget, child, proj, &xOff2, &yOff2);*/
+            {
+                /*drawArrowList(widget, child, proj, &xOff2, &yOff2);*/
+            }
             break;
 
             case ::ui::Entry::TYPE::MENU:
-            /*drawMenu(widget, child, proj, &xOff2, &yOff2);*/
+            {
+                /*drawMenu(widget, child, proj, &xOff2, &yOff2);*/
+            }
             break;
         }
     }
 
+    textOff.y += yNameOff;
     return textOff;
 }
 
@@ -143,7 +162,9 @@ drawArrowList(
     int yOff
 )
 {
-    ADT_ASSERT(entry.eType == ::ui::Entry::TYPE::ARROW_LIST, " ");
+    ADT_ASSERT(entry.eType == ::ui::Entry::TYPE::ARROW_LIST, "");
+
+    auto& arrowList = entry.arrowList;
 
     auto xyArrow = drawText(pVCommands, widget, "<", entry.arrowList.arrowColor, proj, xOff, yOff);
     xOff += xyArrow.x;
@@ -163,7 +184,6 @@ drawArrowList(
             case ::ui::Entry::TYPE::MENU:
             {
                 /* draw menu name first */
-                /*auto textOff = drawText(widget, sel, proj, xOff, yOff);*/
                 auto textOff = drawText(pVCommands, widget, sel.menu.sfName, sel.menu.color, proj, xOff, yOff);
 
                 xyArrow.x += textOff.x;
@@ -171,7 +191,7 @@ drawArrowList(
                 if (maxx <= xyArrow.x) maxx = xyArrow.x;
                 maxy += textOff.y;
 
-                auto xyMenu = drawMenu(pVCommands, widget, sel, proj, xOff, yOff);
+                auto xyMenu = drawMenu(pVCommands, widget, sel, false, proj, xOff, yOff);
 
                 if (maxx <= xyMenu.x) maxx = xyMenu.x;
                 maxy += xyMenu.y;
@@ -211,19 +231,14 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
 
     for (const auto& entry : pWidget->vEntries)
     {
-        /*s_pShTexMonoBlur->setM4("u_trm", proj **/
-        /*    math::M4TranslationFrom({widget.x, widget.y + widget.height - 1 - yOff, 0.0f})*/
-        /*);*/
-
         int xOff = 0;
+        math::IV2 xy {};
 
         switch (entry.eType)
         {
             case ::ui::Entry::TYPE::ARROW_LIST:
             {
-                math::IV2 xy = drawArrowList(pVCommands, *pWidget, entry, proj, xOff, yOff);
-                if (maxx < xy.x) maxx = xy.x;
-                if (maxy < xy.y) maxy = xy.y;
+                xy = drawArrowList(pVCommands, *pWidget, entry, proj, xOff, yOff);
             }
             break;
 
@@ -232,25 +247,38 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
             break;
 
             case ::ui::Entry::TYPE::MENU:
-            // drawMenu(widget, entry, proj, &xOff, &yOff);
+            {
+                xy = drawMenu(pVCommands, *pWidget, entry, true, proj, xOff, yOff);
+            }
             break;
         }
+
+        if (maxx < xy.x) maxx = xy.x;
+        if (maxy < xy.y) maxy = xy.y;
+        yOff = maxy - 1;
     }
 
-    pWidget->grabWidth = maxx;
-    /*pWidget->grabHeight = pWidget->height;*/
-    pWidget->grabHeight = maxy - 1;
+    if (pWidget->width == ::ui::Widget::AUTO_SIZE)
+        pWidget->grabWidth = maxx;
+    else pWidget->grabWidth = pWidget->width;
+
+    if (pWidget->height == ::ui::Widget::AUTO_SIZE)
+        pWidget->grabHeight = maxy - 1;
+    else pWidget->grabHeight = pWidget->height;
 
     // constexpr f32 uiWidthToUiHeightInv = 1.0f / (::ui::WIDTH / ::ui::HEIGHT);
 
     /* bg rectangle */
-    g_pShColor->use();
-    g_pShColor->setM4("u_trm", proj *
-        math::M4TranslationFrom({pWidget->x - pWidget->border, pWidget->y - pWidget->border/* *uiWidthToUiHeightInv */, -5.0f}) *
-        math::M4ScaleFrom({pWidget->grabWidth + pWidget->border*2, pWidget->grabHeight + pWidget->border*2 /* *uiWidthToUiHeightInv */, 0.0f})
-    );
-    g_pShColor->setV4("u_color", pWidget->bgColor);
-    g_quad.draw();
+    if (pWidget->grabHeight > 0 && pWidget->grabWidth > 0)
+    {
+        g_pShColor->use();
+        g_pShColor->setM4("u_trm", proj *
+            math::M4TranslationFrom({pWidget->x - pWidget->border, pWidget->y - pWidget->border/* *uiWidthToUiHeightInv */, -5.0f}) *
+            math::M4ScaleFrom({pWidget->grabWidth + pWidget->border*2, pWidget->grabHeight + pWidget->border*2 /* *uiWidthToUiHeightInv */, 0.0f})
+        );
+        g_pShColor->setV4("u_color", pWidget->bgColor);
+        g_quad.draw();
+    }
 }
 
 static void
