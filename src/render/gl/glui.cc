@@ -9,8 +9,6 @@
 #include "frame.hh"
 #include "ui.hh"
 
-#include "adt/logs.hh"
-
 using namespace adt;
 
 namespace render::gl::ui
@@ -156,7 +154,6 @@ drawMenu(
 
     /* children were drawn with off.x + 2 */
     thisOff.x += 2;
-    LOG_BAD("childOff: [{}], off: [{}]\n", thisOff, off);
 
     return thisOff;
 }
@@ -283,8 +280,6 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
     /* bg rectangle */
     if (pWidget->grabHeight > 0 && pWidget->grabWidth > 0)
     {
-        LOG_WARN("rect: [{}]\n", Pair{pWidget->grabWidth, pWidget->grabHeight});
-
         g_pShColor->use();
         g_pShColor->setM4("u_trm", proj *
             math::M4TranslationFrom({pWidget->x - pWidget->border, pWidget->y - pWidget->border/* *uiWidthToUiHeightInv */, -5.0f}) *
