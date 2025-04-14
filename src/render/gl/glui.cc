@@ -191,17 +191,15 @@ drawArrowList(
             {
                 /* draw menu name first */
                 {
-                    auto xy = drawText(pVCommands, widget, sel.menu.sfName, sel.menu.color, proj, {off.x + 1, off.y});
+                    auto xy = drawText(pVCommands, widget, sel.menu.sfName, sel.menu.color, proj, {off.x + 1, off.y + thisOff.y});
                     arrowOff.x += xy.x; /* extend arrow line */
 
                     thisOff.x = utils::max(thisOff.x, arrowOff.x);
-                    /* NOTE: should this add y? */
-                    /*thisOff.y += xy.y;*/
+                    thisOff.y += xy.y;
                 }
 
                 {
-                    auto xyMenu = drawMenu(pVCommands, widget, sel, false, proj, {off.x, off.y + 1});
-                    ++thisOff.y; /* add for off.y + 1 */
+                    auto xyMenu = drawMenu(pVCommands, widget, sel, false, proj, {off.x, off.y + thisOff.y});
 
                     thisOff.x = utils::max(thisOff.x, xyMenu.x);
                     thisOff.y += xyMenu.y;
@@ -268,8 +266,6 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
     if (pWidget->width == ::ui::Widget::AUTO_SIZE)
         pWidget->grabWidth = thisOff.x;
     else pWidget->grabWidth = pWidget->width;
-
-    /*if (!pWidget->vEntries.empty()) --thisOff.y;*/
 
     if (pWidget->height == ::ui::Widget::AUTO_SIZE)
         pWidget->grabHeight = thisOff.y;
