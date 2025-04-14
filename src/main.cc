@@ -32,7 +32,7 @@ main(int argc, char** argv)
 #endif
 
 static void
-parseArgs(int argc, char** argv)
+parseArgs(const int argc, const char* const argv[])
 {
     for (ssize i = 1; i < argc; ++i)
     {
@@ -75,12 +75,11 @@ startup(int argc, char** argv)
 
     try
     {
-        FreeList allocator(SIZE_1K);
+        FreeList allocator {SIZE_1K};
         defer( allocator.freeAll() );
 
         const char* ntsName = "MonkeGraphics";
 
-        /* allocate polymorphic singletons */
         app::g_pWindow = app::allocWindow(&allocator, ntsName);
         app::g_pRenderer = app::allocRenderer(&allocator);
 

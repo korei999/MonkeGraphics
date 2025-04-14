@@ -409,7 +409,7 @@ Font::readSimpleGlyph(Glyph* g)
         }
     }
 
-    auto readCoords = [&](bool bXorY, OUTLINE_FLAG eByte, OUTLINE_FLAG eDelta) -> void
+    auto clReadCoords = [&](bool bXorY, OUTLINE_FLAG eByte, OUTLINE_FLAG eDelta) -> void
     {
         i16 val = 0;
 
@@ -433,24 +433,25 @@ Font::readSimpleGlyph(Glyph* g)
         }
     };
 
-    readCoords(true, X_SHORT_VECTOR, THIS_X_IS_SAME);
-    readCoords(false, Y_SHORT_VECTOR, THIS_Y_IS_SAME);
+    clReadCoords(true, X_SHORT_VECTOR, THIS_X_IS_SAME);
+    clReadCoords(false, Y_SHORT_VECTOR, THIS_Y_IS_SAME);
 }
 
 u32
 Font::getGlyphIdx(u16 code)
 {
     auto& c = m_cmapF4;
-    auto fIdx = c.mapCodeToGlyphIdx.search(code);
 
+    auto fIdx = c.mapCodeToGlyphIdx.search(code);
     if (fIdx) return fIdx.value();
 
     u32 savedPos = m_bin.m_pos;
-    defer(m_bin.m_pos = savedPos);
+    defer( m_bin.m_pos = savedPos );
 
     u32 idx = 0, glyphIndexAddr = 0;
 
-    for (u16 i = 0; i < c.segCountX2/2; ++i)
+    const u32 segCount = c.segCountX2 / 2;
+    for (u16 i = 0; i < segCount; ++i)
     {
         if (bin::swapBytes(c.startCode[i]) <= code && bin::swapBytes(c.endCode[i]) >= code)
         {

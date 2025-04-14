@@ -121,7 +121,7 @@ Model::updateSkins()
         const gltf::Skin& gltfSkin = model.m_vSkins[gltfNode.skinI];
         const View<math::M4> vwInvBinds = model.accessorView<math::M4>(gltfSkin.inverseBindMatricesI);
 
-        Node& node = m_vNodes[nodeI];
+        const Node& node = m_vNodes[nodeI];
         Skin& skin = m_vSkins[gltfNode.skinI];
 
         const math::M4 invBindMatrix = math::M4Inv(node.finalTransform);

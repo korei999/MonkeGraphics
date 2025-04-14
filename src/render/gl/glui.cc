@@ -22,13 +22,18 @@ struct DrawCommand
     void* pArg {};
 };
 
-static math::IV2 drawArrowList(
+struct Offset
+{
+    int x {};
+    int y {};
+};
+
+static Offset drawArrowList(
     VecManaged<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
     const math::M4& proj,
-    int xOff,
-    int yOff
+    Offset off
 );
 
 static Shader* s_pShTexMonoBlur;
@@ -56,24 +61,23 @@ init()
     s_quad0to1 = Quad(INIT, Quad::TYPE::ZERO_TO_ONE);
 }
 
-static math::IV2
+static Offset
 drawText(
     VecManaged<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const StringView sv,
     const math::V4 fgColor,
     const math::M4& proj,
-    int xOff,
-    int yOff
+    Offset off
 )
 {
-    auto clDraw = [&widget, sv, proj, fgColor, xOff, yOff]
+    auto clDraw = [&widget, sv, proj, fgColor, off]
     {
         s_texLiberation.bind(GL_TEXTURE0);
         s_pShTexMonoBlur->use();
 
         s_pShTexMonoBlur->setM4("u_trm", proj *
-            math::M4TranslationFrom({widget.x + xOff, widget.y + yOff, -1.0f})
+            math::M4TranslationFrom({widget.x + off.x, widget.y + off.y, -1.0f})
         );
         s_pShTexMonoBlur->setV4("u_color", fgColor);
 
@@ -94,28 +98,27 @@ drawText(
     return {static_cast<int>(sv.size()), 1};
 }
 
-static math::IV2
+static Offset
 drawMenu(
     VecManaged<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
     const bool bDrawName,
     const math::M4& proj,
-    int xOff,
-    int yOff
+    Offset off
 )
 {
     ADT_ASSERT(entry.eType == ::ui::Entry::TYPE::MENU, " ");
 
     auto& menu = entry.menu;
 
-    math::IV2 textOff {0, 1};
-    int yNameOff = 0;
+    Offset thisOff {0, 0};
 
+    /* arrowList picks up this name, so we don't draw it twice */
     if (bDrawName)
     {
-        drawText(pVCommands, widget, menu.sfName, menu.color, proj, xOff, yOff);
-        yNameOff += 2;
+        auto xy = drawText(pVCommands, widget, menu.sfName, menu.color, proj, off);
+        thisOff.y += xy.y;
     }
 
     for (const ::ui::Entry& child : entry.menu.vEntries)
@@ -130,47 +133,52 @@ drawMenu(
                 if (idx == menu.selectedI) col = menu.selColor;
                 else col = menu.color;
 
-                textOff += drawText(pVCommands, widget, child.text.sfName, col, proj, xOff + 2, yOff + textOff.y);
+                auto xy = drawText(pVCommands, widget, child.text.sfName, col, proj, {off.x + 2, off.y + thisOff.y});
+                thisOff.x = utils::max(xy.x, thisOff.x);
+                thisOff.y += xy.y;
             }
             break;
 
             case ::ui::Entry::TYPE::ARROW_LIST:
             {
-                /*drawArrowList(widget, child, proj, &xOff2, &yOff2);*/
             }
             break;
 
             case ::ui::Entry::TYPE::MENU:
             {
-                /*drawMenu(widget, child, proj, &xOff2, &yOff2);*/
+                auto xy = drawMenu(pVCommands, widget, child, true, proj, {off.x + 2, off.y + thisOff.y});
+                thisOff.x = utils::max(xy.x, thisOff.x);
+                thisOff.y += xy.y;
             }
             break;
         }
     }
 
-    textOff.y += yNameOff;
-    return textOff;
+    /* children were drawn with off.x + 2 */
+    thisOff.x += 2;
+    LOG_BAD("childOff: [{}], off: [{}]\n", thisOff, off);
+
+    return thisOff;
 }
 
-static math::IV2
+static Offset
 drawArrowList(
     VecManaged<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
     const math::M4& proj,
-    int xOff,
-    int yOff
+    Offset off
 )
 {
     ADT_ASSERT(entry.eType == ::ui::Entry::TYPE::ARROW_LIST, "");
 
     auto& arrowList = entry.arrowList;
 
-    auto xyArrow = drawText(pVCommands, widget, "<", entry.arrowList.arrowColor, proj, xOff, yOff);
-    xOff += xyArrow.x;
+    Offset thisOff {0, 0};
 
-    int maxx = xyArrow.x;
-    int maxy = yOff;
+    /* '<' should be on the same line */
+    auto arrowOff = drawText(pVCommands, widget, "<", entry.arrowList.arrowColor, proj, off);
+    thisOff.x += arrowOff.x;
 
     if (entry.arrowList.vEntries.size() > 0)
     {
@@ -178,92 +186,96 @@ drawArrowList(
         switch (sel.eType)
         {
             case ::ui::Entry::TYPE::TEXT:
-            /*drawText(widget, sel, proj, &xOff, &yOff);*/
+            {
+            }
             break;
 
             case ::ui::Entry::TYPE::MENU:
             {
                 /* draw menu name first */
-                auto textOff = drawText(pVCommands, widget, sel.menu.sfName, sel.menu.color, proj, xOff, yOff);
+                {
+                    auto xy = drawText(pVCommands, widget, sel.menu.sfName, sel.menu.color, proj, {off.x + 1, off.y});
+                    arrowOff.x += xy.x; /* extend arrow line */
 
-                xyArrow.x += textOff.x;
+                    thisOff.x = utils::max(thisOff.x, arrowOff.x);
+                    /* NOTE: should this add y? */
+                    /*thisOff.y += xy.y;*/
+                }
 
-                if (maxx <= xyArrow.x) maxx = xyArrow.x;
-                maxy += textOff.y;
+                {
+                    auto xyMenu = drawMenu(pVCommands, widget, sel, false, proj, {off.x, off.y + 1});
+                    ++thisOff.y; /* add for off.y + 1 */
 
-                auto xyMenu = drawMenu(pVCommands, widget, sel, false, proj, xOff, yOff);
-
-                if (maxx <= xyMenu.x) maxx = xyMenu.x;
-                maxy += xyMenu.y;
+                    thisOff.x = utils::max(thisOff.x, xyMenu.x);
+                    thisOff.y += xyMenu.y;
+                }
             }
             break;
 
             case ::ui::Entry::TYPE::ARROW_LIST:
-            /*drawArrowList(widget, sel, proj, &xOff, &yOff);*/
+            {
+            }
             break;
         }
     }
 
-    math::IV2 xyRet = drawText(pVCommands, widget, ">", entry.arrowList.arrowColor, proj, xyArrow.x, yOff);
-    if (maxx < xyArrow.x + 1) maxx = xyArrow.x + 1;
+    Offset xyRet = drawText(pVCommands, widget, ">", entry.arrowList.arrowColor, proj, {arrowOff.x, off.y});
+    thisOff.x = utils::max(thisOff.x, arrowOff.x + 1);
+    /* shouldn't extend y */
 
-    return {maxx, maxy};
+    return thisOff;
 }
 
 static void
 drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const math::M4& proj)
 {
-    int yOff = 0;
-
-    int maxx = 0;
-    int maxy = 0;
+    Offset off {0, 0};
+    Offset thisOff {0, 0};
 
     if (bool(pWidget->eFlags & ::ui::Widget::FLAGS::TITLE))
     {
-        math::IV2 xy = drawText(pVCommands, *pWidget, pWidget->sfTitle,
-            V4From(colors::WHITE, 0.75f), proj, 0, 0
+        Offset xy = drawText(pVCommands, *pWidget, pWidget->sfTitle,
+            V4From(colors::WHITE, 0.75f), proj, off
         );
-        yOff += xy.y;
-
-        if (maxx < xy.x) maxx = xy.x;
-        ++maxy;
+        thisOff.x = utils::max(thisOff.x, xy.x);
+        thisOff.y += xy.y;
     }
 
     for (const auto& entry : pWidget->vEntries)
     {
-        int xOff = 0;
-        math::IV2 xy {};
-
         switch (entry.eType)
         {
             case ::ui::Entry::TYPE::ARROW_LIST:
             {
-                xy = drawArrowList(pVCommands, *pWidget, entry, proj, xOff, yOff);
+                auto xy = drawArrowList(pVCommands, *pWidget, entry, proj, {off.x, off.y + thisOff.y});
+                thisOff.x = utils::max(thisOff.x, xy.x);
+                thisOff.y += xy.y;
             }
             break;
 
             case ::ui::Entry::TYPE::TEXT:
-            // drawText(widget, entry, proj, &xOff, &yOff);
+            {
+            }
             break;
 
             case ::ui::Entry::TYPE::MENU:
             {
-                xy = drawMenu(pVCommands, *pWidget, entry, true, proj, xOff, yOff);
+                auto xy = drawMenu(pVCommands, *pWidget, entry, true, proj, {off.x, off.y + thisOff.y});
+                thisOff.x = utils::max(thisOff.x, xy.x);
+                thisOff.y += xy.y;
             }
             break;
         }
-
-        if (maxx < xy.x) maxx = xy.x;
-        if (maxy < xy.y) maxy = xy.y;
-        yOff = maxy - 1;
     }
 
     if (pWidget->width == ::ui::Widget::AUTO_SIZE)
-        pWidget->grabWidth = maxx;
+        pWidget->grabWidth = thisOff.x;
     else pWidget->grabWidth = pWidget->width;
 
+    /*if (!pWidget->vEntries.empty()) --thisOff.y;*/
+
     if (pWidget->height == ::ui::Widget::AUTO_SIZE)
-        pWidget->grabHeight = maxy - 1;
+        pWidget->grabHeight = thisOff.y;
     else pWidget->grabHeight = pWidget->height;
 
     // constexpr f32 uiWidthToUiHeightInv = 1.0f / (::ui::WIDTH / ::ui::HEIGHT);
@@ -271,6 +283,8 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
     /* bg rectangle */
     if (pWidget->grabHeight > 0 && pWidget->grabWidth > 0)
     {
+        LOG_WARN("rect: [{}]\n", Pair{pWidget->grabWidth, pWidget->grabHeight});
+
         g_pShColor->use();
         g_pShColor->setM4("u_trm", proj *
             math::M4TranslationFrom({pWidget->x - pWidget->border, pWidget->y - pWidget->border/* *uiWidthToUiHeightInv */, -5.0f}) *
@@ -359,3 +373,14 @@ draw(Arena* pArena)
 }
 
 } /* namespace render::gl::ui */
+
+namespace adt::print
+{
+
+static ssize
+formatToContext(Context ctx, FormatArgs fmtArgs, const render::gl::ui::Offset x)
+{
+    return formatToContext(ctx, fmtArgs, Pair{x.x, x.y});
+}
+
+} /* namespace adt::print */

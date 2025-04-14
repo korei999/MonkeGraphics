@@ -5,8 +5,6 @@
 #include "game/game.hh"
 #include "Model.hh"
 
-#include "adt/logs.hh"
-
 using namespace adt;
 
 namespace ui
@@ -167,11 +165,40 @@ init()
             );
         }
 
+        {
+            Vec<Entry> vMenuEntries {&newWidget.arena, 2};
+
+            vMenuEntries.push(&newWidget.arena, {
+                .text {"menuText0"},
+                .eType = Entry::TYPE::TEXT,
+            });
+
+            vMenuEntries.push(&newWidget.arena, {
+                .text {"menuText1"},
+                .eType = Entry::TYPE::TEXT,
+            });
+
+            Entry menuInMenu {
+                .menu {
+                    .sfName = "MenuInMenu",
+                    .vEntries = vMenuEntries
+                },
+                .eType = Entry::TYPE::MENU,
+            };
+
+            vEntries.push(&newWidget.arena, menuInMenu);
+        }
+
+        vEntries.push(&newWidget.arena, {
+                .text {.sfName = "text under menu"},
+                .eType = Entry::TYPE::TEXT,
+            }
+        );
+
         Entry menu {
             .menu {
                 .sfName = "What",
                 .vEntries = vEntries,
-                .selectedI = -1,
             },
             .eType = Entry::TYPE::MENU,
         };
@@ -202,16 +229,7 @@ clickMenu(Widget* pWidget, Entry* pParentEntry, Entry* pEntry, const f32 px, con
 
     ClickResult ret {};
 
-    LOG_GOOD("CLICK MENU:\n");
-
     auto& menu = pEntry->menu;
-
-    LOG_BAD("entryPtr: '{}'\n", pEntry);
-    LOG_BAD("p: [{}, {}], (first: {})\n", px, py, pWidget->y + yOff + menu.vEntries.size());
-    LOG_GOOD("menu.size: {}\n", menu.vEntries.size());
-    LOG_GOOD("yOff: {}\n", yOff);
-
-    CERR("\n");
 
     if (py <= (pWidget->y + yOff + menu.vEntries.size()) &&
         py >= (pWidget->y + yOff)
@@ -275,7 +293,7 @@ clickArrowList(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, int x
         {
             ++yOff;
             ClickResult res = clickMenu(
-                pWidget, pEntry, &list.vEntries[list.selectedI], px, py, xOff + 3, yOff
+                pWidget, pEntry, &list.vEntries[list.selectedI], px, py, xOff + 2, yOff
             );
             ret = res;
         }
