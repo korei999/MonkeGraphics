@@ -45,10 +45,10 @@ struct Entry
         {
             /* arrowList picks up the name of its content */
             adt::Vec<Entry> vEntries {};
-            adt::ssize selectedI {};
-            adt::ssize prevSelectedI {};
-            adt::math::V4 color {};
-            adt::math::V4 arrowColor {};
+            adt::ssize selectedI = 0;
+            adt::ssize prevSelectedI = 0;
+            adt::math::V4 color = adt::math::V4From(colors::WHITESMOKE, 1.0f);
+            adt::math::V4 arrowColor = adt::math::V4From(colors::CYAN, 1.0f);
             Action onUpdate {};
         } arrowList;
         struct
@@ -81,15 +81,20 @@ struct Widget
 
     adt::f32 x {};
     adt::f32 y {};
-    adt::f32 width {}; /* -1 to expand automatically */
-    adt::f32 height {}; /* -1 to expand automatically */
-    adt::f32 grabWidth {}; /* recalculates each update */
-    adt::f32 grabHeight {}; /* recalculates each update */
+    adt::f32 width = AUTO_SIZE; /* (AUTO_SIZE)-1 to expand automatically */
+    adt::f32 height = AUTO_SIZE; /* (AUTO_SIZE)-1 to expand automatically */
     adt::f32 border {};
 
-    adt::math::V4 bgColor {};
+    adt::math::V4 bgColor = adt::math::V4From(colors::BLACK, 0.5f);
 
     FLAGS eFlags {};
+
+    /* recalculates each update */
+    struct
+    {
+        adt::f32 grabWidth {};
+        adt::f32 grabHeight {};
+    } priv {};
 };
 ADT_ENUM_BITWISE_OPERATORS(Widget::FLAGS);
 

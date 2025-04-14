@@ -5,6 +5,8 @@
 #include "game/game.hh"
 #include "Model.hh"
 
+#include "adt/logs.hh"
+
 using namespace adt;
 
 namespace ui
@@ -16,6 +18,7 @@ Pool<Widget, 64> g_poolWidgets;
 
 static bool s_bGrabbed = false;
 static Widget* s_pGrabbedWidget {};
+static Widget s_dummyWidget {};
 static bool s_bPressed = false;
 
 void
@@ -23,7 +26,7 @@ init()
 {
     const auto& win = app::windowInst();
 
-    /* FIXME: grabWidth and grabHeight are restricting the clickable area. */
+    /* FIXME: grabWidth and grabHeight restrict the clickable area. */
     {
         Widget newWidget {
             .arena = Arena(SIZE_1K * 4),
@@ -189,11 +192,14 @@ init()
             vEntries.push(&newWidget.arena, menuInMenu);
         }
 
-        vEntries.push(&newWidget.arena, {
-                .text {.sfName = "text under menu"},
-                .eType = Entry::TYPE::TEXT,
-            }
-        );
+        Entry textUnderFirstMenu {
+            .text {
+                .sfName = "Text under the first menu",
+            },
+            .eType = Entry::TYPE::TEXT,
+        };
+
+        vEntries.push(&newWidget.arena, textUnderFirstMenu);
 
         Entry menu {
             .menu {
@@ -205,7 +211,48 @@ init()
 
         newWidget.vEntries.push(&newWidget.arena, menu);
 
+        Entry textUnder {
+            .text {
+                .sfName = "Text under menus",
+            },
+            .eType = Entry::TYPE::TEXT,
+        };
+
+        newWidget.vEntries.push(&newWidget.arena, textUnder);
+
         auto h = g_poolWidgets.make(newWidget);
+    }
+
+    {
+        Widget widget {
+            .arena = Arena {SIZE_1K},
+            .sfTitle = "ARROW_LIST with text",
+            .x = WIDTH - 30.0f,
+            .y = 25.0f,
+            .border = 0.5f,
+            .eFlags = Widget::FLAGS::TITLE | Widget::FLAGS::DRAG,
+        };
+
+        Vec<Entry> vTexts {&widget.arena, 6};
+        for (ssize i = 0; i < vTexts.cap(); ++i)
+        {
+            char aBuff[64] {};
+            ssize nWritten = print::toSpan(aBuff, "text #{}", i);
+            vTexts.push(&widget.arena, {
+                .text {StringView{aBuff, nWritten}},
+                .eType = Entry::TYPE::TEXT,
+            });
+        }
+
+        Entry arrowList {
+            .arrowList {
+                .vEntries = vTexts,
+            },
+            .eType = Entry::TYPE::ARROW_LIST,
+        };
+
+        widget.vEntries.push(&widget.arena, arrowList);
+        auto h = g_poolWidgets.make(widget);
     }
 
     procCallbacks();
@@ -318,24 +365,23 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, int xOff, int yOff)
 {
     ADT_ASSERT(pWidget, " ");
 
-    Widget& widget = *pWidget;
     ClickResult ret {};
     bool bHandled = false;
 
-    if (px + widget.border >= widget.x && px - widget.border < widget.x + widget.grabWidth &&
-        py + widget.border >= widget.y && py - widget.border < widget.y + widget.grabHeight
+    if (px + pWidget->border >= pWidget->x && px - pWidget->border < pWidget->x + pWidget->priv.grabWidth &&
+        py + pWidget->border >= pWidget->y && py - pWidget->border < pWidget->y + pWidget->priv.grabHeight
     )
     {
-        if (bool(widget.eFlags & Widget::FLAGS::TITLE))
+        if (bool(pWidget->eFlags & Widget::FLAGS::TITLE))
             ++yOff;
 
-        for (Entry& entry : widget.vEntries)
+        for (Entry& entry : pWidget->vEntries)
         {
             switch (entry.eType)
             {
                 case Entry::TYPE::ARROW_LIST:
                 {
-                    if (py < widget.y + widget.grabHeight - yOff + 1)
+                    if (py < pWidget->y + pWidget->priv.grabHeight - yOff + 1)
                     {
                         s_bPressed = true;
 
@@ -343,8 +389,6 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, int xOff, int yOff)
                         if (res.eFlag == ClickResult::FLAG::HANDLED)
                             bHandled = true;
 
-                        /*xOff = res.xOff;*/
-                        /*yOff = res.yOff;*/
                         yOff = utils::max(yOff, res.yOff);
                     }
                 }
@@ -363,11 +407,18 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, int xOff, int yOff)
             ++yOff;
         }
 
-        if (!bHandled && bool(widget.eFlags & Widget::FLAGS::DRAG))
+        if (!bHandled && bool(pWidget->eFlags & Widget::FLAGS::DRAG))
         {
-            s_pGrabbedWidget = &widget;
+            LOG_GOOD("new grab: '{}'\n", pWidget);
+            s_pGrabbedWidget = pWidget;
             s_bGrabbed = true;
         }
+    }
+
+    if (!bHandled)
+    {
+        /* Prevent from hover activations, when first click was into nothing. */
+        s_bPressed = true;
     }
 
     ret.xOff = xOff;
@@ -431,15 +482,14 @@ updateState()
     {
         s_bPressed = false;
         s_bGrabbed = false;
-        static Widget s_dummyWidget {};
         s_pGrabbedWidget = &s_dummyWidget;
         return;
     }
 
     if (s_bPressed && !s_bGrabbed) return;
 
-    const f32 widthFactor = 1.0f / (win.m_winWidth * (1.0f/WIDTH));
-    const f32 heightFactor = 1.0f / (win.m_winHeight * (1.0f/HEIGHT));
+    const f32 widthFactor = 1.0f/(win.m_winWidth * (1.0f/WIDTH));
+    const f32 heightFactor = 1.0f/(win.m_winHeight * (1.0f/HEIGHT));
 
     const f32 px = mouse.abs.x * widthFactor;
     const f32 py = mouse.abs.y * heightFactor;

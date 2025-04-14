@@ -122,6 +122,7 @@ drawMenu(
     for (const ::ui::Entry& child : entry.menu.vEntries)
     {
         const ssize idx = menu.vEntries.idx(&child);
+        Offset xy {};
 
         switch (child.eType)
         {
@@ -131,9 +132,7 @@ drawMenu(
                 if (idx == menu.selectedI) col = menu.selColor;
                 else col = menu.color;
 
-                auto xy = drawText(pVCommands, widget, child.text.sfName, col, proj, {off.x + 2, off.y + thisOff.y});
-                thisOff.x = utils::max(xy.x, thisOff.x);
-                thisOff.y += xy.y;
+                xy = drawText(pVCommands, widget, child.text.sfName, col, proj, {off.x + 2, off.y + thisOff.y});
             }
             break;
 
@@ -144,12 +143,13 @@ drawMenu(
 
             case ::ui::Entry::TYPE::MENU:
             {
-                auto xy = drawMenu(pVCommands, widget, child, true, proj, {off.x + 2, off.y + thisOff.y});
-                thisOff.x = utils::max(xy.x, thisOff.x);
-                thisOff.y += xy.y;
+                xy = drawMenu(pVCommands, widget, child, true, proj, {off.x + 2, off.y + thisOff.y});
             }
             break;
         }
+
+        thisOff.x = utils::max(xy.x, thisOff.x);
+        thisOff.y += xy.y;
     }
 
     /* children were drawn with off.x + 2 */
@@ -184,6 +184,11 @@ drawArrowList(
         {
             case ::ui::Entry::TYPE::TEXT:
             {
+                auto xy = drawText(pVCommands, widget, sel.text.sfName, sel.text.color, proj, {off.x + 1, off.y + thisOff.y});
+                arrowOff.x += xy.x;
+
+                thisOff.x = utils::max(thisOff.x, arrowOff.x);
+                thisOff.y += xy.y;
             }
             break;
 
@@ -214,8 +219,8 @@ drawArrowList(
         }
     }
 
-    Offset xyRet = drawText(pVCommands, widget, ">", entry.arrowList.arrowColor, proj, {arrowOff.x, off.y});
-    thisOff.x = utils::max(thisOff.x, arrowOff.x + 1);
+    drawText(pVCommands, widget, ">", entry.arrowList.arrowColor, proj, {arrowOff.x, off.y});
+    thisOff.x = utils::max(thisOff.x, arrowOff.x + 1); /* +1 for the closing arrow */
     /* shouldn't extend y */
 
     return thisOff;
@@ -250,6 +255,9 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
 
             case ::ui::Entry::TYPE::TEXT:
             {
+                auto xy = drawText(pVCommands, *pWidget, entry.text.sfName, entry.text.color, proj, {off.x, off.y + thisOff.y});
+                thisOff.x = utils::max(thisOff.x, xy.x);
+                thisOff.y += xy.y;
             }
             break;
 
@@ -263,23 +271,27 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
         }
     }
 
-    if (pWidget->width == ::ui::Widget::AUTO_SIZE)
-        pWidget->grabWidth = thisOff.x;
-    else pWidget->grabWidth = pWidget->width;
-
-    if (pWidget->height == ::ui::Widget::AUTO_SIZE)
-        pWidget->grabHeight = thisOff.y;
-    else pWidget->grabHeight = pWidget->height;
+    pWidget->priv.grabWidth = thisOff.x;
+    pWidget->priv.grabHeight = thisOff.y;
 
     // constexpr f32 uiWidthToUiHeightInv = 1.0f / (::ui::WIDTH / ::ui::HEIGHT);
 
     /* bg rectangle */
-    if (pWidget->grabHeight > 0 && pWidget->grabWidth > 0)
+    if (pWidget->priv.grabHeight > 0 && pWidget->priv.grabWidth > 0)
     {
         g_pShColor->use();
-        g_pShColor->setM4("u_trm", proj *
-            math::M4TranslationFrom({pWidget->x - pWidget->border, pWidget->y - pWidget->border/* *uiWidthToUiHeightInv */, -5.0f}) *
-            math::M4ScaleFrom({pWidget->grabWidth + pWidget->border*2, pWidget->grabHeight + pWidget->border*2 /* *uiWidthToUiHeightInv */, 0.0f})
+        g_pShColor->setM4("u_trm",
+            proj *
+            math::M4TranslationFrom({
+                pWidget->x - pWidget->border,
+                pWidget->y - pWidget->border/* *uiWidthToUiHeightInv */,
+                -5.0f
+            }) *
+            math::M4ScaleFrom({
+                pWidget->priv.grabWidth + pWidget->border*2,
+                pWidget->priv.grabHeight + pWidget->border*2 /* *uiWidthToUiHeightInv */,
+                0.0f
+            })
         );
         g_pShColor->setV4("u_color", pWidget->bgColor);
         g_quad.draw();
