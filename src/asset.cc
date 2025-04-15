@@ -214,7 +214,7 @@ search(const StringView svKey, Object::TYPE eType)
     }
     else
     {
-        ADT_ASSERT(false, "failed to find asset: '%.*s'", static_cast<int>(svKey.size()), svKey.data());
+        ADT_ASSERT(false, "failed to find asset: '{}'", static_cast<int>(svKey.size()), svKey.data());
         return nullptr;
     }
 }

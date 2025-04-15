@@ -20,18 +20,12 @@ struct DrawCommand
     void* pArg {};
 };
 
-struct Offset
-{
-    int x {};
-    int y {};
-};
-
-static Offset drawArrowList(
+static ::ui::Offset drawArrowList(
     VecManaged<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
     const math::M4& proj,
-    Offset off
+    ::ui::Offset off
 );
 
 static Shader* s_pShTexMonoBlur;
@@ -59,14 +53,14 @@ init()
     s_quad0to1 = Quad(INIT, Quad::TYPE::ZERO_TO_ONE);
 }
 
-static Offset
+static ::ui::Offset
 drawText(
     VecManaged<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const StringView sv,
     const math::V4 fgColor,
     const math::M4& proj,
-    Offset off
+    ::ui::Offset off
 )
 {
     auto clDraw = [&widget, sv, proj, fgColor, off]
@@ -96,21 +90,21 @@ drawText(
     return {static_cast<int>(sv.size()), 1};
 }
 
-static Offset
+static ::ui::Offset
 drawMenu(
     VecManaged<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
     const bool bDrawName,
     const math::M4& proj,
-    Offset off
+    ::ui::Offset off
 )
 {
     ADT_ASSERT(entry.eType == ::ui::Entry::TYPE::MENU, " ");
 
     auto& menu = entry.menu;
 
-    Offset thisOff {0, 0};
+    ::ui::Offset thisOff {0, 0};
 
     /* arrowList picks up this name, so we don't draw it twice */
     if (bDrawName)
@@ -122,22 +116,23 @@ drawMenu(
     for (const ::ui::Entry& child : entry.menu.vEntries)
     {
         const ssize idx = menu.vEntries.idx(&child);
-        Offset xy {};
+        const math::V4 col = [&] {
+            if (idx == menu.selectedI) return menu.selColor;
+            else return menu.color;
+        }();
+        ::ui::Offset xy {};
 
         switch (child.eType)
         {
             case ::ui::Entry::TYPE::TEXT:
             {
-                math::V4 col;
-                if (idx == menu.selectedI) col = menu.selColor;
-                else col = menu.color;
-
                 xy = drawText(pVCommands, widget, child.text.sfName, col, proj, {off.x + 2, off.y + thisOff.y});
             }
             break;
 
             case ::ui::Entry::TYPE::ARROW_LIST:
             {
+                xy = drawArrowList(pVCommands, widget, child, proj, {off.x + 2, off.y + thisOff.y});
             }
             break;
 
@@ -158,20 +153,20 @@ drawMenu(
     return thisOff;
 }
 
-static Offset
+static ::ui::Offset
 drawArrowList(
     VecManaged<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
     const math::M4& proj,
-    Offset off
+    ::ui::Offset off
 )
 {
     ADT_ASSERT(entry.eType == ::ui::Entry::TYPE::ARROW_LIST, "");
 
     auto& arrowList = entry.arrowList;
 
-    Offset thisOff {0, 0};
+    ::ui::Offset thisOff {0, 0};
 
     /* '<' should be on the same line */
     auto arrowOff = drawText(pVCommands, widget, "<", entry.arrowList.arrowColor, proj, off);
@@ -219,7 +214,7 @@ drawArrowList(
         }
     }
 
-    drawText(pVCommands, widget, ">", entry.arrowList.arrowColor, proj, {arrowOff.x, off.y});
+    drawText(pVCommands, widget, ">", entry.arrowList.arrowColor, proj, {off.x + arrowOff.x, off.y});
     thisOff.x = utils::max(thisOff.x, arrowOff.x + 1); /* +1 for the closing arrow */
     /* shouldn't extend y */
 
@@ -229,12 +224,12 @@ drawArrowList(
 static void
 drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const math::M4& proj)
 {
-    Offset off {0, 0};
-    Offset thisOff {0, 0};
+    ::ui::Offset off {0, 0};
+    ::ui::Offset thisOff {0, 0};
 
     if (bool(pWidget->eFlags & ::ui::Widget::FLAGS::TITLE))
     {
-        Offset xy = drawText(pVCommands, *pWidget, pWidget->sfTitle,
+        ::ui::Offset xy = drawText(pVCommands, *pWidget, pWidget->sfTitle,
             V4From(colors::WHITE, 0.75f), proj, off
         );
         thisOff.x = utils::max(thisOff.x, xy.x);
@@ -376,14 +371,3 @@ draw(Arena* pArena)
 }
 
 } /* namespace render::gl::ui */
-
-namespace adt::print
-{
-
-static ssize
-formatToContext(Context ctx, FormatArgs fmtArgs, const render::gl::ui::Offset x)
-{
-    return formatToContext(ctx, fmtArgs, Pair{x.x, x.y});
-}
-
-} /* namespace adt::print */

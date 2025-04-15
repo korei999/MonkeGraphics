@@ -1,7 +1,10 @@
+/* quick and dirty ui widgets */
+
 #pragma once
 
 #include "colors.hh"
 
+#include "adt/Pair.hh"
 #include "adt/Arena.hh"
 #include "adt/Pool.hh"
 #include "adt/Vec.hh"
@@ -23,39 +26,47 @@ struct Entry
 
     struct Action
     {
-        void (*pfn)(Entry* self, void* pArg) {};
+        void (*pfn)(Entry* pSelf, void* pArg) {};
         void* pArg {};
+    };
+
+    struct Menu
+    {
+        adt::StringFixed<32> sfName {};
+        adt::Vec<Entry> vEntries {};
+        adt::math::V4 selColor = adt::math::V4From(colors::GREEN, 1.0f);
+        adt::math::V4 color = adt::math::V4From(colors::WHITESMOKE, 1.0f);
+        adt::ssize selectedI = -1;
+        Action onUpdate {};
+        Action onClick {};
+    };
+    struct ArrowList
+    {
+        /* arrowList picks up the name of its content */
+        adt::Vec<Entry> vEntries {};
+        adt::ssize selectedI = 0;
+        adt::ssize prevSelectedI = 0;
+        adt::math::V4 color = adt::math::V4From(colors::WHITESMOKE, 1.0f);
+        adt::math::V4 arrowColor = adt::math::V4From(colors::CYAN, 1.0f);
+        Action onUpdate {};
+
+        /* */
+
+        const adt::StringView getName() const;
+    };
+    struct Text
+    {
+        adt::StringFixed<32> sfName {};
+        adt::math::V4 color = adt::math::V4From(colors::WHITESMOKE, 1.0f);
     };
 
     /* */
 
     union
     {
-        struct
-        {
-            adt::StringFixed<32> sfName {};
-            adt::Vec<Entry> vEntries {};
-            adt::math::V4 selColor = adt::math::V4From(colors::GREEN, 1.0f);
-            adt::math::V4 color = adt::math::V4From(colors::WHITESMOKE, 1.0f);
-            adt::ssize selectedI = -1;
-            Action onUpdate {};
-            Action onClick {};
-        } menu;
-        struct
-        {
-            /* arrowList picks up the name of its content */
-            adt::Vec<Entry> vEntries {};
-            adt::ssize selectedI = 0;
-            adt::ssize prevSelectedI = 0;
-            adt::math::V4 color = adt::math::V4From(colors::WHITESMOKE, 1.0f);
-            adt::math::V4 arrowColor = adt::math::V4From(colors::CYAN, 1.0f);
-            Action onUpdate {};
-        } arrowList;
-        struct
-        {
-            adt::StringFixed<32> sfName {};
-            adt::math::V4 color = adt::math::V4From(colors::WHITESMOKE, 1.0f);
-        } text;
+        Menu menu;
+        ArrowList arrowList;
+        Text text;
     };
     TYPE eType {};
 };
@@ -98,6 +109,12 @@ struct Widget
 };
 ADT_ENUM_BITWISE_OPERATORS(Widget::FLAGS);
 
+struct Offset
+{
+    int x {};
+    int y {};
+};
+
 void init();
 void updateState();
 void destroy();
@@ -105,3 +122,14 @@ void destroy();
 extern adt::Pool<Widget, 64> g_poolWidgets;
 
 } /* namespace ui */
+
+namespace adt::print
+{
+
+static ssize
+formatToContext(Context ctx, FormatArgs fmtArgs, const ::ui::Offset x)
+{
+    return formatToContext(ctx, fmtArgs, Pair{x.x, x.y});
+}
+
+} /* namespace adt::print */
