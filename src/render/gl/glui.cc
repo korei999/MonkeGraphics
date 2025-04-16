@@ -95,25 +95,22 @@ drawMenu(
     VecManaged<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
-    const bool bDrawName,
     const math::M4& proj,
     ::ui::Offset off
 )
 {
-    ADT_ASSERT(entry.eType == ::ui::Entry::TYPE::MENU, " ");
+    ADT_ASSERT(entry.m_eType == ::ui::Entry::TYPE::MENU, " ");
 
-    auto& menu = entry.menu;
+    auto& menu = entry.m_menu;
 
     ::ui::Offset thisOff {0, 0};
 
-    /* arrowList picks up this name, so we don't draw it twice */
-    if (bDrawName)
     {
         auto xy = drawText(pVCommands, widget, menu.sfName, menu.color, proj, off);
         thisOff.y += xy.y;
     }
 
-    for (const ::ui::Entry& child : entry.menu.vEntries)
+    for (const ::ui::Entry& child : entry.m_menu.vEntries)
     {
         const ssize idx = menu.vEntries.idx(&child);
         const math::V4 col = [&] {
@@ -122,11 +119,11 @@ drawMenu(
         }();
         ::ui::Offset xy {};
 
-        switch (child.eType)
+        switch (child.m_eType)
         {
             case ::ui::Entry::TYPE::TEXT:
             {
-                xy = drawText(pVCommands, widget, child.text.sfName, col, proj, {off.x + 2, off.y + thisOff.y});
+                xy = drawText(pVCommands, widget, child.m_text.sfName, col, proj, {off.x + 2, off.y + thisOff.y});
             }
             break;
 
@@ -138,7 +135,7 @@ drawMenu(
 
             case ::ui::Entry::TYPE::MENU:
             {
-                xy = drawMenu(pVCommands, widget, child, true, proj, {off.x + 2, off.y + thisOff.y});
+                xy = drawMenu(pVCommands, widget, child, proj, {off.x + 2, off.y + thisOff.y});
             }
             break;
         }
@@ -162,48 +159,41 @@ drawArrowList(
     ::ui::Offset off
 )
 {
-    ADT_ASSERT(entry.eType == ::ui::Entry::TYPE::ARROW_LIST, "");
+    ADT_ASSERT(entry.m_eType == ::ui::Entry::TYPE::ARROW_LIST, "");
 
-    auto& arrowList = entry.arrowList;
+    auto& arrowList = entry.m_arrowList;
 
     ::ui::Offset thisOff {0, 0};
 
-    /* '<' should be on the same line */
-    auto arrowOff = drawText(pVCommands, widget, "<", entry.arrowList.arrowColor, proj, off);
-    thisOff.x += arrowOff.x;
-
-    if (entry.arrowList.vEntries.size() > 0)
     {
-        const auto& sel = entry.arrowList.vEntries[entry.arrowList.selectedI];
-        switch (sel.eType)
+        drawText(pVCommands, widget, "<", entry.m_arrowList.arrowColor, proj, off);
+        auto xy = drawText(pVCommands, widget, arrowList.sfName, arrowList.color, proj, {off.x + 1, off.y});
+        drawText(pVCommands, widget, ">", entry.m_arrowList.arrowColor, proj, {off.x + xy.x + 1, off.y});
+
+        thisOff.x = utils::max(thisOff.x, xy.x + 2);
+        ++thisOff.y;
+    }
+
+    if (entry.m_arrowList.vEntries.size() > 0)
+    {
+        const auto& sel = entry.m_arrowList.vEntries[entry.m_arrowList.selectedI];
+        switch (sel.m_eType)
         {
             case ::ui::Entry::TYPE::TEXT:
             {
-                auto xy = drawText(pVCommands, widget, sel.text.sfName, sel.text.color, proj, {off.x + 1, off.y + thisOff.y});
-                arrowOff.x += xy.x;
+                auto xy = drawText(pVCommands, widget, sel.m_text.sfName, sel.m_text.color, proj, {off.x + 2, off.y + thisOff.y});
 
-                thisOff.x = utils::max(thisOff.x, arrowOff.x);
+                thisOff.x = utils::max(thisOff.x, xy.x);
                 thisOff.y += xy.y;
             }
             break;
 
             case ::ui::Entry::TYPE::MENU:
             {
-                /* draw menu name first */
-                {
-                    auto xy = drawText(pVCommands, widget, sel.menu.sfName, sel.menu.color, proj, {off.x + 1, off.y + thisOff.y});
-                    arrowOff.x += xy.x; /* extend arrow line */
+                auto xyMenu = drawMenu(pVCommands, widget, sel, proj, {off.x, off.y + thisOff.y});
 
-                    thisOff.x = utils::max(thisOff.x, arrowOff.x);
-                    thisOff.y += xy.y;
-                }
-
-                {
-                    auto xyMenu = drawMenu(pVCommands, widget, sel, false, proj, {off.x, off.y + thisOff.y});
-
-                    thisOff.x = utils::max(thisOff.x, xyMenu.x);
-                    thisOff.y += xyMenu.y;
-                }
+                thisOff.x = utils::max(thisOff.x, xyMenu.x);
+                thisOff.y += xyMenu.y;
             }
             break;
 
@@ -213,10 +203,6 @@ drawArrowList(
             break;
         }
     }
-
-    drawText(pVCommands, widget, ">", entry.arrowList.arrowColor, proj, {off.x + arrowOff.x, off.y});
-    thisOff.x = utils::max(thisOff.x, arrowOff.x + 1); /* +1 for the closing arrow */
-    /* shouldn't extend y */
 
     return thisOff;
 }
@@ -238,7 +224,7 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
 
     for (const auto& entry : pWidget->vEntries)
     {
-        switch (entry.eType)
+        switch (entry.m_eType)
         {
             case ::ui::Entry::TYPE::ARROW_LIST:
             {
@@ -250,7 +236,7 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
 
             case ::ui::Entry::TYPE::TEXT:
             {
-                auto xy = drawText(pVCommands, *pWidget, entry.text.sfName, entry.text.color, proj, {off.x, off.y + thisOff.y});
+                auto xy = drawText(pVCommands, *pWidget, entry.m_text.sfName, entry.m_text.color, proj, {off.x, off.y + thisOff.y});
                 thisOff.x = utils::max(thisOff.x, xy.x);
                 thisOff.y += xy.y;
             }
@@ -258,7 +244,7 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
 
             case ::ui::Entry::TYPE::MENU:
             {
-                auto xy = drawMenu(pVCommands, *pWidget, entry, true, proj, {off.x, off.y + thisOff.y});
+                auto xy = drawMenu(pVCommands, *pWidget, entry, proj, {off.x, off.y + thisOff.y});
                 thisOff.x = utils::max(thisOff.x, xy.x);
                 thisOff.y += xy.y;
             }

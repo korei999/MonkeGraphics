@@ -298,9 +298,9 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
             if (primitive.attributes.TEXCOORD_0 > -1)
                 accUV = gltfModel.m_vAccessors[primitive.attributes.TEXCOORD_0];
 
-            /*app::g_threadPool.wait();*/
+            // app::g_threadPool.wait();
             if (!control::g_bPauseSimulation)
-                model.m_waitLock.wait();
+                ((Future&)model.m_future).wait();
 
             if (model.m_animationIUsed >= 0 &&
                 model.m_animationIUsed < model.m_vAnimations.size() &&
@@ -648,7 +648,7 @@ Renderer::draw(Arena* pArena)
                         auto* pModel = static_cast<Model*>(p);
 
                         pModel->updateAnimation(pModel->m_time + frame::g_frameTime);
-                        pModel->m_waitLock.signal();
+                        pModel->m_future.signal();
 
                         return THREAD_STATUS(0);
                     }, &model
@@ -675,7 +675,7 @@ Renderer::draw(Arena* pArena)
                 {
                     Model& model = Model::fromI(entity.modelI);
                     drawModel(model, math::transformation(entity.pos, entity.rot, entity.scale));
-                    model.m_waitLock.reset();
+                    model.m_future.reset();
                 }
                 break;
             }

@@ -40,20 +40,18 @@ struct Entry
         Action onUpdate {};
         Action onClick {};
     };
+
     struct ArrowList
     {
-        /* arrowList picks up the name of its content */
+        adt::StringFixed<32> sfName {};
         adt::Vec<Entry> vEntries {};
         adt::ssize selectedI = 0;
         adt::ssize prevSelectedI = 0;
         adt::math::V4 color = adt::math::V4From(colors::WHITESMOKE, 1.0f);
         adt::math::V4 arrowColor = adt::math::V4From(colors::CYAN, 1.0f);
         Action onUpdate {};
-
-        /* */
-
-        const adt::StringView getName() const;
     };
+
     struct Text
     {
         adt::StringFixed<32> sfName {};
@@ -64,11 +62,15 @@ struct Entry
 
     union
     {
-        Menu menu;
-        ArrowList arrowList;
-        Text text;
+        Menu m_menu;
+        ArrowList m_arrowList;
+        Text m_text;
     };
-    TYPE eType {};
+    TYPE m_eType {};
+
+    /* */
+
+    [[nodiscard]] int entryHeight() const;
 };
 
 struct Widget

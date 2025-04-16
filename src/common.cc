@@ -34,4 +34,21 @@ createDefaultTexture()
     return sp;
 }
 
+bool
+AABB(
+    const adt::f32 px,
+    const adt::f32 py,
+    const adt::f32 xOff,
+    const adt::f32 yOff,
+    const adt::f32 width,
+    const adt::f32 height
+)
+{
+    return
+        py >= yOff &&
+        py < yOff + height &&
+        px >= xOff &&
+        px < xOff + width;
+}
+
 } /* namespace common */

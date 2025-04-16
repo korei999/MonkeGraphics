@@ -1,11 +1,10 @@
 #include "ui.hh"
 
 #include "app.hh"
+#include "common.hh"
 #include "control.hh"
 #include "game/game.hh"
 #include "Model.hh"
-
-#include "adt/logs.hh"
 
 using namespace adt;
 
@@ -39,26 +38,37 @@ static Widget* s_pGrabbedWidget {};
 static Widget s_dummyWidget {};
 static bool s_bPressed = false;
 
-const StringView
-Entry::ArrowList::getName() const
+int
+Entry::entryHeight() const
 {
-    if (this->selectedI >= 0 && this->selectedI < this->vEntries.size())
-    {
-        auto& en = this->vEntries[this->selectedI];
-        switch (en.eType)
-        {
-            case TYPE::TEXT: return en.text.sfName;
-            case TYPE::ARROW_LIST: return en.arrowList.getName();
-            case TYPE::MENU: return en.menu.sfName;
-        }
+    int height = 0;
 
-        ADT_ASSERT(false, "bad path");
-        return {};
-    }
-    else
+    switch (m_eType)
     {
-        return {};
+        case TYPE::TEXT:
+        {
+            height += 1;
+        }
+        break;
+
+        case TYPE::ARROW_LIST:
+        {
+            int maxHeight = 0;
+            for (const auto& ch : m_arrowList.vEntries)
+                maxHeight = utils::max(ch.entryHeight(), maxHeight);
+            height += maxHeight;
+        };
+        break;
+
+        case TYPE::MENU:
+        {
+            for (const auto& ch : m_menu.vEntries)
+                height += ch.entryHeight();
+        }
+        break;
     }
+
+    return height;
 }
 
 void
@@ -69,7 +79,7 @@ init()
     /* FIXME: grabWidth and grabHeight restrict the clickable area. */
     {
         Widget newWidget {
-            .arena = Arena(SIZE_1K * 4),
+            .arena = Arena {SIZE_8K},
             .sfTitle = "Entity animations",
             .x = WIDTH - 30.0f,
             .y = 0.0f,
@@ -94,18 +104,18 @@ init()
             for (const auto& anim : model.m_vAnimations)
             {
                 vAnimations.push(&newWidget.arena, {
-                    .text {.sfName = anim.sName, .color = math::V4From(colors::WHITESMOKE, 1.0f)},
-                    .eType = Entry::TYPE::TEXT,
+                    .m_text {.sfName = anim.sName, .color = math::V4From(colors::WHITESMOKE, 1.0f)},
+                    .m_eType = Entry::TYPE::TEXT,
                 });
             }
 
             vAnimations.push(&newWidget.arena, {
-                .text = {.sfName = "off", .color = math::V4From(colors::WHITESMOKE, 1.0f)},
-                .eType = Entry::TYPE::TEXT,
+                .m_text = {.sfName = "off", .color = math::V4From(colors::WHITESMOKE, 1.0f)},
+                .m_eType = Entry::TYPE::TEXT,
             });
 
             Entry entityEntry {
-                .menu {
+                .m_menu {
                     .sfName {entity.sfName},
                     .vEntries {vAnimations},
                     .selColor = math::V4From(colors::GREEN, 1.0f),
@@ -117,7 +127,7 @@ init()
                             ssize enI = reinterpret_cast<ssize>(p);
                             auto enBind = game::g_poolEntities[{static_cast<int>(enI)}];
                             const Model& m = Model::fromI(enBind.modelI);
-                            pSelf->menu.selectedI = m.m_animationIUsed;
+                            pSelf->m_menu.selectedI = m.m_animationIUsed;
                         },
                         .pArg = reinterpret_cast<void*>(entityI),
                     },
@@ -127,18 +137,19 @@ init()
                             ssize enI = reinterpret_cast<ssize>(p);
                             auto enBind = game::g_poolEntities[{static_cast<int>(enI)}];
                             Model& m = Model::fromI(enBind.modelI);
-                            m.m_animationIUsed = pSelf->menu.selectedI;
+                            m.m_animationIUsed = pSelf->m_menu.selectedI;
                         },
                         .pArg = reinterpret_cast<void*>(entityI),
                     },
                 },
-                .eType = Entry::TYPE::MENU,
+                .m_eType = Entry::TYPE::MENU,
             };
             vEntityEntries.push(&newWidget.arena, entityEntry);
         }
 
         Entry entityList {
-            .arrowList {
+            .m_arrowList {
+                .sfName = "",
                 .vEntries = vEntityEntries,
                 .selectedI = 0,
                 .prevSelectedI = 0,
@@ -147,16 +158,16 @@ init()
                 .onUpdate {
                     .pfn = +[](Entry* pSelf, void* p) -> void
                     {
-                        auto& list = pSelf->arrowList;
+                        auto& list = pSelf->m_arrowList;
 
                         auto set = [&]<bool B_SET>(ssize selI) -> void
                         {
                             if (selI >= 0 && selI < list.vEntries.size())
                             {
                                 auto& entry = list.vEntries[selI];
-                                ADT_ASSERT(entry.eType == Entry::TYPE::MENU, " ");
+                                ADT_ASSERT(entry.m_eType == Entry::TYPE::MENU, " ");
 
-                                auto& menu = entry.menu;
+                                auto& menu = entry.m_menu;
                                 ssize enI = reinterpret_cast<ssize>(menu.onClick.pArg);
                                 auto enBind = game::g_poolEntities[{static_cast<int>(enI)}];
                                 Model& model = Model::fromI(enBind.modelI);
@@ -175,17 +186,18 @@ init()
                     .pArg {},
                 },
             },
-            .eType = Entry::TYPE::ARROW_LIST,
+            .m_eType = Entry::TYPE::ARROW_LIST,
         };
 
         newWidget.vEntries.push(&newWidget.arena, entityList);
-
         auto hTest = g_poolWidgets.make(newWidget);
     }
 
     {
+        Arena arena {SIZE_1K * 2};
+
         Widget newWidget {
-            .arena = Arena{SIZE_1K},
+            .arena = arena,
             .sfTitle = "~TEST~ (menu entry)",
             .x = WIDTH - 30.0f,
             .y = 10.0f,
@@ -202,8 +214,8 @@ init()
             char aBuff[16] {};
             ssize n = print::toSpan(aBuff, "text #{}", i);
             vEntries.push(&newWidget.arena, {
-                    .text {.sfName = StringView{aBuff, n}},
-                    .eType = Entry::TYPE::TEXT,
+                    .m_text {.sfName = StringView{aBuff, n}},
+                    .m_eType = Entry::TYPE::TEXT,
                 }
             );
         }
@@ -212,50 +224,50 @@ init()
             Vec<Entry> vMenuEntries {&newWidget.arena, 2};
 
             vMenuEntries.push(&newWidget.arena, {
-                .text {"menuText0"},
-                .eType = Entry::TYPE::TEXT,
+                .m_text {"menuText0"},
+                .m_eType = Entry::TYPE::TEXT,
             });
 
             vMenuEntries.push(&newWidget.arena, {
-                .text {"menuText1"},
-                .eType = Entry::TYPE::TEXT,
+                .m_text {"menuText1"},
+                .m_eType = Entry::TYPE::TEXT,
             });
 
             Entry menuInMenu {
-                .menu {
+                .m_menu {
                     .sfName = "MenuInMenu",
                     .vEntries = vMenuEntries
                 },
-                .eType = Entry::TYPE::MENU,
+                .m_eType = Entry::TYPE::MENU,
             };
 
             vEntries.push(&newWidget.arena, menuInMenu);
         }
 
         Entry textUnderFirstMenu {
-            .text {
+            .m_text {
                 .sfName = "Text under the MenuInMenu",
             },
-            .eType = Entry::TYPE::TEXT,
+            .m_eType = Entry::TYPE::TEXT,
         };
 
         vEntries.push(&newWidget.arena, textUnderFirstMenu);
 
         Entry menu {
-            .menu {
+            .m_menu {
                 .sfName = "Menu0",
                 .vEntries = vEntries,
             },
-            .eType = Entry::TYPE::MENU,
+            .m_eType = Entry::TYPE::MENU,
         };
 
         newWidget.vEntries.push(&newWidget.arena, menu);
 
         Entry textUnder {
-            .text {
+            .m_text {
                 .sfName = "Text under menus",
             },
-            .eType = Entry::TYPE::TEXT,
+            .m_eType = Entry::TYPE::TEXT,
         };
 
         newWidget.vEntries.push(&newWidget.arena, textUnder);
@@ -279,16 +291,16 @@ init()
             char aBuff[64] {};
             ssize nWritten = print::toSpan(aBuff, "text #{}", i);
             vTexts.push(&widget.arena, {
-                .text {StringView{aBuff, nWritten}},
-                .eType = Entry::TYPE::TEXT,
+                .m_text {StringView{aBuff, nWritten}},
+                .m_eType = Entry::TYPE::TEXT,
             });
         }
 
         Entry arrowList {
-            .arrowList {
+            .m_arrowList {
                 .vEntries = vTexts,
             },
-            .eType = Entry::TYPE::ARROW_LIST,
+            .m_eType = Entry::TYPE::ARROW_LIST,
         };
 
         widget.vEntries.push(&widget.arena, arrowList);
@@ -311,36 +323,47 @@ init()
             char aBuff[16] {};
             ssize n = print::toSpan(aBuff, "text #{}", i);
             vListText.push(&widget.arena, {
-                .text {StringView{aBuff, n}},
-                .eType = Entry::TYPE::TEXT,
+                .m_text {StringView{aBuff, n}},
+                .m_eType = Entry::TYPE::TEXT,
             });
         }
 
         vListText.push(&widget.arena, {
-            .text = {"Hi"},
-            .eType = Entry::TYPE::TEXT,
+            .m_text = {"Hi"},
+            .m_eType = Entry::TYPE::TEXT,
         });
 
         Entry arrowList {
-            .arrowList {
+            .m_arrowList {
                 .vEntries = vListText,
             },
-            .eType = Entry::TYPE::ARROW_LIST,
+            .m_eType = Entry::TYPE::ARROW_LIST,
         };
 
         Vec<Entry> vList {&widget.arena, 2};
         vList.push(&widget.arena, arrowList);
+
         vList.push(&widget.arena, {
-            .text {"text under arrowList"},
-            .eType = Entry::TYPE::TEXT,
+            .m_text {"text under arrowList #0"},
+            .m_eType = Entry::TYPE::TEXT,
+        });
+
+        vList.push(&widget.arena, {
+            .m_text {"text under arrowList #1"},
+            .m_eType = Entry::TYPE::TEXT,
+        });
+
+        vList.push(&widget.arena, {
+            .m_text {"text under arrowList #2"},
+            .m_eType = Entry::TYPE::TEXT,
         });
 
         Entry menu {
-            .menu {
+            .m_menu {
                 .sfName = "Menu",
                 .vEntries = vList,
             },
-            .eType = Entry::TYPE::MENU,
+            .m_eType = Entry::TYPE::MENU,
         };
 
         widget.vEntries.push(&widget.arena, menu);
@@ -359,30 +382,31 @@ clickMenu(
     const Offset off
 )
 {
-    ADT_ASSERT(pEntry->eType == Entry::TYPE::MENU, " ");
+    ADT_ASSERT(pEntry->m_eType == Entry::TYPE::MENU, " ");
 
     ClickResult ret {};
 
-    Offset thisOff {0, 0};
+    Offset thisOff {0, 1};
 
-    auto& menu = pEntry->menu;
+    auto& menu = pEntry->m_menu;
 
-    if (py <= (pWidget->y + off.y + menu.vEntries.size()) &&
-        py >= (pWidget->y + off.y)
-    )
+    // if (py <= (pWidget->y + off.y + thisOff.y + menu.vEntries.size()) &&
+    //     py >= (pWidget->y + off.y + thisOff.y)
+    // )
     {
-        LOG_BAD("first if: p: [{}, {}], off: {}\n", px, py, off);
-
         for (auto& child : menu.vEntries)
         {
-            switch (child.eType)
+            const int childHeight = child.entryHeight();
+            defer( thisOff.y += childHeight );
+
+            switch (child.m_eType)
             {
                 case Entry::TYPE::TEXT:
                 {
-                    if (py < (pWidget->y + off.y + thisOff.y + 1) &&
-                        py >= (pWidget->y + off.y + thisOff.y) &&
-                        px >= pWidget->x + off.x + thisOff.x &&
-                        px < pWidget->x + off.x + thisOff.x + child.text.sfName.size()
+                    if (common::AABB(px, py,
+                            pWidget->x + off.x + thisOff.x,
+                            pWidget->y + off.y + thisOff.y,
+                            child.m_text.sfName.size(), 1)
                     )
                     {
                         menu.selectedI = menu.vEntries.idx(&child);
@@ -397,32 +421,46 @@ clickMenu(
 
                 case Entry::TYPE::ARROW_LIST:
                 {
-                    const StringView svRootName = child.arrowList.getName();
-
-                    if (py < (pWidget->y + off.y + thisOff.y + 1) &&
-                        py >= (pWidget->y + off.y + thisOff.y) &&
-                        px >= pWidget->x + off.x + thisOff.x &&
-                        px < pWidget->x + off.x + thisOff.x + svRootName.size() + 2
+                    if (py < pWidget->y + off.y + thisOff.y + childHeight + 1 &&
+                        py >= pWidget->y + off.y + thisOff.y &&
+                        px >= pWidget->x + off.x + thisOff.x
                     )
                     {
-                        LOG_NOTIFY("MENU -> ARROW_LIST: {}\n", svRootName);
-
-                        ClickResult res = clickArrowList(pWidget, &child, px, py, {off.x + thisOff.x, off.y + thisOff.y});
-                        ret.eFlag = ClickResult::FLAG::HANDLED;
+                        ClickResult res = clickArrowList(
+                            pWidget, &child, px, py, {off.x + thisOff.x, off.y + thisOff.y}
+                        );
+                        ret.eFlag = res.eFlag;
                         goto GOTO_done;
                     }
+
+                    /* +1 for the arrowList name */
+                    ++thisOff.y;
                 }
                 break;
 
                 case Entry::TYPE::MENU:
                 {
-                    LOG_NOTIFY("MENU -> MENU\n");
-                    thisOff.y += child.menu.vEntries.size() - 1;
+                    if (py < pWidget->y + off.y + thisOff.y + childHeight + 1 &&
+                        py >= pWidget->y + off.y + thisOff.y &&
+                        px >= pWidget->x + off.x + thisOff.x
+                    )
+                    {
+                        ClickResult res = clickMenu(
+                            pWidget, &child, px, py, {thisOff.x + off.x + 2, thisOff.y + off.y}
+                        );
+                        ret.eFlag = res.eFlag;
+
+                        if (ret.eFlag == ClickResult::FLAG::HANDLED)
+                            goto GOTO_done;
+                    }
+
+                    /* +1 for the menu name */
+                    ++thisOff.y;
                 }
                 break;
-            }
 
-            ++thisOff.y;
+                default: ADT_ASSERT(false, "invalid path");
+            }
         }
     }
 
@@ -436,17 +474,17 @@ static ClickResult
 clickArrowList(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, const Offset off)
 {
     ADT_ASSERT(pEntry, " ");
-    ADT_ASSERT(pEntry->eType == Entry::TYPE::ARROW_LIST, " ");
+    ADT_ASSERT(pEntry->m_eType == Entry::TYPE::ARROW_LIST, " ");
 
     ClickResult ret {};
     Offset thisOff {0, 0};
 
-    auto& list = pEntry->arrowList;
+    auto& list = pEntry->m_arrowList;
 
     if (py < pWidget->y + off.y + 1 &&
         py >= pWidget->y + off.y &&
         px >= pWidget->x + off.x &&
-        px < pWidget->x + off.x + list.vEntries[list.selectedI].text.sfName.size() + 2 /* 2 arrows */
+        px < pWidget->x + off.x + list.vEntries[list.selectedI].m_text.sfName.size() + 2 /* 2 arrows */
     )
     {
         list.prevSelectedI = list.selectedI;
@@ -461,7 +499,7 @@ clickArrowList(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, const
         return ret;
     }
 
-    switch (pEntry->arrowList.vEntries[pEntry->arrowList.selectedI].eType)
+    switch (pEntry->m_arrowList.vEntries[pEntry->m_arrowList.selectedI].m_eType)
     {
         case Entry::TYPE::MENU:
         {
@@ -506,7 +544,7 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, const Offset off)
 
         for (Entry& entry : pWidget->vEntries)
         {
-            switch (entry.eType)
+            switch (entry.m_eType)
             {
                 case Entry::TYPE::ARROW_LIST:
                 {
@@ -530,7 +568,7 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, const Offset off)
                     s_bPressed = true;
 
                     ClickResult res = clickMenu( /* +1 y skip menu name */
-                        pWidget, &entry, px, py, {off.x + thisOff.x + 2, off.y + thisOff.y + 1}
+                        pWidget, &entry, px, py, {off.x + thisOff.x + 2, off.y + thisOff.y}
                     );
 
                     bHandled = res.eFlag == ClickResult::FLAG::HANDLED;
@@ -565,11 +603,11 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, const Offset off)
 static void
 entryCallback(Entry* pEntry)
 {
-    switch (pEntry->eType)
+    switch (pEntry->m_eType)
     {
         case Entry::TYPE::ARROW_LIST:
         {
-            auto& list = pEntry->arrowList;
+            auto& list = pEntry->m_arrowList;
             for (auto& entry : list.vEntries) entryCallback(&entry);
 
             if (list.onUpdate.pfn) list.onUpdate.pfn(pEntry, list.onUpdate.pArg);
@@ -578,7 +616,7 @@ entryCallback(Entry* pEntry)
 
         case Entry::TYPE::MENU:
         {
-            auto& menu = pEntry->menu;
+            auto& menu = pEntry->m_menu;
             if (menu.onUpdate.pfn) menu.onUpdate.pfn(pEntry, menu.onUpdate.pArg);
 
             for (auto& child : menu.vEntries) entryCallback(&child);
