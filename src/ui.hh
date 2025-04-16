@@ -17,6 +17,8 @@ namespace ui
 constexpr adt::f32 WIDTH = 120.0f;
 constexpr adt::f32 HEIGHT = 42.0f;
 
+struct Widget;
+
 struct Entry
 {
     enum class TYPE : adt::u8
@@ -70,7 +72,8 @@ struct Entry
 
     /* */
 
-    [[nodiscard]] int entryHeight() const;
+    [[nodiscard]] int height() const;
+    void dispatchCallback();
 };
 
 struct Widget

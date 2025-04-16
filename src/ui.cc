@@ -21,7 +21,7 @@ struct ClickResult
     FLAG eFlag {};
 };
 
-static void procCallbacks();
+static void dispatchCallbacks();
 
 static ClickResult clickArrowList(
     Widget* pWidget,
@@ -39,7 +39,7 @@ static Widget s_dummyWidget {};
 static bool s_bPressed = false;
 
 int
-Entry::entryHeight() const
+Entry::height() const
 {
     int height = 0;
 
@@ -55,20 +55,49 @@ Entry::entryHeight() const
         {
             int maxHeight = 0;
             for (const auto& ch : m_arrowList.vEntries)
-                maxHeight = utils::max(ch.entryHeight(), maxHeight);
-            height += maxHeight;
+                maxHeight = utils::max(ch.height(), maxHeight);
+            height += maxHeight + 1; /* +1 for list name */
         };
         break;
 
         case TYPE::MENU:
         {
             for (const auto& ch : m_menu.vEntries)
-                height += ch.entryHeight();
+                height += ch.height();
+            ++height; /* skip menu name */
         }
         break;
     }
 
     return height;
+}
+
+void
+Entry::dispatchCallback()
+{
+    switch (m_eType)
+    {
+        case Entry::TYPE::ARROW_LIST:
+        {
+            auto& list = m_arrowList;
+            for (auto& entry : list.vEntries) entry.dispatchCallback();
+
+
+            if (list.onUpdate.pfn) list.onUpdate.pfn(this, list.onUpdate.pArg);
+        }
+        break;
+
+        case Entry::TYPE::MENU:
+        {
+            auto& menu = m_menu;
+            if (menu.onUpdate.pfn) menu.onUpdate.pfn(this, menu.onUpdate.pArg);
+
+            for (auto& child : menu.vEntries) child.dispatchCallback();
+        }
+        break;
+
+        case Entry::TYPE::TEXT: break;
+    }
 }
 
 void
@@ -370,7 +399,7 @@ init()
         auto h = g_poolWidgets.make(widget);
     }
 
-    procCallbacks();
+    dispatchCallbacks();
 }
 
 static ClickResult
@@ -390,77 +419,72 @@ clickMenu(
 
     auto& menu = pEntry->m_menu;
 
-    // if (py <= (pWidget->y + off.y + thisOff.y + menu.vEntries.size()) &&
-    //     py >= (pWidget->y + off.y + thisOff.y)
-    // )
+    for (auto& child : menu.vEntries)
     {
-        for (auto& child : menu.vEntries)
+        const int childHeight = child.height();
+        defer( thisOff.y += childHeight );
+
+        switch (child.m_eType)
         {
-            const int childHeight = child.entryHeight();
-            defer( thisOff.y += childHeight );
-
-            switch (child.m_eType)
+            case Entry::TYPE::TEXT:
             {
-                case Entry::TYPE::TEXT:
+                if (common::AABB(px, py,
+                        pWidget->x + off.x + thisOff.x,
+                        pWidget->y + off.y + thisOff.y,
+                        child.m_text.sfName.size(), 1)
+                )
                 {
-                    if (common::AABB(px, py,
-                            pWidget->x + off.x + thisOff.x,
-                            pWidget->y + off.y + thisOff.y,
-                            child.m_text.sfName.size(), 1)
-                    )
-                    {
-                        menu.selectedI = menu.vEntries.idx(&child);
+                    menu.selectedI = menu.vEntries.idx(&child);
 
-                        if (menu.onClick.pfn) menu.onClick.pfn(pEntry, menu.onClick.pArg);
+                    if (menu.onClick.pfn) menu.onClick.pfn(pEntry, menu.onClick.pArg);
 
-                        ret.eFlag = ClickResult::FLAG::HANDLED;
-                        goto GOTO_done;
-                    }
+                    ret.eFlag = ClickResult::FLAG::HANDLED;
+                    goto GOTO_done;
                 }
-                break;
-
-                case Entry::TYPE::ARROW_LIST:
-                {
-                    if (py < pWidget->y + off.y + thisOff.y + childHeight + 1 &&
-                        py >= pWidget->y + off.y + thisOff.y &&
-                        px >= pWidget->x + off.x + thisOff.x
-                    )
-                    {
-                        ClickResult res = clickArrowList(
-                            pWidget, &child, px, py, {off.x + thisOff.x, off.y + thisOff.y}
-                        );
-                        ret.eFlag = res.eFlag;
-                        goto GOTO_done;
-                    }
-
-                    /* +1 for the arrowList name */
-                    ++thisOff.y;
-                }
-                break;
-
-                case Entry::TYPE::MENU:
-                {
-                    if (py < pWidget->y + off.y + thisOff.y + childHeight + 1 &&
-                        py >= pWidget->y + off.y + thisOff.y &&
-                        px >= pWidget->x + off.x + thisOff.x
-                    )
-                    {
-                        ClickResult res = clickMenu(
-                            pWidget, &child, px, py, {thisOff.x + off.x + 2, thisOff.y + off.y}
-                        );
-                        ret.eFlag = res.eFlag;
-
-                        if (ret.eFlag == ClickResult::FLAG::HANDLED)
-                            goto GOTO_done;
-                    }
-
-                    /* +1 for the menu name */
-                    ++thisOff.y;
-                }
-                break;
-
-                default: ADT_ASSERT(false, "invalid path");
             }
+            break;
+
+            case Entry::TYPE::ARROW_LIST:
+            {
+                if (py < pWidget->y + off.y + thisOff.y + childHeight &&
+                    py >= pWidget->y + off.y + thisOff.y &&
+                    px >= pWidget->x + off.x + thisOff.x
+                )
+                {
+                    ClickResult res = clickArrowList(
+                        pWidget, &child, px, py, {off.x + thisOff.x, off.y + thisOff.y}
+                    );
+                    ret.eFlag = res.eFlag;
+                    goto GOTO_done;
+                }
+
+                /* +1 for the arrowList name */
+                // ++thisOff.y;
+            }
+            break;
+
+            case Entry::TYPE::MENU:
+            {
+                if (py < pWidget->y + off.y + thisOff.y + childHeight + 1 &&
+                    py >= pWidget->y + off.y + thisOff.y &&
+                    px >= pWidget->x + off.x + thisOff.x
+                )
+                {
+                    ClickResult res = clickMenu(
+                        pWidget, &child, px, py, {thisOff.x + off.x + 2, thisOff.y + off.y}
+                    );
+                    ret.eFlag = res.eFlag;
+
+                    if (ret.eFlag == ClickResult::FLAG::HANDLED)
+                        goto GOTO_done;
+                }
+
+                /* +1 for the menu name */
+                // ++thisOff.y;
+            }
+            break;
+
+            default: ADT_ASSERT(false, "invalid path");
         }
     }
 
@@ -499,7 +523,7 @@ clickArrowList(Widget* pWidget, Entry* pEntry, const f32 px, const f32 py, const
         return ret;
     }
 
-    switch (pEntry->m_arrowList.vEntries[pEntry->m_arrowList.selectedI].m_eType)
+    switch (list.vEntries[list.selectedI].m_eType)
     {
         case Entry::TYPE::MENU:
         {
@@ -567,7 +591,7 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, const Offset off)
                 {
                     s_bPressed = true;
 
-                    ClickResult res = clickMenu( /* +1 y skip menu name */
+                    ClickResult res = clickMenu(
                         pWidget, &entry, px, py, {off.x + thisOff.x + 2, off.y + thisOff.y}
                     );
 
@@ -601,46 +625,19 @@ clickWidget(Widget* pWidget, const f32 px, const f32 py, const Offset off)
 }
 
 static void
-entryCallback(Entry* pEntry)
-{
-    switch (pEntry->m_eType)
-    {
-        case Entry::TYPE::ARROW_LIST:
-        {
-            auto& list = pEntry->m_arrowList;
-            for (auto& entry : list.vEntries) entryCallback(&entry);
-
-            if (list.onUpdate.pfn) list.onUpdate.pfn(pEntry, list.onUpdate.pArg);
-        }
-        break;
-
-        case Entry::TYPE::MENU:
-        {
-            auto& menu = pEntry->m_menu;
-            if (menu.onUpdate.pfn) menu.onUpdate.pfn(pEntry, menu.onUpdate.pArg);
-
-            for (auto& child : menu.vEntries) entryCallback(&child);
-        }
-        break;
-
-        case Entry::TYPE::TEXT: break;
-    }
-}
-
-static void
-procCallbacks()
+dispatchCallbacks()
 {
     for (Widget& widget : g_poolWidgets)
     {
         for (auto& entry : widget.vEntries)
-            entryCallback(&entry);
+            entry.dispatchCallback();
     }
 }
 
 void
 updateState()
 {
-    procCallbacks();
+    dispatchCallbacks();
 
     const auto& win = app::windowInst();
     auto& mouse = control::g_mouse;
