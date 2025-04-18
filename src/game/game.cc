@@ -54,7 +54,7 @@ static const StringView s_aAssetsToLoad[] {
 };
 
 static PoolSOAHandle<Entity>
-makeEntity(const StringView svModel, const StringView svName, Entity::TYPE eType)
+makeEntity(const StringView svModel, const StringView svName, ENTITY_TYPE eType)
 {
     PoolSOAHandle<Entity> handle = g_poolEntities.make({});
     game::Entity::Bind bind = g_poolEntities[handle];
@@ -89,46 +89,46 @@ loadStuff()
 
     /* NOTE: Skybox needs this cube */
     {
-        auto hnd = makeEntity("assets/cube/cube.gltf", "Cube", Entity::TYPE::REGULAR);
+        auto hnd = makeEntity("assets/cube/cube.gltf", "Cube", ENTITY_TYPE::REGULAR);
         auto bind = g_poolEntities[hnd];
 
         bind.bNoDraw = true;
     }
 
     {
-        auto hnd = makeEntity("assets/Capo/capo.gltf", "Capo", Entity::TYPE::REGULAR);
+        auto hnd = makeEntity("assets/Capo/capo.gltf", "Capo", ENTITY_TYPE::REGULAR);
         auto bind = g_poolEntities[hnd];
 
         auto& model = Model::fromI(bind.modelI);
-        model.m_animationIUsed = 0;
+        model.m_animationUsedI = 0;
     }
 
     {
-        auto hnd = makeEntity("assets/Fox/Fox.gltf", "Fox", Entity::TYPE::REGULAR);
+        auto hnd = makeEntity("assets/Fox/Fox.gltf", "Fox", ENTITY_TYPE::REGULAR);
         auto bind = g_poolEntities[hnd];
 
         auto& model = Model::fromI(bind.modelI);
-        model.m_animationIUsed = 1;
+        model.m_animationUsedI = 1;
     }
 
     {
-        auto hnd = makeEntity("assets/RecursiveSkeletons/glTF/RecursiveSkeletons.gltf", "RecursiveSkeletons", Entity::TYPE::REGULAR);
+        auto hnd = makeEntity("assets/RecursiveSkeletons/glTF/RecursiveSkeletons.gltf", "RecursiveSkeletons", ENTITY_TYPE::REGULAR);
         auto bind = g_poolEntities[hnd];
 
         auto& model = Model::fromI(bind.modelI);
-        model.m_animationIUsed = 0;
+        model.m_animationUsedI = 0;
     }
 
     {
-        auto hnd = makeEntity("assets/BoxAnimated/BoxAnimated.gltf", "BoxAnimated", Entity::TYPE::REGULAR);
+        auto hnd = makeEntity("assets/BoxAnimated/BoxAnimated.gltf", "BoxAnimated", ENTITY_TYPE::REGULAR);
         auto bind = g_poolEntities[hnd];
 
         auto& model = Model::fromI(bind.modelI);
-        model.m_animationIUsed = 0;
+        model.m_animationUsedI = 0;
     }
 
     {
-        auto hnd = makeEntity("assets/cube/cube.gltf", "LightCube", Entity::TYPE::LIGHT);
+        auto hnd = makeEntity("assets/cube/cube.gltf", "LightCube", ENTITY_TYPE::LIGHT);
         auto bind = g_poolEntities[hnd];
 
         bind.pos = {-10.0f, 8.0f, -8.0f};
@@ -140,7 +140,7 @@ loadStuff()
     }
 
     {
-        auto hnd = makeEntity("assets/whale/whale.CYCLES.gltf", "Whale", Entity::TYPE::REGULAR);
+        auto hnd = makeEntity("assets/whale/whale.CYCLES.gltf", "Whale", ENTITY_TYPE::REGULAR);
         auto bind = g_poolEntities[hnd];
 
         bind.pos = {-9.0f, 0.0f, 5.0f};
@@ -148,7 +148,7 @@ loadStuff()
         bind.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
 
         auto& model = Model::fromI(bind.modelI);
-        model.m_animationIUsed = 1;
+        model.m_animationUsedI = 1;
     }
 
     Arena firstUpdateArena(SIZE_1K);

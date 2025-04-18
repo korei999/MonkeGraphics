@@ -302,8 +302,8 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
             if (!control::g_bPauseSimulation)
                 ((Future&)model.m_future).wait();
 
-            if (model.m_animationIUsed >= 0 &&
-                model.m_animationIUsed < model.m_vAnimations.size() &&
+            if (model.m_animationUsedI >= 0 &&
+                model.m_animationUsedI < model.m_vAnimations.size() &&
                 primitive.attributes.JOINTS_0 > -1
             )
             {
@@ -682,7 +682,7 @@ Renderer::draw(Arena* pArena)
         }
     }
 
-    ui::draw(pArena);
+    if (control::g_bDrawUI) ui::draw(pArena);
 }
 
 void

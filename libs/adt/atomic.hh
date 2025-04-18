@@ -60,7 +60,7 @@ struct Int
 
     /* */
 
-    volatile Type m_vol_int;
+    volatile Type m_volInt;
 
     /* */
 
@@ -74,11 +74,11 @@ struct Int
     {
 #ifdef ADT_USE_LINUX_ATOMICS
 
-        return __atomic_load_n(&m_vol_int, orderMap(eOrder));
+        return __atomic_load_n(&m_volInt, orderMap(eOrder));
 
 #elif defined ADT_USE_WIN32_ATOMICS
 
-        return InterlockedCompareExchange(const_cast<volatile LONG*>(&m_vol_int), 0, 0);
+        return InterlockedCompareExchange(const_cast<volatile LONG*>(&m_volInt), 0, 0);
 
 #endif
     }
@@ -88,11 +88,11 @@ struct Int
     {
 #ifdef ADT_USE_LINUX_ATOMICS
 
-        __atomic_store_n(&m_vol_int, val, orderMap(eOrder));
+        __atomic_store_n(&m_volInt, val, orderMap(eOrder));
 
 #elif defined ADT_USE_WIN32_ATOMICS
 
-        InterlockedExchange(&m_vol_int, val);
+        InterlockedExchange(&m_volInt, val);
 
 #endif
     }
@@ -102,11 +102,11 @@ struct Int
     {
 #ifdef ADT_USE_LINUX_ATOMICS
 
-        return __atomic_fetch_add(&m_vol_int, val, orderMap(eOrder));
+        return __atomic_fetch_add(&m_volInt, val, orderMap(eOrder));
 
 #elif defined ADT_USE_WIN32_ATOMICS
 
-        return InterlockedExchangeAdd(&m_vol_int, val);
+        return InterlockedExchangeAdd(&m_volInt, val);
 
 #endif
     }
@@ -116,11 +116,11 @@ struct Int
     {
 #ifdef ADT_USE_LINUX_ATOMICS
 
-        return __atomic_fetch_sub(&m_vol_int, val, orderMap(eOrder));
+        return __atomic_fetch_sub(&m_volInt, val, orderMap(eOrder));
 
 #elif defined ADT_USE_WIN32_ATOMICS
 
-        return InterlockedExchangeAdd(&m_vol_int, -val);
+        return InterlockedExchangeAdd(&m_volInt, -val);
 
 #endif
     }
@@ -130,7 +130,7 @@ struct Int
     {
 #ifdef ADT_USE_LINUX_ATOMICS
 
-        return __atomic_compare_exchange_n(&m_vol_int, pExpected, desired, true /* weak */, orderMap(eSucces), orderMap(eFailure));
+        return __atomic_compare_exchange_n(&m_volInt, pExpected, desired, true /* weak */, orderMap(eSucces), orderMap(eFailure));
 
 #elif defined ADT_USE_WIN32_ATOMICS
 

@@ -63,11 +63,25 @@ struct Camera
 /* mouse buttons are in the `g_aPressed` as `BTN_*` */
 struct Mouse
 {
+    enum class STATE : adt::u8
+    {
+        NONE = 0,
+        LEFT = 1,
+        RIGHT = 1 << 1,
+        MIDDLE = 1 << 2,
+        SIDE_FRONT = 1 << 3,
+        SIDE_BACK = 1 << 4,
+    };
+
+    /* */
+
     adt::math::V2 abs {};
     adt::math::V2 prevAbs {};
 
     adt::math::V2 rel {};
     adt::math::V2 prevRel {};
+
+    STATE eState {};
 };
 
 enum class REPEAT : adt::u8 { ONCE, WHILE_DOWN };
@@ -87,6 +101,7 @@ extern Mouse g_mouse;
 extern bool g_abPrevPressed[MAX_KEY_VALUE];
 extern bool g_abPressed[MAX_KEY_VALUE];
 extern bool g_bPauseSimulation;
+extern bool g_bDrawUI;
 extern MOD_STATE g_ePressedMods;
 
 extern adt::Array<Keybind, MAX_KEYBINDS> g_aKeybinds;

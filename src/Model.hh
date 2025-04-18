@@ -59,7 +59,7 @@ struct Model
     // adt::BusyWait m_waitLock {};
     adt::Future m_future {};
 
-    int m_animationIUsed = -1;
+    int m_animationUsedI = -1;
     adt::i16 m_modelAssetI {};
 
     adt::Opt<adt::math::V4> m_oOutlineColor {};
@@ -92,7 +92,7 @@ struct Model
     gltf::Node& gltfNode(const Node& node) const { return gltfModel().m_vNodes[m_vNodes.idx(&node)]; };
 
     void updateAnimation(int animationI, adt::f64 time);
-    void updateAnimation(adt::f64 time) { updateAnimation(m_animationIUsed, time); }
+    void updateAnimation(adt::f64 time) { updateAnimation(m_animationUsedI, time); }
 
 private:
     void loadNodes();

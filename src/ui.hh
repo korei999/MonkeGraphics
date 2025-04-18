@@ -32,15 +32,21 @@ struct Entry
         void* pArg {};
     };
 
+    struct MenuClickAction
+    {
+        void (*pfn)(Entry* pSelf, adt::i16 clickedI, void* pArg) {};
+        void* pArg {};
+    };
+
     struct Menu
     {
         adt::StringFixed<32> sfName {};
         adt::Vec<Entry> vEntries {};
         adt::math::V4 selColor = adt::math::V4From(colors::GREEN, 1.0f);
         adt::math::V4 color = adt::math::V4From(colors::WHITESMOKE, 1.0f);
-        adt::ssize selectedI = -1;
+        adt::i16 selectedI = -1;
         Action onUpdate {};
-        Action onClick {};
+        MenuClickAction onClick {};
     };
 
     struct ArrowList
@@ -73,7 +79,14 @@ struct Entry
     /* */
 
     [[nodiscard]] int height() const;
-    void dispatchCallback();
+    void dispatchOnUpdateActions();
+    adt::ssize pushEntry(adt::Arena* pArena, const Entry& entry);
+
+    /* */
+
+    static Entry makeMenu(const Menu& menu);
+    static Entry makeArrowList(const ArrowList& arrowList);
+    static Entry makeText(const Text& text);
 };
 
 struct Widget

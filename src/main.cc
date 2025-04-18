@@ -1,9 +1,9 @@
+#include "app.hh"
+#include "frame.hh"
+
 #include "adt/String.hh"
 #include "adt/FreeList.hh"
 #include "adt/defer.hh"
-
-#include "app.hh"
-#include "frame.hh"
 
 using namespace adt;
 
@@ -61,7 +61,7 @@ parseArgs(const int argc, const char* const argv[])
 }
 
 static int
-startup(int argc, char** argv)
+startup(int argc, char* argv[])
 {
 #if defined __linux__
     app::g_eWindowType = app::WINDOW_TYPE::WAYLAND_GL;

@@ -1,56 +1,28 @@
 #pragma once
 
-#include "adt/math.hh"
+#include "adt/mathDecl.hh"
+#include "adt/SOA.hh"
 
 namespace game
 {
 
-struct Entity
+enum class ENTITY_TYPE : adt::u8
 {
-    enum class TYPE : adt::u8
-    {
-        REGULAR, LIGHT
-    };
-
-    struct Bind
-    {
-        adt::StringFixed<128>& sfName;
-
-        adt::math::V4& color;
-
-        adt::math::V3& pos;
-        adt::math::Qt& rot;
-        adt::math::V3& scale;
-
-        adt::math::V3& vel;
-
-        adt::i16& assetI;
-        adt::i16& modelI;
-
-        Entity::TYPE& eType;
-
-        bool& bNoDraw;
-    };
-
-    /* */
-
-    adt::StringFixed<128> sfName {};
-
-    adt::math::V4 color {};
-
-    adt::math::V3 pos {};
-    adt::math::Qt rot = adt::math::QtIden();
-    adt::math::V3 scale {1.0f, 1.0f, 1.0f};
-
-    adt::math::V3 vel {};
-
-    adt::i16 assetI = -1;
-    adt::i16 modelI = -1;
-
-    TYPE eType = TYPE::REGULAR;
-
-    bool bNoDraw = false;
+    REGULAR, LIGHT
 };
+
+ADT_MAKE_SOA_STRUCT(Entity,
+    (adt::StringFixed<128>, sfName),
+    (adt::math::V4, color),
+    (adt::math::V3, pos),
+    (adt::math::Qt, rot),
+    (adt::math::V3, scale),
+    (adt::math::V3, vel),
+    (adt::i16, assetI),
+    (adt::i16, modelI),
+    (ENTITY_TYPE, eType),
+    (bool, bNoDraw)
+);
 
 } /* namespace game */
 
@@ -69,11 +41,12 @@ formatToContext(Context ctx, FormatArgs, const game::Entity::Bind& x)
         "\n\tvel: [{}]"
         "\n\tassetI: {}"
         "\n\tmodelI: {}"
+        "\n\ttype: {}"
         "\n\tbNoDraw: {}"
     ;
 
     ctx.fmtIdx = 0;
-    return printArgs(ctx, x.sfName, x.color, x.pos, x.rot, x.scale, x.vel, x.assetI, x.modelI, x.bNoDraw);
+    return printArgs(ctx, x.sfName, x.color, x.pos, x.rot, x.scale, x.vel, x.assetI, x.modelI, int(x.eType), x.bNoDraw);
 }
 
 } /* namespace adt::print */

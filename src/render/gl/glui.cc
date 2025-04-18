@@ -107,6 +107,7 @@ drawMenu(
 
     {
         auto xy = drawText(pVCommands, widget, menu.sfName, menu.color, proj, off);
+        thisOff.x = utils::max(xy.x, thisOff.x);
         thisOff.y += xy.y;
     }
 
@@ -190,10 +191,10 @@ drawArrowList(
 
             case ::ui::Entry::TYPE::MENU:
             {
-                auto xyMenu = drawMenu(pVCommands, widget, sel, proj, {off.x, off.y + thisOff.y});
+                auto xy = drawMenu(pVCommands, widget, sel, proj, {off.x, off.y + thisOff.y});
 
-                thisOff.x = utils::max(thisOff.x, xyMenu.x);
-                thisOff.y += xyMenu.y;
+                thisOff.x = utils::max(thisOff.x, xy.x);
+                thisOff.y += xy.y;
             }
             break;
 
@@ -327,12 +328,14 @@ draw(Arena* pArena)
             "V: toggle VSync ({})\n"
             "R: lock/unlock mouse ({})\n"
             "P: pause/unpause simulation ({})\n"
+            "H: draw UI ({})\n"
             "Q/Escape: quit\n"
             ,
             app::windowInst().m_bFullscreen ? "on" : "off",
             app::windowInst().m_swapInterval == 1 ? "on" : "off",
             app::windowInst().m_bPointerRelativeMode ? "locked" : "unlocked",
-            control::g_bPauseSimulation ? "paused" : "unpaused"
+            control::g_bPauseSimulation ? "paused" : "unpaused",
+            control::g_bDrawUI
         );
 
         StringView sv = {spBuff.data(), n};
