@@ -137,6 +137,13 @@ procMouse()
     g_camera.m_view = viewTrm;
 }
 
+static void
+procMouseWheel()
+{
+    const auto& win = app::windowInst();
+    g_mouse.vertWheel = win.m_verticalWheel;
+}
+
 void
 procInput()
 {
@@ -154,6 +161,7 @@ procInput()
     procKeybinds(&s_aPressedKeysOnceMap, g_aKeybinds);
 
     procMouse();
+    procMouseWheel();
 }
 
 } /* namespace control */

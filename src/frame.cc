@@ -6,7 +6,6 @@
 #include "ui.hh"
 #include "asset.hh"
 
-#include "adt/Opt.hh"
 #include "adt/Vec.hh"
 #include "adt/logs.hh"
 #include "adt/defer.hh"
@@ -83,7 +82,7 @@ renderLoop(void* pArg)
 {
     Arena* pArena = static_cast<Arena*>(pArg);
 
-    app::allocScratchForThisThread(SIZE_1M);
+    app::allocScratchForThisThread(SIZE_1M * 2);
     defer( app::destroyScratchForThisThread() );
 
     auto& win = app::windowInst();
@@ -94,8 +93,6 @@ renderLoop(void* pArg)
     VecManaged<f64> vFrameTimes(StdAllocator::inst(), 1000);
     defer( vFrameTimes.destroy() );
     f64 lastAvgFrameTimeUpdateTime {};
-    f64 pauseDiff = 0;
-    Opt<f64> optLastTimeBeforePause {};
 
     f64 accumulator = 0.0;
 
@@ -161,7 +158,7 @@ mainLoop()
 {
     auto& win = app::windowInst();
 
-    Arena frameArena(SIZE_8M); /* reset inside renderLoop */
+    Arena frameArena {SIZE_1M}; /* reset inside renderLoop */
     defer( frameArena.freeAll() );
 
     win.showWindow();

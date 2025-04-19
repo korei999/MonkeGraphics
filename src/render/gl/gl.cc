@@ -224,16 +224,19 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
             auto& img = gltfModel.m_vImages[tex.sourceI];
 
             Span<char> sp = app::gtl_scratch.nextMemZero<char>(img.sUri.size() + 300);
-            file::replacePathEnding(&sp, reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri);
-
-            auto* pObj = asset::search(sp, asset::Object::TYPE::IMAGE);
-            ADT_ASSERT(pObj != nullptr, " ");
-            auto* pTex = reinterpret_cast<Texture*>(pObj->m_pExtraData);
-
-            if (pTex)
+            if (sp.size() >= img.sUri.size() + 300)
             {
-                ADT_ASSERT(pSh != nullptr, " ");
-                pTex->bind(GL_TEXTURE0);
+                file::replacePathEnding(&sp, reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri);
+
+                auto* pObj = asset::search(sp, asset::Object::TYPE::IMAGE);
+                ADT_ASSERT(pObj != nullptr, " ");
+                auto* pTex = reinterpret_cast<Texture*>(pObj->m_pExtraData);
+
+                if (pTex)
+                {
+                    ADT_ASSERT(pSh != nullptr, " ");
+                    pTex->bind(GL_TEXTURE0);
+                }
             }
         }
         else
@@ -382,26 +385,29 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
                     auto& img = gltfModel.m_vImages[tex.sourceI];
 
                     Span<char> sp = app::gtl_scratch.nextMemZero<char>(img.sUri.size() + 300);
-                    file::replacePathEnding(&sp, reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri);
-
-                    auto* pObj = asset::search(sp, asset::Object::TYPE::IMAGE);
-
-                    if (pObj)
+                    if (sp.size() >= img.sUri.size() + 300)
                     {
-                        auto* pTex = reinterpret_cast<Texture*>(pObj->m_pExtraData);
-                        pSh = searchShader("SimpleTexture");
-                        pSh->use();
+                        file::replacePathEnding(&sp, reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri);
 
-                        if (pTex) pTex->bind(GL_TEXTURE0);
-                        else g_texDefault.bind(GL_TEXTURE0);
+                        auto* pObj = asset::search(sp, asset::Object::TYPE::IMAGE);
 
-                        M4 transform = trmProj * trmView * trm * node.finalTransform;
-                        pSh->setM4("u_trm", transform);
+                        if (pObj)
+                        {
+                            auto* pTex = reinterpret_cast<Texture*>(pObj->m_pExtraData);
+                            pSh = searchShader("SimpleTexture");
+                            pSh->use();
 
-                        auto* pShSimpleCol = searchShader("SimpleColor");
-                        clSetStencilTrmColor(pShSimpleCol, transform);
+                            if (pTex) pTex->bind(GL_TEXTURE0);
+                            else g_texDefault.bind(GL_TEXTURE0);
+
+                            M4 transform = trmProj * trmView * trm * node.finalTransform;
+                            pSh->setM4("u_trm", transform);
+
+                            auto* pShSimpleCol = searchShader("SimpleColor");
+                            clSetStencilTrmColor(pShSimpleCol, transform);
+                        }
+                        else goto GOTO_defaultShader;
                     }
-                    else goto GOTO_defaultShader;
                 }
                 else
                 {

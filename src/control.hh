@@ -63,7 +63,7 @@ struct Camera
 /* mouse buttons are in the `g_aPressed` as `BTN_*` */
 struct Mouse
 {
-    enum class STATE : adt::u8
+    enum class BUTTON_STATE : adt::u8
     {
         NONE = 0,
         LEFT = 1,
@@ -81,7 +81,9 @@ struct Mouse
     adt::math::V2 rel {};
     adt::math::V2 prevRel {};
 
-    STATE eState {};
+    adt::f32 vertWheel {};
+
+    BUTTON_STATE eButtonState {};
 };
 
 enum class REPEAT : adt::u8 { ONCE, WHILE_DOWN };

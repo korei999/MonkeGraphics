@@ -6,6 +6,8 @@
 #include "game/game.hh"
 #include "Model.hh"
 
+#include "adt/logs.hh"
+
 using namespace adt;
 
 namespace ui
@@ -82,14 +84,14 @@ Entry::dispatchOnUpdateActions()
             auto& list = m_arrowList;
             for (auto& entry : list.vEntries) entry.dispatchOnUpdateActions();
 
-            if (list.onUpdate.pfn) list.onUpdate.pfn(this, list.onUpdate.pArg);
+            if (list.onUpdate.pfn) list.onUpdate.pfn(&list, list.onUpdate.pArg);
         }
         break;
 
         case Entry::TYPE::MENU:
         {
             auto& menu = m_menu;
-            if (menu.onUpdate.pfn) menu.onUpdate.pfn(this, menu.onUpdate.pArg);
+            if (menu.onUpdate.pfn) menu.onUpdate.pfn(&menu, menu.onUpdate.pArg);
 
             for (auto& child : menu.vEntries) child.dispatchOnUpdateActions();
         }
@@ -125,28 +127,19 @@ Entry::pushEntry(Arena* pArena, const Entry& entry)
 Entry
 Entry::makeMenu(const Menu& menu)
 {
-    return Entry {
-        .m_menu = menu,
-        .m_eType = TYPE::MENU,
-    };
+    return Entry {.m_menu = menu, .m_eType = TYPE::MENU};
 }
 
 Entry
 Entry::makeArrowList(const ArrowList& arrowList)
 {
-    return Entry {
-        .m_arrowList = arrowList,
-        .m_eType = TYPE::ARROW_LIST,
-    };
+    return Entry {.m_arrowList = arrowList, .m_eType = TYPE::ARROW_LIST};
 }
 
 Entry
 Entry::makeText(const Text& text)
 {
-    return Entry {
-        .m_text = text,
-        .m_eType = TYPE::TEXT,
-    };
+    return Entry {.m_text = text, .m_eType = TYPE::TEXT};
 }
 
 void
@@ -185,7 +178,7 @@ init()
                     Entry animationsMenu = Entry::makeMenu({
                         .sfName = "Animations",
                         .onClick {
-                            .pfn = +[](Entry* pSelf, i16 clickedI, void* pArg) -> void
+                            .pfn = +[](Entry::Menu* pSelf, i16 clickedI, void* pArg) -> void
                             {
                                 auto entity = game::g_poolEntities[{int(reinterpret_cast<ssize>(pArg))}];
                                 auto& rModel = Model::g_poolModels[{entity.modelI}];
@@ -193,12 +186,12 @@ init()
                                 if (control::g_abPressed[BTN_LEFT])
                                 {
                                     rModel.m_animationUsedI = clickedI;
-                                    pSelf->m_menu.selectedI = clickedI;
+                                    pSelf->selectedI = clickedI;
                                 }
                                 else if (control::g_abPressed[BTN_RIGHT])
                                 {
                                     rModel.m_animationUsedI = -1;
-                                    pSelf->m_menu.selectedI = -1;
+                                    pSelf->selectedI = -1;
                                 }
                             },
                             .pArg = reinterpret_cast<void*>(entityI),
@@ -217,7 +210,7 @@ init()
                     Entry positionsMenu = Entry::makeMenu({
                         .sfName = "Positions",
                         .onUpdate {
-                            .pfn = +[](Entry* pSelf, void* pArg) -> void
+                            .pfn = +[](Entry::Menu* pSelf, void* pArg) -> void
                             {
                                 auto entity = game::g_poolEntities[{int(reinterpret_cast<ssize>(pArg))}];
 
@@ -228,9 +221,46 @@ init()
                                     rSfName = StringView{aBuff, n};
                                 };
 
-                                clPrint("x: {:.3}", entity.pos.x, pSelf->m_menu.vEntries[0].m_text.sfName);
-                                clPrint("y: {:.3}", entity.pos.y, pSelf->m_menu.vEntries[1].m_text.sfName);
-                                clPrint("z: {:.3}", entity.pos.z, pSelf->m_menu.vEntries[2].m_text.sfName);
+                                clPrint("x: {:.3}", entity.pos.x, pSelf->vEntries[0].m_text.sfName);
+                                clPrint("y: {:.3}", entity.pos.y, pSelf->vEntries[1].m_text.sfName);
+                                clPrint("z: {:.3}", entity.pos.z, pSelf->vEntries[2].m_text.sfName);
+                            },
+                            .pArg = reinterpret_cast<void*>(entityI),
+                        },
+                        .onClick {
+                            .pfn = +[](Entry::Menu* pSelf, i16 clickedI, void* pArg) -> void
+                            {
+                                auto entity = game::g_poolEntities[{int(reinterpret_cast<ssize>(pArg))}];
+
+                                switch (clickedI)
+                                {
+                                    case 0:
+                                    {
+                                        if (control::g_abPressed[BTN_LEFT])
+                                            entity.pos.x += 1.0f;
+                                        else if (control::g_abPressed[BTN_RIGHT])
+                                            entity.pos.x -= 1.0f;
+                                    }
+                                    break;
+
+                                    case 1:
+                                    {
+                                        if (control::g_abPressed[BTN_LEFT])
+                                            entity.pos.y += 1.0f;
+                                        else if (control::g_abPressed[BTN_RIGHT])
+                                            entity.pos.y -= 1.0f;
+                                    }
+                                    break;
+
+                                    case 2:
+                                    {
+                                        if (control::g_abPressed[BTN_LEFT])
+                                            entity.pos.z += 1.0f;
+                                        else if (control::g_abPressed[BTN_RIGHT])
+                                            entity.pos.z -= 1.0f;
+                                    }
+                                    break;
+                                }
                             },
                             .pArg = reinterpret_cast<void*>(entityI),
                         },
@@ -248,19 +278,19 @@ init()
         Entry entityList = Entry::makeArrowList({
             .vEntries = vListMenus,
             .onUpdate {
-                .pfn = +[](Entry* pSelf, void* pArg)
+                .pfn = +[](Entry::ArrowList* pSelf, void* pArg)
                 {
                     auto clSetOutline = [&](ssize idx, const Opt<math::V4>& oColor) -> void
                     {
-                        auto& rSel = pSelf->m_arrowList.vEntries[idx];
+                        auto& rSel = pSelf->vEntries[idx];
                         const ssize entityI = reinterpret_cast<ssize>(rSel.m_menu.vEntries[0].m_menu.onClick.pArg);
                         auto entity = game::g_poolEntities[{int(entityI)}];
                         auto& rModel = Model::g_poolModels[{entity.modelI}];
                         rModel.m_oOutlineColor = oColor;
                     };
 
-                    clSetOutline(pSelf->m_arrowList.prevSelectedI, {});
-                    clSetOutline(pSelf->m_arrowList.selectedI, math::V4From(colors::WHITESMOKE, 0.75f));
+                    clSetOutline(pSelf->prevSelectedI, {});
+                    clSetOutline(pSelf->selectedI, math::V4From(colors::WHITESMOKE, 0.75f));
                 },
                 .pArg = nullptr,
             },
@@ -312,7 +342,7 @@ clickMenu(
                     if (menu.onClick.pfn)
                     {
                         menu.onClick.pfn(
-                            pEntry,
+                            &menu,
                             static_cast<i16>(idx),
                             menu.onClick.pArg
                         );

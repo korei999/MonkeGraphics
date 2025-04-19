@@ -151,17 +151,6 @@ loadStuff()
         model.m_animationUsedI = 1;
     }
 
-    Arena firstUpdateArena(SIZE_1K);
-    defer( firstUpdateArena.freeAll() );
-    updateState(&firstUpdateArena);
-
-    for (auto& model : Model::g_poolModels)
-        model.updateAnimation(model.m_time + frame::g_frameTime);
-}
-
-void
-updateState(adt::Arena*)
-{
     {
         auto entity = g_poolEntities[{1}];
         entity.pos = {-3.0f, 0.0f, 5.0f};
@@ -200,6 +189,18 @@ updateState(adt::Arena*)
         auto entity = g_poolEntities[{6}];
         /*entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, frame::g_time);*/
     }
+
+    Arena firstUpdateArena(SIZE_1K);
+    defer( firstUpdateArena.freeAll() );
+    updateState(&firstUpdateArena);
+
+    for (auto& model : Model::g_poolModels)
+        model.updateAnimation(model.m_time + frame::g_frameTime);
+}
+
+void
+updateState(adt::Arena*)
+{
 }
 
 [[nodiscard]]

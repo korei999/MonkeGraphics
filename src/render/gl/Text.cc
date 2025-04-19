@@ -15,7 +15,7 @@ Text::makeStringMesh(
     const bool bVerticalFlip
 )
 {
-    auto spMem = app::gtl_scratch.nextMem<CharQuad2Pos2UV>(m_maxSize);
+    Span<CharQuad2Pos2UV> spMem = app::gtl_scratch.nextMem<CharQuad2Pos2UV>(m_maxSize);
     if (spMem.size() < m_maxSize) return {};
 
     /* NOTE: problems with constructor */

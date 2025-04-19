@@ -26,15 +26,20 @@ struct Entry
         TEXT, ARROW_LIST, MENU,
     };
 
+    struct Menu;
+    struct ArrowList;
+
+    template<typename T>
     struct Action
     {
-        void (*pfn)(Entry* pSelf, void* pArg) {};
+        void (*pfn)(T* pSelf, void* pArg) {};
         void* pArg {};
     };
 
     struct MenuClickAction
     {
-        void (*pfn)(Entry* pSelf, adt::i16 clickedI, void* pArg) {};
+        /* TODO: why even bother with pArg? */
+        void (*pfn)(Menu* pSelf, adt::i16 clickedI, void* pArg) {};
         void* pArg {};
     };
 
@@ -45,7 +50,7 @@ struct Entry
         adt::math::V4 selColor = adt::math::V4From(colors::GREEN, 1.0f);
         adt::math::V4 color = adt::math::V4From(colors::WHITESMOKE, 1.0f);
         adt::i16 selectedI = -1;
-        Action onUpdate {};
+        Action<Menu> onUpdate {};
         MenuClickAction onClick {};
     };
 
@@ -57,7 +62,7 @@ struct Entry
         adt::ssize prevSelectedI = 0;
         adt::math::V4 color = adt::math::V4From(colors::WHITESMOKE, 1.0f);
         adt::math::V4 arrowColor = adt::math::V4From(colors::CYAN, 1.0f);
-        Action onUpdate {};
+        Action<ArrowList> onUpdate {};
     };
 
     struct Text

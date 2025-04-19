@@ -47,6 +47,8 @@ struct IWindow
     adt::f32 m_relMotionX {};
     adt::f32 m_relMotionY {};
 
+    adt::f32 m_verticalWheel {};
+
     /* */
 
     IWindow() = default;

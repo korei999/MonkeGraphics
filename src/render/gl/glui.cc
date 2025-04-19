@@ -323,6 +323,8 @@ draw(Arena* pArena)
     /* info */
     {
         Span<char> spBuff = app::gtl_scratch.nextMemZero<char>(1 << 9);
+        if (spBuff.size() < 1 << 9) return;
+
         ssize n = print::toSpan(spBuff,
             "F: toggle fullscreen ({})\n"
             "V: toggle VSync ({})\n"
