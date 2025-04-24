@@ -215,7 +215,7 @@ Client::hideCursor([[maybe_unused]] bool bHide)
     }
     else
     {
-        wl_cursor* pCursor = wl_cursor_theme_get_cursor(m_pCursorTheme, "default");
+        wl_cursor* pCursor = wl_cursor_theme_get_cursor(m_pCursorTheme, "left_ptr");
         if (pCursor)
         {
             if (pCursor->image_count == 0) return;
@@ -524,6 +524,7 @@ Client::seatCapabilities(wl_seat* pWlSeat, uint32_t capabilities)
         m_pCursorTheme = wl_cursor_theme_load(nullptr, 24, m_pShm);
         wl_pointer_add_listener(m_pPointer, &s_pointerListener, this);
     }
+
     if (capabilities & WL_SEAT_CAPABILITY_KEYBOARD)
     {
         m_pKeyboard = wl_seat_get_keyboard(pWlSeat);

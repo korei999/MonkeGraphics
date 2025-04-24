@@ -291,6 +291,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     message(STATUS "POINTER_CONSTRAINTS: '${POINTER_CONSTRAINTS}'")
     message(STATUS "RELATIVE_POINTER: '${RELATIVE_POINTER}'")
     message(STATUS "VIEWPORTER: '${VIEWPORTER}'")
+    message(STATUS "XDG_DECORATION: '${XDG_DECORATION}'")
 
     execute_process(COMMAND mkdir -p ${CMAKE_SOURCE_DIR}/${WLPD})
     execute_process(COMMAND ${WAYLAND_SCANNER} client-header ${RELATIVE_POINTER}    ${CMAKE_SOURCE_DIR}/${WLPD}/relative-pointer-unstable-v1.h)
@@ -316,7 +317,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     )
 
     if (OPT_WAYLAND_GL)
-        pkg_check_modules(WAYLAND_GL REQUIRED gl egl wayland-egl)
+        pkg_check_modules(WAYLAND_GL REQUIRED gl egl wayland-egl wayland-cursor)
 
         if (WAYLAND_GL_FOUND)
             message(STATUS "WAYLAND_GL_FOUND: '${WAYLAND_GL_FOUND}'")
