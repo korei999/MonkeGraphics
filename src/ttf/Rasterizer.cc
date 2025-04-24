@@ -32,8 +32,7 @@ pointsWithMissingOnCurve(IAllocator* pAlloc, const Glyph& g)
     bool bCurrOnCurve = false;
     bool bPrevOnCurve = false;
 
-    [[maybe_unused]] u32 firstInCurveIdx = 0;
-    [[maybe_unused]] int nOffCurve = 0;
+    [[maybe_unused]] ssize firstInCurveIdx = 0;
 
     Vec<PointOnCurve> vPoints(pAlloc, size);
     for (const auto& p : aGlyphPoints)
@@ -107,17 +106,17 @@ insertPoints(
 }
 
 static Vec<PointOnCurve>
-makeItCurvy(IAllocator* pAlloc, const Vec<PointOnCurve>& aNonCurvyPoints, CurveEndIdx* pEndIdxs, u32 nTessellations)
+makeItCurvy(IAllocator* pAlloc, const Vec<PointOnCurve>& aNonCurvyPoints, CurveEndIdx* pEndIdxs, int nTessellations)
 {
     Vec<PointOnCurve> aNew(pAlloc, aNonCurvyPoints.size());
     utils::fill(pEndIdxs->aIdxs, NPOS16, utils::size(pEndIdxs->aIdxs));
     u16 endIdx = 0;
 
-    u32 firstInCurveIdx = 0;
+    ssize firstInCurveIdx = 0;
     bool bPrevOnCurve = true;
     for (auto& p : aNonCurvyPoints)
     {
-        u32 idx = aNonCurvyPoints.idx(&p);
+        ssize idx = aNonCurvyPoints.idx(&p);
 
         if (p.bEndOfCurve)
         {
@@ -255,10 +254,15 @@ Rasterizer::rasterizeGlyph(const Font& font, const Glyph& glyph, int xOff, int y
                 int endIdx = end;
                 f32 endCovered = end - endIdx;
 
+                // if (startIdx >= 0)
+                //     spAtlas(xOff + startIdx, yOff + row) = utils::clamp(255.0f * startCovered, 0.0f, 255.0f);
+                // if (startIdx != endIdx)
+                //     spAtlas(xOff + endIdx, yOff + row) = utils::clamp(255.0f * endCovered, 0.0f, 255.0f);
+
                 if (startIdx >= 0)
-                    spAtlas(xOff + startIdx, yOff + row) = utils::clamp(255.0f * startCovered, 0.0f, 255.0f);
+                    spAtlas(xOff + startIdx, yOff + row) = 255.0f * startCovered;
                 if (startIdx != endIdx)
-                    spAtlas(xOff + endIdx, yOff + row) = utils::clamp(255.0f * endCovered, 0.0f, 255.0f);
+                    spAtlas(xOff + endIdx, yOff + row) = 255.0f * endCovered;
 
                 for (int col = startIdx + 1; col < endIdx; ++col)
                     if (col >= 0) spAtlas(xOff + col, yOff + row) = 255;

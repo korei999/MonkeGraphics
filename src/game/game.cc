@@ -199,7 +199,7 @@ loadStuff()
 }
 
 void
-updateState(adt::Arena*)
+updateState(Arena*)
 {
 }
 

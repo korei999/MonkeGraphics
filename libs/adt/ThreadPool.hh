@@ -17,8 +17,6 @@ struct ThreadPoolTask
 template<ssize QUEUE_SIZE>
 struct ThreadPool
 {
-    IAllocator* m_pAlloc {}; /* managed by default */
-    QueueArray<ThreadPoolTask, QUEUE_SIZE> m_qTasks {};
     Span<Thread> m_spThreads {};
     Mutex m_mtxQ {};
     CndVar m_cndQ {};
@@ -27,8 +25,14 @@ struct ThreadPool
     void* m_pLoopStartArg {};
     void (*m_pfnLoopEnd)(void*) {};
     void* m_pLoopEndArg {};
-    atomic::Int m_atom_nActiveTasks {};
-    atomic::Int m_atom_bDone {};
+    atomic::Int m_atomNActiveTasks {};
+    atomic::Int m_atomBDone {};
+    atomic::Int m_atomIdCounter {};
+    QueueArray<ThreadPoolTask, QUEUE_SIZE> m_qTasks {};
+
+    /* */
+
+    static inline thread_local int inl_threadId {};
 
     /* */
 
@@ -49,7 +53,7 @@ struct ThreadPool
 
     void wait();
 
-    void destroy();
+    void destroy(IAllocator* pAlloc);
 
     bool add(ThreadPoolTask task);
 
@@ -74,12 +78,11 @@ protected:
 template<ssize QUEUE_SIZE>
 inline
 ThreadPool<QUEUE_SIZE>::ThreadPool(IAllocator* pAlloc, int nThreads)
-    : m_pAlloc(pAlloc),
-      m_spThreads(pAlloc->zallocV<Thread>(nThreads), nThreads),
+    : m_spThreads(pAlloc->zallocV<Thread>(nThreads), nThreads),
       m_mtxQ(Mutex::TYPE::PLAIN),
       m_cndQ(INIT),
       m_cndWait(INIT),
-      m_atom_bDone(false)
+      m_atomBDone(false)
 {
     spawnThreads();
 }
@@ -92,8 +95,7 @@ ThreadPool<QUEUE_SIZE>::ThreadPool(
     void (*pfnLoopEnd)(void*), void* pLoopEndArg,
     int nThreads
 )
-    : m_pAlloc(pAlloc),
-      m_spThreads(pAlloc->zallocV<Thread>(nThreads), nThreads),
+    : m_spThreads(pAlloc->zallocV<Thread>(nThreads), nThreads),
       m_mtxQ(Mutex::TYPE::PLAIN),
       m_cndQ(INIT),
       m_cndWait(INIT),
@@ -101,7 +103,7 @@ ThreadPool<QUEUE_SIZE>::ThreadPool(
       m_pLoopStartArg(pLoopStartArg),
       m_pfnLoopEnd(pfnLoopEnd),
       m_pLoopEndArg(pLoopEndArg),
-      m_atom_bDone(false)
+      m_atomBDone(false)
 {
     spawnThreads();
 }
@@ -113,6 +115,8 @@ ThreadPool<QUEUE_SIZE>::loop()
     if (m_pfnLoopStart) m_pfnLoopStart(m_pLoopStartArg);
     ADT_DEFER( if (m_pfnLoopEnd) m_pfnLoopEnd(m_pLoopEndArg) );
 
+    inl_threadId = 1 + m_atomIdCounter.fetchAdd(1, atomic::ORDER::RELAXED);
+
     while (true)
     {
         ThreadPoolTask task {};
@@ -120,28 +124,28 @@ ThreadPool<QUEUE_SIZE>::loop()
         {
             MutexGuard qLock(&m_mtxQ);
 
-            while (m_qTasks.empty() && !m_atom_bDone.load(atomic::ORDER::RELAXED))
+            while (m_qTasks.empty() && !m_atomBDone.load(atomic::ORDER::ACQUIRE))
                 m_cndQ.wait(&m_mtxQ);
 
-            if (m_atom_bDone.load(atomic::ORDER::RELAXED))
+            if (m_atomBDone.load(atomic::ORDER::ACQUIRE))
                 return 0;
 
             task = *m_qTasks.popFront();
-            m_atom_nActiveTasks.fetchAdd(1, atomic::ORDER::SEQ_CST);
+            m_atomNActiveTasks.fetchAdd(1, atomic::ORDER::SEQ_CST);
         }
 
         task.pfn(task.pArg);
-        m_atom_nActiveTasks.fetchSub(1, atomic::ORDER::SEQ_CST);
+        m_atomNActiveTasks.fetchSub(1, atomic::ORDER::SEQ_CST);
 
         {
             MutexGuard qLock(&m_mtxQ);
 
-            if (m_qTasks.empty() && m_atom_nActiveTasks.load(atomic::ORDER::ACQUIRE) == 0)
+            if (m_qTasks.empty() && m_atomNActiveTasks.load(atomic::ORDER::ACQUIRE) == 0)
                 m_cndWait.signal();
         }
     }
 
-    return 0;
+    return THREAD_STATUS(0);
 }
 
 template<ssize QUEUE_SIZE>
@@ -167,19 +171,19 @@ ThreadPool<QUEUE_SIZE>::wait()
 {
     MutexGuard qLock(&m_mtxQ);
 
-    while (!m_qTasks.empty() || m_atom_nActiveTasks.load(atomic::ORDER::RELAXED) != 0)
+    while (!m_qTasks.empty() || m_atomNActiveTasks.load(atomic::ORDER::RELAXED) != 0)
         m_cndWait.wait(&m_mtxQ);
 }
 
 template<ssize QUEUE_SIZE>
 inline void
-ThreadPool<QUEUE_SIZE>::destroy()
+ThreadPool<QUEUE_SIZE>::destroy(IAllocator* pAlloc)
 {
     wait();
 
     {
         MutexGuard qLock(&m_mtxQ);
-        m_atom_bDone.store(1, atomic::ORDER::RELAXED);
+        m_atomBDone.store(true, atomic::ORDER::RELEASE);
     }
 
     m_cndQ.broadcast();
@@ -188,7 +192,7 @@ ThreadPool<QUEUE_SIZE>::destroy()
         thread.join();
 
     {
-        m_pAlloc->free(m_spThreads.data());
+        pAlloc->free(m_spThreads.data());
         m_mtxQ.destroy();
         m_cndQ.destroy();
         m_cndWait.destroy();
@@ -199,12 +203,19 @@ template<ssize QUEUE_SIZE>
 inline bool
 ThreadPool<QUEUE_SIZE>::add(ThreadPoolTask task)
 {
-    MutexGuard lock(&m_mtxQ);
+    ssize i;
 
-    ssize i = m_qTasks.pushBack(task);
-    m_cndQ.signal();
+    {
+        MutexGuard lock(&m_mtxQ);
+        i = m_qTasks.pushBack(task);
+    }
+    if (i != -1)
+    {
+        m_cndQ.signal();
+        return true;
+    }
 
-    return i;
+    return false;
 }
 
 template<ssize QUEUE_SIZE>

@@ -40,7 +40,7 @@ static thread_local u8* stl_pScratchMem;
 thread_local ScratchBuffer gtl_scratch;
 
 adt::ThreadPool<128> g_threadPool(adt::StdAllocator::inst(),
-    +[](void* pArg) { allocScratchForThisThread(SCRATCH_SIZE); },
+    +[](void*) { allocScratchForThisThread(SCRATCH_SIZE); },
     nullptr,
     +[](void*) { destroyScratchForThisThread(); },
     nullptr,
@@ -91,7 +91,7 @@ allocWindow(IAllocator* pAlloc, const char* ntsName)
 #endif
     }
 
-    throw RuntimeException("failed to create a window");
+    throw RuntimeException("failed to create the window");
 }
 
 render::IRenderer*

@@ -25,6 +25,8 @@ struct QueueArray
     T& operator[](ssize i) noexcept             { ADT_ASSERT(i >= 0 && i < CAP, "out of CAP({}), i: {}", CAP, i); return m_aData[i]; }
     const T& operator[](ssize i) const noexcept { ADT_ASSERT(i >= 0 && i < CAP, "out of CAP({}), i: {}", CAP, i); return m_aData[i]; }
 
+    ssize cap() const noexcept;
+
     bool empty() const noexcept;
 
     ssize pushBack(const T& x) noexcept; /* Index of inserted element, -1 on failure. */
@@ -99,6 +101,13 @@ inline bool
 QueueArray<T, CAP>::empty() const noexcept
 {
     return m_headI == m_tailI;
+}
+
+template<typename T, ssize CAP>
+inline ssize
+QueueArray<T, CAP>::cap() const noexcept
+{
+    return CAP;
 }
 
 template<typename T, ssize CAP>

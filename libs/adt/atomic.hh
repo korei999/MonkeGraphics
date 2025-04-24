@@ -50,6 +50,24 @@ enum class ORDER : int
     SEQ_CST,
 };
 
+ADT_ALWAYS_INLINE void
+fence(const ORDER eOrder)
+{
+#ifdef ADT_USE_WIN32_ATOMICS
+
+    MemoryBarrier();
+
+#elif defined ADT_USE_LINUX_ATOMICS
+
+    __atomic_thread_fence(static_cast<int>(eOrder));
+
+#else
+
+#warning "not implemented"
+
+#endif
+}
+
 struct Int
 {
 #ifdef ADT_USE_WIN32_ATOMICS

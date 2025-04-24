@@ -236,7 +236,10 @@ Client::relativePointerMotion(
 }
 
 void
-Client::decorationConfigure(zxdg_toplevel_decoration_v1* pZXdgToplevelDecorationV1, uint32_t mode)
+Client::decorationConfigure(
+    [[maybe_unused]] zxdg_toplevel_decoration_v1* pZXdgToplevelDecorationV1,
+    [[maybe_unused]] uint32_t mode
+)
 {
     LOG_WARN("decorationConfigure()\n");
 }

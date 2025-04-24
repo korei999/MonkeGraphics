@@ -143,7 +143,7 @@ renderLoop(void* pArg)
                 "FPS: {} | avg frame time: {:.3} ms\n",
                 vFrameTimes.size(), avg / vFrameTimes.size()
             );
-            g_sfFpsStatus = StringView(aBuff, n);
+            g_sfFpsStatus = StringView{aBuff, n};
 
             vFrameTimes.setSize(0);
             lastAvgFrameTimeUpdateTime = t1;
@@ -174,7 +174,8 @@ mainLoop()
 
     /* NOTE: Two threads, first for input events and UI, second for
      * input processing, game state updates and rendering.
-     * Its done so that swapBuffers() doesn't block new input events. */
+     * Its done so that swapBuffers() doesn't block new input events.
+     * Perhaps it should, but its actually faster this way. */
 
     win.unbindContext();
     Thread renderThread(renderLoop, &frameArena, Thread::ATTR::JOINABLE);
@@ -219,7 +220,7 @@ start()
     /* wait for running tasks */
     defer(
         LOG_GOOD("cleaning up...\n");
-        app::g_threadPool.destroy();
+        app::g_threadPool.destroy(StdAllocator::inst());
         renderer.destroy();
 
         for (auto& asset : asset::g_poolObjects)
