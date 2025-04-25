@@ -125,7 +125,7 @@ ThreadPool<QUEUE_SIZE>::loop()
         Task task {};
 
         {
-            MutexGuard qLock(&m_mtxQ);
+            LockGuard qLock {&m_mtxQ};
 
             while (m_qTasks.empty() && !m_atomBDone.load(atomic::ORDER::ACQUIRE))
                 m_cndQ.wait(&m_mtxQ);
@@ -142,7 +142,7 @@ ThreadPool<QUEUE_SIZE>::loop()
         m_atomNActiveTasks.fetchSub(1, atomic::ORDER::SEQ_CST);
 
         {
-            MutexGuard qLock(&m_mtxQ);
+            LockGuard qLock {&m_mtxQ};
 
             if (m_qTasks.empty() && m_atomNActiveTasks.load(atomic::ORDER::ACQUIRE) == 0)
                 m_cndWait.signal();
@@ -173,7 +173,7 @@ template<ssize QUEUE_SIZE>
 inline void
 ThreadPool<QUEUE_SIZE>::wait()
 {
-    MutexGuard qLock(&m_mtxQ);
+    LockGuard qLock {&m_mtxQ};
 
     while (!m_qTasks.empty() || m_atomNActiveTasks.load(atomic::ORDER::RELAXED) != 0)
         m_cndWait.wait(&m_mtxQ);
@@ -186,7 +186,7 @@ ThreadPool<QUEUE_SIZE>::destroy(IAllocator* pAlloc)
     wait();
 
     {
-        MutexGuard qLock(&m_mtxQ);
+        LockGuard qLock {&m_mtxQ};
         m_atomBDone.store(true, atomic::ORDER::RELEASE);
     }
 
@@ -210,7 +210,7 @@ ThreadPool<QUEUE_SIZE>::add(Task task)
     ssize i;
 
     {
-        MutexGuard lock(&m_mtxQ);
+        LockGuard lock {&m_mtxQ};
         i = m_qTasks.pushBack(task);
     }
     if (i != -1)

@@ -589,13 +589,18 @@ CallOnce::exec(void (*pfn)())
 #endif
 }
 
-struct MutexGuard
+template<typename T>
+struct LockGuard
 {
-    MutexGuard(Mutex* _pMtx) : pMtx(_pMtx) { pMtx->lock(); }
-    ~MutexGuard() { pMtx->unlock(); }
+    using LockType = T;
+
+    /* */
+
+    LockGuard(T* _pMtx) : pMtx(_pMtx) { pMtx->lock(); }
+    ~LockGuard() { pMtx->unlock(); }
 
 protected:
-    Mutex* pMtx {};
+    T* pMtx {};
 };
 
 struct Future
@@ -625,7 +630,7 @@ Future::Future(InitFlag)
 inline void
 Future::wait()
 {
-    MutexGuard lock(&m_mtx);
+    LockGuard lock {&m_mtx};
 
     while (!m_bDone) m_cnd.wait(&m_mtx);
 }
@@ -633,7 +638,7 @@ Future::wait()
 inline void
 Future::signal()
 {
-    MutexGuard lock(&m_mtx);
+    LockGuard lock {&m_mtx};
 
     m_bDone = true;
     m_cnd.signal();
