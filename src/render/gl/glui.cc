@@ -9,8 +9,6 @@
 #include "frame.hh"
 #include "ui.hh"
 
-#include "adt/logs.hh"
-
 using namespace adt;
 
 namespace render::gl::ui
@@ -108,11 +106,9 @@ drawMenu(
     ::ui::Offset thisOff {0, 0};
 
     {
-        LOG_GOOD("before thisOff: {}, '{}'\n", thisOff, menu.sfName);
         auto xy = drawText(pVCommands, widget, menu.sfName, menu.color, proj, off);
         thisOff.x = utils::max(xy.x, thisOff.x);
         thisOff.y += xy.y;
-        LOG_BAD("after thisOff: {}\n\n", thisOff);
     }
 
     for (const ::ui::Entry& child : menu.vEntries)
