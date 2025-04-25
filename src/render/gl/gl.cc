@@ -252,7 +252,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
         {
             pStencilShader = pStShader;
             stencilTrm = stencilFullTrm;
-            stencilColor = model.m_oOutlineColor.valueOr({});
+            stencilColor = model.m_oOutlineColor.valueOrEmpty();
 
             pfnStencilUpdate = +[](
                 Shader* pShader, const M4& stencilMat, const V4& color, void* pExtra
