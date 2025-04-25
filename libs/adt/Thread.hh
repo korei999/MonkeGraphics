@@ -2,7 +2,6 @@
 
 #include "types.hh"
 #include "assert.hh"
-#include "atomic.hh"
 
 #include <emmintrin.h>
 
@@ -651,36 +650,6 @@ Future::destroy()
 {
     m_mtx.destroy();
     m_cnd.destroy();
-}
-
-struct BusyWait
-{
-    atomic::Int m_atomBDone {};
-
-    /* */
-
-    void wait() const;
-    void signal();
-    void reset();
-};
-
-inline void
-BusyWait::wait() const
-{
-    while (!m_atomBDone.load(atomic::ORDER::ACQUIRE))
-        _mm_pause();
-}
-
-inline void
-BusyWait::signal()
-{
-    m_atomBDone.store(1, atomic::ORDER::RELEASE);
-}
-
-inline void
-BusyWait::reset()
-{
-    m_atomBDone.store(0, atomic::ORDER::RELEASE);
 }
 
 } /* namespace adt */

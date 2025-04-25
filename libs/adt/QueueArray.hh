@@ -181,11 +181,10 @@ QueueArray<T, CAP>::popFront() noexcept
 {
     if (empty()) return nullptr;
 
-    ssize nextHeadI = nextI(m_headI);
-    ssize prevHeadI = m_headI;
-    m_headI = nextHeadI;
+    ssize tmp = m_headI;
+    m_headI = nextI(m_headI);
 
-    return &m_aData[prevHeadI];
+    return &m_aData[tmp];
 }
 
 template<typename T, ssize CAP>
@@ -194,11 +193,9 @@ QueueArray<T, CAP>::popBack() noexcept
 {
     if (empty()) return nullptr;
 
-    ssize nextTailI = prevI(m_tailI);
-    ssize prevTailI = m_tailI;
-    m_tailI = nextTailI;
+    m_tailI = prevI(m_tailI);
 
-    return &m_aData[prevTailI];
+    return &m_aData[m_tailI];
 }
 
 template<typename T, ssize CAP>

@@ -6,8 +6,6 @@
 #include "game/game.hh"
 #include "Model.hh"
 
-#include "adt/logs.hh"
-
 using namespace adt;
 
 namespace ui

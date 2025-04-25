@@ -56,7 +56,6 @@ struct Model
 
     adt::f64 m_time {};
 
-    // adt::BusyWait m_waitLock {};
     adt::Future m_future {};
 
     int m_animationUsedI = -1;

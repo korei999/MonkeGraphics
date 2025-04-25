@@ -9,6 +9,8 @@
 #include "frame.hh"
 #include "ui.hh"
 
+#include "adt/logs.hh"
+
 using namespace adt;
 
 namespace render::gl::ui
@@ -25,7 +27,7 @@ static ::ui::Offset drawArrowList(
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
     const math::M4& proj,
-    ::ui::Offset off
+    const ::ui::Offset off
 );
 
 static Shader* s_pShTexMonoBlur;
@@ -60,7 +62,7 @@ drawText(
     const StringView sv,
     const math::V4 fgColor,
     const math::M4& proj,
-    ::ui::Offset off
+    const ::ui::Offset off
 )
 {
     auto clDraw = [&widget, sv, proj, fgColor, off]
@@ -96,28 +98,31 @@ drawMenu(
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
     const math::M4& proj,
-    ::ui::Offset off
+    const ::ui::Offset off
 )
 {
-    ADT_ASSERT(entry.m_eType == ::ui::Entry::TYPE::MENU, " ");
+    ADT_ASSERT(entry.m_eType == ::ui::Entry::TYPE::MENU, "");
 
     auto& menu = entry.m_menu;
 
     ::ui::Offset thisOff {0, 0};
 
     {
+        LOG_GOOD("before thisOff: {}, '{}'\n", thisOff, menu.sfName);
         auto xy = drawText(pVCommands, widget, menu.sfName, menu.color, proj, off);
         thisOff.x = utils::max(xy.x, thisOff.x);
         thisOff.y += xy.y;
+        LOG_BAD("after thisOff: {}\n\n", thisOff);
     }
 
-    for (const ::ui::Entry& child : entry.m_menu.vEntries)
+    for (const ::ui::Entry& child : menu.vEntries)
     {
         const ssize idx = menu.vEntries.idx(&child);
         const math::V4 col = [&] {
             if (idx == menu.selectedI) return menu.selColor;
             else return menu.color;
         }();
+
         ::ui::Offset xy {};
 
         switch (child.m_eType)
@@ -141,12 +146,10 @@ drawMenu(
             break;
         }
 
-        thisOff.x = utils::max(xy.x, thisOff.x);
+        /* +2 since children are off by 2 */
+        thisOff.x = utils::max(xy.x + 2, thisOff.x);
         thisOff.y += xy.y;
     }
-
-    /* children were drawn with off.x + 2 */
-    thisOff.x += 2;
 
     return thisOff;
 }
@@ -157,7 +160,7 @@ drawArrowList(
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
     const math::M4& proj,
-    ::ui::Offset off
+    const ::ui::Offset off
 )
 {
     ADT_ASSERT(entry.m_eType == ::ui::Entry::TYPE::ARROW_LIST, "");
