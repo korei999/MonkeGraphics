@@ -29,16 +29,12 @@ Model::updateAnimation(int animationI, f64 keyframeTime)
 {
     const gltf::Model& model = gltfModel();
 
-    m_time = keyframeTime;
-
     if (model.m_vAnimations.empty())
         return;
 
     if (animationI < 0 || animationI >= model.m_vAnimations.size())
-    {
-        m_time = 0.0;
         animationI = 0;
-    }
+    else m_time = keyframeTime;
 
     const gltf::Animation& gltfAnimation = model.m_vAnimations[animationI];
     const Animation& animation = m_vAnimations[animationI];
@@ -55,7 +51,7 @@ Model::updateAnimation(int animationI, f64 keyframeTime)
         Node& node = m_vNodes[channel.target.nodeI];
         ADT_ASSERT(node.eType == Node::TRANSFORMATION_TYPE::ANIMATION, " ");
 
-        /* NOTE: not sure we need this branch */
+        /* NOTE: not sure if this branch is needed */
         if (m_vSkinnedNodes.empty())
         {
             const f64 actualDuration = animation.maxTime - animation.minTime;
