@@ -4,6 +4,7 @@
 #include "asset.hh"
 
 #include "adt/View.hh"
+#include "adt/logs.hh"
 
 using namespace adt;
 
@@ -24,14 +25,20 @@ Model::gltfModel() const
 }
 
 void
-Model::updateAnimation(int animationI, f64 time)
+Model::updateAnimation(int animationI, f64 keyframeTime)
 {
     const gltf::Model& model = gltfModel();
 
-    if (model.m_vAnimations.empty() || (animationI < 0 || animationI >= model.m_vAnimations.size()))
+    m_time = keyframeTime;
+
+    if (model.m_vAnimations.empty())
         return;
 
-    m_time = time;
+    if (animationI < 0 || animationI >= model.m_vAnimations.size())
+    {
+        m_time = 0.0;
+        animationI = 0;
+    }
 
     const gltf::Animation& gltfAnimation = model.m_vAnimations[animationI];
     const Animation& animation = m_vAnimations[animationI];
