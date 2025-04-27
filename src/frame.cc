@@ -98,16 +98,17 @@ renderLoop(void* pArg)
 
     while (win.m_bRunning)
     {
-        const f64 t0 = utils::timeNowMS();
+        const f64 timer0 = utils::timeNowMS();
 
         {
-            f64 newTime = t0 / 1000.0;
+            f64 newTime = timer0 / 1000.0;
 
             g_frameTime = newTime - g_time;
 
             accumulator += g_frameTime;
             g_time = newTime;
 
+            ui::updateState();
             control::procInput();
 
             while (accumulator >= g_dt)
@@ -130,10 +131,10 @@ renderLoop(void* pArg)
             win.swapBuffers();
         }
 
-        const f64 t1 = utils::timeNowMS();
-        vFrameTimes.push(t1 - t0);
+        const f64 timer1 = utils::timeNowMS();
+        vFrameTimes.push(timer1 - timer0);
 
-        if (t1 > lastAvgFrameTimeUpdateTime + 1000.0)
+        if (timer1 > lastAvgFrameTimeUpdateTime + 1000.0)
         {
             f64 avg = 0;
             for (const f64 ft : vFrameTimes) avg += ft;
@@ -146,7 +147,7 @@ renderLoop(void* pArg)
             g_sfFpsStatus = StringView{aBuff, n};
 
             vFrameTimes.setSize(0);
-            lastAvgFrameTimeUpdateTime = t1;
+            lastAvgFrameTimeUpdateTime = timer1;
         }
     }
 
@@ -172,19 +173,14 @@ mainLoop()
 
     game::updateState(&frameArena);
 
-    /* NOTE: Two threads, first for input events and UI, second for
-     * input processing, game state updates and rendering.
-     * Its done so that swapBuffers() doesn't block new input events.
-     * Perhaps it should, but its actually faster this way. */
-
     win.unbindContext();
     Thread renderThread(renderLoop, &frameArena, Thread::ATTR::JOINABLE);
     defer( renderThread.join() );
 
+    /* NOTE: its slightly faster when event loops is not blocking the render loop */
     while (win.m_bRunning)
     {
         win.procEvents();
-        ui::updateState();
     }
 }
 

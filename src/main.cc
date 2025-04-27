@@ -88,7 +88,7 @@ startup(int argc, char* argv[])
 
         frame::start();
     }
-    catch (IException& ex)
+    catch (const IException& ex)
     {
         ex.printErrorMsg(stdout);
     }
