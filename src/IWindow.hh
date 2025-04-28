@@ -47,7 +47,7 @@ struct IWindow
     adt::f32 m_relMotionX {};
     adt::f32 m_relMotionY {};
 
-    adt::QueueSPSC<adt::f32, 128> m_qWheelEvents {};
+    adt::QueueSPSC<adt::f32, 32> m_qWheelEvents {};
 
 
     /* */

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "adt/mathDecl.hh"
-#include "adt/SOA.hh"
 
 namespace game
 {
@@ -11,18 +10,36 @@ enum class ENTITY_TYPE : adt::u8
     REGULAR, LIGHT
 };
 
-ADT_MAKE_SOA_STRUCT(Entity,
-    (adt::StringFixed<128>, sfName),
-    (adt::math::V4, color),
-    (adt::math::V3, pos),
-    (adt::math::Qt, rot),
-    (adt::math::V3, scale),
-    (adt::math::V3, vel),
-    (adt::i16, assetI),
-    (adt::i16, modelI),
-    (ENTITY_TYPE, eType),
-    (bool, bNoDraw)
-);
+/* FIXME: problems with SOA generator on win32 */
+struct Entity
+{
+    struct Bind
+    {
+        adt::StringFixed<128>& sfName;
+        adt::math::V4& color;
+        adt::math::V3& pos;
+        adt::math::Qt& rot;
+        adt::math::V3& scale;
+        adt::math::V3& vel;
+        adt::i16& assetI;
+        adt::i16& modelI;
+        ENTITY_TYPE& eType;
+        bool& bNoDraw;
+    };
+
+    /* */
+
+    adt::StringFixed<128> sfName;
+    adt::math::V4 color;
+    adt::math::V3 pos;
+    adt::math::Qt rot;
+    adt::math::V3 scale;
+    adt::math::V3 vel;
+    adt::i16 assetI;
+    adt::i16 modelI;
+    ENTITY_TYPE eType;
+    bool bNoDraw;
+};
 
 } /* namespace game */
 

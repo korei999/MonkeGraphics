@@ -3,6 +3,11 @@
 #include "control.hh"
 #include "keys.hh"
 
+#include "adt/logs.hh"
+#include "render/gl/glfunc.hh" /* IWYU pragma: keep */
+
+#include <windowsx.h>
+
 using namespace adt;
 
 namespace platform::win32
@@ -232,6 +237,123 @@ Window::exitFullscreen(HWND hwnd, int windowX, int windowY, int windowedWidth, i
     ShowWindow(hwnd, SW_RESTORE);
 
     return bSucces;
+}
+
+LRESULT CALLBACK
+Window::windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    Window* s = reinterpret_cast<Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+
+    switch (msg)
+    {
+        case WM_DESTROY:
+        s->m_bRunning = false;
+        return 0;
+
+        case WM_SIZE:
+        {
+            s->m_winWidth = LOWORD(lParam);
+            s->m_winHeight = HIWORD(lParam);
+            LOG("WM_SIZE: [{}, {}]\n", s->m_winWidth, s->m_winHeight);
+            glViewport(0, 0, s->m_winWidth, s->m_winHeight);
+        }
+        break;
+
+        case WM_KILLFOCUS:
+        {
+            memset(control::g_abPressed, 0, sizeof(control::g_abPressed));
+            ShowWindow(s->m_hWindow, SW_MINIMIZE);
+        }
+        break;
+
+        case WM_NCCREATE:
+        SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)((CREATESTRUCT*)lParam)->lpCreateParams);
+        break;
+
+        case WM_LBUTTONDOWN:
+        control::g_abPressed[BTN_LEFT] = true;
+        break;
+
+        case WM_LBUTTONUP:
+        control::g_abPressed[BTN_LEFT] = false;
+        break;
+
+        case WM_RBUTTONDOWN:
+        control::g_abPressed[BTN_RIGHT] = true;
+        break;
+
+        case WM_RBUTTONUP:
+        control::g_abPressed[BTN_RIGHT] = false;
+        break;
+
+        case WM_SYSKEYUP:
+        case WM_SYSKEYDOWN:
+        case WM_KEYUP:
+        case WM_KEYDOWN:
+        {
+            WPARAM keyCode = wParam;
+            bool bWasDown = ((lParam & (1 << 30)) != 0);
+            bool bDown = ((lParam >> 31) & 1) == 0;
+
+            if (bWasDown == bDown)
+                break;
+
+            s->procKey(keyCode, bDown);
+        }
+        break;
+
+        case WM_MOUSEMOVE:
+        {
+            s->m_pointerSurfaceX = static_cast<f32>(GET_X_LPARAM(lParam));
+            s->m_pointerSurfaceY = static_cast<f32>(GET_Y_LPARAM(lParam));
+        }
+        break;
+
+        case WM_MBUTTONDOWN:
+        {
+            /* middle click */
+        }
+        break;
+
+        case WM_MOUSEWHEEL:
+        {
+            /* wayland uses doubles and one scroll is +- 15, here its short and +- 120 */
+            short zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+            s->m_qWheelEvents.forcePushBack(zDelta);
+        }
+        break;
+
+        case WM_INPUT:
+        {
+            u32 size = sizeof(RAWINPUT);
+            static RAWINPUT raw[sizeof(RAWINPUT)] {};
+            GetRawInputData((HRAWINPUT)lParam, RID_INPUT, raw, &size, sizeof(RAWINPUTHEADER));
+
+            if (raw->header.dwType == RIM_TYPEMOUSE)
+            {
+                s->m_relMotionX += static_cast<f32>(raw->data.mouse.lLastX);
+                s->m_relMotionY += static_cast<f32>(raw->data.mouse.lLastY);
+            }
+        }
+        break;
+
+        default:
+        break;
+    }
+
+    if (s && s->m_bPointerRelativeMode)
+    {
+        RECT r;
+        GetWindowRect(s->m_hWindow, &r);
+
+        SetCursorPos(
+            s->m_winWidth / 2 + r.left,
+            s->m_winHeight / 2 + r.top
+        );
+        SetCursor(nullptr);
+    }
+
+    return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
 } /* namespace platform::win32 */

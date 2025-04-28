@@ -4,14 +4,13 @@
 #include "asset.hh"
 
 #include "adt/View.hh"
-#include "adt/logs.hh"
 
 using namespace adt;
 
 Pool<Model, 128> Model::g_poolModels {};
 
 Model::Model(i16 assetModelI)
-    : m_arena(SIZE_1M), m_modelAssetI(assetModelI)
+    : m_arena {SIZE_1M}, m_future {INIT}, m_modelAssetI {assetModelI}
 {
     loadNodes();
     loadAnimations();
