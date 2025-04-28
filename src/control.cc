@@ -141,7 +141,7 @@ static void
 procMouseWheel()
 {
     const auto& win = app::windowInst();
-    g_mouse.vertWheel = win.m_verticalWheel;
+    g_mouse.vertWheel = win.m_atomVertWheel.load(atomic::ORDER::ACQUIRE);
 }
 
 void

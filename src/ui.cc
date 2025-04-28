@@ -6,6 +6,8 @@
 #include "game/game.hh"
 #include "Model.hh"
 
+#include "adt/logs.hh"
+
 using namespace adt;
 
 namespace ui
@@ -234,27 +236,27 @@ init()
                                 {
                                     case 0:
                                     {
-                                        if (control::g_abPressed[BTN_LEFT])
+                                        if (control::g_mouse.vertWheel > 0.0f)
                                             entity.pos.x += 1.0f;
-                                        else if (control::g_abPressed[BTN_RIGHT])
+                                        else if (control::g_mouse.vertWheel < 0.0f)
                                             entity.pos.x -= 1.0f;
                                     }
                                     break;
 
                                     case 1:
                                     {
-                                        if (control::g_abPressed[BTN_LEFT])
+                                        if (control::g_mouse.vertWheel > 0.0f)
                                             entity.pos.y += 1.0f;
-                                        else if (control::g_abPressed[BTN_RIGHT])
+                                        else if (control::g_mouse.vertWheel < 0.0f)
                                             entity.pos.y -= 1.0f;
                                     }
                                     break;
 
                                     case 2:
                                     {
-                                        if (control::g_abPressed[BTN_LEFT])
+                                        if (control::g_mouse.vertWheel > 0.0f)
                                             entity.pos.z += 1.0f;
-                                        else if (control::g_abPressed[BTN_RIGHT])
+                                        else if (control::g_mouse.vertWheel < 0.0f)
                                             entity.pos.z -= 1.0f;
                                     }
                                     break;
@@ -547,10 +549,11 @@ updateState()
     const math::V2 delta = mouse.abs - mouse.prevAbs;
     mouse.prevAbs = mouse.abs;
 
-    bool bNoClick =
-        !(control::g_abPressed[BTN_LEFT] ||
+    bool bNoClick = !(
+        control::g_abPressed[BTN_LEFT] ||
         control::g_abPressed[BTN_RIGHT] ||
-        control::g_abPressed[BTN_MIDDLE]
+        control::g_abPressed[BTN_MIDDLE] ||
+        control::g_mouse.vertWheel != 0.0f
     );
 
     if (bNoClick)

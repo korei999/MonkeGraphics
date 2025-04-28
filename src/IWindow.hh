@@ -1,6 +1,6 @@
 #pragma once
 
-#include "adt/types.hh"
+#include "adt/atomic.hh"
 
 #ifdef OPT_SW
     #include "adt/Span2D.hh"
@@ -47,7 +47,8 @@ struct IWindow
     adt::f32 m_relMotionX {};
     adt::f32 m_relMotionY {};
 
-    adt::f32 m_verticalWheel {};
+    // adt::f32 m_verticalWheel {};
+    adt::atomic::Int m_atomVertWheel {};
 
     /* */
 

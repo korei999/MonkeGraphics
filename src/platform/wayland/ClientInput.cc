@@ -162,7 +162,7 @@ Client::pointerAxis(
 {
     if (axis == WL_POINTER_AXIS_SOURCE_WHEEL)
     {
-        m_verticalWheel = wl_fixed_to_double(value);
+        m_atomVertWheel.store(int(wl_fixed_to_double(value)), atomic::ORDER::RELEASE);
     }
 }
 

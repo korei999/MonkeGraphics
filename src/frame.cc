@@ -108,8 +108,8 @@ renderLoop(void* pArg)
             accumulator += g_frameTime;
             g_time = newTime;
 
-            ui::updateState();
             control::procInput();
+            ui::updateState();
 
             while (accumulator >= g_dt)
             {
@@ -123,6 +123,9 @@ renderLoop(void* pArg)
 
                 accumulator -= g_dt;
             }
+
+            /* TODO: enqueue wheel events, deque each iteration. */
+            win.m_atomVertWheel.store(0, atomic::ORDER::RELAXED);
 
             renderer.draw(pArena);
 
@@ -140,8 +143,7 @@ renderLoop(void* pArg)
             for (const f64 ft : vFrameTimes) avg += ft;
 
             char aBuff[128] {};
-            ssize n = print::toBuffer(aBuff, sizeof(aBuff) - 1,
-                "FPS: {} | avg frame time: {:.3} ms\n",
+            ssize n = print::toSpan(aBuff, "FPS: {} | avg frame time: {:.3} ms\n",
                 vFrameTimes.size(), avg / vFrameTimes.size()
             );
             g_sfFpsStatus = StringView{aBuff, n};
