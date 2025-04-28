@@ -1,6 +1,6 @@
 #pragma once
 
-#include "adt/atomic.hh"
+#include "adt/QueueSPSC.hh"
 
 #ifdef OPT_SW
     #include "adt/Span2D.hh"
@@ -47,8 +47,8 @@ struct IWindow
     adt::f32 m_relMotionX {};
     adt::f32 m_relMotionY {};
 
-    // adt::f32 m_verticalWheel {};
-    adt::atomic::Int m_atomVertWheel {};
+    adt::QueueSPSC<adt::f32, 128> m_qWheelEvents {};
+
 
     /* */
 

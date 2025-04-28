@@ -140,8 +140,10 @@ procMouse()
 static void
 procMouseWheel()
 {
-    const auto& win = app::windowInst();
-    g_mouse.vertWheel = win.m_atomVertWheel.load(atomic::ORDER::ACQUIRE);
+    auto& win = app::windowInst();
+
+    Opt<f32> oScroll = win.m_qWheelEvents.popFront();
+    g_mouse.vertWheel = oScroll.valueOrEmpty();
 }
 
 void

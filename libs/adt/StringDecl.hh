@@ -50,7 +50,8 @@ struct StringView
     constexpr ssize idx(const char* const pChar) const;
     [[nodiscard]] bool beginsWith(const StringView r) const;
     [[nodiscard]] bool endsWith(const StringView r) const;
-    [[nodiscard]] ssize lastOf(char c) const;
+    constexpr ssize lastOf(char c) const;
+    constexpr ssize firstOf(char c) const;
     void trimEnd();
     void removeNLEnd(); /* remove \r\n */
     [[nodiscard]] bool contains(const StringView r) const;

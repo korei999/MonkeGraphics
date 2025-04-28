@@ -82,9 +82,11 @@ constexpr InitFlag INIT {};
 #if defined __clang__ || __GNUC__
     #define ADT_NO_UB __attribute__((no_sanitize("undefined")))
     #define ADT_LOGS_FILE __FILE_NAME__
+    #define ADT_FUNC_SIG __PRETTY_FUNCTION__
 #else
     #define ADT_NO_UB
     #define ADT_LOGS_FILE __FILE__
+    #define ADT_FUNC_SIG __FUNCSIG__
 #endif
 
 #if defined __clang__ || __GNUC__

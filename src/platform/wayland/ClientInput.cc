@@ -160,9 +160,10 @@ Client::pointerAxis(
     [[maybe_unused]] wl_fixed_t value
 )
 {
+    static int counter = 0;
     if (axis == WL_POINTER_AXIS_SOURCE_WHEEL)
     {
-        m_atomVertWheel.store(int(wl_fixed_to_double(value)), atomic::ORDER::RELEASE);
+        m_qWheelEvents.pushBack(wl_fixed_to_double(value));
     }
 }
 

@@ -6,8 +6,6 @@
 #include "game/game.hh"
 #include "Model.hh"
 
-#include "adt/logs.hh"
-
 using namespace adt;
 
 namespace ui
@@ -564,7 +562,7 @@ updateState()
         return;
     }
 
-    if (s_bPressed && !s_bGrabbed) return;
+    if (s_bPressed && !s_bGrabbed && control::g_mouse.vertWheel == 0.0f) return;
 
     const f32 widthFactor = 1.0f/(win.m_winWidth * (1.0f/WIDTH));
     const f32 heightFactor = 1.0f/(win.m_winHeight * (1.0f/HEIGHT));

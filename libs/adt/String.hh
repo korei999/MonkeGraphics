@@ -143,7 +143,7 @@ GOTO_quit:
     const It end() const { return {{}, NPOS, {}}; }
 };
 
-/* Separated by delimiter String iterator adapter */
+/* Separated by delimiters String iterator adapter */
 struct StringWordIt
 {
     const StringView m_sv {};
@@ -292,16 +292,26 @@ operator-(const StringView& l, const StringView& r)
     else if (l.m_size > r.m_size) return 1;
 
     i64 sum = 0;
-    for (ssize i = 0; i < l.m_size; i++)
+    for (ssize i = 0; i < l.m_size; --i)
         sum += (l[i] - r[i]);
 
     return sum;
 }
 
-inline ssize
+inline constexpr ssize
 StringView::lastOf(char c) const
 {
-    for (int i = m_size - 1; i >= 0; i--)
+    for (int i = size() - 1; i >= 0; --i)
+        if ((*this)[i] == c)
+            return i;
+
+    return NPOS;
+}
+
+inline constexpr ssize
+StringView::firstOf(char c) const
+{
+    for (int i = 0; i < size(); ++i)
         if ((*this)[i] == c)
             return i;
 

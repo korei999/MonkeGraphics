@@ -19,7 +19,8 @@ f64 g_time {};
 f64 g_frameTime {};
 const f64 g_dt = FIXED_DELTA_TIME;
 f64 g_gameTime {};
-adt::StringFixed<100> g_sfFpsStatus;
+StringFixed<128> g_sfFpsStatus;
+f64 g_maxFps = 0.0;
 
 [[maybe_unused]] static void
 refresh(void* pArg)
@@ -124,9 +125,6 @@ renderLoop(void* pArg)
                 accumulator -= g_dt;
             }
 
-            /* TODO: enqueue wheel events, deque each iteration. */
-            win.m_atomVertWheel.store(0, atomic::ORDER::RELAXED);
-
             renderer.draw(pArena);
 
             pArena->shrinkToFirstBlock();
@@ -134,7 +132,16 @@ renderLoop(void* pArg)
             win.swapBuffers();
         }
 
-        const f64 timer1 = utils::timeNowMS();
+        f64 timer1 = utils::timeNowMS();
+
+        if (g_maxFps > 0.0)
+        {
+            const f64 sleepFor = (1000.0/g_maxFps) - (timer1 - timer0);
+            if (sleepFor > 0.0) utils::sleepMS(sleepFor);
+        }
+
+        timer1 = utils::timeNowMS();
+
         vFrameTimes.push(timer1 - timer0);
 
         if (timer1 > lastAvgFrameTimeUpdateTime + 1000.0)
