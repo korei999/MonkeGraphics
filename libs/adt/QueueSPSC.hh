@@ -26,7 +26,7 @@ struct QueueSPSC
     bool empty() const;
 
     bool pushBack(const T& x);
-    bool forcePushBack(const T& x);
+    bool forcePushBack(const T& x); /* bump head on failure */
     [[nodiscard]] Opt<T> popFront();
 };
 
