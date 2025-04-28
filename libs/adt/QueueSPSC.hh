@@ -26,6 +26,7 @@ struct QueueSPSC
     bool empty() const;
 
     bool pushBack(const T& x);
+    bool forcePushBack(const T& x);
     [[nodiscard]] Opt<T> popFront();
 };
 
@@ -59,6 +60,25 @@ QueueSPSC<T, CAP>::pushBack(const T& x)
     
     if (nextTail == m_atomHeadI.load(atomic::ORDER::ACQUIRE))
         return false;
+
+    new(m_pData + tail) T(x);
+    m_atomTailI.store(nextTail, atomic::ORDER::RELEASE);
+
+    return true;
+}
+
+template<typename T, int CAP>
+inline bool
+QueueSPSC<T, CAP>::forcePushBack(const T& x)
+{
+    int tail = m_atomTailI.load(atomic::ORDER::RELAXED);
+    int nextTail = nextI(tail);
+
+    if (nextTail == m_atomHeadI.load(atomic::ORDER::ACQUIRE))
+    {
+        int head = m_atomHeadI.load(atomic::ORDER::RELAXED);
+        m_atomHeadI.store(nextI(head), atomic::ORDER::RELEASE);
+    }
 
     new(m_pData + tail) T(x);
     m_atomTailI.store(nextTail, atomic::ORDER::RELEASE);

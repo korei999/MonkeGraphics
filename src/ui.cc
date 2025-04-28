@@ -573,7 +573,7 @@ updateState()
     const f32 dx = delta.x * widthFactor;
     const f32 dy = delta.y * heightFactor;
 
-    if (s_bGrabbed)
+    if (s_bGrabbed && control::g_mouse.vertWheel == 0.0f)
     {
         s_pGrabbedWidget->x += dx;
         s_pGrabbedWidget->y += dy;

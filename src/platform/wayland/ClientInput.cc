@@ -163,7 +163,7 @@ Client::pointerAxis(
     static int counter = 0;
     if (axis == WL_POINTER_AXIS_SOURCE_WHEEL)
     {
-        m_qWheelEvents.pushBack(wl_fixed_to_double(value));
+        m_qWheelEvents.forcePushBack(wl_fixed_to_double(value));
     }
 }
 
