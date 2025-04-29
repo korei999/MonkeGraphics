@@ -1,8 +1,9 @@
 #pragma once
 
-#include "assert.hh"
 #include "atomic.hh"
 #include "Opt.hh"
+
+#include <new>
 
 namespace adt
 {

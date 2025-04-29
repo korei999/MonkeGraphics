@@ -83,8 +83,8 @@ renderLoop(void* pArg)
 {
     Arena* pArena = static_cast<Arena*>(pArg);
 
-    app::allocScratchForThisThread(SIZE_1M * 2);
-    defer( app::destroyScratchForThisThread() );
+    // app::allocScratchForThisThread(SIZE_1M * 2);
+    // defer( app::destroyScratchForThisThread() );
 
     auto& win = app::windowInst();
     win.bindContext();
@@ -108,6 +108,8 @@ renderLoop(void* pArg)
 
             accumulator += g_frameTime;
             g_time = newTime;
+
+            win.procEvents();
 
             control::procInput();
             ui::updateState();
@@ -183,14 +185,15 @@ mainLoop()
     game::updateState(&frameArena);
 
     win.unbindContext();
-    Thread renderThread(renderLoop, &frameArena, Thread::ATTR::JOINABLE);
-    defer( renderThread.join() );
+    // Thread renderThread(renderLoop, &frameArena, Thread::ATTR::JOINABLE);
+    // defer( renderThread.join() );
+
+    renderLoop(&frameArena);
 
     /* NOTE: its slightly faster when event loops is not blocking the render loop */
-    while (win.m_bRunning)
-    {
-        win.procEvents();
-    }
+    // while (win.m_bRunning)
+    // {
+    // }
 }
 
 void
@@ -202,7 +205,8 @@ start()
     win.m_bRunning = true;
 
     /* loadStuff() will need this */
-    app::allocScratchForThisThread(SIZE_1K);
+    // app::allocScratchForThisThread(SIZE_1K);
+    app::allocScratchForThisThread(SIZE_1M * 2);
     defer( app::destroyScratchForThisThread() );
 
     game::loadStuff();

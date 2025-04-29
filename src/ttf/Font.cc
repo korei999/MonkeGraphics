@@ -2,6 +2,8 @@
 
 #include "adt/logs.hh"
 
+#include <cmath>
+
 using namespace adt;
 
 namespace ttf
@@ -36,7 +38,7 @@ getTableChecksum(u32* pTable, u32 nBytes)
     while (nLongs > 0)
     {
         sum += bin::swapBytes(*pTable);
-        nLongs--, pTable++;
+        --nLongs, --pTable;
     }
 
     return sum;
