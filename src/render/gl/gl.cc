@@ -384,7 +384,9 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
                     Span<char> sp = app::gtl_scratch.nextMemZero<char>(img.sUri.size() + 300);
                     if (sp.size() >= img.sUri.size() + 300)
                     {
-                        file::replacePathEnding(&sp, reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri);
+                        file::replacePathEnding(&sp,
+                            reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri
+                        );
 
                         auto* pObj = asset::search(sp, asset::Object::TYPE::IMAGE);
 
