@@ -149,7 +149,7 @@ extern adt::Pool<Widget, 64> g_poolWidgets;
 namespace adt::print
 {
 
-static ssize
+inline ssize
 formatToContext(Context ctx, FormatArgs fmtArgs, const ::ui::Offset x)
 {
     return formatToContext(ctx, fmtArgs, Pair{x.x, x.y});

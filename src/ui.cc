@@ -143,8 +143,6 @@ Entry::makeText(const Text& text)
 void
 init()
 {
-    const auto& win = app::windowInst();
-
     /* FIXME: grabWidth and grabHeight restrict the clickable area. */
     {
         Widget widget {
@@ -226,7 +224,7 @@ init()
                             .pArg = reinterpret_cast<void*>(entityI),
                         },
                         .onClick {
-                            .pfn = +[](Entry::Menu* pSelf, i16 clickedI, void* pArg) -> void
+                            .pfn = +[](Entry::Menu*, i16 clickedI, void* pArg) -> void
                             {
                                 auto entity = game::g_poolEntities[{int(reinterpret_cast<ssize>(pArg))}];
 
@@ -276,7 +274,7 @@ init()
         Entry entityList = Entry::makeArrowList({
             .vEntries = vListMenus,
             .onUpdate {
-                .pfn = +[](Entry::ArrowList* pSelf, void* pArg)
+                .pfn = +[](Entry::ArrowList* pSelf, void*)
                 {
                     auto clSetOutline = [&](ssize idx, const Opt<math::V4>& oColor) -> void
                     {

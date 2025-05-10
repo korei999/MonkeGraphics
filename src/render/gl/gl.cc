@@ -198,7 +198,6 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
     using namespace adt::math;
     const gltf::Node& gltfNode = model.gltfNode(node);
     const auto& win = app::windowInst();
-    const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
     const auto& camera = control::g_camera;
     const M4& trmView = camera.m_trm;
     const auto& gltfModel = model.gltfModel();
