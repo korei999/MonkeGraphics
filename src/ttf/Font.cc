@@ -598,12 +598,13 @@ Font::parse2()
         };
 
         td.mapStringToTableRecord.insert(m_pAlloc, r.tag, r);
-        if (r.tag != "head")
-        {
-            auto checkSum = getTableChecksum((u32*)(&m_bin[r.offset]), r.length);
-            if (r.checkSum - checkSum != 0)
-                LOG_WARN("checkSums don't match: expected: {}, got: {}\n", r.checkSum, checkSum);
-        }
+        /* FIXME: (ASAN) heapbuffer overflow */
+        // if (r.tag != "head")
+        // {
+        //     auto checkSum = getTableChecksum((u32*)(&m_bin[r.offset]), r.length);
+        //     if (r.checkSum - checkSum != 0)
+        //         LOG_WARN("checkSums don't match: expected: {}, got: {}\n", r.checkSum, checkSum);
+        // }
 
 #ifdef D_TTF
         LOG(

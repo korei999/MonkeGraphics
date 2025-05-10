@@ -178,18 +178,17 @@ makeItCurvy(IAllocator* pAlloc, const Vec<PointOnCurve>& aNonCurvyPoints, CurveE
 void
 Rasterizer::rasterizeGlyph(const Font& font, const Glyph& glyph, int xOff, int yOff)
 {
-    Span spMem = app::gtl_scratch.allMem<PointOnCurve>();
-    BufferAllocator allo(reinterpret_cast<u8*>(spMem.data()), spMem.size() * sizeof(PointOnCurve));
+    BufferAllocator allo(app::gtl_scratch.allMem<PointOnCurve>());
 
     CurveEndIdx endIdxs {};
     Vec<PointOnCurve> vCurvyPoints = makeItCurvy(
         &allo, pointsWithMissingOnCurve(&allo, glyph), &endIdxs, 6
     );
 
-    f32 xMax = font.m_head.xMax;
-    f32 xMin = font.m_head.xMin;
-    f32 yMax = font.m_head.yMax;
-    f32 yMin = font.m_head.yMin;
+    const f32 xMax = font.m_head.xMax;
+    const f32 xMin = font.m_head.xMin;
+    const f32 yMax = font.m_head.yMax;
+    const f32 yMin = font.m_head.yMin;
 
     Array<f32, 64> aIntersections {};
     Span2D<u8> spAtlas = m_altas.spanMono();
@@ -202,70 +201,63 @@ Rasterizer::rasterizeGlyph(const Font& font, const Glyph& glyph, int xOff, int y
         aIntersections.setSize(0);
         const f32 scanline = static_cast<f32>(row);
 
-        for (ssize pointIdx = 1; pointIdx < vCurvyPoints.size(); ++pointIdx)
+        for (ssize pointI = 1; pointI < vCurvyPoints.size(); ++pointI)
         {
-            const f32 x0 = (vCurvyPoints[pointIdx - 1].pos.x) * hScale;
-            const f32 x1 = (vCurvyPoints[pointIdx - 0].pos.x) * hScale;
+            const f32 x0 = (vCurvyPoints[pointI - 1].pos.x) * hScale;
+            const f32 x1 = (vCurvyPoints[pointI - 0].pos.x) * hScale;
 
-            const f32 y0 = (vCurvyPoints[pointIdx - 1].pos.y - yMin) * vScale;
-            const f32 y1 = (vCurvyPoints[pointIdx - 0].pos.y - yMin) * vScale;
+            const f32 y0 = (vCurvyPoints[pointI - 1].pos.y - yMin) * vScale;
+            const f32 y1 = (vCurvyPoints[pointI - 0].pos.y - yMin) * vScale;
 
-            if (vCurvyPoints[pointIdx].bEndOfCurve)
-                ++pointIdx;
+            if (vCurvyPoints[pointI].bEndOfCurve)
+                ++pointI;
 
-            /* for the intersection all we need is to find what X is when our y = scanline or when y is equal to i of the loop
-             *
-             * y - y1 = m*(x - x1) sub both sides by m
-             * (y - y1)/m = x - x1 add x1 to both sides
-             * (y-y1)*1/m + x1 = x m is just the slope of the line so dy/dx and 1/m is dx/dy
-             * y in this equation would be the scanline, x1 & y1 */
-
-            const f32 biggerY = utils::max(y0, y1);
-            const f32 smallerY = utils::min(y0, y1);
+            const auto [smallerY, biggerY] = utils::minMax(y0, y1);
 
             if (scanline <= smallerY || scanline > biggerY) continue;
 
-            const f32 dx = x1 - x0;
+            /* Scanline: horizontal line that intersects edges. Find X for scanline Y.
+             * |
+             * |      /(x1, y1)
+             * |____/______________inter(x, y)
+             * |  /
+             * |/(x0, y0)
+             * +------------ */
+
             const f32 dy = y1 - y0;
+            const f32 dx = x1 - x0;
 
-            if (math::eq(dy, 0.0f)) continue;
+            const f32 interX = (scanline - y1)/dy * dx + x1;
 
-            f32 intersection = -1.0f;
-
-            if (math::eq(dx, 0.0f)) intersection = x1;
-            else intersection = (scanline - y1)*(dx/dy) + x1;
-
-            if (aIntersections.size() >= aIntersections.cap()) continue;
-
-            aIntersections.push(intersection);
+            aIntersections.push(interX);
         }
 
         if (aIntersections.size() > 1)
         {
             sort::insertion(&aIntersections);
 
-            for (ssize intIdx = 0; intIdx < aIntersections.size(); intIdx += 2)
+            for (ssize intI = 1; intI < aIntersections.size(); intI += 2)
             {
-                f32 start = aIntersections[intIdx];
-                int startIdx = start;
-                f32 startCovered = (startIdx + 1) - start;
+                const f32 start = aIntersections[intI - 1];
+                const int startI = start;
+                const f32 startCovered = (startI + 1) - start;
 
-                f32 end = aIntersections[intIdx + 1];
-                int endIdx = end;
-                f32 endCovered = end - endIdx;
+                const f32 end = aIntersections[intI];
+                const int endIdx = end;
+                const f32 endCovered = end - endIdx;
 
-                // if (startIdx >= 0)
-                //     spAtlas(xOff + startIdx, yOff + row) = utils::clamp(255.0f * startCovered, 0.0f, 255.0f);
-                // if (startIdx != endIdx)
-                //     spAtlas(xOff + endIdx, yOff + row) = utils::clamp(255.0f * endCovered, 0.0f, 255.0f);
+                for (int col = startI + 1; col < endIdx; ++col)
+                    spAtlas(xOff + col, yOff + row) = 255;
 
-                if (startIdx >= 0)
-                    spAtlas(xOff + startIdx, yOff + row) = 255.0f * startCovered;
-                if (startIdx != endIdx)
-                    spAtlas(xOff + endIdx, yOff + row) = 255.0f * endCovered;
-
-                for (int col = startIdx + 1; col < endIdx; ++col)
-                    if (col >= 0) spAtlas(xOff + col, yOff + row) = 255;
+                if (startI == endIdx)
+                {
+                    spAtlas(xOff + startI, yOff + row) += 255.0f * startCovered;
+                }
+                else
+                {
+                    spAtlas(xOff + startI, yOff + row) += 255.0f * startCovered;
+                    spAtlas(xOff + endIdx, yOff + row) += 255.0f * endCovered;
+                }
             }
         }
     }
@@ -301,7 +293,7 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
     i16 yOff = 0;
     const i16 xStep = iScale * X_STEP;
 
-    Arena arena(SIZE_8K);
+    BufferAllocator arena(app::gtl_scratch.allMem<u8>());
     defer( arena.freeAll() );
 
     for (u32 ch = '!'; ch <= '~'; ++ch)

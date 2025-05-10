@@ -2,13 +2,11 @@
 
 #pragma once
 
-#include "adt/String.hh" /* IWYU pragma: keep */
-
 #include "Image.hh"
 
-#ifdef DBG_BMP
-    #include "adt/logs.hh"
-#endif /* DBG_BMP */
+#include "adt/String.hh" /* IWYU pragma: keep */
+#include "adt/defer.hh"
+#include "adt/logs.hh"
 
 namespace BMP
 {
@@ -141,7 +139,7 @@ Reader::parse()
         "BM: '{}'\n"
         "size: {}\n"
         "offset: {}\n",
-        String((char*)&m_header.BM, 2),
+        StringView((char*)&m_header.BM, 2),
         m_header.size, m_header.offset
     );
 #endif /* DBG_BMP */
@@ -171,6 +169,58 @@ Reader::parse()
     return true;
 }
 
+inline void
+writeToFile(const Image img, const char* ntsFile)
+{
+    FILE* fp = fopen(ntsFile, "wb");
+    if (!fp)
+    {
+        LOG_BAD("fpen(\"{}\", \"wb\") failed\n", ntsFile);
+        return;
+    }
+    defer( fclose(fp) );
+
+    adt::u16 nBitsPerPixel = [&]
+    {
+        switch (img.m_eType)
+        {
+            case Image::TYPE::MONO:
+            return 8;
+
+            default:
+            ADT_ASSERT(false, "unhandled");
+        }
+
+        return 0;
+    }();
+
+    Header head {
+        .BM = adt::u32('B' | 'M' << 8),
+        .size = adt::u32(sizeof(Header) + sizeof(BitmapInfoHeader) + img.m_width*img.m_height),
+        .offset = sizeof(Header) + sizeof(BitmapInfoHeader),
+    };
+
+    BitmapInfoHeader info {
+        .size = sizeof(BitmapInfoHeader),
+        .width = img.m_width,
+        .height = img.m_height,
+        .nPlanes = 1,
+        .nBitsPerPixel = nBitsPerPixel,
+        .eCompressionMethod = COMPRESSION_METHOD_ID::RGB,
+        .imageSize = 1,
+        .hRes = 0,
+        .vRes = 0,
+        .nColors = 0,
+        .nColorsUsed = 0,
+    };
+
+    fwrite(&head, sizeof(head), 1, fp);
+    fwrite(&info, sizeof(info), 1, fp);
+    fwrite(img.spanMono().data(), img.m_width * img.m_height, 1, fp);
+
+    // LOG_NOTIFY("written: w/h: [{}, {}]\n", img.m_width, img.m_height);
+}
+
 };
 
 #ifdef DBG_BMP
@@ -178,9 +228,9 @@ namespace adt::print
 {
 
 inline ssize
-formatToContext(Context ctx, FormatArgs fmtArgs, bmp::COMPRESSION_METHOD_ID eCompressionMethod) noexcept
+formatToContext(Context ctx, FormatArgs fmtArgs, BMP::COMPRESSION_METHOD_ID eCompressionMethod) noexcept
 {
-    constexpr String asMethods[] {
+    constexpr StringView asMethods[] {
         "BI_RGB",
         "BI_RLE8",
         "BI_RLE4",
@@ -195,7 +245,7 @@ formatToContext(Context ctx, FormatArgs fmtArgs, bmp::COMPRESSION_METHOD_ID eCom
 
     ADT_ASSERT(int(eCompressionMethod) < utils::size(asMethods), " ");
 
-    return formatToContext(ctx, fmtArgs, asMethods[eCompressionMethod]);
+    return formatToContext(ctx, fmtArgs, asMethods[int(eCompressionMethod)]);
 }
 
 } /* namespace adt::print */

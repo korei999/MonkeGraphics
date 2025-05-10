@@ -290,4 +290,46 @@ makeNull(adt::StringView key)
     };
 }
 
+inline bool
+isNull(const Node& obj)
+{
+    return obj.tagVal.eTag == TAG::NULL_;
+}
+
+inline bool
+isStringView(const Node& obj)
+{
+    return obj.tagVal.eTag == TAG::STRING;
+}
+
+inline bool
+isNumber(const Node& obj)
+{
+    return obj.tagVal.eTag == TAG::LONG;
+}
+
+inline bool
+isFloat(const Node& obj)
+{
+    return obj.tagVal.eTag == TAG::DOUBLE;
+}
+
+inline bool
+isArray(const Node& obj)
+{
+    return obj.tagVal.eTag == TAG::ARRAY;
+}
+
+inline bool
+isObject(const Node& obj)
+{
+    return obj.tagVal.eTag == TAG::OBJECT;
+}
+
+inline bool
+isBool(const Node& obj)
+{
+    return obj.tagVal.eTag == TAG::BOOL;
+}
+
 } /* namespace json */
