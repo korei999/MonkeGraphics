@@ -73,7 +73,7 @@ drawText(
         );
         s_pShTexMonoBlur->setV4("u_color", fgColor);
 
-        s_text.update(s_rastLiberation, sv, true);
+        s_text.update(s_rastLiberation, &app::gtl_scratch, sv, true);
         s_text.draw();
     };
 
@@ -266,7 +266,7 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
             proj *
             math::M4TranslationFrom({
                 pWidget->x - pWidget->border,
-                pWidget->y - pWidget->border/* *uiWidthToUiHeightInv */,
+                pWidget->y - pWidget->border /* *uiWidthToUiHeightInv */,
                 -5.0f
             }) *
             math::M4ScaleFrom({
@@ -316,16 +316,14 @@ draw(Arena* pArena)
         s_pShTexMonoBlur->setV4("u_color", V4From(colors::GREEN, 0.75f));
         s_pShTexMonoBlur->setM4("u_trm", proj * math::M4TranslationFrom({0.0f, 0.0f, -1.0f}));
 
-        s_text.update(s_rastLiberation, frame::g_sfFpsStatus, true);
+        s_text.update(s_rastLiberation, &app::gtl_scratch, frame::g_sfFpsStatus, true);
         s_text.draw();
     }
 
     /* info */
     {
-        Span<char> spBuff = app::gtl_scratch.nextMemZero<char>(1 << 9);
-        if (spBuff.size() < (1 << 9)) return;
-
-        ssize n = print::toSpan(spBuff,
+        char* pBuff = pArena->zallocV<char>(1 << 9);
+        ssize n = print::toSpan({pBuff, 1 << 9},
             "F: toggle fullscreen ({})\n"
             "V: toggle VSync ({})\n"
             "R: lock/unlock mouse ({})\n"
@@ -340,7 +338,7 @@ draw(Arena* pArena)
             control::g_bDrawUI
         );
 
-        StringView sv = {spBuff.data(), n};
+        StringView sv = {pBuff, n};
 
         int nSpaces = 0;
         for (auto ch : sv) if (ch == '\n') ++nSpaces;
@@ -351,7 +349,7 @@ draw(Arena* pArena)
             )
         );
 
-        s_text.update(s_rastLiberation, sv, true);
+        s_text.update(s_rastLiberation, &app::gtl_scratch, sv, true);
         s_text.draw();
     }
 

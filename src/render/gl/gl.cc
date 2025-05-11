@@ -9,6 +9,7 @@
 #include "game/game.hh"
 #include "shaders/glsl.hh"
 
+#include "adt/BufferAllocator.hh"
 #include "adt/Map.hh"
 #include "adt/ScratchBuffer.hh"
 #include "adt/StdAllocator.hh"
@@ -212,6 +213,8 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
     V4 stencilColor {};
     void* pStencilExtra {};
 
+    BufferAllocator buff {app::gtl_scratch.nextMem<u8>()};
+
     auto clBindTexture = [&](const gltf::Primitive& primitive)
     {
         if (primitive.materialI < 0) return;
@@ -222,9 +225,10 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
             auto& tex = gltfModel.m_vTextures[mat.pbrMetallicRoughness.baseColorTexture.index];
             auto& img = gltfModel.m_vImages[tex.sourceI];
 
-            Span<char> sp = app::gtl_scratch.nextMemZero<char>(img.sUri.size() + 300);
-            if (sp.size() >= img.sUri.size() + 300)
+            try
             {
+                const ssize spanSize = img.sUri.size() + 300;
+                Span<char> sp {buff.zallocV<char>(spanSize), spanSize};
                 file::replacePathEnding(&sp, reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri);
 
                 auto* pObj = asset::search(sp, asset::Object::TYPE::IMAGE);
@@ -236,6 +240,10 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
                     ADT_ASSERT(pSh != nullptr, " ");
                     pTex->bind(GL_TEXTURE0);
                 }
+            }
+            catch (const AllocException& ex)
+            {
+                ADT_ASSERT(false, "");
             }
         }
         else
@@ -351,12 +359,12 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
                         Span<M4> spJointMatrcies;
                     };
 
-                    Span<Arg> spArg = app::gtl_scratch.nextMem<Arg>(1);
-                    spArg[0].trmProj = trmProj;
-                    spArg[0].trmView = trmView;
-                    spArg[0].spJointMatrcies = Span<M4>(skin.vJointMatrices);
+                    Arg* pArg = buff.alloc<Arg>();
+                    pArg->trmProj = trmProj;
+                    pArg->trmView = trmView;
+                    pArg->spJointMatrcies = Span<M4>(skin.vJointMatrices);
 
-                    pStencilExtra = &spArg[0];
+                    pStencilExtra = pArg;
 
                     pfnStencilUpdate = +[](Shader* pShader, const M4& stencilMat, const V4& color, void* pExtra) -> void
                     {

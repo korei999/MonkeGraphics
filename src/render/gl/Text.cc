@@ -1,6 +1,5 @@
 #include "Text.hh"
 
-#include "app.hh"
 #include "adt/BufferAllocator.hh"
 
 using namespace adt;
@@ -11,11 +10,12 @@ namespace render::gl
 Vec<CharQuad2Pos2UV>
 Text::makeStringMesh(
     const ttf::Rasterizer& rast,
+    ScratchBuffer* pScratch,
     const StringView vs,
     const bool bVerticalFlip
 )
 {
-    Span<CharQuad2Pos2UV> spMem = app::gtl_scratch.nextMem<CharQuad2Pos2UV>(m_maxSize);
+    Span<CharQuad2Pos2UV> spMem = pScratch->nextMem<CharQuad2Pos2UV>();
     if (spMem.size() < m_maxSize) return {};
 
     /* NOTE: problems with constructor */
@@ -147,10 +147,10 @@ Text::Text(const int maxSize)
 }
 
 void
-Text::update(const ttf::Rasterizer& rast, const StringView sv, const bool bVerticalFlip)
+Text::update(const ttf::Rasterizer& rast, ScratchBuffer* pScratch, const StringView sv, const bool bVerticalFlip)
 {
     /* construct from gtl_scratch */
-    Vec<CharQuad2Pos2UV> vQuads = makeStringMesh(rast, sv, bVerticalFlip);
+    Vec<CharQuad2Pos2UV> vQuads = makeStringMesh(rast, pScratch, sv, bVerticalFlip);
     m_vboSize = vQuads.size() * 6; /* 6 vertices for 1 quad */
 
     if (m_vboSize > 0)
