@@ -522,9 +522,9 @@ helloGradientTest()
 
     static int frame = 0;
 
-    for (ssize y = 0; y < sp.getHeight(); ++y)
+    for (isize y = 0; y < sp.getHeight(); ++y)
     {
-        for (ssize x = 0; x < sp.getWidth(); ++x)
+        for (isize x = 0; x < sp.getWidth(); ++x)
         {
             ImagePixelRGBA pix;
             pix.r = 255;

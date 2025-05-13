@@ -227,7 +227,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
 
             try
             {
-                const ssize spanSize = img.sUri.size() + 300;
+                const isize spanSize = img.sUri.size() + 300;
                 Span<char> sp {buff.zallocV<char>(spanSize), spanSize};
                 file::replacePathEnding(&sp, reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri);
 
@@ -1032,9 +1032,9 @@ bufferViewConvert(
     defer( StdAllocator::inst()->free(spB.data()) );
     ADT_ASSERT(spB.size() == accessorCount, "sp.size: {}, acc.count: {}", spB.size(), accessorCount);
 
-    ssize maxSize = utils::min(spB.size(), spA.size());
+    isize maxSize = utils::min(spB.size(), spA.size());
 
-    for (ssize spI = 0; spI < maxSize; ++spI)
+    for (isize spI = 0; spI < maxSize; ++spI)
     {
         auto& elementA = spA[spI];
         spB[spI] = B(elementA);
@@ -1233,11 +1233,11 @@ loadGLTF(gltf::Model* pModel)
 
                     vNormals.setSize(vwInd.size() * 3);
 
-                    for (ssize i = 0; i < vwInd.size(); i += 3)
+                    for (isize i = 0; i < vwInd.size(); i += 3)
                     {
-                        const ssize i0 = vwInd[i + 0];
-                        const ssize i1 = vwInd[i + 1];
-                        const ssize i2 = vwInd[i + 2];
+                        const isize i0 = vwInd[i + 0];
+                        const isize i1 = vwInd[i + 1];
+                        const isize i2 = vwInd[i + 2];
 
                         math::V3 tri[3] {
                             vwPos[i0], vwPos[i1], vwPos[i2]
@@ -1256,7 +1256,7 @@ loadGLTF(gltf::Model* pModel)
 
                     vNormals.setSize(vwPos.size() * 3);
 
-                    for (ssize i = 0; i < vwPos.size(); i += 3)
+                    for (isize i = 0; i < vwPos.size(); i += 3)
                     {
                         math::V3 tri[3] {
                             vwPos[i + 0], vwPos[i + 1], vwPos[i + 2]
@@ -1420,7 +1420,7 @@ Skybox::Skybox(const Array<Image, 6>& a6Images)
     glGenTextures(1, &m_tex);
     glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex);
 
-    for (ssize i = 0; i < 6; ++i)
+    for (isize i = 0; i < 6; ++i)
     {
         const Image& img = a6Images[i];
 

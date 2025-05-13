@@ -282,7 +282,7 @@ struct Skin
 namespace adt::print
 {
 
-inline ssize
+inline isize
 formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Channel::Target::PATH_TYPE e)
 {
     constexpr adt::StringView aMap[] {
@@ -294,7 +294,7 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Channel:
     return formatToContext(ctx, fmtArgs, aMap[static_cast<int>(e)]);
 }
 
-inline ssize
+inline isize
 formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Sampler::INTERPOLATION_TYPE e)
 {
     constexpr adt::StringView aMap[] {
@@ -306,7 +306,7 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Sampler:
     return formatToContext(ctx, fmtArgs, aMap[static_cast<int>(e)]);
 }
 
-inline ssize
+inline isize
 formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Node::TRANSFORMATION_TYPE e)
 {
     constexpr adt::StringView aMap[] {
@@ -318,7 +318,7 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Node::TRANSFORMATIO
     return formatToContext(ctx, fmtArgs, aMap[static_cast<int>(e)]);
 }
 
-inline ssize
+inline isize
 formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::COMPONENT_TYPE x)
 {
     const char* nts;
@@ -338,7 +338,7 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::COMPONENT_TYPE x)
 }
 
 
-inline ssize
+inline isize
 formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::TARGET e)
 {
     const char* nts;
@@ -354,7 +354,7 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::TARGET e)
     return formatToContext(ctx, fmtArgs, nts);
 }
 
-inline ssize
+inline isize
 formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Accessor::TYPE e)
 {
     constexpr adt::StringView aMap[] {
@@ -366,7 +366,7 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Accessor::TYPE e)
     return formatToContext(ctx, fmtArgs, aMap[static_cast<int>(e)]);
 }
 
-inline ssize
+inline isize
 formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Primitive::TYPE e)
 {
     constexpr adt::StringView aMap[] {

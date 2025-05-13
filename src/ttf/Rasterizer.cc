@@ -32,7 +32,7 @@ pointsWithMissingOnCurve(IAllocator* pAlloc, const Glyph& g)
     bool bCurrOnCurve = false;
     bool bPrevOnCurve = false;
 
-    [[maybe_unused]] ssize firstInCurveIdx = 0;
+    [[maybe_unused]] isize firstInCurveIdx = 0;
 
     Vec<PointOnCurve> vPoints(pAlloc, size);
     for (const auto& p : aGlyphPoints)
@@ -112,11 +112,11 @@ makeItCurvy(IAllocator* pAlloc, const Vec<PointOnCurve>& aNonCurvyPoints, CurveE
     utils::fill(pEndIdxs->aIdxs, NPOS16, utils::size(pEndIdxs->aIdxs));
     u16 endIdx = 0;
 
-    ssize firstInCurveIdx = 0;
+    isize firstInCurveIdx = 0;
     bool bPrevOnCurve = true;
     for (auto& p : aNonCurvyPoints)
     {
-        ssize idx = aNonCurvyPoints.idx(&p);
+        isize idx = aNonCurvyPoints.idx(&p);
 
         if (p.bEndOfCurve)
         {
@@ -196,67 +196,73 @@ Rasterizer::rasterizeGlyph(const Font& font, const Glyph& glyph, int xOff, int y
     const f32 hScale = static_cast<f32>(m_scale) / static_cast<f32>(xMax - xMin);
     const f32 vScale = static_cast<f32>(m_scale) / static_cast<f32>(yMax - yMin);
 
-    for (ssize row = 0; row < static_cast<ssize>(m_scale); ++row)
+    constexpr isize scanlineSubdiv = 5;
+    constexpr f32 alphaWeight = 255.0f / scanlineSubdiv;
+    constexpr f32 stepPerScanline = 1.0f / scanlineSubdiv;
+
+    for (isize row = 0; row < isize(m_scale); ++row)
     {
-        aIntersections.setSize(0);
-        const f32 scanline = static_cast<f32>(row);
-
-        for (ssize pointI = 1; pointI < vCurvyPoints.size(); ++pointI)
+        for (isize subRow = 0; subRow < scanlineSubdiv; ++subRow)
         {
-            const f32 x0 = (vCurvyPoints[pointI - 1].pos.x) * hScale;
-            const f32 x1 = (vCurvyPoints[pointI - 0].pos.x) * hScale;
+            aIntersections.setSize(0);
+            const f32 scanline = row + (subRow + 0.5f)*stepPerScanline;
 
-            const f32 y0 = (vCurvyPoints[pointI - 1].pos.y - yMin) * vScale;
-            const f32 y1 = (vCurvyPoints[pointI - 0].pos.y - yMin) * vScale;
-
-            if (vCurvyPoints[pointI].bEndOfCurve)
-                ++pointI;
-
-            const auto [smallerY, biggerY] = utils::minMax(y0, y1);
-
-            if (scanline <= smallerY || scanline > biggerY) continue;
-
-            /* Scanline: horizontal line that intersects edges. Find X for scanline Y.
-             * |
-             * |      /(x1, y1)
-             * |____/______________inter(x, y)
-             * |  /
-             * |/(x0, y0)
-             * +------------ */
-
-            const f32 dy = y1 - y0;
-            const f32 dx = x1 - x0;
-
-            const f32 interX = (scanline - y1)/dy * dx + x1;
-
-            aIntersections.push(interX);
-        }
-
-        if (aIntersections.size() > 1)
-        {
-            sort::insertion(&aIntersections);
-
-            for (ssize intI = 1; intI < aIntersections.size(); intI += 2)
+            for (isize pointI = 1; pointI < vCurvyPoints.size(); ++pointI)
             {
-                const f32 start = aIntersections[intI - 1];
-                const int startI = start;
-                const f32 startCovered = (startI + 1) - start;
+                const f32 x0 = (vCurvyPoints[pointI - 1].pos.x) * hScale;
+                const f32 x1 = (vCurvyPoints[pointI - 0].pos.x) * hScale;
 
-                const f32 end = aIntersections[intI];
-                const int endIdx = end;
-                const f32 endCovered = end - endIdx;
+                const f32 y0 = (vCurvyPoints[pointI - 1].pos.y - yMin) * vScale;
+                const f32 y1 = (vCurvyPoints[pointI - 0].pos.y - yMin) * vScale;
 
-                for (int col = startI + 1; col < endIdx; ++col)
-                    spAtlas(xOff + col, yOff + row) = 255;
+                if (vCurvyPoints[pointI].bEndOfCurve)
+                    ++pointI;
 
-                if (startI == endIdx)
+                const auto [smallerY, biggerY] = utils::minMax(y0, y1);
+
+                if (scanline < smallerY || scanline >= biggerY) continue;
+
+                /* Scanline: horizontal line that intersects edges. Find X for scanline Y.
+                 * |
+                 * |      /(x1, y1)
+                 * |____/______________inter(x, y)
+                 * |  /
+                 * |/(x0, y0)
+                 * +------------ */
+
+                const f32 dx = x1 - x0;
+                const f32 dy = y1 - y0;
+                const f32 interX = (scanline - y1)/dy * dx + x1;
+
+                aIntersections.push(interX);
+            }
+
+            if (aIntersections.size() > 1)
+            {
+                sort::insertion(&aIntersections);
+
+                for (isize intI = 1; intI < aIntersections.size(); intI += 2)
                 {
-                    spAtlas(xOff + startI, yOff + row) += 255.0f * startCovered;
-                }
-                else
-                {
-                    spAtlas(xOff + startI, yOff + row) += 255.0f * startCovered;
-                    spAtlas(xOff + endIdx, yOff + row) += 255.0f * endCovered;
+                    const f32 start = aIntersections[intI - 1];
+                    const int startI = start;
+                    const f32 startCovered = (startI + 1) - start;
+
+                    const f32 end = aIntersections[intI];
+                    const int endI = end;
+                    const f32 endCovered = end - endI;
+
+                    for (int col = startI + 1; col < endI; ++col)
+                        spAtlas(xOff + col, yOff + row) += alphaWeight;
+
+                    if (startI == endI)
+                    {
+                        spAtlas.tryAt(xOff + startI, yOff + row, [&](u8& pix) { pix += u8(alphaWeight*startCovered); });
+                    }
+                    else
+                    {
+                        spAtlas.tryAt(xOff + startI, yOff + row, [&](u8& pix) { pix += u8(alphaWeight*startCovered); });
+                        spAtlas.tryAt(xOff + endI, yOff + row, [&](u8& pix) { pix += u8(alphaWeight*endCovered); });
+                    }
                 }
             }
         }
@@ -281,8 +287,8 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
     const int iScale = std::round(scale);
     m_scale = scale;
 
-    ssize nSquares = 10;
-    ssize size = math::sq(scale) * math::sq(nSquares);
+    isize nSquares = 10;
+    isize size = math::sq(scale) * math::sq(nSquares);
 
     m_altas.m_eType = Image::TYPE::MONO;
     m_altas.m_uData.pMono = pAlloc->zallocV<u8>(size);

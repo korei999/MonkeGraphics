@@ -34,7 +34,7 @@ main(int argc, char** argv)
 static void
 parseArgs(const int argc, const char* const argv[])
 {
-    for (ssize i = 1; i < argc; ++i)
+    for (isize i = 1; i < argc; ++i)
     {
         const StringView svArg = argv[i];
 

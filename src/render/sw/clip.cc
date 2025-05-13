@@ -5,7 +5,7 @@ using namespace adt;
 namespace adt::print
 {
 
-[[maybe_unused]] static ssize
+[[maybe_unused]] static isize
 formatToContext(Context ctx, FormatArgs, const render::sw::clip::AXIS e)
 {
     ctx.fmt = "{}";
@@ -141,7 +141,7 @@ polygonToAxis(const Result* pInput, Result* pOutput, const AXIS eAxis)
             behindPlane(aVertices[2].pos, eAxis),
         };
 
-        ssize nBehindPlane = abBehindPlane[0] + abBehindPlane[1] + abBehindPlane[2];
+        isize nBehindPlane = abBehindPlane[0] + abBehindPlane[1] + abBehindPlane[2];
 
         switch (nBehindPlane)
         {

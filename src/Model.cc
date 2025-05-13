@@ -68,7 +68,7 @@ Model::updateAnimation(int animationI, f64 keyframeTime)
             f32 nextTime {};
 
             int prevTimeI = 0;
-            for (ssize i = 0; i < vwTimeStamps.size(); ++i)
+            for (isize i = 0; i < vwTimeStamps.size(); ++i)
             {
                 const auto& timeStamp = vwTimeStamps[i];
                 if (timeStamp < m_time && timeStamp > prevTime)
@@ -269,7 +269,7 @@ Model::loadAnimations()
         {
             constexpr StringView svPrefix = "animation";
             Span<char> sp = app::gtl_scratch.nextMemZero<char>(svPrefix.size() + 5);
-            const ssize n = print::toSpan(sp, "{}{}", "animation", model.m_vAnimations.idx(&gltfAnim));
+            const isize n = print::toSpan(sp, "{}{}", "animation", model.m_vAnimations.idx(&gltfAnim));
             newAnim.sName = String(&m_arena, sp.data(), n);
         }
         else

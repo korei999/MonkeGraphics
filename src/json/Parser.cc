@@ -308,7 +308,7 @@ printNode(FILE* fp, Node* pNode, StringView svEnd, int depth)
                 int(objName1.size()), objName1.data()
             );
 
-            for (ssize i = 0; i < obj.size(); ++i)
+            for (isize i = 0; i < obj.size(); ++i)
             {
                 StringView svE = (i == obj.size() - 1) ? "\n" : ",\n";
                 printNode(fp, &obj[i], svE, depth + 2);
@@ -357,7 +357,7 @@ printNode(FILE* fp, Node* pNode, StringView svEnd, int depth)
                 int(arrName1.size()), arrName1.data()
             );
 
-            for (ssize i = 0; i < arr.size(); ++i)
+            for (isize i = 0; i < arr.size(); ++i)
             {
                 StringView svE = (i == arr.size() - 1) ? "\n" : ",\n";
 
@@ -517,7 +517,7 @@ printNode(FILE* fp, Node* pNode, StringView svEnd, int depth)
 
             print::toFILE(fp, "{:{}}{}{}{}{}{\n", depth, "", q0, objName0, q1, objName1);
 
-            for (ssize i = 0; i < obj.size(); ++i)
+            for (isize i = 0; i < obj.size(); ++i)
             {
                 StringView svE = (i == obj.size() - 1) ? "\n" : ",\n";
                 printNode(fp, &obj[i], svE, depth + 2);
@@ -552,7 +552,7 @@ printNode(FILE* fp, Node* pNode, StringView svEnd, int depth)
             }
 
             print::toFILE(fp, "{}{}{}{}[\n", q0, arrName0, q1, arrName1);
-            for (ssize i = 0; i < arr.size(); ++i)
+            for (isize i = 0; i < arr.size(); ++i)
             {
                 StringView svE = (i == arr.size() - 1) ? "\n" : ",\n";
 
@@ -649,7 +649,7 @@ traverseNodePRE(Node* pNode, bool (*pfn)(Node* p, void* pFnArgs), void* pArgs)
         {
             auto& obj = getArray(pNode);
 
-            for (ssize i = 0; i < obj.size(); ++i)
+            for (isize i = 0; i < obj.size(); ++i)
                 traverseNodePRE(&obj[i], pfn, pArgs);
         }
         break;
@@ -658,7 +658,7 @@ traverseNodePRE(Node* pNode, bool (*pfn)(Node* p, void* pFnArgs), void* pArgs)
         {
             auto& obj = getObject(pNode);
 
-            for (ssize i = 0; i < obj.size(); ++i)
+            for (isize i = 0; i < obj.size(); ++i)
                 traverseNodePRE(&obj[i], pfn, pArgs);
         }
         break;
@@ -676,7 +676,7 @@ traverseNodePOST(Node* pNode, bool (*pfn)(Node* p, void* pFnArgs), void* pArgs)
         {
             auto& obj = getArray(pNode);
 
-            for (ssize i = 0; i < obj.size(); ++i)
+            for (isize i = 0; i < obj.size(); ++i)
                 traverseNodePOST(&obj[i], pfn, pArgs);
         }
         break;
@@ -685,7 +685,7 @@ traverseNodePOST(Node* pNode, bool (*pfn)(Node* p, void* pFnArgs), void* pArgs)
         {
             auto& obj = getObject(pNode);
 
-            for (ssize i = 0; i < obj.size(); ++i)
+            for (isize i = 0; i < obj.size(); ++i)
                 traverseNodePOST(&obj[i], pfn, pArgs);
         }
         break;

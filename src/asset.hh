@@ -33,7 +33,7 @@ struct Object
     /* */
 
     Object() = default;
-    Object(adt::ssize prealloc) : m_arena(prealloc) {};
+    Object(adt::isize prealloc) : m_arena(prealloc) {};
 
     /* */
 
@@ -80,7 +80,7 @@ fromFontI(adt::i16 handleI)
 namespace adt::print
 {
 
-[[maybe_unused]] static ssize
+[[maybe_unused]] static isize
 formatToContext(Context ctx, FormatArgs, const asset::Object::TYPE e)
 {
     ctx.fmt = "{}";

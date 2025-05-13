@@ -58,8 +58,8 @@ struct Entry
     {
         adt::StringFixed<32> sfName {};
         adt::Vec<Entry> vEntries {};
-        adt::ssize selectedI = 0;
-        adt::ssize prevSelectedI = 0;
+        adt::isize selectedI = 0;
+        adt::isize prevSelectedI = 0;
         adt::math::V4 color = adt::math::V4From(colors::WHITESMOKE, 1.0f);
         adt::math::V4 arrowColor = adt::math::V4From(colors::CYAN, 1.0f);
         Action<ArrowList> onUpdate {};
@@ -85,7 +85,7 @@ struct Entry
 
     [[nodiscard]] int height() const;
     void dispatchOnUpdateActions();
-    adt::ssize pushEntry(adt::Arena* pArena, const Entry& entry);
+    adt::isize pushEntry(adt::Arena* pArena, const Entry& entry);
 
     /* */
 
@@ -149,7 +149,7 @@ extern adt::Pool<Widget, 64> g_poolWidgets;
 namespace adt::print
 {
 
-inline ssize
+inline isize
 formatToContext(Context ctx, FormatArgs fmtArgs, const ::ui::Offset x)
 {
     return formatToContext(ctx, fmtArgs, Pair{x.x, x.y});

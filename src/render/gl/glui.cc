@@ -113,7 +113,7 @@ drawMenu(
 
     for (const ::ui::Entry& child : menu.vEntries)
     {
-        const ssize idx = menu.vEntries.idx(&child);
+        const isize idx = menu.vEntries.idx(&child);
         const math::V4 col = [&]
         {
             if (idx == menu.selectedI) return menu.selColor;
@@ -323,7 +323,7 @@ draw(Arena* pArena)
     /* info */
     {
         char* pBuff = pArena->zallocV<char>(1 << 9);
-        ssize n = print::toSpan({pBuff, 1 << 9},
+        isize n = print::toSpan({pBuff, 1 << 9},
             "F: toggle fullscreen ({})\n"
             "V: toggle VSync ({})\n"
             "R: lock/unlock mouse ({})\n"

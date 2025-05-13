@@ -27,7 +27,7 @@ struct Client : public IWindow
     wl_shm* m_pShm {};
     wl_shm_pool* m_pShmPool {};
     adt::u8* m_pPoolData {};
-    adt::ssize m_poolSize {};
+    adt::isize m_poolSize {};
     wl_buffer* m_pBuffer {};
 
     wl_seat* m_pSeat {};

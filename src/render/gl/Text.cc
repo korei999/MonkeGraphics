@@ -48,7 +48,7 @@ Text::makeStringMesh(
             continue;
         }
 
-        ssize idx = vs.idx(&ch);
+        isize idx = vs.idx(&ch);
         if (idx >= m_maxSize) break;
 
         const MapResult fCh = rast.m_mapCodeToUV.search(ch);
@@ -158,7 +158,7 @@ Text::update(const ttf::Rasterizer& rast, ScratchBuffer* pScratch, const StringV
         glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
 
         glBufferSubData(GL_ARRAY_BUFFER, 0,
-            utils::min(vQuads.size(), static_cast<ssize>(m_maxSize)) * sizeof(vQuads[0]),
+            utils::min(vQuads.size(), static_cast<isize>(m_maxSize)) * sizeof(vQuads[0]),
             vQuads.data()
         );
     }

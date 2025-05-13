@@ -96,7 +96,7 @@ ClientGL::initGL()
 
     LOG_OK("egl: major: {}, minor: {}\n", major, minor);
 
-    constexpr ssize MAX_COUNT = 100;
+    constexpr isize MAX_COUNT = 100;
 
     EGLint count;
     EGLD( eglGetConfigs(m_eglDisplay, nullptr, 0, &count) );
@@ -121,7 +121,7 @@ ClientGL::initGL()
 
     EGLint n = 0;
     Array<EGLConfig, MAX_COUNT> aConfigs {};
-    ssize maxCount = utils::min(MAX_COUNT, static_cast<ssize>(count));
+    isize maxCount = utils::min(MAX_COUNT, static_cast<isize>(count));
     aConfigs.setSize(maxCount);
 
     EGLD( eglChooseConfig(m_eglDisplay, configAttribs, aConfigs.data(), maxCount, &n) );

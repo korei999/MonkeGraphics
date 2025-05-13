@@ -46,7 +46,7 @@ struct Entity
 namespace adt::print
 {
 
-inline ssize
+inline isize
 formatToContext(Context ctx, FormatArgs, const game::Entity::Bind& x)
 {
     ctx.fmt =

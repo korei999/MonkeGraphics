@@ -99,7 +99,7 @@ Entry::dispatchOnUpdateActions()
     }
 }
 
-ssize
+isize
 Entry::pushEntry(Arena* pArena, const Entry& entry)
 {
     switch (m_eType)
@@ -160,7 +160,7 @@ init()
         Vec<Entry> vListMenus {&widget.arena};
 
         {
-            ssize entityI = 0;
+            isize entityI = 0;
             for (auto ent : game::g_poolEntities)
             {
                 defer( ++entityI );
@@ -176,7 +176,7 @@ init()
                         .onClick {
                             .pfn = +[](Entry::Menu* pSelf, i16 clickedI, void* pArg) -> void
                             {
-                                auto entity = game::g_poolEntities[{int(reinterpret_cast<ssize>(pArg))}];
+                                auto entity = game::g_poolEntities[{int(reinterpret_cast<isize>(pArg))}];
                                 auto& rModel = Model::g_poolModels[{entity.modelI}];
 
                                 if (control::g_abPressed[BTN_LEFT])
@@ -208,12 +208,12 @@ init()
                         .onUpdate {
                             .pfn = +[](Entry::Menu* pSelf, void* pArg) -> void
                             {
-                                auto entity = game::g_poolEntities[{int(reinterpret_cast<ssize>(pArg))}];
+                                auto entity = game::g_poolEntities[{int(reinterpret_cast<isize>(pArg))}];
 
                                 auto clPrint = [&](const StringView svFmt, auto arg, auto& rSfName) -> void
                                 {
                                     char aBuff[64] {};
-                                    const ssize n = print::toSpan(aBuff, svFmt, arg);
+                                    const isize n = print::toSpan(aBuff, svFmt, arg);
                                     rSfName = StringView{aBuff, n};
                                 };
 
@@ -226,7 +226,7 @@ init()
                         .onClick {
                             .pfn = +[](Entry::Menu*, i16 clickedI, void* pArg) -> void
                             {
-                                auto entity = game::g_poolEntities[{int(reinterpret_cast<ssize>(pArg))}];
+                                auto entity = game::g_poolEntities[{int(reinterpret_cast<isize>(pArg))}];
 
                                 switch (clickedI)
                                 {
@@ -276,10 +276,10 @@ init()
             .onUpdate {
                 .pfn = +[](Entry::ArrowList* pSelf, void*)
                 {
-                    auto clSetOutline = [&](ssize idx, const Opt<math::V4>& oColor) -> void
+                    auto clSetOutline = [&](isize idx, const Opt<math::V4>& oColor) -> void
                     {
                         auto& rSel = pSelf->vEntries[idx];
-                        const ssize entityI = reinterpret_cast<ssize>(rSel.m_menu.vEntries[0].m_menu.onClick.pArg);
+                        const isize entityI = reinterpret_cast<isize>(rSel.m_menu.vEntries[0].m_menu.onClick.pArg);
                         auto entity = game::g_poolEntities[{int(entityI)}];
                         auto& rModel = Model::g_poolModels[{entity.modelI}];
                         rModel.m_oOutlineColor = oColor;
@@ -333,7 +333,7 @@ clickMenu(
                     )
                 )
                 {
-                    const ssize idx = menu.vEntries.idx(&child);
+                    const isize idx = menu.vEntries.idx(&child);
 
                     if (menu.onClick.pfn)
                     {

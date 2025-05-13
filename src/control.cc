@@ -59,7 +59,7 @@ procKeybinds(Array<bool, MAX_KEYBINDS>* paPressOnceMap, const Array<Keybind, MAX
 {
     for (auto& com : aCommands)
     {
-        ssize idx = aCommands.idx(&com);
+        isize idx = aCommands.idx(&com);
 
         bool bKey {};
         bool bMod {};
