@@ -111,7 +111,10 @@ loadFile(const StringView svPath)
 {
     StdAllocator stdAlloc {};
 
-    String sFile = file::load(&stdAlloc, svPath);
+    String sPathTmp = String(&stdAlloc, svPath);
+    defer( sPathTmp.destroy(&stdAlloc) );
+
+    String sFile = file::load(&stdAlloc, sPathTmp.data());
     if (!sFile) return {};
 
     /* WARNING: must clone sFile contents */

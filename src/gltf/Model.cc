@@ -366,7 +366,7 @@ Model::procBuffers(IAllocator* pAlloc)
             svUri = String(pAlloc, json::getString(pUri));
             auto sNewPath = file::replacePathEnding(pAlloc, m_sPath, svUri);
 
-            aBin = file::load(pAlloc, sNewPath);
+            aBin = file::load(pAlloc, sNewPath.data());
             if (!aBin)
                 LOG_WARN("error opening file: '{}'\n", sNewPath);
         }

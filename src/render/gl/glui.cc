@@ -46,8 +46,8 @@ init()
     if (pFont)
     {
         s_rastLiberation.rasterizeAscii(StdAllocator::inst(), pFont, 64.0f);
-        s_texLiberation = Texture(s_rastLiberation.m_altas.spanMono(), GL_LINEAR);
-        s_text = Text(255);
+        s_texLiberation = Texture {s_rastLiberation.m_altas.spanMono(), GL_LINEAR};
+        s_text = Text {255};
     }
 
     s_quad0to1 = Quad(INIT, Quad::TYPE::ZERO_TO_ONE);

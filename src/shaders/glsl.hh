@@ -90,10 +90,12 @@ uniform vec4 u_color;
 void
 main()
 {
-    vec3 col = texture(u_tex0, vs_tex).rrr;
-    if (col.r < 0.01) discard;
+    // vec3 col = texture(u_tex0, vs_tex).rrr;
+    float a = texture(u_tex0, vs_tex).r;
+    if (a < 0.01) discard;
 
-    fs_fragColor = vec4(col, 1.0f);
+    // fs_fragColor = vec4(col, 1.0f);
+    fs_fragColor = vec4(u_color.rgb, u_color.a * a);
 }
 )";
 
