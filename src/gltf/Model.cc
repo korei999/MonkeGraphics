@@ -8,63 +8,23 @@ using namespace adt;
 namespace gltf
 {
 
-enum class HASH_CODE : usize
-{
-    asset = hash::func("asset"),
-    scene = hash::func("scene"),
-    scenes = hash::func("scenes"),
-    nodes = hash::func("nodes"),
-    meshes = hash::func("meshes"),
-    cameras = hash::func("cameras"),
-    buffers = hash::func("buffers"),
-    bufferViews = hash::func("bufferViews"),
-    accessors = hash::func("accessors"),
-    materials = hash::func("materials"),
-    textures = hash::func("textures"),
-    images = hash::func("images"),
-    samplers = hash::func("samplers"),
-    skins = hash::func("skins"),
-    animations = hash::func("animations"),
-    SCALAR = hash::func("SCALAR"),
-    VEC2 = hash::func("VEC2"),
-    VEC3 = hash::func("VEC3"),
-    VEC4 = hash::func("VEC4"),
-    MAT2 = hash::func("MAT2"),
-    MAT3 = hash::func("MAT3"),
-    MAT4 = hash::func("MAT4")
-};
-
 static Accessor::TYPE
-stringToAccessorType(StringView sv)
+stringToAccessorType(const StringView sv)
 {
-    switch (hash::func(sv))
-    {
-        default:
-        case usize(HASH_CODE::SCALAR):
-        return Accessor::TYPE::SCALAR;
+    if (sv == "SCALAR") return Accessor::TYPE::SCALAR;
+    else if (sv == "VEC2") return Accessor::TYPE::VEC2;
+    else if (sv == "VEC3") return Accessor::TYPE::VEC3;
+    else if (sv == "VEC4") return Accessor::TYPE::VEC4;
+    else if (sv == "MAT2") return Accessor::TYPE::MAT2;
+    else if (sv == "MAT3") return Accessor::TYPE::MAT3;
+    else if (sv == "MAT4") return Accessor::TYPE::MAT4;
 
-        case usize(HASH_CODE::VEC2):
-        return Accessor::TYPE::VEC2;
-
-        case usize(HASH_CODE::VEC3):
-        return Accessor::TYPE::VEC3;
-
-        case usize(HASH_CODE::VEC4):
-        return Accessor::TYPE::VEC4;
-
-        case usize(HASH_CODE::MAT2):
-        return Accessor::TYPE::MAT3;
-
-        case usize(HASH_CODE::MAT3):
-        return Accessor::TYPE::MAT3;
-
-        case usize(HASH_CODE::MAT4):
-        return Accessor::TYPE::MAT4;
-    }
+    ADT_ASSERT(false, "unmatched");
+    return {};
 }
 
 static union Type
-assignUnionType(json::Node* obj, int n)
+assignUnionType(const json::Node* obj, int n)
 {
     auto& arr = json::getArray(obj);
     union Type type;
@@ -80,7 +40,7 @@ assignUnionType(json::Node* obj, int n)
 }
 
 static union Type
-accessorTypeToUnionType(Accessor::TYPE eType, json::Node* obj)
+accessorTypeToUnionType(Accessor::TYPE eType, const json::Node* obj)
 {
     union Type type;
 
@@ -183,70 +143,39 @@ bool
 Model::procToplevelObjs(IAllocator*, const json::Parser& parser)
 {
     /* collect all the top level objects */
-    for (auto& node : parser.getRoot())
+    for (const auto& node : parser.getRoot())
     {
-        switch (hash::func(node.svKey))
-        {
-            case usize(HASH_CODE::asset):
+        // const usize hash = hash::func(node.svKey);
+        if (node.svKey == "asset")
             m_toplevelObjs.pAsset = &node;
-            break;
-
-            case usize(HASH_CODE::scene):
+        else if (node.svKey == "scene")
             m_toplevelObjs.pScene = &node;
-            break;
-
-            case usize(HASH_CODE::scenes):
+        else if (node.svKey == "scenes")
             m_toplevelObjs.pScenes = &node;
-            break;
-
-            case usize(HASH_CODE::nodes):
+        else if (node.svKey == "nodes")
             m_toplevelObjs.pNodes = &node;
-            break;
-
-            case usize(HASH_CODE::meshes):
+        else if (node.svKey == "meshes")
             m_toplevelObjs.pMeshes = &node;
-            break;
-
-            case usize(HASH_CODE::cameras):
+        else if (node.svKey == "cameras")
             m_toplevelObjs.pCameras = &node;
-            break;
-
-            case usize(HASH_CODE::buffers):
+        else if (node.svKey == "buffers")
             m_toplevelObjs.pBuffers = &node;
-            break;
-
-            case usize(HASH_CODE::bufferViews):
+        else if (node.svKey == "bufferViews")
             m_toplevelObjs.pBufferViews = &node;
-            break;
-
-            case usize(HASH_CODE::accessors):
+        else if (node.svKey == "accessors")
             m_toplevelObjs.pAccessors = &node;
-            break;
-
-            case usize(HASH_CODE::materials):
+        else if (node.svKey == "materials")
             m_toplevelObjs.pMaterials = &node;
-            break;
-
-            case usize(HASH_CODE::textures):
+        else if (node.svKey == "textures")
             m_toplevelObjs.pTextures = &node;
-            break;
-
-            case usize(HASH_CODE::images):
+        else if (node.svKey == "images")
             m_toplevelObjs.pImages = &node;
-            break;
-
-            case usize(HASH_CODE::samplers):
+        else if (node.svKey == "samplers")
             m_toplevelObjs.pSamplers = &node;
-            break;
-
-            case usize(HASH_CODE::skins):
+        else if (node.svKey == "skins")
             m_toplevelObjs.pSkins = &node;
-            break;
-
-            case usize(HASH_CODE::animations):
+        else if (node.svKey == "animations")
             m_toplevelObjs.pAnimations = &node;
-            break;
-        }
     }
 
     return true;

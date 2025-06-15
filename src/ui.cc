@@ -31,7 +31,7 @@ static ClickResult clickArrowList(
     const Offset off
 );
 
-Pool<Widget, 64> g_poolWidgets;
+WidgetPool g_poolWidgets {INIT};
 
 static bool s_bGrabbed = false;
 static Widget* s_pGrabbedWidget {};
@@ -294,7 +294,7 @@ init()
 
         widget.vEntries.push(&widget.arena, entityList);
 
-        [[maybe_unused]] auto h = g_poolWidgets.make(widget);
+        [[maybe_unused]] auto h = g_poolWidgets.insert(widget);
     }
 
     dispatchAllOnUpdateActions();

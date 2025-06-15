@@ -15,7 +15,7 @@ Text::makeStringMesh(
     const bool bVerticalFlip
 )
 {
-    Span<CharQuad2Pos2UV> spMem = pScratch->nextMem<CharQuad2Pos2UV>();
+    Span<CharQuad2Pos2UV> spMem = ADT_SCRATCH_NEXT_MEM(pScratch, CharQuad2Pos2UV);
     if (spMem.size() < m_maxSize) return {};
 
     /* NOTE: problems with constructor */
@@ -149,6 +149,7 @@ Text::Text(const int maxSize)
 void
 Text::update(const ttf::Rasterizer& rast, ScratchBuffer* pScratch, const StringView sv, const bool bVerticalFlip)
 {
+    defer( pScratch->reset() );
     /* construct from gtl_scratch */
     Vec<CharQuad2Pos2UV> vQuads = makeStringMesh(rast, pScratch, sv, bVerticalFlip);
     m_vboSize = vQuads.size() * 6; /* 6 vertices for 1 quad */

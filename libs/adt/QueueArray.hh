@@ -16,14 +16,21 @@ struct QueueArray
 
     /* */
 
-    T m_aData[CAP] {};
+    T m_aData[CAP];
     isize m_headI {};
     isize m_tailI {};
 
     /* */
 
+    QueueArray() = default;
+
+    /* */
+
     T& operator[](isize i) noexcept             { ADT_ASSERT(i >= 0 && i < CAP, "out of CAP({}), i: {}", CAP, i); return m_aData[i]; }
     const T& operator[](isize i) const noexcept { ADT_ASSERT(i >= 0 && i < CAP, "out of CAP({}), i: {}", CAP, i); return m_aData[i]; }
+
+    T* data() noexcept { return m_aData; }
+    const T* data() const noexcept { return m_aData; }
 
     isize cap() const noexcept;
 
@@ -39,9 +46,9 @@ struct QueueArray
     template<typename ...ARGS>
     isize emplaceFront(ARGS&&... args) noexcept;
 
-    T* popFront() noexcept;
+    T& popFront() noexcept;
 
-    T* popBack() noexcept;
+    T& popBack() noexcept;
 
     template<PUSH_WAY E_WAY>
     isize fakePush() noexcept;
@@ -66,6 +73,12 @@ public:
 
         T& operator*() noexcept { return m_p->operator[](m_i); }
         T* operator->() noexcept { return &m_p->operator[](m_i); }
+
+        It current() noexcept { return {m_p, m_i}; }
+        It next() noexcept { return {m_p, QueueArray::nextI(m_i)}; }
+
+        const It current() const noexcept { return {m_p, m_i}; }
+        const It next() const noexcept { return {m_p, QueueArray::nextI(m_i)}; }
 
         It
         operator++() noexcept
@@ -153,7 +166,7 @@ QueueArray<T, CAP>::emplaceFront(ARGS&&... args) noexcept
 }
 
 template<typename T, isize CAP>
-template<QueueArray<T, CAP>::PUSH_WAY E_WAY>
+template<typename QueueArray<T, CAP>::PUSH_WAY E_WAY>
 inline isize
 QueueArray<T, CAP>::fakePush() noexcept
 {
@@ -176,26 +189,26 @@ QueueArray<T, CAP>::fakePush() noexcept
 }
 
 template<typename T, isize CAP>
-inline T*
+inline T&
 QueueArray<T, CAP>::popFront() noexcept
 {
-    if (empty()) return nullptr;
+    ADT_ASSERT(!empty(), "");
 
     isize tmp = m_headI;
     m_headI = nextI(m_headI);
 
-    return &m_aData[tmp];
+    return m_aData[tmp];
 }
 
 template<typename T, isize CAP>
-inline T*
+inline T&
 QueueArray<T, CAP>::popBack() noexcept
 {
-    if (empty()) return nullptr;
+    ADT_ASSERT(!empty(), "");
 
     m_tailI = prevI(m_tailI);
 
-    return &m_aData[m_tailI];
+    return m_aData[m_tailI];
 }
 
 template<typename T, isize CAP>

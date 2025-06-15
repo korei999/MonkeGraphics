@@ -1,6 +1,7 @@
 #include "Parser.hh"
 
 #include "adt/logs.hh"
+#include "adt/defer.hh"
 
 using namespace adt;
 
@@ -268,17 +269,21 @@ Parser::print(FILE* fp)
 {
     for (auto& obj : m_aObjects)
     {
-        printNode(fp, &obj, "", 0);
+        printNode(fp, &obj, "", 0, false); /* skip key for root nodes */
         fputc('\n', fp);
     }
 }
 
-#ifdef ADT_JSON_USE_PRINTF
-
 void
-printNode(FILE* fp, Node* pNode, StringView svEnd, int depth)
+printNode(FILE* fp, const Node* pNode, StringView svEnd, int depth, bool bPrintKey)
 {
-    StringView key = pNode->svKey;
+    const auto& svKey = pNode->svKey;
+
+    fprintf(fp, "%*s", depth, "");
+    ADT_DEFER( fprintf(fp, "%.*s", int(svEnd.size()), svEnd.data()) );
+
+    if (bPrintKey)
+        fprintf(fp, "\"%.*s\": ", int(svKey.size()), svKey.data());
 
     switch (pNode->tagVal.eTag)
     {
@@ -287,354 +292,80 @@ printNode(FILE* fp, Node* pNode, StringView svEnd, int depth)
         case TAG::OBJECT:
         {
             auto& obj = getObject(pNode);
-            StringView q0, q1, objName0, objName1;
 
-            if (key.size() == 0)
+            if (obj.empty())
             {
-                q0 = q1 = objName1 = objName0 = "";
-            }
-            else
-            {
-                objName0 = key;
-                objName1 = ": ";
-                q1 = q0 = "\"";
+                fprintf(fp, "{}");
+                break;
             }
 
-            fprintf(fp, "%*s%.*s%.*s%.*s%.*s{\n",
-                depth, "",
-                int(q0.size()), q0.data(),
-                int(objName0.size()), objName0.data(),
-                int(q1.size()), q1.data(),
-                int(objName1.size()), objName1.data()
-            );
+            fprintf(fp, "{\n");
 
             for (isize i = 0; i < obj.size(); ++i)
             {
                 StringView svE = (i == obj.size() - 1) ? "\n" : ",\n";
-                printNode(fp, &obj[i], svE, depth + 2);
+                printNode(fp, &obj[i], svE, depth + 2, true);
             }
 
-            fprintf(fp, "%*s}%.*s",
-                depth, "", int(svEnd.size()), svEnd.data()
-            );
+            fprintf(fp, "%*s}", depth, "");
         }
         break;
 
         case TAG::ARRAY:
         {
             auto& arr = getArray(pNode);
-            StringView q0, q1, arrName0, arrName1;
-
-            if (key.size() == 0)
-            {
-                q0 =  q1 = arrName1 = arrName0 = "";
-            }
-            else
-            {
-                arrName0 = key;
-                arrName1 = ": ";
-                q1 = q0 = "\"";
-            }
-
-            fprintf(fp, "%*s", depth, "");
 
             if (arr.size() == 0)
             {
-                fprintf(fp, "%.*s" "%.*s" "%.*s" "%.*s" "[]" "%.*s",
-                    int(q0.size()), q0.data(),
-                    int(arrName0.size()), arrName0.data(),
-                    int(q1.size()), q1.data(),
-                    int(arrName1.size()), arrName1.data(),
-                    int(svEnd.size()), svEnd.data()
-                );
+                fprintf(fp, "[]");
                 break;
             }
 
-            fprintf(fp, "%.*s" "%.*s" "%.*s" "%.*s" "[\n",
-                int(q0.size()), q0.data(),
-                int(arrName0.size()), arrName0.data(),
-                int(q1.size()), q1.data(),
-                int(arrName1.size()), arrName1.data()
-            );
+            fprintf(fp, "[\n");
 
             for (isize i = 0; i < arr.size(); ++i)
             {
                 StringView svE = (i == arr.size() - 1) ? "\n" : ",\n";
-
-                switch (arr[i].tagVal.eTag)
-                {
-                    default:
-                    case TAG::STRING:
-                    {
-                        StringView sv = getString(&arr[i]);
-                        fprintf(fp, "%*s" "\"" "%.*s" "\"" "%.*s",
-                            depth + 2, "",
-                            int(sv.size()), sv.data(),
-                            int(svE.size()), svE.data()
-                        );
-                    }
-                    break;
-
-                    case TAG::NULL_:
-                    fprintf(fp, "%*s" "%s" "%.*s",
-                        depth + 2, "",
-                        "null",
-                        int(svE.size()), svE.data()
-                    );
-                    break;
-
-                    case TAG::LONG:
-                    {
-                        i64 num = getInteger(&arr[i]);
-                        fprintf(fp, "%*s" "%lld" "%.*s",
-                            depth + 2, "",
-                            num,
-                            int(svE.size()), svE.data()
-                        );
-                    }
-                    break;
-
-                    case TAG::DOUBLE:
-                    {
-                        f64 dnum = getFloat(&arr[i]);
-                        fprintf(fp, "%*s" "%lf" "%.*s",
-                            depth + 2, "",
-                            dnum,
-                            int(svE.size()), svE.data()
-                        );
-                    }
-                    break;
-
-                    case TAG::BOOL:
-                    {
-                        bool b = getBool(&arr[i]);
-                        fprintf(fp, "%*s" "%s" "%.*s",
-                            depth + 2, "",
-                            b ? "true" : "false",
-                            int(svE.size()), svE.data()
-                        );
-                    }
-                    break;
-
-                    case TAG::OBJECT:
-                    printNode(fp, &arr[i], svE, depth + 2);
-                    break;
-                }
+                printNode(fp, &arr[i], svE, depth + 2, false);
             }
 
-            fprintf(fp, "%*s" "]" "%.*s",
-                depth, "",
-                int(svEnd.size()), svEnd.data()
-            );
+            fprintf(fp, "%*s" "]", depth, "");
         }
         break;
 
         case TAG::DOUBLE:
         {
-            f64 f = getFloat(pNode);
-            fprintf(fp, "%*s" "\"" "%.*s\": " "%lf" "%.*s",
-                depth, "",
-                int(key.size()), key.data(),
-                f,
-                int(svEnd.size()), svEnd.data()
-            );
+            fprintf(fp, "%lf", getFloat(pNode));
         }
         break;
 
         case TAG::LONG:
         {
-            i64 i = getInteger(pNode);
-            fprintf(fp, "%*s" "\"" "%.*s\": " "%lld" "%.*s",
-                depth, "",
-                int(key.size()), key.data(),
-                i,
-                int(svEnd.size()), svEnd.data()
-            );
+            fprintf(fp, "%lld", getInteger(pNode));
         }
         break;
 
         case TAG::NULL_:
-        fprintf(fp, "%*s" "\"" "%.*s\": " "%s" "%.*s",
-            depth, "",
-            int(key.size()), key.data(),
-            "null",
-            int(svEnd.size()), svEnd.data()
-        );
+        {
+            fprintf(fp, "null");
+        }
         break;
 
         case TAG::STRING:
         {
             StringView sv = getString(pNode);
-            fprintf(fp, "%*s" "\"%.*s\": " "\"%.*s\"" "%.*s",
-                depth, "",
-                int(key.size()), key.data(),
-                int(sv.size()), sv.data(),
-                int(svEnd.size()), svEnd.data()
-            );
+            fprintf(fp, "\"%.*s\"", int(sv.size()), sv.data());
         }
         break;
 
         case TAG::BOOL:
         {
             bool b = getBool(pNode);
-            fprintf(fp, "%*s" "\"" "%.*s\": " "%s" "%.*s",
-                depth, "",
-                int(key.size()), key.data(),
-                b ? "true" : "false",
-                int(svEnd.size()), svEnd.data()
-            );
+            fprintf(fp, "%s", b ? "true" : "false");
         }
         break;
     }
 }
-
-#else /* ADT_JSON_USE_PRINTF */
-
-void
-printNode(FILE* fp, Node* pNode, StringView svEnd, int depth)
-{
-    StringView key = pNode->svKey;
-
-    switch (pNode->tagVal.eTag)
-    {
-        default: break;
-
-        case TAG::OBJECT:
-        {
-            auto& obj = getObject(pNode);
-            StringView q0, q1, objName0, objName1;
-
-            if (key.size() == 0)
-            {
-                q0 = q1 = objName1 = objName0 = "";
-            }
-            else
-            {
-                objName0 = key;
-                objName1 = ": ";
-                q1 = q0 = "\"";
-            }
-
-            print::toFILE(fp, "{:{}}{}{}{}{}{\n", depth, "", q0, objName0, q1, objName1);
-
-            for (isize i = 0; i < obj.size(); ++i)
-            {
-                StringView svE = (i == obj.size() - 1) ? "\n" : ",\n";
-                printNode(fp, &obj[i], svE, depth + 2);
-            }
-
-            print::toFILE(fp, "{:{}}}{}", depth, "", svEnd);
-        }
-        break;
-
-        case TAG::ARRAY:
-        {
-            auto& arr = getArray(pNode);
-            StringView q0, q1, arrName0, arrName1;
-
-            if (key.size() == 0)
-            {
-                q0 =  q1 = arrName1 = arrName0 = "";
-            }
-            else
-            {
-                arrName0 = key;
-                arrName1 = ": ";
-                q1 = q0 = "\"";
-            }
-
-            print::toFILE(fp, "{:{}}", depth, "");
-
-            if (arr.size() == 0)
-            {
-                print::toFILE(fp, "{}{}{}{}[]{}", q0, arrName0, q1, arrName1, svEnd);
-                break;
-            }
-
-            print::toFILE(fp, "{}{}{}{}[\n", q0, arrName0, q1, arrName1);
-            for (isize i = 0; i < arr.size(); ++i)
-            {
-                StringView svE = (i == arr.size() - 1) ? "\n" : ",\n";
-
-                switch (arr[i].tagVal.eTag)
-                {
-                    default:
-                    case TAG::STRING:
-                    {
-                        StringView sv = getString(&arr[i]);
-                        print::toFILE(fp, "{:{}}\"{}\"{}", depth + 2, "", sv, svE);
-                    }
-                    break;
-
-                    case TAG::NULL_:
-                    print::toFILE(fp, "{:{}}{}{}", depth + 2, "", "null", svE);
-                    break;
-
-                    case TAG::LONG:
-                    {
-                        i64 num = getInteger(&arr[i]);
-                        print::toFILE(fp, "{:{}}{}{}", depth + 2, "", num, svE);
-                    }
-                    break;
-
-                    case TAG::DOUBLE:
-                    {
-                        f64 dnum = getFloat(&arr[i]);
-                        print::toFILE(fp, "{:{}}{}{}", depth + 2, "", dnum, svE);
-                    }
-                    break;
-
-                    case TAG::BOOL:
-                    {
-                        bool b = getBool(&arr[i]);
-                        print::toFILE(fp, "{:{}}{}{}", depth + 2, "", b ? "true" : "false", svE);
-                    }
-                    break;
-
-                    case TAG::OBJECT:
-                    printNode(fp, &arr[i], svE, depth + 2);
-                    break;
-                }
-            }
-            print::toFILE(fp, "{:{}}]{}", depth, "", svEnd);
-        }
-        break;
-
-        case TAG::DOUBLE:
-        {
-            f64 f = getFloat(pNode);
-            print::toFILE(fp, "{:{}}\"{}\": {}{}", depth, "", key, f, svEnd);
-        }
-        break;
-
-        case TAG::LONG:
-        {
-            i64 i = getInteger(pNode);
-            print::toFILE(fp, "{:{}}\"{}\": {}{}", depth, "", key, i, svEnd);
-        }
-        break;
-
-        case TAG::NULL_:
-        print::toFILE(fp, "{:{}}\"{}\": {}{}", depth, "", key, "null", svEnd);
-        break;
-
-        case TAG::STRING:
-        {
-            StringView sv = getString(pNode);
-            print::toFILE(fp, "{:{}}\"{}\": \"{}\"{}", depth, "", key, sv, svEnd);
-        }
-        break;
-
-        case TAG::BOOL:
-        {
-            bool b = getBool(pNode);
-            print::toFILE(fp, "{:{}}\"{}\": {}{}", depth, "", key, b ? "true" : "false", svEnd);
-        }
-        break;
-    }
-}
-
-#endif /* ADT_JSON_USE_PRINTF */
 
 static void
 traverseNodePRE(Node* pNode, bool (*pfn)(Node* p, void* pFnArgs), void* pArgs)

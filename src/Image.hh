@@ -46,7 +46,7 @@ struct Image
         return {m_uData.pRGBA, m_width, m_height, m_width};
     }
 
-    const adt::Span2D<ImagePixelRGBA>
+    const adt::Span2D<const ImagePixelRGBA>
     spanRGBA() const
     {
         ADT_ASSERT(m_eType == TYPE::RGBA, " ");
@@ -60,7 +60,7 @@ struct Image
         return {m_uData.pRGB, m_width, m_height, m_width};
     }
 
-    const adt::Span2D<ImagePixelRGB>
+    const adt::Span2D<const ImagePixelRGB>
     spanRGB() const
     {
         ADT_ASSERT(m_eType == TYPE::RGB, " ");
@@ -74,7 +74,7 @@ struct Image
         return {m_uData.pMono, m_width, m_height, m_width};
     }
 
-    adt::Span2D<adt::u8>
+    const adt::Span2D<const adt::u8>
     spanMono() const
     {
         ADT_ASSERT(m_eType == TYPE::MONO, " ");

@@ -57,12 +57,12 @@ static void loadShaders();
 static void loadAssetObjects();
 static void loadSkybox();
 
-Pool<Shader, 128> g_poolShaders;
+ShaderPool g_poolShaders {INIT};
 Quad g_quad;
 Texture g_texDefault;
 Shader* g_pShColor;
 
-static MapManaged<StringView, PoolHandle<Shader>> s_mapStringToShaders(StdAllocator::inst(), g_poolShaders.cap());
+static MapManaged<StringView, ShaderPool::Handle> s_mapStringToShaders(g_poolShaders.cap());
 static Skybox s_skyboxDefault;
 
 static const ShaderMapping s_aShadersToLoad[] {
@@ -149,6 +149,7 @@ Renderer::init()
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
+    // Span2D<const 
     g_texDefault = Texture(common::g_spDefaultTexture);
     g_quad = Quad(INIT);
 
@@ -161,36 +162,36 @@ Renderer::init()
     ui::init();
 };
 
-static void
-drawGltfPrimitives(const gltf::Primitive& primitive, const gltf::Model& gltfModel)
-{
-    auto* pPrimitiveData = reinterpret_cast<PrimitiveData*>(primitive.pData);
-    if (!pPrimitiveData) return;
-
-    glBindVertexArray(pPrimitiveData->vao);
-
-    if (primitive.indicesI > -1)
-    {
-        const gltf::Accessor& accIndices = gltfModel.m_vAccessors[primitive.indicesI];
-
-        glDrawElements(
-            static_cast<GLenum>(primitive.eMode),
-            accIndices.count,
-            static_cast<GLenum>(accIndices.eComponentType),
-            {}
-        );
-    }
-    else
-    {
-        const auto& accPos = gltfModel.m_vAccessors[primitive.attributes.POSITION];
-
-        glDrawArrays(
-            static_cast<GLenum>(primitive.eMode),
-            0,
-            accPos.count
-        );
-    }
-}
+// static void
+// drawGltfPrimitives(const gltf::Primitive& primitive, const gltf::Model& gltfModel)
+// {
+//     auto* pPrimitiveData = reinterpret_cast<PrimitiveData*>(primitive.pData);
+//     if (!pPrimitiveData) return;
+// 
+//     glBindVertexArray(pPrimitiveData->vao);
+// 
+//     if (primitive.indicesI > -1)
+//     {
+//         const gltf::Accessor& accIndices = gltfModel.m_vAccessors[primitive.indicesI];
+// 
+//         glDrawElements(
+//             static_cast<GLenum>(primitive.eMode),
+//             accIndices.count,
+//             static_cast<GLenum>(accIndices.eComponentType),
+//             {}
+//         );
+//     }
+//     else
+//     {
+//         const auto& accPos = gltfModel.m_vAccessors[primitive.attributes.POSITION];
+// 
+//         glDrawArrays(
+//             static_cast<GLenum>(primitive.eMode),
+//             0,
+//             accPos.count
+//         );
+//     }
+// }
 
 /* FIXME: codepath horror */
 static void
@@ -198,7 +199,6 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
 {
     using namespace adt::math;
     const gltf::Node& gltfNode = model.gltfNode(node);
-    const auto& win = app::windowInst();
     const auto& camera = control::g_camera;
     const M4& trmView = camera.m_trm;
     const auto& gltfModel = model.gltfModel();
@@ -213,7 +213,8 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
     V4 stencilColor {};
     void* pStencilExtra {};
 
-    BufferAllocator buff {app::gtl_scratch.nextMem<u8>()};
+    BufferAllocator buff {ADT_SCRATCH_NEXT_MEM(&app::gtl_scratch, u8)};
+    defer( app::gtl_scratch.reset() );
 
     auto clBindTexture = [&](const gltf::Primitive& primitive)
     {
@@ -262,7 +263,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
             stencilColor = model.m_oOutlineColor.valueOrEmpty();
 
             pfnStencilUpdate = +[](
-                Shader* pShader, const M4& stencilMat, const V4& color, void* pExtra
+                Shader* pShader, const M4& stencilMat, const V4& color, [[maybe_unused]] void* pExtra
             ) -> void
             {
                 pShader->use();
@@ -341,7 +342,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
                 pSh->setM4("u_model", finalTrm);
                 pSh->setM4("u_view", trmView);
                 pSh->setM4("u_projection", trmProj);
-                pSh->setM4("u_a128TrmJoints", Span<M4>(skin.vJointMatrices));
+                pSh->setM4("u_a128TrmJoints", Span<const M4>(skin.vJointMatrices));
 
                 clBindTexture(primitive); /* calls nextMem */
 
@@ -356,13 +357,13 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
                     {
                         math::M4 trmProj;
                         math::M4 trmView;
-                        Span<M4> spJointMatrcies;
+                        Span<const M4> spJointMatrcies;
                     };
 
                     Arg* pArg = buff.alloc<Arg>();
                     pArg->trmProj = trmProj;
                     pArg->trmView = trmView;
-                    pArg->spJointMatrcies = Span<M4>(skin.vJointMatrices);
+                    pArg->spJointMatrcies = Span<const M4>(skin.vJointMatrices);
 
                     pStencilExtra = pArg;
 
@@ -388,7 +389,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
                     auto& tex = gltfModel.m_vTextures[mat.pbrMetallicRoughness.baseColorTexture.index];
                     auto& img = gltfModel.m_vImages[tex.sourceI];
 
-                    Span<char> sp = app::gtl_scratch.nextMemZero<char>(img.sUri.size() + 300);
+                    Span<char> sp = {buff.alloc<char>(img.sUri.size() + 300), img.sUri.size() + 300};
                     if (sp.size() >= img.sUri.size() + 300)
                     {
                         file::replacePathEnding(&sp,
@@ -713,13 +714,13 @@ Texture::Texture(int width, int height)
     loadRGBA(nullptr);
 }
 
-Texture::Texture(const adt::Span2D<ImagePixelRGBA> spImg)
+Texture::Texture(const Span2D<const ImagePixelRGBA> spImg)
     : m_width(spImg.width()), m_height(spImg.height()), m_eType(Image::TYPE::RGBA)
 {
     loadRGBA(spImg.data());
 }
 
-Texture::Texture(const adt::Span2D<adt::u8> spImgMono, GLint minMagParam)
+Texture::Texture(const Span2D<const u8> spImgMono, GLint minMagParam)
     : m_width(spImgMono.width()), m_height(spImgMono.height()), m_eType(Image::TYPE::MONO)
 {
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -740,7 +741,7 @@ Texture::Texture(const adt::Span2D<adt::u8> spImgMono, GLint minMagParam)
 }
 
 void
-Texture::subImage(const Span2D<ImagePixelRGBA> spImg)
+Texture::subImage(const Span2D<const ImagePixelRGBA> spImg)
 {
     ADT_ASSERT(
         spImg.stride() > 0 && m_width <= spImg.stride() &&
@@ -810,7 +811,7 @@ Shader::Shader(
     glDeleteShader(vertex);
     glDeleteShader(fragment);
 
-    s_mapStringToShaders.insert(svMapTo, g_poolShaders.make(*this));
+    s_mapStringToShaders.insert(svMapTo, g_poolShaders.insert(*this));
 }
 
 GLuint
@@ -1129,7 +1130,7 @@ loadGLTF(gltf::Model* pModel)
                 glBindBuffer(GL_ARRAY_BUFFER, newPrimitiveData.vboPos);
 
                 View<math::V3> vwPos = pModel->accessorView<math::V3>(primitive.attributes.POSITION);
-                VecManaged<math::V3> vPos(StdAllocator::inst(), vwPos.size());
+                VecManaged<math::V3> vPos(vwPos.size());
                 defer( vPos.destroy() );
 
                 for (const auto& pos : vwPos) vPos.push(pos);
@@ -1204,7 +1205,7 @@ loadGLTF(gltf::Model* pModel)
                 const View<math::V3> vwPos = pModel->accessorView<math::V3>(primitive.attributes.POSITION);
 
                 /* TODO: maybe keep normals */
-                VecManaged<math::V3> vNormals(StdAllocator::inst());
+                VecManaged<math::V3> vNormals;
                 defer( vNormals.destroy() );
 
                 defer(
@@ -1225,7 +1226,6 @@ loadGLTF(gltf::Model* pModel)
 
                 if (primitive.indicesI > -1)
                 {
-                    const auto& accInd = pModel->m_vAccessors[primitive.indicesI];
                     ADT_ASSERT(accInd.eComponentType == gltf::COMPONENT_TYPE::UNSIGNED_SHORT, "TODO: implement the rest");
 
                     const View<u16> vwInd = pModel->accessorView<u16>(primitive.indicesI);

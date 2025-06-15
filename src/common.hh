@@ -7,7 +7,7 @@ namespace common
 
 adt::Span2D<ImagePixelRGBA> createDefaultTexture();
 
-extern const adt::Span2D<ImagePixelRGBA> g_spDefaultTexture;
+extern const adt::Span2D<const ImagePixelRGBA> g_spDefaultTexture;
 
 bool AABB(
     const adt::f32 px,

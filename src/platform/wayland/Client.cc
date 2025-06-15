@@ -20,72 +20,72 @@ namespace platform::wayland
 #endif
 
 static const wl_registry_listener s_registryListener {
-    .global = reinterpret_cast<decltype(wl_registry_listener::global)>(methodPointer(&Client::global)),
-    .global_remove = reinterpret_cast<decltype(wl_registry_listener::global_remove)>(methodPointer(&Client::globalRemove)),
+    .global = reinterpret_cast<decltype(wl_registry_listener::global)>(methodPointerNonVirtual(&Client::global)),
+    .global_remove = reinterpret_cast<decltype(wl_registry_listener::global_remove)>(methodPointerNonVirtual(&Client::globalRemove)),
 };
 
 static const wl_shm_listener s_shmListener {
-    .format = reinterpret_cast<decltype(wl_shm_listener::format)>(methodPointer(&Client::shmFormat))
+    .format = reinterpret_cast<decltype(wl_shm_listener::format)>(methodPointerNonVirtual(&Client::shmFormat))
 };
 
 static const xdg_wm_base_listener s_xdgWmBaseListener {
-    .ping = reinterpret_cast<decltype(xdg_wm_base_listener::ping)>(methodPointer(&Client::xdgWmBasePing))
+    .ping = reinterpret_cast<decltype(xdg_wm_base_listener::ping)>(methodPointerNonVirtual(&Client::xdgWmBasePing))
 };
 
 static const xdg_surface_listener s_xdgSurfaceListerer {
-    .configure = reinterpret_cast<decltype(xdg_surface_listener::configure)>(methodPointer(&Client::xdgSurfaceConfigure))
+    .configure = reinterpret_cast<decltype(xdg_surface_listener::configure)>(methodPointerNonVirtual(&Client::xdgSurfaceConfigure))
 };
 
 static const xdg_toplevel_listener s_xdgTopLevelListener {
-    .configure = reinterpret_cast<decltype(xdg_toplevel_listener::configure)>(methodPointer(&Client::xdgToplevelConfigure)),
-    .close = reinterpret_cast<decltype(xdg_toplevel_listener::close)>(methodPointer(&Client::xdgToplevelClose)),
-    .configure_bounds = reinterpret_cast<decltype(xdg_toplevel_listener::configure_bounds)>(methodPointer(&Client::xdgToplevelConfigureBounds)),
-    .wm_capabilities = reinterpret_cast<decltype(xdg_toplevel_listener::wm_capabilities)>(methodPointer(&Client::xdgToplevelWmCapabilities)),
+    .configure = reinterpret_cast<decltype(xdg_toplevel_listener::configure)>(methodPointerNonVirtual(&Client::xdgToplevelConfigure)),
+    .close = reinterpret_cast<decltype(xdg_toplevel_listener::close)>(methodPointerNonVirtual(&Client::xdgToplevelClose)),
+    .configure_bounds = reinterpret_cast<decltype(xdg_toplevel_listener::configure_bounds)>(methodPointerNonVirtual(&Client::xdgToplevelConfigureBounds)),
+    .wm_capabilities = reinterpret_cast<decltype(xdg_toplevel_listener::wm_capabilities)>(methodPointerNonVirtual(&Client::xdgToplevelWmCapabilities)),
 };
 
 static const wl_seat_listener s_seatListener {
-    .capabilities = reinterpret_cast<decltype(wl_seat_listener::capabilities)>(methodPointer(&Client::seatCapabilities)),
-    .name = reinterpret_cast<decltype(wl_seat_listener::name)>(methodPointer(&Client::seatName)),
+    .capabilities = reinterpret_cast<decltype(wl_seat_listener::capabilities)>(methodPointerNonVirtual(&Client::seatCapabilities)),
+    .name = reinterpret_cast<decltype(wl_seat_listener::name)>(methodPointerNonVirtual(&Client::seatName)),
 };
 
 static const wl_keyboard_listener s_keyboardListener {
-    .keymap = reinterpret_cast<decltype(wl_keyboard_listener::keymap)>(methodPointer(&Client::keyboardKeymap)),
-    .enter = reinterpret_cast<decltype(wl_keyboard_listener::enter)>(methodPointer(&Client::keyboardEnter)),
-    .leave = reinterpret_cast<decltype(wl_keyboard_listener::leave)>(methodPointer(&Client::keyboardLeave)),
-    .key = reinterpret_cast<decltype(wl_keyboard_listener::key)>(methodPointer(&Client::keyboardKey)),
-    .modifiers = reinterpret_cast<decltype(wl_keyboard_listener::modifiers)>(methodPointer(&Client::keyboardModifiers)),
-    .repeat_info = reinterpret_cast<decltype(wl_keyboard_listener::repeat_info)>(methodPointer(&Client::keyboardRepeatInfo)),
+    .keymap = reinterpret_cast<decltype(wl_keyboard_listener::keymap)>(methodPointerNonVirtual(&Client::keyboardKeymap)),
+    .enter = reinterpret_cast<decltype(wl_keyboard_listener::enter)>(methodPointerNonVirtual(&Client::keyboardEnter)),
+    .leave = reinterpret_cast<decltype(wl_keyboard_listener::leave)>(methodPointerNonVirtual(&Client::keyboardLeave)),
+    .key = reinterpret_cast<decltype(wl_keyboard_listener::key)>(methodPointerNonVirtual(&Client::keyboardKey)),
+    .modifiers = reinterpret_cast<decltype(wl_keyboard_listener::modifiers)>(methodPointerNonVirtual(&Client::keyboardModifiers)),
+    .repeat_info = reinterpret_cast<decltype(wl_keyboard_listener::repeat_info)>(methodPointerNonVirtual(&Client::keyboardRepeatInfo)),
 };
 
 static const wl_pointer_listener s_pointerListener {
-    .enter = reinterpret_cast<decltype(wl_pointer_listener::enter)>(methodPointer(&Client::pointerEnter)),
-    .leave = reinterpret_cast<decltype(wl_pointer_listener::leave)>(methodPointer(&Client::pointerLeave)),
-    .motion = reinterpret_cast<decltype(wl_pointer_listener::motion)>(methodPointer(&Client::pointerMotion)),
-    .button = reinterpret_cast<decltype(wl_pointer_listener::button)>(methodPointer(&Client::pointerButton)),
-    .axis = reinterpret_cast<decltype(wl_pointer_listener::axis)>(methodPointer(&Client::pointerAxis)),
-    .frame = reinterpret_cast<decltype(wl_pointer_listener::frame)>(methodPointer(&Client::pointerFrame)),
-    .axis_source = reinterpret_cast<decltype(wl_pointer_listener::axis_source)>(methodPointer(&Client::pointerAxisSource)),
-    .axis_stop = reinterpret_cast<decltype(wl_pointer_listener::axis_stop)>(methodPointer(&Client::pointerAxisStop)),
-    .axis_discrete = reinterpret_cast<decltype(wl_pointer_listener::axis_discrete)>(methodPointer(&Client::pointerAxisDiscrete)),
-    .axis_value120 = reinterpret_cast<decltype(wl_pointer_listener::axis_value120)>(methodPointer(&Client::pointerAxisValue120)),
-    /*.axis_relative_direction = reinterpret_cast<decltype(wl_pointer_listener::axis_relative_direction)>(methodPointer(&Client::pointerAxisRelativeDirection)),*/
+    .enter = reinterpret_cast<decltype(wl_pointer_listener::enter)>(methodPointerNonVirtual(&Client::pointerEnter)),
+    .leave = reinterpret_cast<decltype(wl_pointer_listener::leave)>(methodPointerNonVirtual(&Client::pointerLeave)),
+    .motion = reinterpret_cast<decltype(wl_pointer_listener::motion)>(methodPointerNonVirtual(&Client::pointerMotion)),
+    .button = reinterpret_cast<decltype(wl_pointer_listener::button)>(methodPointerNonVirtual(&Client::pointerButton)),
+    .axis = reinterpret_cast<decltype(wl_pointer_listener::axis)>(methodPointerNonVirtual(&Client::pointerAxis)),
+    .frame = reinterpret_cast<decltype(wl_pointer_listener::frame)>(methodPointerNonVirtual(&Client::pointerFrame)),
+    .axis_source = reinterpret_cast<decltype(wl_pointer_listener::axis_source)>(methodPointerNonVirtual(&Client::pointerAxisSource)),
+    .axis_stop = reinterpret_cast<decltype(wl_pointer_listener::axis_stop)>(methodPointerNonVirtual(&Client::pointerAxisStop)),
+    .axis_discrete = reinterpret_cast<decltype(wl_pointer_listener::axis_discrete)>(methodPointerNonVirtual(&Client::pointerAxisDiscrete)),
+    .axis_value120 = reinterpret_cast<decltype(wl_pointer_listener::axis_value120)>(methodPointerNonVirtual(&Client::pointerAxisValue120)),
+    /*.axis_relative_direction = reinterpret_cast<decltype(wl_pointer_listener::axis_relative_direction)>(methodPointerNonVirtual(&Client::pointerAxisRelativeDirection)),*/
 };
 
 static const wl_output_listener s_outputListener {
-    .geometry = reinterpret_cast<decltype(wl_output_listener::geometry)>(methodPointer(&Client::outputGeometry)),
-    .mode = reinterpret_cast<decltype(wl_output_listener::mode)>(methodPointer(&Client::outputMode)),
-    .done = reinterpret_cast<decltype(wl_output_listener::done)>(methodPointer(&Client::outputDone)),
-    .scale = reinterpret_cast<decltype(wl_output_listener::scale)>(methodPointer(&Client::outputScale)),
-    .name = reinterpret_cast<decltype(wl_output_listener::name)>(methodPointer(&Client::outputName)),
-    .description = reinterpret_cast<decltype(wl_output_listener::description)>(methodPointer(&Client::outputDescription)),
+    .geometry = reinterpret_cast<decltype(wl_output_listener::geometry)>(methodPointerNonVirtual(&Client::outputGeometry)),
+    .mode = reinterpret_cast<decltype(wl_output_listener::mode)>(methodPointerNonVirtual(&Client::outputMode)),
+    .done = reinterpret_cast<decltype(wl_output_listener::done)>(methodPointerNonVirtual(&Client::outputDone)),
+    .scale = reinterpret_cast<decltype(wl_output_listener::scale)>(methodPointerNonVirtual(&Client::outputScale)),
+    .name = reinterpret_cast<decltype(wl_output_listener::name)>(methodPointerNonVirtual(&Client::outputName)),
+    .description = reinterpret_cast<decltype(wl_output_listener::description)>(methodPointerNonVirtual(&Client::outputDescription)),
 };
 
 static const zwp_relative_pointer_v1_listener s_relativePointerListener {
-    .relative_motion = reinterpret_cast<decltype(zwp_relative_pointer_v1_listener::relative_motion)>(methodPointer(&Client::relativePointerMotion))
+    .relative_motion = reinterpret_cast<decltype(zwp_relative_pointer_v1_listener::relative_motion)>(methodPointerNonVirtual(&Client::relativePointerMotion))
 };
 
 static const zxdg_toplevel_decoration_v1_listener s_decorationListener {
-    .configure = reinterpret_cast<decltype(zxdg_toplevel_decoration_v1_listener::configure)>(methodPointer(&Client::decorationConfigure))
+    .configure = reinterpret_cast<decltype(zxdg_toplevel_decoration_v1_listener::configure)>(methodPointerNonVirtual(&Client::decorationConfigure))
 };
 
 #if defined __clang__
@@ -349,7 +349,7 @@ Client::scheduleFrame()
 {
     m_pCallBack = wl_surface_frame(m_pSurface);
     static const wl_callback_listener s_callbackListener {
-        .done = reinterpret_cast<decltype(wl_callback_listener::done)>(methodPointer(&Client::callbackDone)),
+        .done = reinterpret_cast<decltype(wl_callback_listener::done)>(methodPointerNonVirtual(&Client::callbackDone)),
     };
     wl_callback_add_listener(m_pCallBack, &s_callbackListener, this);
     updateSurface();

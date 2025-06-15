@@ -2,7 +2,7 @@
 
 #include "Lexer.hh"
 
-#include  "adt/Vec.hh"
+#include "adt/Vec.hh"
 
 namespace json
 {
@@ -148,7 +148,7 @@ private:
 
 /* pfn returns true for early return */
 void traverseNode(Node* pNode, bool (*pfn)(Node* pNode, void* pArgs), void* pArgs, TRAVERSAL_ORDER eOrder);
-void printNode(FILE* fp, Node* pNode, adt::StringView sEnd = "", int depth = 0);
+void printNode(FILE* fp, const Node* pNode, adt::StringView svEnd = "", int depth = 0, bool bPrintKey = true);
 
 /* Linear search inside JSON object. Returns nullptr if not found */
 [[nodiscard]] inline Node*

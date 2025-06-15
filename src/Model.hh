@@ -65,7 +65,9 @@ struct Model
 
     /* */
 
-    static adt::Pool<Model, 128> g_poolModels;
+    using Pool = adt::Pool<Model, 128>;
+
+    static Pool g_poolModels;
 
     /* */
 
@@ -79,10 +81,10 @@ struct Model
     /* */
 
     template<typename ...ARGS>
-    static adt::PoolHandle<Model>
+    static auto
     make(ARGS&&... args)
     {
-        return g_poolModels.make(std::forward<ARGS>(args)...);
+        return g_poolModels.insert(std::forward<ARGS>(args)...);
     }
 
     /* */

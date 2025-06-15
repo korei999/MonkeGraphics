@@ -5,7 +5,10 @@ using namespace adt;
 namespace common
 {
 
-const Span2D<ImagePixelRGBA> g_spDefaultTexture = createDefaultTexture();
+const Span2D<const ImagePixelRGBA> g_spDefaultTexture = [] {
+    auto t = createDefaultTexture();
+    return Span2D<const ImagePixelRGBA> {t.m_pData, t.width(), t.height(), t.stride()};
+}();
 
 Span2D<ImagePixelRGBA>
 createDefaultTexture()

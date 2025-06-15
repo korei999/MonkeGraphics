@@ -68,21 +68,21 @@ struct Model
 private:
     struct
     {
-        json::Node* pAsset;
-        json::Node* pScene;
-        json::Node* pScenes;
-        json::Node* pNodes;
-        json::Node* pMeshes;
-        json::Node* pCameras;
-        json::Node* pBuffers;
-        json::Node* pBufferViews;
-        json::Node* pAccessors;
-        json::Node* pMaterials;
-        json::Node* pTextures;
-        json::Node* pImages;
-        json::Node* pSamplers;
-        json::Node* pSkins;
-        json::Node* pAnimations;
+        const json::Node* pAsset;
+        const json::Node* pScene;
+        const json::Node* pScenes;
+        const json::Node* pNodes;
+        const json::Node* pMeshes;
+        const json::Node* pCameras;
+        const json::Node* pBuffers;
+        const json::Node* pBufferViews;
+        const json::Node* pAccessors;
+        const json::Node* pMaterials;
+        const json::Node* pTextures;
+        const json::Node* pImages;
+        const json::Node* pSamplers;
+        const json::Node* pSkins;
+        const json::Node* pAnimations;
     } m_toplevelObjs {};
 
     bool procToplevelObjs(adt::IAllocator* pAlloc, const json::Parser& parser);

@@ -41,7 +41,7 @@ struct Object
 };
 
 bool load(const adt::StringView svFilePath);
-adt::PoolHandle<Object> loadFile(const adt::StringView svPath);
+adt::Pool<Object, 128>::Handle loadFile(const adt::StringView svPath);
 /* may be null */ [[nodiscard]] Object* search(const adt::StringView svKey, Object::TYPE eType);
 /* may be null */ [[nodiscard]] Image* searchImage(const adt::StringView svKey);
 /* may be null */ [[nodiscard]] gltf::Model* searchModel(const adt::StringView svKey);

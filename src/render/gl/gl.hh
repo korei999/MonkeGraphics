@@ -49,14 +49,14 @@ struct Texture
 
     Texture() = default;
     [[nodiscard]] Texture(int width, int height);
-    [[nodiscard]] Texture(const adt::Span2D<ImagePixelRGBA> spImg);
-    [[nodiscard]] Texture(const adt::Span2D<adt::u8> spImgMono, GLint minManParam = GL_LINEAR);
+    [[nodiscard]] Texture(const adt::Span2D<const ImagePixelRGBA> spImg);
+    [[nodiscard]] Texture(const adt::Span2D<const adt::u8> spImgMono, GLint minManParam);
 
     /* */
 
     void bind() { glBindTexture(GL_TEXTURE_2D, m_id); }
     void bind(GLint activeTexture) { glActiveTexture(activeTexture); bind(); }
-    void subImage(const adt::Span2D<ImagePixelRGBA> spImg);
+    void subImage(const adt::Span2D<const ImagePixelRGBA> spImg);
     void destroy();
 
 private:
@@ -95,7 +95,7 @@ struct Shader
     }
 
     void 
-    setM4(const char* ntsUnifromVar, const adt::Span<adt::math::M4> sp)
+    setM4(const char* ntsUnifromVar, const adt::Span<const adt::math::M4> sp)
     {
         GLint ul = glGetUniformLocation(m_id, ntsUnifromVar);
         glUniformMatrix4fv(ul, sp.size(), GL_FALSE, reinterpret_cast<const GLfloat*>(sp.data()));
@@ -200,7 +200,9 @@ void debugCallback(
 
 struct Text;
 
-extern adt::Pool<Shader, 128> g_poolShaders;
+using ShaderPool = adt::Pool<Shader, 128>;
+
+extern ShaderPool g_poolShaders;
 extern Quad g_quad;
 extern Texture g_texDefault;
 extern Shader* g_pShColor;

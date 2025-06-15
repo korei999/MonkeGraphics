@@ -21,7 +21,8 @@ struct DrawCommand
 };
 
 static ::ui::Offset drawArrowList(
-    VecManaged<DrawCommand>* pVCommands,
+    Arena* pArean,
+    Vec<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
     const math::M4& proj,
@@ -46,8 +47,8 @@ init()
     if (pFont)
     {
         s_rastLiberation.rasterizeAscii(StdAllocator::inst(), pFont, 64.0f);
-        s_texLiberation = Texture {s_rastLiberation.m_altas.spanMono(), GL_LINEAR};
-        s_text = Text {255};
+        new(&s_texLiberation) Texture {s_rastLiberation.m_altas.spanMono(), GL_LINEAR};
+        new(&s_text) Text {255};
     }
 
     s_quad0to1 = Quad(INIT, Quad::TYPE::ZERO_TO_ONE);
@@ -55,7 +56,8 @@ init()
 
 static ::ui::Offset
 drawText(
-    VecManaged<DrawCommand>* pVCommands,
+    Arena* pArena,
+    Vec<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const StringView sv,
     const math::V4 fgColor,
@@ -77,9 +79,9 @@ drawText(
         s_text.draw();
     };
 
-    auto* pClDraw = pVCommands->m_pAlloc->alloc<decltype(clDraw)>(clDraw);
+    auto* pClDraw = pArena->alloc<decltype(clDraw)>(clDraw);
 
-    pVCommands->emplace(+[](void* p)
+    pVCommands->emplace(pArena, +[](void* p)
         {
             auto* pCl = static_cast<decltype(clDraw)*>(p);
             pCl->operator()();
@@ -92,7 +94,8 @@ drawText(
 
 static ::ui::Offset
 drawMenu(
-    VecManaged<DrawCommand>* pVCommands,
+    Arena* pArena,
+    Vec<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
     const math::M4& proj,
@@ -106,7 +109,7 @@ drawMenu(
     ::ui::Offset thisOff {0, 0};
 
     {
-        auto xy = drawText(pVCommands, widget, menu.sfName, menu.color, proj, off);
+        auto xy = drawText(pArena, pVCommands, widget, menu.sfName, menu.color, proj, off);
         thisOff.x = utils::max(xy.x, thisOff.x);
         thisOff.y += xy.y;
     }
@@ -126,19 +129,19 @@ drawMenu(
         {
             case ::ui::Entry::TYPE::TEXT:
             {
-                xy = drawText(pVCommands, widget, child.m_text.sfName, col, proj, {off.x + 2, off.y + thisOff.y});
+                xy = drawText(pArena, pVCommands, widget, child.m_text.sfName, col, proj, {off.x + 2, off.y + thisOff.y});
             }
             break;
 
             case ::ui::Entry::TYPE::ARROW_LIST:
             {
-                xy = drawArrowList(pVCommands, widget, child, proj, {off.x + 2, off.y + thisOff.y});
+                xy = drawArrowList(pArena, pVCommands, widget, child, proj, {off.x + 2, off.y + thisOff.y});
             }
             break;
 
             case ::ui::Entry::TYPE::MENU:
             {
-                xy = drawMenu(pVCommands, widget, child, proj, {off.x + 2, off.y + thisOff.y});
+                xy = drawMenu(pArena, pVCommands, widget, child, proj, {off.x + 2, off.y + thisOff.y});
             }
             break;
         }
@@ -153,7 +156,8 @@ drawMenu(
 
 static ::ui::Offset
 drawArrowList(
-    VecManaged<DrawCommand>* pVCommands,
+    Arena* pArena,
+    Vec<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
     const math::M4& proj,
@@ -167,9 +171,9 @@ drawArrowList(
     ::ui::Offset thisOff {0, 0};
 
     {
-        drawText(pVCommands, widget, "<", entry.m_arrowList.arrowColor, proj, off);
-        auto xy = drawText(pVCommands, widget, arrowList.sfName, arrowList.color, proj, {off.x + 1, off.y});
-        drawText(pVCommands, widget, ">", entry.m_arrowList.arrowColor, proj, {off.x + xy.x + 1, off.y});
+        drawText(pArena, pVCommands, widget, "<", entry.m_arrowList.arrowColor, proj, off);
+        auto xy = drawText(pArena, pVCommands, widget, arrowList.sfName, arrowList.color, proj, {off.x + 1, off.y});
+        drawText(pArena, pVCommands, widget, ">", entry.m_arrowList.arrowColor, proj, {off.x + xy.x + 1, off.y});
 
         thisOff.x = utils::max(thisOff.x, xy.x + 2);
         ++thisOff.y;
@@ -182,7 +186,7 @@ drawArrowList(
         {
             case ::ui::Entry::TYPE::TEXT:
             {
-                auto xy = drawText(pVCommands, widget, sel.m_text.sfName, sel.m_text.color, proj, {off.x + 2, off.y + thisOff.y});
+                auto xy = drawText(pArena, pVCommands, widget, sel.m_text.sfName, sel.m_text.color, proj, {off.x + 2, off.y + thisOff.y});
 
                 thisOff.x = utils::max(thisOff.x, xy.x);
                 thisOff.y += xy.y;
@@ -191,7 +195,7 @@ drawArrowList(
 
             case ::ui::Entry::TYPE::MENU:
             {
-                auto xy = drawMenu(pVCommands, widget, sel, proj, {off.x, off.y + thisOff.y});
+                auto xy = drawMenu(pArena, pVCommands, widget, sel, proj, {off.x, off.y + thisOff.y});
 
                 thisOff.x = utils::max(thisOff.x, xy.x);
                 thisOff.y += xy.y;
@@ -209,14 +213,14 @@ drawArrowList(
 }
 
 static void
-drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const math::M4& proj)
+drawWidget(Arena* pArena, Vec<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const math::M4& proj)
 {
     ::ui::Offset off {0, 0};
     ::ui::Offset thisOff {0, 0};
 
     if (bool(pWidget->eFlags & ::ui::Widget::FLAGS::TITLE))
     {
-        ::ui::Offset xy = drawText(pVCommands, *pWidget, pWidget->sfTitle,
+        ::ui::Offset xy = drawText(pArena, pVCommands, *pWidget, pWidget->sfTitle,
             V4From(colors::WHITE, 0.75f), proj, off
         );
         thisOff.x = utils::max(thisOff.x, xy.x);
@@ -229,7 +233,7 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
         {
             case ::ui::Entry::TYPE::ARROW_LIST:
             {
-                auto xy = drawArrowList(pVCommands, *pWidget, entry, proj, {off.x, off.y + thisOff.y});
+                auto xy = drawArrowList(pArena, pVCommands, *pWidget, entry, proj, {off.x, off.y + thisOff.y});
                 thisOff.x = utils::max(thisOff.x, xy.x);
                 thisOff.y += xy.y;
             }
@@ -237,7 +241,7 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
 
             case ::ui::Entry::TYPE::TEXT:
             {
-                auto xy = drawText(pVCommands, *pWidget, entry.m_text.sfName, entry.m_text.color, proj, {off.x, off.y + thisOff.y});
+                auto xy = drawText(pArena, pVCommands, *pWidget, entry.m_text.sfName, entry.m_text.color, proj, {off.x, off.y + thisOff.y});
                 thisOff.x = utils::max(thisOff.x, xy.x);
                 thisOff.y += xy.y;
             }
@@ -245,7 +249,7 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
 
             case ::ui::Entry::TYPE::MENU:
             {
-                auto xy = drawMenu(pVCommands, *pWidget, entry, proj, {off.x, off.y + thisOff.y});
+                auto xy = drawMenu(pArena, pVCommands, *pWidget, entry, proj, {off.x, off.y + thisOff.y});
                 thisOff.x = utils::max(thisOff.x, xy.x);
                 thisOff.y += xy.y;
             }
@@ -281,14 +285,14 @@ drawWidget(VecManaged<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const mat
 }
 
 static void
-drawWidgets(Arena*, VecManaged<DrawCommand>* pVCommands, const math::M4& proj)
+drawWidgets(Arena* pArena, Vec<DrawCommand>* pVCommands, const math::M4& proj)
 {
     for (::ui::Widget& widget : ::ui::g_poolWidgets)
     {
         if (bool(widget.eFlags & ::ui::Widget::FLAGS::NO_DRAW))
             continue;
 
-        drawWidget(pVCommands, &widget, proj);
+        drawWidget(pArena, pVCommands, &widget, proj);
     }
 }
 
@@ -296,7 +300,7 @@ void
 draw(Arena* pArena)
 {
     /* Save drawText commands in the buffer. Draw them over the rectangle later. */
-    VecManaged<DrawCommand> vCommands(pArena, 1 << 4);
+    Vec<DrawCommand> vCommands(pArena, 1 << 4);
 
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);

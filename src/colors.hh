@@ -1,5 +1,5 @@
 #pragma once
-#include "adt/mathDecl.hh"
+#include "adt/math.hh"
 
 /* https://www.rapidtables.com/web/color/RGB_Color.html */
 

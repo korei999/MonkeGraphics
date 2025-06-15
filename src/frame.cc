@@ -78,20 +78,13 @@ eventLoop()
 #endif
 }
 
-static THREAD_STATUS
-renderLoop(void* pArg)
+static void
+renderLoop(Arena* pArena)
 {
-    Arena* pArena = static_cast<Arena*>(pArg);
-
-    // app::allocScratchForThisThread(SIZE_1M * 2);
-    // defer( app::destroyScratchForThisThread() );
-
     auto& win = app::windowInst();
-    win.bindContext();
-
     auto& renderer = app::rendererInst();
 
-    VecManaged<f64> vFrameTimes(StdAllocator::inst(), 1000);
+    VecManaged<f64> vFrameTimes(1000);
     defer( vFrameTimes.destroy() );
     f64 lastAvgFrameTimeUpdateTime {};
 
@@ -161,8 +154,6 @@ renderLoop(void* pArg)
             lastAvgFrameTimeUpdateTime = timer1;
         }
     }
-
-    return THREAD_STATUS(0);
 }
 
 static void
@@ -184,16 +175,7 @@ mainLoop()
 
     game::updateState(&frameArena);
 
-    win.unbindContext();
-    // Thread renderThread(renderLoop, &frameArena, Thread::ATTR::JOINABLE);
-    // defer( renderThread.join() );
-
     renderLoop(&frameArena);
-
-    /* NOTE: its slightly faster when event loops is not blocking the render loop */
-    // while (win.m_bRunning)
-    // {
-    // }
 }
 
 void

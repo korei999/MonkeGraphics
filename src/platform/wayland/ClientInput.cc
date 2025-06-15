@@ -160,11 +160,8 @@ Client::pointerAxis(
     [[maybe_unused]] wl_fixed_t value
 )
 {
-    static int counter = 0;
     if (axis == WL_POINTER_AXIS_SOURCE_WHEEL)
-    {
         m_qWheelEvents.forcePushBack(wl_fixed_to_double(value));
-    }
 }
 
 void

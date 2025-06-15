@@ -1,6 +1,6 @@
 #pragma once
 
-#include "adt/StringDecl.hh"
+#include "adt/String.hh"
 
 namespace frame
 {

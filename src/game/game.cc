@@ -33,7 +33,7 @@ PoolSOA<Entity, Entity::Bind, MAX_ENTITIES,
 adt::MapManaged<
     StringFixed<128>,
     PoolSOAHandle<Entity>
-> g_mapNamesToEntities(StdAllocator::inst(), MAX_ENTITIES);
+> g_mapNamesToEntities(MAX_ENTITIES);
 
 /* TODO: should probably be just a separate array of light sources */
 PoolSOAHandle<Entity> g_dirLight;
@@ -186,7 +186,7 @@ loadStuff()
     }
 
     {
-        auto entity = g_poolEntities[{6}];
+        // auto entity = g_poolEntities[{6}];
         /*entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, frame::g_time);*/
     }
 

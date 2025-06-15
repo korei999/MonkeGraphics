@@ -1,15 +1,14 @@
 #pragma once
 
-#include "StringDecl.hh"
+#include "String.inc"
 
 #include "assert.hh"
 #include "IAllocator.hh"
 #include "utils.hh"
-#include "hash.hh"
 #include "Span.hh" /* IWYU pragma: keep */
 #include "print.hh" /* IWYU pragma: keep */
+#include "wcwidth.hh"
 
-#include <cstdlib>
 #include <cwchar>
 
 namespace adt
@@ -36,7 +35,7 @@ ntsSize(const char* nts)
     return i;
 }
 
-template <isize SIZE>
+template<isize SIZE>
 [[nodiscard]] constexpr isize
 charBuffStringSize(const char (&aCharBuff)[SIZE])
 {
@@ -46,6 +45,12 @@ charBuffStringSize(const char (&aCharBuff)[SIZE])
     while (i < SIZE && aCharBuff[i] != '\0') ++i;
 
     return i;
+}
+
+inline constexpr int
+wcWidth(wchar_t wc)
+{
+    return mk_wcwidth(wc);
 }
 
 inline constexpr
@@ -58,7 +63,7 @@ StringView::StringView(char* pStr, isize len)
 
 inline constexpr
 StringView::StringView(Span<char> sp)
-    : StringView(sp.data(), sp.size()) {}
+    : StringView(sp.m_pData, sp.m_size) {}
 
 template<isize SIZE>
 inline constexpr
@@ -83,13 +88,13 @@ StringView::operator[](isize i) const
 #undef ADT_RANGE_CHECK
 
 /* wchar_t iterator for mutlibyte strings */
-struct StringGlyphIt
+struct StringWCharIt
 {
     const StringView m_s {};
 
     /* */
 
-    StringGlyphIt(const StringView s) : m_s {s} {};
+    StringWCharIt(const StringView s) : m_s {s} {};
 
     /* */
 
@@ -144,6 +149,114 @@ GOTO_quit:
     const It end() const { return {NPOS}; }
 };
 
+/* Grapheme cluster iterator */
+struct StringGraphemeIt
+{
+    const StringView m_sv {};
+
+    StringGraphemeIt(const StringView sv) : m_sv {sv} {};
+
+    /* */
+
+    static bool
+    isRegional(const wchar_t wc)
+    {
+        return u32(wc) >= 0x1F1E6 && u32(wc) <= 0x1F1FF;
+    }
+
+    /* */
+
+    struct It
+    {
+        const char* m_pStr {};
+        isize m_size {};
+        isize m_i {};
+        isize m_clusterI {};
+        isize m_clusterSize {};
+        mbstate_t m_mbState {};
+
+        /* */
+
+        It(isize _NPOS) : m_i {_NPOS} {}
+        It(const StringView sv) : m_pStr {sv.m_pData}, m_size {sv.m_size} { operator++(); }
+
+        /* */
+
+        const StringView operator*() const { return {const_cast<char*>(&m_pStr[m_clusterI]), m_clusterSize}; }
+
+        It
+        operator++()
+        {
+            if (!m_pStr || m_i >= m_size)
+            {
+                m_i = NPOS;
+                return NPOS;
+            }
+
+            wchar_t wc1;
+            int nBytesDecoded = mbrtowc(&wc1, &m_pStr[m_i], m_size - m_i, &m_mbState);
+            if (nBytesDecoded == -1 || nBytesDecoded == -2)
+            {
+                /* just skip */
+                nBytesDecoded = 1;
+                wc1 = L' ';
+                m_mbState = {};
+            }
+
+            m_clusterI = m_i;
+            m_i += nBytesDecoded;
+
+            if (isRegional(wc1))
+            {
+                mbstate_t mb2 {};
+                wchar_t wc2;
+                int nBytesDecoded2 = mbrtowc(&wc2, &m_pStr[m_i], m_size - m_i, &mb2);
+                if (nBytesDecoded2 > 0 && isRegional(wc2))
+                    m_i += nBytesDecoded2;
+            }
+
+            while (m_i < m_size)
+            {
+                mbstate_t mb2 {};
+                wchar_t wc2;
+                int nBytesDecoded2 = mbrtowc(&wc2, &m_pStr[m_i], m_size - m_i, &mb2);
+                if (nBytesDecoded2 == 0 || nBytesDecoded2 == -1 || nBytesDecoded2 == -2)
+                    break;
+
+                /* zero-width joiner (ZWJ) */
+                if (wc2 == 0x200D)
+                {
+                    m_i += nBytesDecoded2;
+                    mbstate_t mb3 {};
+                    wchar_t wc3;
+                    int nBytesDecoded3 = mbrtowc(&wc3, &m_pStr[m_i], m_size - m_i, &mb3);
+                    if (nBytesDecoded3 > 0)
+                    {
+                        m_i += nBytesDecoded3;
+                        continue;
+                    }
+                    break;
+                }
+
+                if (wcWidth(wc2) != 0)
+                    break;
+                m_i += nBytesDecoded2;
+            }
+
+            m_clusterSize = m_i - m_clusterI;
+            return *this;
+        }
+
+        /* */
+
+        friend bool operator==(const It& l, const It& r) { return l.m_i == r.m_i; }
+        friend bool operator!=(const It& l, const It& r) { return l.m_i != r.m_i; }
+    };
+
+    It begin() { return m_sv; }
+    It end() { return NPOS; }
+};
+
 /* Separated by delimiters String iterator adapter */
 struct StringWordIt
 {
@@ -182,7 +295,7 @@ struct StringWordIt
         It&
         operator++()
         {
-            if (m_i >= m_svStr.size())
+            if (m_i >= m_svStr.m_size)
             {
                 m_i = NPOS;
                 return *this;
@@ -200,7 +313,7 @@ struct StringWordIt
                 return false;
             };
 
-            while (end < m_svStr.size() && !oneOf(m_svStr[end]))
+            while (end < m_svStr.m_size && !oneOf(m_svStr[end]))
                 end++;
 
             m_svCurrWord = {const_cast<char*>(&m_svStr[start]), end - start};
@@ -236,11 +349,11 @@ StringView::beginsWith(const StringView r) const
 {
     const auto& l = *this;
 
-    if (l.size() < r.size())
+    if (l.m_size < r.m_size)
         return false;
 
-    for (isize i = 0; i < r.size(); ++i)
-        if (l[i] != r[i])
+    for (isize i = 0; i < r.m_size; ++i)
+        if (l.m_pData[i] != r.m_pData[i])
             return false;
 
     return true;
@@ -255,7 +368,7 @@ StringView::endsWith(const StringView r) const
         return false;
 
     for (isize i = r.m_size - 1, j = l.m_size - 1; i >= 0; --i, --j)
-        if (r[i] != l[j])
+        if (r.m_pData[i] != l.m_pData[j])
             return false;
 
     return true;
@@ -264,13 +377,13 @@ StringView::endsWith(const StringView r) const
 inline bool
 operator==(const StringView& l, const StringView& r)
 {
-    if (l.data() == r.data())
+    if (l.m_pData == r.m_pData)
         return true;
 
-    if (l.size() != r.size())
+    if (l.m_size != r.m_size)
         return false;
 
-    return strncmp(l.data(), r.data(), l.size()) == 0; /* strncmp is as fast as handmade AVX2 function. */
+    return strncmp(l.m_pData, r.m_pData, l.m_size) == 0; /* (glibc) strncmp is as fast as handmade SIMD optimized function. */
 }
 
 inline bool
@@ -294,7 +407,7 @@ operator-(const StringView& l, const StringView& r)
 
     i64 sum = 0;
     for (isize i = 0; i < l.m_size; --i)
-        sum += (l[i] - r[i]);
+        sum += (l.m_pData[i] - r.m_pData[i]);
 
     return sum;
 }
@@ -302,8 +415,8 @@ operator-(const StringView& l, const StringView& r)
 inline constexpr isize
 StringView::lastOf(char c) const
 {
-    for (int i = size() - 1; i >= 0; --i)
-        if ((*this)[i] == c)
+    for (int i = m_size - 1; i >= 0; --i)
+        if (m_pData[i] == c)
             return i;
 
     return NPOS;
@@ -312,8 +425,8 @@ StringView::lastOf(char c) const
 inline constexpr isize
 StringView::firstOf(char c) const
 {
-    for (int i = 0; i < size(); ++i)
-        if ((*this)[i] == c)
+    for (int i = 0; i < m_size; ++i)
+        if (m_pData[i] == c)
             return i;
 
     return NPOS;
@@ -360,16 +473,51 @@ StringView::removeNLEnd()
 inline bool
 StringView::contains(const StringView r) const
 {
-    if (m_size < r.m_size || m_size == 0 || r.m_size == 0) return false;
+    if (m_size < r.m_size || m_size == 0 || r.m_size == 0)
+        return false;
+
+#if __has_include(<unistd.h>)
+
+    return memmem(m_pData, m_size, r.m_pData, r.m_size) != nullptr;
+
+#else
 
     for (isize i = 0; i < m_size - r.m_size + 1; ++i)
     {
-        const StringView sSub {const_cast<char*>(&(*this)[i]), r.m_size};
-        if (sSub == r)
+        const StringView svSub {const_cast<char*>(&m_pData[i]), r.m_size};
+        if (svSub == r)
             return true;
     }
 
     return false;
+
+#endif
+}
+
+inline isize
+StringView::subStringAt(const StringView r) const noexcept
+{
+    if (m_size < r.m_size || m_size == 0 || r.m_size == 0)
+        return false;
+
+#if __has_include(<unistd.h>)
+
+    const void* ptr = memmem(m_pData, m_size, r.m_pData, r.m_size);
+
+    if (ptr) return idx(static_cast<const char*>(ptr));
+
+#else
+
+    for (isize i = 0; i < m_size - r.m_size + 1; ++i)
+    {
+        const StringView svSub {const_cast<char*>(&m_pData[i]), r.m_size};
+        if (svSub == r)
+            return i;
+    }
+
+#endif
+
+    return -1;
 }
 
 inline char&
@@ -397,14 +545,14 @@ StringView::last() const
 }
 
 inline isize
-StringView::nGlyphs() const
+StringView::multiByteSize() const
 {
     mbstate_t state {};
     isize n = 0;
 
     for (isize i = 0; i < m_size; )
     {
-        i+= mbrlen(&operator[](i), size() - i, &state);
+        i+= mbrlen(&operator[](i), m_size - i, &state);
         ++n;
     }
 
@@ -437,21 +585,21 @@ String::String(IAllocator* pAlloc, const char* nts)
 
 inline
 String::String(IAllocator* pAlloc, Span<char> spChars)
-    : String(pAlloc, spChars.data(), spChars.size()) {}
+    : String(pAlloc, spChars.m_pData, spChars.m_size) {}
 
 inline
 String::String(IAllocator* pAlloc, const StringView sv)
-    : String(pAlloc, sv.data(), sv.size()) {}
+    : String(pAlloc, sv.m_pData, sv.m_size) {}
 
 inline void
-String::destroy(IAllocator* pAlloc)
+String::destroy(IAllocator* pAlloc) noexcept
 {
     pAlloc->free(m_pData);
     *this = {};
 }
 
 inline void
-String::replaceWith(IAllocator* pAlloc, StringView svWith)
+String::reallocWith(IAllocator* pAlloc, const StringView svWith)
 {
     if (svWith.empty())
     {
@@ -460,11 +608,17 @@ String::replaceWith(IAllocator* pAlloc, StringView svWith)
     }
 
     if (size() < svWith.size() + 1)
-        m_pData = pAlloc->reallocV<char>(data(), 0, svWith.size() + 1);
+        m_pData = pAlloc->reallocV<char>(m_pData, 0, svWith.m_size + 1);
 
-    strncpy(data(), svWith.data(), svWith.size());
-    m_size = svWith.size();
-    data()[size()] = '\0';
+    strncpy(m_pData, svWith.m_pData, svWith.m_size);
+    m_size = svWith.m_size;
+    m_pData[m_size] = '\0';
+}
+
+inline String
+String::release() noexcept
+{
+    return utils::exchange(this, {});
 }
 
 template<int SIZE>
@@ -472,10 +626,10 @@ inline
 StringFixed<SIZE>::StringFixed(const StringView svName)
 {
     /* memcpy doesn't like nullptrs */
-    if (!svName.data() || svName.size() <= 0) return;
+    if (!svName.m_pData || svName.m_size <= 0) return;
 
-    const isize size = utils::min(svName.size(), isize(SIZE - 1));
-    memcpy(m_aBuff, svName.data(), size);
+    const isize size = utils::min(svName.m_size, isize(SIZE - 1));
+    memcpy(m_aBuff, svName.m_pData, size);
     m_aBuff[size] = '\0';
 }
 
@@ -491,16 +645,16 @@ StringFixed<SIZE>::StringFixed(const StringFixed<SIZE_B> other)
 
 template<int SIZE>
 inline isize
-StringFixed<SIZE>::size() const
+StringFixed<SIZE>::size() const noexcept
 {
     return strnlen(m_aBuff, SIZE);
 }
 
 template<int SIZE>
 inline void
-StringFixed<SIZE>::destroy()
+StringFixed<SIZE>::destroy() noexcept
 {
-    memset(data(), 0, sizeof(m_aBuff));
+    memset(m_aBuff, 0, sizeof(m_aBuff));
 }
 
 template<int SIZE>
@@ -539,9 +693,9 @@ StringCat(IAllocator* p, const StringView& l, const StringView& r)
     char* ret = p->zallocV<char>(len + 1);
 
     isize pos = 0;
-    for (isize i = 0; i < l.size(); ++i, ++pos)
+    for (isize i = 0; i < l.m_size; ++i, ++pos)
         ret[pos] = l[i];
-    for (isize i = 0; i < r.size(); ++i, ++pos)
+    for (isize i = 0; i < r.m_size; ++i, ++pos)
         ret[pos] = r[i];
 
     ret[len] = '\0';
@@ -556,7 +710,7 @@ template<>
 inline usize
 hash::func(const StringView& str)
 {
-    return hash::func(str.m_pData, str.size());
+    return hash::func(str.m_pData, str.m_size);
 }
 
 } /* namespace adt */

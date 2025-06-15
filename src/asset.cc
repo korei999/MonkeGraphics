@@ -13,8 +13,8 @@ using namespace adt;
 namespace asset
 {
 
-Pool<Object, 128> g_poolObjects {};
-static MapManaged<StringView, PoolHandle<Object>> s_mapStringsToObjects(StdAllocator::inst(), g_poolObjects.cap());
+Pool<Object, 128> g_poolObjects {INIT};
+static MapManaged<StringView, Pool<Object, 128>::Handle> s_mapStringsToObjects(g_poolObjects.cap());
 
 void
 Object::destroy()
@@ -23,12 +23,12 @@ Object::destroy()
 
     s_mapStringsToObjects.tryRemove(m_sMappedWith);
     m_arena.freeAll();
-    g_poolObjects.giveBack(this);
+    g_poolObjects.remove(this);
 
     *this = {};
 }
 
-static PoolHandle<Object>
+static Pool<Object, 128>::Handle
 loadBMP([[maybe_unused]] const StringView svPath, const StringView sFile)
 {
     BMP::Reader reader {};
@@ -46,12 +46,12 @@ loadBMP([[maybe_unused]] const StringView svPath, const StringView sFile)
     nObj.m_uData.img = img;
     nObj.m_eType = Object::TYPE::IMAGE;
 
-    PoolHandle hnd = g_poolObjects.make(nObj);
+    Pool<Object, 128>::Handle hnd = g_poolObjects.insert(nObj);
 
     return hnd;
 }
 
-static PoolHandle<Object>
+static Pool<Object, 128>::Handle
 loadGLTF(const StringView svPath, const StringView sFile)
 {
     Object nObj(SIZE_1M);
@@ -74,7 +74,7 @@ loadGLTF(const StringView svPath, const StringView sFile)
     nObj.m_uData.model = gltfModel;
     nObj.m_eType = Object::TYPE::MODEL;
 
-    PoolHandle hnd = g_poolObjects.make(nObj);
+    auto hnd = g_poolObjects.insert(nObj);
 
     for (const auto& image : gltfModel.m_vImages)
     {
@@ -86,7 +86,7 @@ loadGLTF(const StringView svPath, const StringView sFile)
     return hnd;
 }
 
-static PoolHandle<Object>
+static Pool<Object, 128>::Handle
 loadTTF([[maybe_unused]] const StringView svPath, const StringView sFile)
 {
     Object nObj(SIZE_1K * 500);
@@ -102,11 +102,11 @@ loadTTF([[maybe_unused]] const StringView svPath, const StringView sFile)
     nObj.m_uData.font = font;
     nObj.m_eType = Object::TYPE::FONT;
 
-    PoolHandle<Object> hnd = g_poolObjects.make(nObj);
+    auto hnd = g_poolObjects.insert(nObj);
     return hnd;
 }
 
-PoolHandle<Object>
+Pool<Object, 128>::Handle
 loadFile(const StringView svPath)
 {
     StdAllocator stdAlloc {};
@@ -120,7 +120,7 @@ loadFile(const StringView svPath)
     /* WARNING: must clone sFile contents */
     defer( sFile.destroy(&stdAlloc) );
 
-    PoolHandle<Object> retHnd {};
+    Pool<Object, 128>::Handle retHnd {};
 
     if (svPath.endsWith(".bmp"))
     {

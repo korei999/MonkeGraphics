@@ -3,7 +3,7 @@
 #include "atomic.hh"
 #include "Opt.hh"
 
-#include <new>
+#include <new> /* IWYU pragma: keep */
 
 namespace adt
 {
@@ -15,7 +15,7 @@ struct QueueSPSC
 
     /* */
 
-    T m_pData[CAP] {};
+    T m_pData[CAP];
     atomic::Int m_atomHeadI {};
     atomic::Int m_atomTailI {};
 

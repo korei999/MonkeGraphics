@@ -9,7 +9,7 @@
 #include "adt/Pool.hh"
 #include "adt/Vec.hh"
 #include "adt/enum.hh"
-#include "adt/mathDecl.hh"
+#include "adt/math.hh"
 
 namespace ui
 {
@@ -142,7 +142,9 @@ void init();
 void updateState();
 void destroy();
 
-extern adt::Pool<Widget, 64> g_poolWidgets;
+using WidgetPool = adt::Pool<Widget, 64>;
+
+extern WidgetPool g_poolWidgets;
 
 } /* namespace ui */
 

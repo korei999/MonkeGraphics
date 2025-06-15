@@ -1,8 +1,5 @@
 #pragma once
 
-#include <cstdio>
-#include <cstdlib>
-
 #ifdef ADT_STD_TYPES
     #include <cstdint>
     #include <limits>
@@ -37,7 +34,7 @@ using i64 = int64_t;
 using u64 = uint64_t;
 using pdiff = ptrdiff_t;
 using isize = i64;
-using usize = size_t;
+using usize = u64;
 
 constexpr isize NPOS = -1L;
 constexpr u16 NPOS8 = std::numeric_limits<u8>::max();
@@ -56,8 +53,8 @@ using u32 = unsigned int;
 using i64 = signed long long;
 using u64 = unsigned long long;
 using pdiff = long long;
-using isize = long long;
-using usize = unsigned long long;
+using isize = i64;
+using usize = u64;
 
 constexpr int NPOS = -1;
 constexpr u16 NPOS8 = u8(-1);
@@ -105,16 +102,37 @@ constexpr InitFlag INIT {};
 
 template<typename METHOD_T>
 [[nodiscard]] constexpr void*
-methodPointer(METHOD_T ptr)
+methodPointerNonVirtual(METHOD_T ptr)
 {
     return *reinterpret_cast<void**>(&ptr);
 }
+
+template<typename MemFn> struct PfnFromMethod;
+
+/* non-const methods */
+template<typename R, typename C, typename ...ARGS>
+struct PfnFromMethod<R (C::*)(ARGS...)>
+{
+    using type = R (*)(C*, ARGS...);
+};
+
+/* const methods */
+template<typename R, typename C, typename ...ARGS>
+struct PfnFromMethod<R (C::*)(ARGS...) const>
+{
+    using type = R (*)(const C*, ARGS...);
+};
+
+template<typename MemFn>
+using PfnFromMethodType = typename PfnFromMethod<MemFn>::type;
 
 template<typename ...Ts>
 struct Overloaded : Ts...
 {
     using Ts::operator()...; /* Inherit the call operators of all bases */
 };
+
+struct Empty { };
 
 inline constexpr bool isPowerOf2(usize x) { return (x & (x - 1)) == 0; }
 
@@ -158,7 +176,7 @@ nextPowerOf2(i32 x)
 }
 
 inline constexpr isize
-nextPowerOf2(isize x)
+nextPowerOf2(i64 x)
 {
     --x;
 
@@ -171,5 +189,17 @@ nextPowerOf2(isize x)
 
     return ++x;
 }
+
+template<typename T>
+concept HasSizeMethod = requires(const T& c)
+{ c.size(); };
+
+template<typename T>
+concept HasNextIt = requires(const T& c)
+{ c.begin().next(); };
+
+template<typename T>
+concept IsIndexable = requires(const T& c)
+{ c[0]; };
 
 } /* namespace adt */

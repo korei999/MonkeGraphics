@@ -7,7 +7,7 @@
 
 using namespace adt;
 
-Pool<Model, 128> Model::g_poolModels {};
+Model::Pool Model::g_poolModels {INIT};
 
 Model::Model(i16 assetModelI)
     : m_arena {SIZE_1M}, m_future {INIT}, m_modelAssetI {assetModelI}
@@ -268,7 +268,10 @@ Model::loadAnimations()
         if (gltfAnim.sName.empty())
         {
             constexpr StringView svPrefix = "animation";
-            Span<char> sp = app::gtl_scratch.nextMemZero<char>(svPrefix.size() + 5);
+
+            Span<char> sp = ADT_SCRATCH_NEXT_MEM_ZERO(&app::gtl_scratch, char, svPrefix.size() + 5);
+            defer( app::gtl_scratch.reset() );
+
             const isize n = print::toSpan(sp, "{}{}", "animation", model.m_vAnimations.idx(&gltfAnim));
             newAnim.sName = String(&m_arena, sp.data(), n);
         }
