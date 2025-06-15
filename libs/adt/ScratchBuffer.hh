@@ -42,10 +42,10 @@ struct ScratchBuffer
 
     /* nextMem() + memset() to zero */
     template<typename T>
-    [[nodiscard]] Span<T> nextMemZero(isize mCount, const char* ntsFile = nullptr, int line = 0) noexcept;
+    [[nodiscard]] Span<T> nextMemZero(isize mCount, const char* ntsFile = "", int line = 0) noexcept;
 
     template<typename T>
-    [[nodiscard]] Span<T> nextMem(const char* ntsFile = nullptr, int line = 0) noexcept;
+    [[nodiscard]] Span<T> nextMem(const char* ntsFile = "", int line = 0) noexcept;
 
     void reset() noexcept;
 
