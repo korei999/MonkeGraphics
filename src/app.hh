@@ -30,6 +30,6 @@ void destroyScratchForThisThread();
 
 extern thread_local adt::ScratchBuffer gtl_scratch;
 
-extern adt::ThreadPool<128> g_threadPool;
+extern adt::ThreadPoolWithMemory<128> g_threadPool;
 
 } /* namespace app */;
