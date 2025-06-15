@@ -178,7 +178,7 @@ makeItCurvy(IAllocator* pAlloc, const Vec<PointOnCurve>& aNonCurvyPoints, CurveE
 void
 Rasterizer::rasterizeGlyph(const Font& font, const Glyph& glyph, int xOff, int yOff)
 {
-    BufferAllocator allo(ADT_SCRATCH_NEXT_MEM(&app::gtl_scratch, PointOnCurve));
+    BufferAllocator allo(app::gtl_scratch.nextMem<PointOnCurve>());
     defer( app::gtl_scratch.reset() );
 
     CurveEndIdx endIdxs {};
@@ -300,7 +300,7 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
     i16 yOff = 0;
     const i16 xStep = iScale * X_STEP;
 
-    BufferAllocator arena = ADT_SCRATCH_NEXT_MEM(&app::gtl_scratch, u8);
+    BufferAllocator arena = app::gtl_scratch.nextMem<u8>();
     defer( app::gtl_scratch.reset() );
 
     for (u32 ch = '!'; ch <= '~'; ++ch)

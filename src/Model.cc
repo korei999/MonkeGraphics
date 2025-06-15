@@ -269,7 +269,7 @@ Model::loadAnimations()
         {
             constexpr StringView svPrefix = "animation";
 
-            Span<char> sp = ADT_SCRATCH_NEXT_MEM_ZERO(&app::gtl_scratch, char, svPrefix.size() + 5);
+            Span<char> sp = app::gtl_scratch.nextMemZero<char>(svPrefix.size() + 5);
             defer( app::gtl_scratch.reset() );
 
             const isize n = print::toSpan(sp, "{}{}", "animation", model.m_vAnimations.idx(&gltfAnim));

@@ -15,7 +15,7 @@ Text::makeStringMesh(
     const bool bVerticalFlip
 )
 {
-    Span<CharQuad2Pos2UV> spMem = ADT_SCRATCH_NEXT_MEM(pScratch, CharQuad2Pos2UV);
+    Span<CharQuad2Pos2UV> spMem = pScratch->nextMem<CharQuad2Pos2UV>();
     if (spMem.size() < m_maxSize) return {};
 
     /* NOTE: problems with constructor */

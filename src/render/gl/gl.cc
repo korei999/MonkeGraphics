@@ -213,7 +213,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
     V4 stencilColor {};
     void* pStencilExtra {};
 
-    BufferAllocator buff {ADT_SCRATCH_NEXT_MEM(&app::gtl_scratch, u8)};
+    BufferAllocator buff = app::gtl_scratch.nextMem<u8>();
     defer( app::gtl_scratch.reset() );
 
     auto clBindTexture = [&](const gltf::Primitive& primitive)
@@ -1226,6 +1226,7 @@ loadGLTF(gltf::Model* pModel)
 
                 if (primitive.indicesI > -1)
                 {
+                    [[maybe_unused]] const auto& accInd = pModel->m_vAccessors[primitive.indicesI];
                     ADT_ASSERT(accInd.eComponentType == gltf::COMPONENT_TYPE::UNSIGNED_SHORT, "TODO: implement the rest");
 
                     const View<u16> vwInd = pModel->accessorView<u16>(primitive.indicesI);
