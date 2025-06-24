@@ -87,19 +87,20 @@ loadGLTF(const StringView svPath, const StringView sFile)
 }
 
 static Pool<Object, 128>::Handle
-loadTTF([[maybe_unused]] const StringView svPath, const StringView sFile)
+loadTTF([[maybe_unused]] const StringView svPath, String* pSFile)
 {
     Object nObj(SIZE_1K * 500);
 
-    ttf::Font font(&nObj.m_arena, sFile);
-    if (!font.parse())
+    ttf::Font font(&nObj.m_arena, *pSFile);
+    if (!font)
     {
         LOG_BAD("failed to load font '{}'\n", svPath);
         nObj.m_arena.freeAll();
         return {};
     }
 
-    nObj.m_uData.font = font;
+    nObj.m_uData.font.ttf = font;
+    nObj.m_uData.font.sFontFile = pSFile->release();
     nObj.m_eType = Object::TYPE::FONT;
 
     auto hnd = g_poolObjects.insert(nObj);
@@ -132,7 +133,7 @@ loadFile(const StringView svPath)
     }
     else if (svPath.endsWith(".ttf"))
     {
-        retHnd = loadTTF(svPath, sFile);
+        retHnd = loadTTF(svPath, &sFile);
     }
 
     if (retHnd)
@@ -242,7 +243,7 @@ ttf::Font*
 searchFont(const adt::StringView svKey)
 {
     auto* f = search(svKey, Object::TYPE::FONT);
-    if (f) return &f->m_uData.font;
+    if (f) return &f->m_uData.font.ttf;
     else return nullptr;
 }
 

@@ -146,7 +146,7 @@ init()
     /* FIXME: grabWidth and grabHeight restrict the clickable area. */
     {
         Widget widget {
-            .arena = Arena {SIZE_8K},
+            .arena = Arena {SIZE_1K * 10},
             .sfTitle = "Entities",
             .x = WIDTH - 30.0f,
             .y = 1.0f,
@@ -214,7 +214,7 @@ init()
                                 {
                                     char aBuff[64] {};
                                     const isize n = print::toSpan(aBuff, svFmt, arg);
-                                    rSfName = StringView{aBuff, n};
+                                    rSfName = StringView {aBuff, n};
                                 };
 
                                 clPrint("x: {:.3}", entity.pos.x, pSelf->vEntries[0].m_text.sfName);

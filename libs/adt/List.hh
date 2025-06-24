@@ -29,6 +29,16 @@ ListNodeAlloc(IAllocator* pA, const T& x)
     return pNew;
 }
 
+template<typename T, typename ...ARGS>
+constexpr ListNode<T>*
+ListNodeAlloc(IAllocator* pA, ARGS&&... args)
+{
+    auto* pNew = (ListNode<T>*)pA->alloc<ListNode<T>>();
+    new(&pNew->data) T {std::forward<ARGS>(args)...};
+
+    return pNew;
+}
+
 template<typename T>
 struct List
 {
@@ -42,26 +52,32 @@ struct List
 
     [[nodiscard]] constexpr bool empty() const { return m_size <= 0; }
 
-    constexpr void destroy(IAllocator* pA);
+    constexpr void destroy(IAllocator* pA) noexcept;
+    constexpr void destructNodes() noexcept;
 
     constexpr List release() noexcept;
 
     constexpr ListNode<T>* pushFront(ListNode<T>* pNew);
-
     constexpr ListNode<T>* pushBack(ListNode<T>* pNew);
 
     constexpr ListNode<T>* pushFront(IAllocator* pA, const T& x);
-
     constexpr ListNode<T>* pushBack(IAllocator* pA, const T& x);
+
+    constexpr ListNode<T>* pushFront(IAllocator* pA, T&& x);
+    constexpr ListNode<T>* pushBack(IAllocator* pA, T&& x);
+
+    template<typename ...ARGS>
+    constexpr ListNode<T>* emplaceFront(IAllocator* p, ARGS&&... args);
+
+    template<typename ...ARGS>
+    constexpr ListNode<T>* emplaceBack(IAllocator* p, ARGS&&... args);
 
     constexpr void remove(ListNode<T>* p);
 
     void remove(T* p);
-
     void remove(IAllocator* pAlloc, T* p);
 
     constexpr void insertAfter(ListNode<T>* pAfter, ListNode<T>* p);
-
     constexpr void insertBefore(ListNode<T>* pBefore, ListNode<T>* p);
 
     template<auto FN_CMP = utils::compare<T>>
@@ -101,12 +117,20 @@ struct List
 
 template<typename T>
 constexpr void
-List<T>::destroy(IAllocator* pA)
+List<T>::destroy(IAllocator* pA) noexcept
 {
     ADT_LIST_FOREACH_SAFE(this, it, tmp)
-        pA->free(it);
+        pA->dealloc(it);
 
     *this = {};
+}
+
+template<typename T>
+constexpr void
+List<T>::destructNodes() noexcept
+{
+    for (auto& e : *this)
+        e.~T();
 }
 
 template<typename T>
@@ -172,6 +196,38 @@ List<T>::pushBack(IAllocator* pA, const T& x)
 {
     auto* pNew = ListNodeAlloc(pA, x);
     return pushBack(pNew);
+}
+
+template<typename T>
+constexpr ListNode<T>*
+List<T>::pushFront(IAllocator* pA, T&& x)
+{
+    auto* pNew = ListNodeAlloc(pA, std::move(x));
+    return pushFront(pNew);
+}
+
+template<typename T>
+constexpr ListNode<T>*
+List<T>::pushBack(IAllocator* pA, T&& x)
+{
+    auto* pNew = ListNodeAlloc(pA, std::move(x));
+    return pushBack(pNew);
+}
+
+template<typename T>
+template<typename ...ARGS>
+constexpr ListNode<T>*
+List<T>::emplaceFront(IAllocator* p, ARGS&&... args)
+{
+    return pushFront(ListNodeAlloc(p, std::forward<ARGS>(args)...));
+}
+
+template<typename T>
+template<typename ...ARGS>
+constexpr ListNode<T>*
+List<T>::emplaceBack(IAllocator* p, ARGS&&... args)
+{
+    return pushBack(ListNodeAlloc(p, std::forward<ARGS>(args)...));
 }
 
 template<typename T>
@@ -376,5 +432,8 @@ struct ListManaged : protected ALLOC_T, public List<T>
     template<auto FN_CMP = utils::compare<T>>
     constexpr void sort() { Base::template sort<FN_CMP>(); }
 };
+
+template<typename T>
+using ListM = ListManaged<T>;
 
 } /* namespace adt */

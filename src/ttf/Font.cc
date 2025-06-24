@@ -30,8 +30,8 @@ Font::parse()
     return true;
 }
 
-static constexpr u32
-getTableChecksum(u32* pTable, u32 nBytes)
+[[maybe_unused]] static constexpr u32
+getTableChecksum(const u32* pTable, u32 nBytes)
 {
     u32 sum = 0;
     u32 nLongs = (nBytes + 3) / 4;
@@ -90,7 +90,7 @@ languageIDToString(u16 languageID)
 }
 
 MapResult<StringView, TableRecord>
-Font::getTable(StringView sTableTag)
+Font::searchTable(StringView sTableTag)
 {
     return m_tableDirectory.mapStringToTableRecord.search(sTableTag);
 }
@@ -101,13 +101,52 @@ Font::readFWord()
     return m_bin.read16Rev();
 }
 
+Glyph*
+Font::readGlyphFromOffset(isize offset)
+{
+    const auto fGlyf = searchTable("glyf");
+    ADT_ASSERT(fGlyf, " ");
+    const auto& glyfTable = fGlyf.value();
+
+    ADT_ASSERT(offset >= glyfTable.offset, " ");
+
+    if (offset >= glyfTable.offset + glyfTable.length)
+    {
+        LOG_BAD("offset >= glyfTable.offset + glyfTable.length\n");
+        return nullptr;
+    }
+
+    m_bin.m_pos = offset;
+    Glyph newGlyph {
+        .numberOfContours = i16(m_bin.read16Rev()),
+        .xMin = readFWord(),
+        .yMin = readFWord(),
+        .xMax = readFWord(),
+        .yMax = readFWord(),
+    };
+
+    ADT_ASSERT(newGlyph.numberOfContours >= -1, " ");
+
+    if (newGlyph.numberOfContours == -1)
+    {
+        if (!readCompoundGlyph(&newGlyph))
+            return nullptr;
+    }
+    else
+    {
+        readSimpleGlyph(&newGlyph);
+    }
+
+    return &m_mapOffsetToGlyph.insert(m_pAlloc, offset, newGlyph).value();
+}
+
 void
 Font::readHeadTable()
 {
     const u32 savedPos = m_bin.m_pos;
-    defer(m_bin.m_pos = savedPos);
+    defer( m_bin.m_pos = savedPos );
 
-    auto fHead = getTable("head");
+    auto fHead = searchTable("head");
     ADT_ASSERT(fHead, " ");
 
     m_bin.m_pos = fHead.pData->val.offset;
@@ -134,7 +173,7 @@ Font::readHeadTable()
     h.indexToLocFormat = m_bin.read16Rev();
     h.glyphDataFormat = m_bin.read16Rev();
 
-#ifdef D_TTF
+#ifdef OPT_DBG_TTF
     LOG(
         "\thead:\n"
         "\t\tversion: {}, {}\n"
@@ -215,7 +254,7 @@ Font::readCmapFormat4()
     c.idRangeOffset = (u16*)&m_bin[m_bin.m_pos];
     m_bin.m_pos += c.segCountX2;
 
-#ifdef D_TTF
+#ifdef OPT_DBG_TTF
     LOG_NOTIFY(
         "\treadCmapFormat4:\n"
         "\t\tformat: {}\n"
@@ -250,7 +289,7 @@ Font::readCmap(u32 offset)
     u16 length = m_bin.read16Rev();
     u16 language = m_bin.read16Rev();
 
-#ifdef D_TTF
+#ifdef OPT_DBG_TTF
     LOG_NOTIFY("readCmap: format: {}, length: {}, language: {}\n", format, length, language);
 #endif
 
@@ -270,7 +309,7 @@ Font::readCmapTable()
     const u32 savedPos = m_bin.m_pos;
     defer(m_bin.m_pos = savedPos);
 
-    auto fCmap = getTable("cmap");
+    auto fCmap = searchTable("cmap");
     ADT_ASSERT(fCmap, " ");
 
     m_bin.m_pos = fCmap.pData->val.offset;
@@ -293,7 +332,7 @@ Font::readCmapTable()
 
         const auto& lastSt = c.vSubtables.last();
 
-#ifdef D_TTF
+#ifdef OPT_DBG_TTF
         LOG_NOTIFY(
             "readCmap: platformID: {}('{}'), platformSpecificID: {}('{}')\n",
             lastSt.platformID, platformIDToString(lastSt.platformID),
@@ -302,16 +341,17 @@ Font::readCmapTable()
 #endif
         if (lastSt.platformID == 3 && lastSt.platformSpecificID <= 1)
         {
-            readCmap(fCmap.pData->val.offset + lastSt.offset);
-            break;
+            // break;
         }
         else if (lastSt.platformID == 0 && lastSt.platformSpecificID == 3)
         {
             // TODO: Unicode, Unicode 2.0 or later (BMP only)
+            readCmap(fCmap.pData->val.offset + lastSt.offset);
+            break;
         }
     }
 
-#ifdef D_TTF
+#ifdef OPT_DBG_TTF
     LOG(
         "\tcmap:\n"
         "\t\tversion: {}\n"
@@ -320,12 +360,12 @@ Font::readCmapTable()
         c.version,
         c.numberSubtables
     );
-    for (auto& st : c.aSubtables)
+    for (auto& st : c.vSubtables)
     {
         LOG("\t({}): platformID: {}('{}')\n"
             "\t      platformSpecificID: {}('{}')\n"
             "\t      offset: {}\n",
-            VecIdx(&c.aSubtables, &st),
+            c.vSubtables.idx(&st),
             st.platformID, platformIDToString(st.platformID),
             st.platformSpecificID, platformSpecificIDToString(st.platformSpecificID),
             st.offset
@@ -340,7 +380,7 @@ Font::getGlyphOffset(u32 idx)
     const isize savedPos = m_bin.m_pos;
     defer(m_bin.m_pos = savedPos);
 
-    auto fLoca = getTable("loca");
+    auto fLoca = searchTable("loca");
     ADT_ASSERT(fLoca, " ");
     const auto& locaTable = fLoca.pData->val;
 
@@ -357,17 +397,40 @@ Font::getGlyphOffset(u32 idx)
         offset = m_bin.read16Rev();
     }
 
-    auto fGlyf = getTable("glyf");
+    auto fGlyf = searchTable("glyf");
     ADT_ASSERT(fGlyf, " ");
 
     return offset + fGlyf.value().offset;
 }
 
-void
-Font::readCompoundGlyph(Glyph*)
+bool
+Font::readCompoundGlyph(Glyph* g)
 {
-    // TODO:
-    LOG_WARN("ignoring compound glyph...\n");
+    auto& cg = g->uGlyph.compound;
+
+    cg.eFlag = COMPONENT_FLAG(m_bin.read16Rev());
+    cg.glyphIndex = m_bin.read16Rev();
+
+    const u32 offset = getGlyphOffset(cg.glyphIndex);
+    auto fCachedGlyph = m_mapOffsetToGlyph.search(offset);
+
+    if (fCachedGlyph)
+    {
+        *g = fCachedGlyph.value();
+        return true;
+    }
+    else
+    {
+        /* fall back to simply glyph */
+        Glyph* pGlyph = readGlyphFromOffset(offset);
+        if (pGlyph)
+        {
+            *g = *pGlyph;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void
@@ -468,9 +531,11 @@ Font::getGlyphIdx(u16 code)
             else idx = (bin::swapBytes(c.idDelta[i]) + code) & 0xffff;
 
             c.mapCodeToGlyphIdx.insert(m_pAlloc, code, u16(idx));
-            break;
+            return idx;
         }
     }
+
+    LOG_BAD("no glyph for code: {}\n", code);
 
     return idx;
 }
@@ -488,35 +553,7 @@ Font::readGlyph(u32 code)
     auto fCachedGlyph = m_mapOffsetToGlyph.search(offset);
     if (fCachedGlyph) return &fCachedGlyph.value();
 
-    const auto fGlyf = getTable("glyf");
-    const auto& glyfTable = *fGlyf.pData;
-
-    ADT_ASSERT(fGlyf, " ");
-
-    ADT_ASSERT(offset >= glyfTable.val.offset, " ");
-
-    if (offset >= glyfTable.val.offset + glyfTable.val.length)
-    {
-        LOG_BAD("offset >= glyfTable.val.offset + glyfTable.val.length\n");
-        return nullptr;
-    }
-
-    m_bin.m_pos = offset;
-    Glyph newGlyph {
-        .numberOfContours = i16(m_bin.read16Rev()),
-        .xMin = readFWord(),
-        .yMin = readFWord(),
-        .xMax = readFWord(),
-        .yMax = readFWord(),
-    };
-
-    ADT_ASSERT(newGlyph.numberOfContours >= -1, " ");
-
-    if (newGlyph.numberOfContours == -1) readCompoundGlyph(&newGlyph);
-    else readSimpleGlyph(&newGlyph);
-
-    /* cache everything */
-    return &m_mapOffsetToGlyph.insert(m_pAlloc, offset, newGlyph).value();
+    return readGlyphFromOffset(offset);
 };
 
 void
@@ -569,7 +606,7 @@ Font::parse2()
     if (td.sfntVersion != 0x00010000 && td.sfntVersion != 0x4f54544f)
         LOG_FATAL("Unable to read ttf header: sfntVersion: {}'\n", td.sfntVersion);
 
-#ifdef D_TTF
+#ifdef OPT_DBG_TTF
     u16 _searchRangeCheck = std::pow(2, std::floor(log2(td.numTables))) * 16;
     ADT_ASSERT(td.searchRange == _searchRangeCheck, " ");
 
@@ -603,41 +640,22 @@ Font::parse2()
         // {
         //     auto checkSum = getTableChecksum((u32*)(&m_bin[r.offset]), r.length);
         //     if (r.checkSum - checkSum != 0)
-        //         LOG_WARN("checkSums don't match: expected: {}, got: {}\n", r.checkSum, checkSum);
+        //     {
+        //         LOG_BAD("checkSums don't match: expected: {}, got: {}\n", r.checkSum, checkSum);
+        //         return false;
+        //     }
         // }
 
-#ifdef D_TTF
+#ifdef OPT_DBG_TTF
         LOG(
             "({}): tag: '{}'({}), checkSum: {}, offset: {}, length: {}\n",
-            i, r.tag, *(u32*)(r.tag.pData), r.checkSum, r.offset, r.length
+            i, r.tag, *(u32*)(r.tag.data()), r.checkSum, r.offset, r.length
         );
 #endif
     }
 
-#ifdef D_TTF
-    auto fGlyf = getTable(s, "glyf");
-    if (fGlyf)
-    {
-        LOG(
-            "'glyf' found: '{}', offset: {}, length: {}\n",
-            fGlyf.pData->tag, fGlyf.pData->offset, fGlyf.pData->length
-        );
-    }
-    else LOG_FATAL("'glyf' header not found\n");
-
-    auto fHead = getTable(s, "head");
-    if (fHead)
-    {
-        LOG(
-            "'head' found: '{}', offset: {}, length: {}\n",
-            fHead.pData->tag, fHead.pData->offset, fHead.pData->length
-        );
-    }
-    else LOG_FATAL("'head' header not found?\n");
-#endif
-
-    readHeadTable();
     readCmapTable();
+    readHeadTable();
 
     return true;
 }

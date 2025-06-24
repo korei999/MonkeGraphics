@@ -20,7 +20,10 @@ struct Object
     {
         Image img;
         gltf::Model model;
-        ttf::Font font;
+        struct {
+            adt::String sFontFile;
+            ttf::Font ttf;
+        } font;
     } m_uData {};
     TYPE m_eType {};
 
@@ -72,7 +75,7 @@ fromModelI(adt::i16 handleI)
 [[nodiscard]] inline ttf::Font*
 fromFontI(adt::i16 handleI)
 {
-    return &fromI(handleI, Object::TYPE::FONT)->m_uData.font;
+    return &fromI(handleI, Object::TYPE::FONT)->m_uData.font.ttf;
 }
 
 } /* namespace asset */

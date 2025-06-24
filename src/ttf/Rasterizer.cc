@@ -109,7 +109,7 @@ static Vec<PointOnCurve>
 makeItCurvy(IAllocator* pAlloc, const Vec<PointOnCurve>& aNonCurvyPoints, CurveEndIdx* pEndIdxs, int nTessellations)
 {
     Vec<PointOnCurve> aNew(pAlloc, aNonCurvyPoints.size());
-    utils::fill(pEndIdxs->aIdxs, NPOS16, utils::size(pEndIdxs->aIdxs));
+    for (auto& e : pEndIdxs->aIdxs) e = NPOS16;
     u16 endIdx = 0;
 
     isize firstInCurveIdx = 0;

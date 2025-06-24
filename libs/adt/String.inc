@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Span.inc"
-#include "hash.hh"
+
+#include <concepts>
 
 namespace adt
 {
@@ -9,6 +10,24 @@ namespace adt
 struct StdAllocatorNV;
 struct IAllocator;
 struct String;
+struct StringView;
+
+namespace hash
+{
+template<typename T> inline usize func(const T& x);
+}
+
+template<typename T>
+concept ConvertsToStringView =
+(requires(const T& t)
+{
+    { t.data() } -> std::same_as<const char*>;
+    { t.size() } -> std::convertible_to<isize>;
+}) ||
+(requires(const T& t)
+{
+    { StringView(t) } -> std::same_as<StringView>;
+});
 
 [[nodiscard]] constexpr isize ntsSize(const char* nts);
 
@@ -54,8 +73,8 @@ struct StringView
     [[nodiscard]] bool endsWith(const StringView r) const;
     constexpr isize lastOf(char c) const;
     constexpr isize firstOf(char c) const;
-    void trimEnd();
-    void removeNLEnd(); /* remove \r\n */
+    StringView& trimEnd();
+    StringView& removeNLEnd(); /* remove \r\n */
     [[nodiscard]] bool contains(const StringView r) const;
     [[nodiscard]] isize subStringAt(const StringView r) const noexcept;
     [[nodiscard]] char& first();
@@ -63,6 +82,9 @@ struct StringView
     [[nodiscard]] char& last();
     [[nodiscard]] const char& last() const;
     [[nodiscard]] isize multiByteSize() const;
+    [[nodiscard]] i64 toI64(int base = 10) const noexcept;
+    [[nodiscard]] u64 toU64(int base = 10) const noexcept;
+    [[nodiscard]] f64 toF64() const noexcept;
 
     template<typename T>
     T reinterpret(isize at) const;
@@ -78,11 +100,19 @@ struct StringView
     constexpr const char* end() const { return &m_pData[m_size]; }
     constexpr const char* rbegin() const { return &m_pData[m_size - 1]; }
     constexpr const char* rend() const { return m_pData - 1; }
+
+protected:
+    template<typename LAMBDA> StringView& trimEnd(LAMBDA clFill);
+    template<typename LAMBDA> StringView& removeNLEnd(LAMBDA clFill);
 };
 
 [[nodiscard]] inline bool operator==(const StringView& l, const StringView& r);
 [[nodiscard]] inline bool operator==(const StringView& l, const char* r);
 [[nodiscard]] inline bool operator!=(const StringView& l, const StringView& r);
+[[nodiscard]] inline bool operator<(const StringView& l, const StringView& r);
+[[nodiscard]] inline bool operator<=(const StringView& l, const StringView& r);
+[[nodiscard]] inline bool operator>(const StringView& l, const StringView& r);
+[[nodiscard]] inline bool operator>=(const StringView& l, const StringView& r);
 [[nodiscard]] inline i64 operator-(const StringView& l, const StringView& r);
 
 inline String StringCat(IAllocator* p, const StringView& l, const StringView& r);
@@ -100,14 +130,20 @@ struct String : public StringView
 
     /* */
 
+    String& trimEnd(bool bPadWithZeros);
+    String& removeNLEnd(bool bPadWithZeros); /* remove \r\n */
     void destroy(IAllocator* pAlloc) noexcept;
     void reallocWith(IAllocator* pAlloc, const StringView svWith);
     [[nodiscard]] String release() noexcept; /* return this String resource and set to zero */
 };
 
 template<typename ALLOC_T = StdAllocatorNV>
-struct StringManaged : protected ALLOC_T, public String
+struct StringManaged : public String
 {
+    ADT_NO_UNIQUE_ADDRESS ALLOC_T m_alloc;
+
+    /* */
+
     StringManaged() = default;
     StringManaged(const char* pChars, isize size) : String {&allocator(), pChars, size} {}
     StringManaged(const char* nts) : String {&allocator(), nts} {}
@@ -116,13 +152,15 @@ struct StringManaged : protected ALLOC_T, public String
 
     /* */
 
-    ALLOC_T& allocator() { return *static_cast<ALLOC_T*>(this); }
-    const ALLOC_T& allocator() const { return *static_cast<ALLOC_T*>(this); }
+    ALLOC_T& allocator() { return m_alloc; }
+    const ALLOC_T& allocator() const { return m_alloc; }
 
     void destroy() noexcept { String::destroy(&allocator()); }
     void reallocWith(const StringView svWith) { String::reallocWith(&allocator(), svWith); }
     [[nodiscard]] String release() noexcept { String r = *this; *this = {}; return r; }
 };
+
+using StringM = StringManaged<>;
 
 /* Holds SIZE - 1 characters, terminates with '\0'. */
 template<int SIZE>

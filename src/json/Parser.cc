@@ -128,8 +128,7 @@ Parser::parseString(TagVal* pTV)
         *pTV = {.eTag = TAG::BOOL, .val = {.b = true}};
     else if (sLit == "false")
         *pTV = {.eTag = TAG::BOOL, .val = {.b = false}};
-    else
-        *pTV = {.eTag = TAG::STRING, .val {.s = m_token.svLiteral}};
+    else *pTV = {.eTag = TAG::STRING, .val {.s = m_token.svLiteral}};
 
     next();
 }
@@ -144,14 +143,20 @@ Parser::parseIdent(TagVal* pTV)
 void
 Parser::parseNumber(TagVal* pTV)
 {
-    *pTV = {.eTag = TAG::LONG, .val = {.l = atoll(m_token.svLiteral.m_pData)}};
+    *pTV = {
+        .eTag = TAG::LONG,
+        .val = {.l = m_token.svLiteral.toI64()}
+    };
     next();
 }
 
 void
 Parser::parseFloat(TagVal* pTV)
 {
-    *pTV = {.eTag = TAG::DOUBLE, .val = {.d = atof(m_token.svLiteral.m_pData)}};
+    *pTV = {
+        .eTag = TAG::DOUBLE,
+        .val = {.d = m_token.svLiteral.toF64()}
+    };
     next();
 }
 
