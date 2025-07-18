@@ -611,7 +611,7 @@ drawSkybox()
         isize enCube = game::searchEntity("Cube");
         ADT_ASSERT(enCube != -1, "failed to find entity '{}'\n", "Cube");
 
-        if (enCube)
+        if (enCube != -1)
         {
             Model& model = Model::fromI(
                 game::g_vEntities[enCube].modelI
