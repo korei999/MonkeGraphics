@@ -6,7 +6,6 @@
 #include "colors.hh"
 #include "frame.hh"
 
-#include "adt/PoolSOA.hh"
 #include "adt/logs.hh"
 
 using namespace adt;
@@ -20,23 +19,12 @@ struct AssetMapping
     StringView svMapTo {};
 };
 
-PoolSOA<Entity, Entity::Bind, MAX_ENTITIES,
-    &Entity::sfName,
-    &Entity::color,
-    &Entity::pos, &Entity::rot, &Entity::scale,
-    &Entity::vel,
-    &Entity::assetI, &Entity::modelI,
-    &Entity::eType,
-    &Entity::bNoDraw
-> g_poolEntities {};
+EntityVec g_vEntities {MAX_ENTITIES};
 
-adt::MapManaged<
-    StringFixed<128>,
-    PoolSOAHandle<Entity>
-> g_mapNamesToEntities(MAX_ENTITIES);
+adt::MapM<StringFixed<128>, isize> g_mapNamesToEntities {MAX_ENTITIES};
 
 /* TODO: should probably be just a separate array of light sources */
-PoolSOAHandle<Entity> g_dirLight;
+isize g_dirLight;
 math::V3 g_ambientLight = colors::WHITE * 0.6f;
 
 static const StringView s_aAssetsToLoad[] {
@@ -53,11 +41,11 @@ static const StringView s_aAssetsToLoad[] {
     "assets/whale/whale.CYCLES.gltf",
 };
 
-static PoolSOAHandle<Entity>
+static isize
 makeEntity(const StringView svModel, const StringView svName, ENTITY_TYPE eType)
 {
-    PoolSOAHandle<Entity> handle = g_poolEntities.make({});
-    game::Entity::Bind bind = g_poolEntities[handle];
+    isize handle = g_vEntities.push({});
+    game::Entity::Bind bind = g_vEntities[handle];
 
     if (auto* pObj = asset::search(svModel, asset::Object::TYPE::MODEL))
     {
@@ -73,7 +61,7 @@ makeEntity(const StringView svModel, const StringView svName, ENTITY_TYPE eType)
 
     bind.eType = eType;
 
-    LOG("entity #{}: {}\n", handle.i, bind);
+    LOG("entity #{}: {}\n", handle, bind);
 
     return handle;
 }
@@ -90,14 +78,14 @@ loadStuff()
     /* NOTE: Skybox needs this cube */
     {
         auto hnd = makeEntity("assets/cube/cube.gltf", "Cube", ENTITY_TYPE::REGULAR);
-        auto bind = g_poolEntities[hnd];
+        auto bind = g_vEntities[hnd];
 
         bind.bNoDraw = true;
     }
 
     {
         auto hnd = makeEntity("assets/Capo/capo.gltf", "Capo", ENTITY_TYPE::REGULAR);
-        auto bind = g_poolEntities[hnd];
+        auto bind = g_vEntities[hnd];
 
         auto& model = Model::fromI(bind.modelI);
         model.m_animationUsedI = 0;
@@ -105,7 +93,7 @@ loadStuff()
 
     {
         auto hnd = makeEntity("assets/Fox/Fox.gltf", "Fox", ENTITY_TYPE::REGULAR);
-        auto bind = g_poolEntities[hnd];
+        auto bind = g_vEntities[hnd];
 
         auto& model = Model::fromI(bind.modelI);
         model.m_animationUsedI = 1;
@@ -113,7 +101,7 @@ loadStuff()
 
     {
         auto hnd = makeEntity("assets/RecursiveSkeletons/glTF/RecursiveSkeletons.gltf", "RecursiveSkeletons", ENTITY_TYPE::REGULAR);
-        auto bind = g_poolEntities[hnd];
+        auto bind = g_vEntities[hnd];
 
         auto& model = Model::fromI(bind.modelI);
         model.m_animationUsedI = 0;
@@ -121,7 +109,7 @@ loadStuff()
 
     {
         auto hnd = makeEntity("assets/BoxAnimated/BoxAnimated.gltf", "BoxAnimated", ENTITY_TYPE::REGULAR);
-        auto bind = g_poolEntities[hnd];
+        auto bind = g_vEntities[hnd];
 
         auto& model = Model::fromI(bind.modelI);
         model.m_animationUsedI = 0;
@@ -129,7 +117,7 @@ loadStuff()
 
     {
         auto hnd = makeEntity("assets/cube/cube.gltf", "LightCube", ENTITY_TYPE::LIGHT);
-        auto bind = g_poolEntities[hnd];
+        auto bind = g_vEntities[hnd];
 
         bind.pos = {-10.0f, 8.0f, -8.0f};
         bind.scale = {0.2f, 0.2f, 0.2f};
@@ -141,7 +129,7 @@ loadStuff()
 
     {
         auto hnd = makeEntity("assets/whale/whale.CYCLES.gltf", "Whale", ENTITY_TYPE::REGULAR);
-        auto bind = g_poolEntities[hnd];
+        auto bind = g_vEntities[hnd];
 
         bind.pos = {-9.0f, 0.0f, 5.0f};
         bind.scale = {1.00f, 1.00f, 1.00f};
@@ -152,7 +140,7 @@ loadStuff()
     }
 
     {
-        auto entity = g_poolEntities[{1}];
+        auto entity = g_vEntities[1];
         entity.pos = {-3.0f, 0.0f, 5.0f};
         entity.scale = {1.0f, 1.0f, 1.0f};
         entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
@@ -162,7 +150,7 @@ loadStuff()
     }
 
     {
-        auto entity = g_poolEntities[{2}];
+        auto entity = g_vEntities[2];
         entity.pos = {0.0f, 0.0f, 5.0f};
         entity.scale = {0.01f, 0.01f, 0.01f};
         entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
@@ -170,7 +158,7 @@ loadStuff()
     }
 
     {
-        auto entity = g_poolEntities[{3}];
+        auto entity = g_vEntities[3];
         entity.pos = {3.0f, 0.0f, 5.0f};
         entity.scale = {0.01f, 0.01f, 0.01f};
         entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
@@ -178,7 +166,7 @@ loadStuff()
     }
 
     {
-        auto entity = g_poolEntities[{4}];
+        auto entity = g_vEntities[4];
         entity.pos = {-6.0f, 0.0f, 5.0f};
         entity.scale = {1.00f, 1.00f, 1.00f};
         entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, math::PI32);
@@ -203,11 +191,11 @@ updateState(Arena*)
 {
 }
 
-[[nodiscard]]
-PoolSOAHandle<Entity> searchEntity(StringView svName)
+isize
+searchEntity(StringView svName)
 {
     auto res = g_mapNamesToEntities.search(svName);
-    return res.valueOr({});
+    return res.valueOr(-1);
 }
 
 } /* namespace game */

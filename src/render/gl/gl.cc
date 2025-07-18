@@ -275,7 +275,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
 
     auto clSetGouraud = [&]
     {
-        auto light = game::g_poolEntities[game::g_dirLight];
+        auto light = game::g_vEntities[game::g_dirLight];
 
         pSh->setV3("u_lightPos", light.pos);
         pSh->setV3("u_lightColor", light.color.xyz);
@@ -599,7 +599,7 @@ drawSkybox()
     glDepthMask(GL_FALSE);
 
     Shader* pSh = searchShader("Skybox");
-    ADT_ASSERT(pSh, " ");
+    ADT_ASSERT(pSh, "");
 
     if (pSh)
     {
@@ -608,13 +608,13 @@ drawSkybox()
         pSh->setM4("u_projection", trmProj);
         glBindTexture(GL_TEXTURE_CUBE_MAP, s_skyboxDefault.m_tex);
 
-        PoolSOAHandle<game::Entity> enCube = game::searchEntity("Cube");
-        ADT_ASSERT(enCube, "failed to find entity '{}'\n", "Cube");
+        isize enCube = game::searchEntity("Cube");
+        ADT_ASSERT(enCube != -1, "failed to find entity '{}'\n", "Cube");
 
         if (enCube)
         {
             Model& model = Model::fromI(
-                game::g_poolEntities.bindMember<&game::Entity::modelI>(enCube)
+                game::g_vEntities[enCube].modelI
             );
             /* this cube has only one mesh */
             drawNodeMesh(model, model.m_vNodes.first());
@@ -650,7 +650,7 @@ Renderer::draw(Arena* pArena)
     }
 
     {
-        auto& entities = game::g_poolEntities;
+        auto& entities = game::g_vEntities;
 
         if (!control::g_bPauseSimulation)
         {
@@ -669,15 +669,12 @@ Renderer::draw(Arena* pArena)
             }
         }
 
-        for (int entityI = entities.firstI();
-            entityI < entities.m_size;
-            entityI = entities.nextI(entityI)
-        )
+        for (int entityI = 0; entityI < entities.size(); ++entityI)
         {
-            if (game::g_poolEntities.bindMember<&game::Entity::bNoDraw>({entityI}))
-                continue;
+            game::Entity::Bind entity = game::g_vEntities[entityI];
 
-            game::Entity::Bind entity = game::g_poolEntities[{entityI}];
+            if (entity.bNoDraw) continue;
+
             auto& obj = asset::g_poolObjects[{entity.assetI}];
 
             switch (obj.m_eType)

@@ -161,7 +161,7 @@ init()
 
         {
             isize entityI = 0;
-            for (auto ent : game::g_poolEntities)
+            for (auto ent : game::g_vEntities)
             {
                 defer( ++entityI );
 
@@ -176,7 +176,7 @@ init()
                         .onClick {
                             .pfn = +[](Entry::Menu* pSelf, i16 clickedI, void* pArg) -> void
                             {
-                                auto entity = game::g_poolEntities[{int(reinterpret_cast<isize>(pArg))}];
+                                auto entity = game::g_vEntities[reinterpret_cast<isize>(pArg)];
                                 auto& rModel = Model::g_poolModels[{entity.modelI}];
 
                                 if (control::g_abPressed[BTN_LEFT])
@@ -208,7 +208,7 @@ init()
                         .onUpdate {
                             .pfn = +[](Entry::Menu* pSelf, void* pArg) -> void
                             {
-                                auto entity = game::g_poolEntities[{int(reinterpret_cast<isize>(pArg))}];
+                                auto entity = game::g_vEntities[reinterpret_cast<isize>(pArg)];
 
                                 auto clPrint = [&](const StringView svFmt, auto arg, auto& rSfName) -> void
                                 {
@@ -226,7 +226,7 @@ init()
                         .onClick {
                             .pfn = +[](Entry::Menu*, i16 clickedI, void* pArg) -> void
                             {
-                                auto entity = game::g_poolEntities[{int(reinterpret_cast<isize>(pArg))}];
+                                auto entity = game::g_vEntities[reinterpret_cast<isize>(pArg)];
 
                                 switch (clickedI)
                                 {
@@ -280,7 +280,7 @@ init()
                     {
                         auto& rSel = pSelf->vEntries[idx];
                         const isize entityI = reinterpret_cast<isize>(rSel.m_menu.vEntries[0].m_menu.onClick.pArg);
-                        auto entity = game::g_poolEntities[{int(entityI)}];
+                        auto entity = game::g_vEntities[entityI];
                         auto& rModel = Model::g_poolModels[{entity.modelI}];
                         rModel.m_oOutlineColor = oColor;
                     };
