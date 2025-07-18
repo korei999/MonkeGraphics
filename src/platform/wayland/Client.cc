@@ -595,7 +595,7 @@ Client::outputName(
     [[maybe_unused]] const char* ntsName
 )
 {
-    [[maybe_unused]] isize idx = utils::search(m_vOutputs,
+    [[maybe_unused]] isize idx = utils::searchI(m_vOutputs,
         [&](const wl_output* p) {
             if (pOutput == p)
                 return true;

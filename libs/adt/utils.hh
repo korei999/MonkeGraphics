@@ -54,17 +54,26 @@ template<typename T>
 inline constexpr void
 swap(T* l, T* r)
 {
-    T t = *r;
-    *r = *l;
-    *l = t;
+    T t = std::move(*r);
+    *r = std::move(*l);
+    *l = std::move(t);
 }
 
 template<typename T>
 [[nodiscard]] inline constexpr T
-exchange(T* pObj, const T& replaceObjWith)
+exchange(T* pObj, T& replaceObjWith)
 {
-    T ret = *pObj;
+    T ret = std::move(*pObj);
     *pObj = replaceObjWith;
+    return ret;
+}
+
+template<typename T>
+[[nodiscard]] inline constexpr T
+exchange(T* pObj, T&& replaceObjWith)
+{
+    T ret = std::move(*pObj);
+    *pObj = std::move(replaceObjWith);
     return ret;
 }
 
@@ -146,6 +155,9 @@ requires (!std::convertible_to<T, StringView>)
 [[nodiscard]] inline constexpr isize
 compare(const T& l, const T& r)
 {
+    if constexpr (std::is_integral_v<T>)
+        return l - r;
+
     if (l == r) return 0;
     else if (l > r) return 1;
     else return -1;
@@ -156,6 +168,9 @@ requires (!std::convertible_to<T, StringView>)
 [[nodiscard]] inline constexpr isize
 compareRev(const T& l, const T& r)
 {
+    if constexpr (std::is_integral_v<T>)
+        return r - l;
+
     if (l == r) return 0;
     else if (l < r) return 1;
     else return -1;
@@ -281,8 +296,6 @@ clamp(const T& x, const T& _min, const T& _max)
 inline constexpr void
 reverse(auto* a, const isize size)
 {
-    ADT_ASSERT(size > 0, " ");
-
     const isize halfSize = size >> 1;
     for (isize i = 0; i < halfSize; ++i)
         swap(&a[i], &a[size - 1 - i]);
@@ -296,17 +309,21 @@ reverse(auto* a)
 
 template<typename LAMBDA>
 [[nodiscard]] inline isize
-search(const auto& a, LAMBDA cl)
+searchI(const auto& a, LAMBDA cl)
 {
+    isize i = 0;
     for (const auto& e : a)
-        if (cl(e)) return a.idx(&e);
+    {
+        if (cl(e)) return i;
+        ++i;
+    }
 
     return NPOS;
 }
 
 template<typename T, typename B>
 [[nodiscard]] inline isize
-binarySearch(const T& array, const B& x)
+binarySearchI(const T& array, const B& x)
 {
     static_assert(std::is_same_v<std::remove_cvref_t<decltype(array[0])>, std::remove_cvref_t<B>>);
 

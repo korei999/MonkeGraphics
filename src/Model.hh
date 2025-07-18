@@ -56,7 +56,7 @@ struct Model
 
     adt::f64 m_time {};
 
-    adt::Future m_future {};
+    adt::Future<adt::Empty> m_future {};
 
     int m_animationUsedI = -1;
     adt::i16 m_modelAssetI {};

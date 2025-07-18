@@ -188,8 +188,8 @@ start()
 
     /* loadStuff() will need this */
     // app::allocScratchForThisThread(SIZE_1K);
-    app::allocScratchForThisThread(SIZE_1M * 2);
-    defer( app::destroyScratchForThisThread() );
+    // app::allocScratchForThisThread(SIZE_1M * 2);
+    // defer( app::destroyScratchForThisThread() );
 
     game::loadStuff();
     win.bindContext();

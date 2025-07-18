@@ -213,8 +213,8 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
     V4 stencilColor {};
     void* pStencilExtra {};
 
-    BufferAllocator buff = app::gtl_scratch.nextMem<u8>();
-    defer( app::gtl_scratch.reset() );
+    BufferAllocator buff = app::g_threadPool.scratchBuffer().nextMem<u8>();
+    defer( app::g_threadPool.scratchBuffer().reset() );
 
     auto clBindTexture = [&](const gltf::Primitive& primitive)
     {
@@ -311,7 +311,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
 
             // app::g_threadPool.wait();
             if (!control::g_bPauseSimulation)
-                ((Future&)model.m_future).wait();
+                ((Future<Empty>&)model.m_future).wait();
 
             if (primitive.attributes.JOINTS_0 > -1)
             {

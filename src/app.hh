@@ -4,7 +4,6 @@
 #include "render/IRenderer.hh"
 
 #include "adt/ThreadPool.hh"
-#include "adt/ScratchBuffer.hh"
 
 namespace app
 {
@@ -24,11 +23,6 @@ inline IWindow& windowInst() { return *g_pWindow; }
 
 extern render::IRenderer* g_pRenderer;
 inline render::IRenderer& rendererInst() { return *g_pRenderer; }
-
-void allocScratchForThisThread(adt::isize size);
-void destroyScratchForThisThread();
-
-extern thread_local adt::ScratchBuffer gtl_scratch;
 
 extern adt::ThreadPoolWithMemory<128> g_threadPool;
 

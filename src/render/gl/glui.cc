@@ -75,7 +75,7 @@ drawText(
         );
         s_pShTexMonoBlur->setV4("u_color", fgColor);
 
-        s_text.update(s_rastLiberation, &app::gtl_scratch, sv, true);
+        s_text.update(s_rastLiberation, &app::g_threadPool.scratchBuffer(), sv, true);
         s_text.draw();
     };
 
@@ -320,7 +320,7 @@ draw(Arena* pArena)
         s_pShTexMonoBlur->setV4("u_color", V4From(colors::GREEN, 0.75f));
         s_pShTexMonoBlur->setM4("u_trm", proj * math::M4TranslationFrom({0.0f, 0.0f, -1.0f}));
 
-        s_text.update(s_rastLiberation, &app::gtl_scratch, frame::g_sfFpsStatus, true);
+        s_text.update(s_rastLiberation, &app::g_threadPool.scratchBuffer(), frame::g_sfFpsStatus, true);
         s_text.draw();
     }
 
@@ -353,7 +353,7 @@ draw(Arena* pArena)
             )
         );
 
-        s_text.update(s_rastLiberation, &app::gtl_scratch, sv, true);
+        s_text.update(s_rastLiberation, &app::g_threadPool.scratchBuffer(), sv, true);
         s_text.draw();
     }
 

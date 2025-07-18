@@ -269,8 +269,8 @@ Model::loadAnimations()
         {
             constexpr StringView svPrefix = "animation";
 
-            Span<char> sp = app::gtl_scratch.nextMemZero<char>(svPrefix.size() + 5);
-            defer( app::gtl_scratch.reset() );
+            Span<char> sp = app::g_threadPool.scratchBuffer().nextMemZero<char>(svPrefix.size() + 5);
+            defer( app::g_threadPool.scratchBuffer().reset() );
 
             const isize n = print::toSpan(sp, "{}{}", "animation", model.m_vAnimations.idx(&gltfAnim));
             newAnim.sName = String(&m_arena, sp.data(), n);

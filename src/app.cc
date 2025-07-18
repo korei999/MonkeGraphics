@@ -36,33 +36,7 @@ static constexpr isize SCRATCH_SIZE = SIZE_1M;
 
 /* NOTE: allocate scratch memory for each thread,
  * bacause using thread_local static buffer can actually cause stack overflow. */
-static thread_local u8* stl_pScratchMem;
-thread_local ScratchBuffer gtl_scratch;
-
-adt::ThreadPoolWithMemory<128> g_threadPool(adt::StdAllocator::inst(),
-    +[](void*) { allocScratchForThisThread(SCRATCH_SIZE); },
-    nullptr,
-    +[](void*) { destroyScratchForThisThread(); },
-    nullptr,
-    utils::max(ADT_GET_NPROCS() - 1, 2)
-);
-
-void
-allocScratchForThisThread(isize size)
-{
-    ADT_ASSERT(stl_pScratchMem == nullptr, "already allocated");
-
-    stl_pScratchMem = static_cast<u8*>(::calloc(1, size));
-    gtl_scratch = {stl_pScratchMem, size};
-}
-
-void
-destroyScratchForThisThread()
-{
-    ::free(stl_pScratchMem);
-    stl_pScratchMem = {};
-    gtl_scratch = {};
-}
+adt::ThreadPoolWithMemory<128> g_threadPool {adt::StdAllocator::inst(), SCRATCH_SIZE};
 
 IWindow*
 allocWindow(IAllocator* pAlloc, const char* ntsName)
