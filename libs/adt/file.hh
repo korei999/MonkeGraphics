@@ -4,6 +4,8 @@
 #include "logs.hh"
 #include "defer.hh"
 
+#include <limits>
+
 #if __has_include(<unistd.h>)
 
     #define ADT_USE_LINUX_FILE
@@ -41,16 +43,18 @@ fail:
     String ret {};
 
     fseek(pf, 0, SEEK_END);
-    isize size = ftell(pf) + 1;
-    if (size <= 0)
+    const auto ftellSize = ftell(pf);
+    if (ftellSize <= 0 || ftellSize >= std::numeric_limits<decltype(ftellSize)>::max())
     {
-        LOG_BAD("bad size: '{}'\n", size);
+        LOG_BAD("bad size: '{}'\n", ftellSize);
         goto fail;
     }
 
+    const isize size = ftellSize + 1LL;
+
     rewind(pf);
 
-    ret.m_pData = reinterpret_cast<char*>(pAlloc->malloc(size, sizeof(char)));
+    ret.m_pData = pAlloc->mallocV<char>(size);
     ret.m_size = size - 1;
     fread(ret.data(), 1, ret.size(), pf);
     ret.m_pData[ret.m_size] = '\0';
@@ -74,15 +78,16 @@ fail:
     StringFixed<SIZE> ret {};
 
     fseek(pf, 0, SEEK_END);
-    const isize size = utils::min(isize(ftell(pf)), SIZE - 1);
-    rewind(pf);
-
-    if (size <= 0)
+    const auto ftellSize = ftell(pf);
+    if (ftellSize <= 0 || ftellSize >= std::numeric_limits<decltype(ftellSize)>::max())
     {
-        LOG_BAD("bad size: '{}'\n", size);
+        LOG_BAD("bad size: '{}'\n", ftellSize);
         goto fail;
     }
 
+    const isize size = utils::min(isize(ftellSize) + 1, SIZE - 1);
+
+    rewind(pf);
     fread(ret.data(), 1, size, pf);
 
     return ret;

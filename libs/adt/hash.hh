@@ -140,6 +140,11 @@ private:
 
 #ifdef ADT_SSE4_2
 
+#ifdef __GNUC__
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
 ADT_NO_UB inline usize
 crc32(const u8* p, isize byteSize, usize seed = 0)
 {
@@ -163,6 +168,10 @@ crc32(const u8* p, isize byteSize, usize seed = 0)
 
     return ~crc;
 }
+
+#ifdef __GNUC__
+    #pragma GCC diagnostic pop
+#endif
 
 #endif
 

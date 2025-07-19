@@ -1,5 +1,6 @@
 #pragma once
 
+#include "defer.hh"
 #include "print.inc"
 
 #include "String.hh" /* IWYU pragma: keep */
@@ -191,26 +192,22 @@ parseFormatArg(FormatArgs* pArgs, const StringView fmt, isize fmtIdx) noexcept
 
 template<typename INT_T>
 requires std::is_integral_v<INT_T>
-inline constexpr void
+inline void
 intToBuffer(INT_T x, Span<char> spBuff, FormatArgs fmtArgs) noexcept
 {
     bool bNegative = false;
-
     isize i = 0;
-    auto clPush = [&](char c) -> bool
-    {
-        if (i < spBuff.size())
-        {
-            spBuff[i++] = c;
-            return true;
-        }
+    ADT_DEFER( utils::reverse(spBuff.data(), i) );
 
-        return false;
-    };
+#define PUSH_OR_RET(x)                                                                                                 \
+    if (i < spBuff.size())                                                                                             \
+        spBuff[i++] = x;                                                                                               \
+    else                                                                                                               \
+        return;
  
     if (x == 0)
     {
-        clPush('0');
+        PUSH_OR_RET('0');
         return;
     }
  
@@ -228,36 +225,41 @@ intToBuffer(INT_T x, Span<char> spBuff, FormatArgs fmtArgs) noexcept
     {
         int rem = x % int(fmtArgs.eBase);
         char c = (rem > 9) ? (rem - 10) + 'a' : rem + '0';
-        clPush(c);
+        PUSH_OR_RET(c);
         x = x / int(fmtArgs.eBase);
     }
  
     if (bool(fmtArgs.eFmtFlags & FMT_FLAGS::ALWAYS_SHOW_SIGN))
     {
         if (bNegative)
-            clPush('-');
-        else clPush('+');
+        {
+            PUSH_OR_RET('-');
+        }
+        else
+        {
+            PUSH_OR_RET('+');
+        }
     }
     else if (bNegative)
     {
-        clPush('-');
+        PUSH_OR_RET('-');
     }
 
     if (bool(fmtArgs.eFmtFlags & FMT_FLAGS::HASH))
     {
         if (fmtArgs.eBase == BASE::SIXTEEN)
         {
-            clPush('x');
-            clPush('0');
+            PUSH_OR_RET('x');
+            PUSH_OR_RET('0');
         }
         else if (fmtArgs.eBase == BASE::TWO)
         {
-            clPush('b');
-            clPush('0');
+            PUSH_OR_RET('b');
+            PUSH_OR_RET('0');
         }
     }
 
-    utils::reverse(spBuff.data(), i);
+#undef PUSH_OR_RET
 }
 
 inline isize
@@ -520,8 +522,8 @@ toFILE(FILE* fp, const StringView fmt, const ARGS_T&... tArgs) noexcept
 {
     char aBuff[SIZE] {};
     Context ctx {fmt, aBuff, utils::size(aBuff) - 1};
-    auto r = printArgs(ctx, tArgs...);
-    fputs(aBuff, fp);
+    const isize r = printArgs(ctx, tArgs...);
+    fwrite(aBuff, r, 1, fp);
     return r;
 }
 

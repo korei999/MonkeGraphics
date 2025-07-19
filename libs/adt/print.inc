@@ -43,7 +43,7 @@ inline constexpr bool oneOfChars(const char x, const StringView chars) noexcept;
 inline isize parseFormatArg(FormatArgs* pArgs, const StringView fmt, isize fmtIdx) noexcept;
 
 template<typename INT_T> requires std::is_integral_v<INT_T>
-inline constexpr void intToBuffer(INT_T x, Span<char> spBuff, FormatArgs fmtArgs) noexcept;
+inline void intToBuffer(INT_T x, Span<char> spBuff, FormatArgs fmtArgs) noexcept;
 
 inline isize copyBackToContext(Context ctx, FormatArgs fmtArgs, const Span<char> spSrc) noexcept;
 
