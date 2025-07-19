@@ -178,6 +178,8 @@ load(const StringView svPath)
 
             for (StringView svEntry : dir)
             {
+                if (svEntry == "." || svEntry == "..") continue;
+
                 String s = file::appendDirPath(&stdAlloc, svPath, svEntry);
                 defer( s.destroy(&stdAlloc) );
 

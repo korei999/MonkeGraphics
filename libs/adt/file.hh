@@ -32,6 +32,7 @@ load(IAllocator* pAlloc, const char* ntsPath)
     FILE* pf = fopen(ntsPath, "rb");
     if (!pf)
     {
+fail:
         LOG_WARN("failed to open '{}' file\n", ntsPath);
         return {};
     }
@@ -41,6 +42,12 @@ load(IAllocator* pAlloc, const char* ntsPath)
 
     fseek(pf, 0, SEEK_END);
     isize size = ftell(pf) + 1;
+    if (size <= 0)
+    {
+        LOG_BAD("bad size: '{}'\n", size);
+        goto fail;
+    }
+
     rewind(pf);
 
     ret.m_pData = reinterpret_cast<char*>(pAlloc->malloc(size, sizeof(char)));
@@ -58,6 +65,7 @@ load(const char* ntsPath)
     FILE* pf = fopen(ntsPath, "rb");
     if (!pf)
     {
+fail:
         LOG_WARN("failed to open '{}' file\n", ntsPath);
         return {};
     }
@@ -68,6 +76,12 @@ load(const char* ntsPath)
     fseek(pf, 0, SEEK_END);
     const isize size = utils::min(isize(ftell(pf)), SIZE - 1);
     rewind(pf);
+
+    if (size <= 0)
+    {
+        LOG_BAD("bad size: '{}'\n", size);
+        goto fail;
+    }
 
     fread(ret.data(), 1, size, pf);
 
