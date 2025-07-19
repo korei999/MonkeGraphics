@@ -186,11 +186,6 @@ start()
 
     win.m_bRunning = true;
 
-    /* loadStuff() will need this */
-    // app::allocScratchForThisThread(SIZE_1K);
-    // app::allocScratchForThisThread(SIZE_1M * 2);
-    // defer( app::destroyScratchForThisThread() );
-
     game::loadStuff();
     win.bindContext();
     renderer.init();
@@ -214,8 +209,13 @@ start()
         app::g_threadPool.destroy(StdAllocator::inst());
         renderer.destroy();
 
+        isize nObj = asset::g_poolObjects.size();
         for (auto& asset : asset::g_poolObjects)
-        asset.destroy();
+        {
+            asset.destroy();
+            --nObj;
+        }
+        ADT_ASSERT(nObj == 0, "nObj: {}", nObj);
 
         ui::destroy();
     );
