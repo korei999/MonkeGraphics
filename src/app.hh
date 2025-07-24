@@ -24,6 +24,8 @@ inline IWindow& windowInst() { return *g_pWindow; }
 extern render::IRenderer* g_pRenderer;
 inline render::IRenderer& rendererInst() { return *g_pRenderer; }
 
+static constexpr adt::isize SCRATCH_SIZE = adt::SIZE_1M;
+
 extern adt::ThreadPoolWithMemory<128> g_threadPool;
 
 } /* namespace app */;

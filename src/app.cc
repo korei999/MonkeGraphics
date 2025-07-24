@@ -32,10 +32,6 @@ RENDERER_TYPE g_eRendererType {};
 IWindow* g_pWindow {};
 render::IRenderer* g_pRenderer {};
 
-static constexpr isize SCRATCH_SIZE = SIZE_1M;
-
-/* NOTE: allocate scratch memory for each thread,
- * bacause using thread_local static buffer can actually cause stack overflow. */
 adt::ThreadPoolWithMemory<128> g_threadPool {adt::StdAllocator::inst(), SCRATCH_SIZE};
 
 IWindow*
