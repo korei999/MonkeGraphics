@@ -628,56 +628,6 @@ err(const StringView fmt, const ARGS_T&... tArgs) noexcept
 }
 
 inline isize
-FormatArgsToFmt(const FormatArgs fmtArgs, Span<char> spFmt) noexcept
-{
-    isize i = 0;
-    auto clPush = [&](char c) -> bool
-    {
-        if (i < spFmt.size())
-        {
-            spFmt[i++] = c;
-
-            return true;
-        }
-
-        return false;
-    };
-
-    if (!clPush('{')) return i;
-
-    if (fmtArgs.maxLen != NPOS16 || fmtArgs.maxFloatLen != NPOS8)
-    {
-        if (!clPush(':')) return i;
-
-        if (bool(fmtArgs.eFmtFlags & FMT_FLAGS::JUSTIFY_RIGHT))
-            if (!clPush('>')) return i;
-
-        if (fmtArgs.maxFloatLen != NPOS8)
-            if (!clPush('.')) return i;
-
-        if (bool(fmtArgs.eFmtFlags & FMT_FLAGS::ARG_IS_FMT))
-        {
-            if (!clPush('{')) return i;
-            if (!clPush('}')) return i;
-        }
-        else
-        {
-            char aBuff[64] {};
-            if (fmtArgs.maxFloatLen != NPOS8)
-                intToBuffer(fmtArgs.maxFloatLen, {aBuff}, {});
-            else intToBuffer(fmtArgs.maxLen, {aBuff}, {});
-
-            for (isize j = 0; j < utils::size(aBuff) && aBuff[j]; ++j)
-                if (!clPush(aBuff[j])) return i;
-        }
-    }
-
-    if (!clPush('}')) return i;
-
-    return i;
-}
-
-inline isize
 formatToContextExpSize(Context ctx, FormatArgs fmtArgs, const auto& x, const isize contSize) noexcept
 {
     if (contSize <= 0)
