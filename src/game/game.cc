@@ -19,7 +19,7 @@ struct AssetMapping
     StringView svMapTo {};
 };
 
-EntityVec g_vEntities {MAX_ENTITIES};
+VSOAEntity g_vEntities {MAX_ENTITIES};
 
 adt::MapM<StringFixed<128>, isize> g_mapNamesToEntities {MAX_ENTITIES};
 

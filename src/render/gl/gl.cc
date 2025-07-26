@@ -309,7 +309,6 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
             if (primitive.attributes.TEXCOORD_0 > -1)
                 accUV = gltfModel.m_vAccessors[primitive.attributes.TEXCOORD_0];
 
-            // app::g_threadPool.wait();
             if (!control::g_bPauseSimulation)
                 ((Future<Empty>&)model.m_future).wait();
 
@@ -589,7 +588,7 @@ drawSkybox()
 {
     math::M4 view = control::g_camera.m_trm;
     /* remove translation */
-    view.e[3][0] = view.e[3][1] = view.e[3][2] = 0.0f;
+    view[3][0] = view[3][1] = view[3][2] = 0.0f;
 
     auto& win = app::windowInst();
     const f32 aspectRatio = static_cast<f32>(win.m_winWidth) / static_cast<f32>(win.m_winHeight);
@@ -609,7 +608,7 @@ drawSkybox()
         glBindTexture(GL_TEXTURE_CUBE_MAP, s_skyboxDefault.m_tex);
 
         isize enCube = game::searchEntity("Cube");
-        ADT_ASSERT(enCube != -1, "failed to find entity '{}'\n", "Cube");
+        ADT_ASSERT(enCube != -1, "failed to find entity 'Cube'\n");
 
         if (enCube != -1)
         {
@@ -669,25 +668,32 @@ Renderer::draw(Arena* pArena)
             }
         }
 
-        for (int entityI = 0; entityI < entities.size(); ++entityI)
+        if (entities.size() > 0)
         {
-            game::Entity::Bind entity = game::g_vEntities[entityI];
+            game::Entity::Bind bind0 = entities[0];
 
-            if (entity.bNoDraw) continue;
-
-            auto& obj = asset::g_poolObjects[{entity.assetI}];
-
-            switch (obj.m_eType)
+            for (int entityI = 0; entityI < entities.size(); ++entityI)
             {
-                default: break;
+                if ((&bind0.bNoDraw)[entityI]) continue;
 
-                case asset::Object::TYPE::MODEL:
+                auto& obj = asset::g_poolObjects[ {(&bind0.assetI)[entityI]} ];
+
+                switch (obj.m_eType)
                 {
-                    Model& model = Model::fromI(entity.modelI);
-                    drawModel(model, math::transformation(entity.pos, entity.rot, entity.scale));
-                    model.m_future.reset();
+                    default: break;
+
+                    case asset::Object::TYPE::MODEL:
+                    {
+                        Model& model = Model::fromI((&bind0.modelI)[entityI]);
+                        drawModel(model, math::transformation(
+                            (&bind0.pos)[entityI],
+                            (&bind0.rot)[entityI],
+                            (&bind0.scale)[entityI]
+                        ));
+                        model.m_future.reset();
+                    }
+                    break;
                 }
-                break;
             }
         }
     }
