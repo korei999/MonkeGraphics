@@ -1,8 +1,10 @@
 #pragma once
 
+/* NOTE: MSVC needs '/Zc:preprocessor'. */
+
 /* example:
  *
- * ADT_MAKE_SOA_STRUCT(Entity,
+ * ADT_GEN_SOA_STRUCT(Entity,
  *     (adt::StringFixed<128>, sfName),
  *     (adt::math::V4, color),
  *     (adt::math::V3, pos),
@@ -96,7 +98,7 @@
 #define ADT_DECL_FIELD_REF(TUPLE) ADT_DECL_FIELD_REF_I TUPLE;
 #define ADT_DECL_FIELD_REF_I(TYPE, NAME) TYPE& NAME
 
-#define ADT_MAKE_SOA_STRUCT(NAME, ...)                                                                                 \
+#define ADT_GEN_SOA_STRUCT(NAME, ...)                                                                                  \
     struct NAME                                                                                                        \
     {                                                                                                                  \
         struct Bind                                                                                                    \
