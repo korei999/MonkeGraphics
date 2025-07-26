@@ -47,15 +47,15 @@ namespace adt::print
 {
 
 inline isize
-formatToContext(Context ctx, FormatArgs, const game::Entity::Bind& x)
+formatToContext(Context ctx, FormatArgs fmtArgs, const game::Entity::Bind& x)
 {
     ctx.fmt =
         "\n\tname: '{}'"
         "\n\tcolor: '{}'"
-        "\n\tpos: [{}]"
-        "\n\trot: [{}]"
-        "\n\tscale: [{}]"
-        "\n\tvel: [{}]"
+        "\n\tpos: {}"
+        "\n\trot: {}"
+        "\n\tscale: {}"
+        "\n\tvel: {}"
         "\n\tassetI: {}"
         "\n\tmodelI: {}"
         "\n\ttype: {}"
