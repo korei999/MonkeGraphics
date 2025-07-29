@@ -8,6 +8,7 @@
 #include <ctype.h> /* win32 */
 #include <cstdio>
 #include <cuchar> /* IWYU pragma: keep */
+#include <charconv>
 
 #if __has_include(<unistd.h>)
 
@@ -29,6 +30,7 @@ struct FormatArgs
     u8 maxFloatLen = NPOS8;
     BASE eBase = BASE::TEN;
     FMT_FLAGS eFmtFlags {};
+    char filler {};
 };
 
 struct Context
@@ -72,7 +74,7 @@ typeName()
 }
 
 inline const char*
-_currentWorkingDirectory()
+currentWorkingDirectory()
 {
     static char aBuff[300] {};
     return getcwd(aBuff, sizeof(aBuff) - 1);
@@ -81,7 +83,7 @@ _currentWorkingDirectory()
 inline const char*
 stripSourcePath(const char* ntsSourcePath)
 {
-    static const StringView svCwd = _currentWorkingDirectory();
+    static const StringView svCwd = currentWorkingDirectory();
     return ntsSourcePath + svCwd.size() + 1;
 }
 
@@ -169,6 +171,12 @@ parseFormatArg(FormatArgs* pArgs, const StringView fmt, isize fmtIdx) noexcept
             }
             else if (isdigit(fmt[i]))
             {
+                if (fmt[i] == '0')
+                {
+                    if (i + 1 < fmt.size())
+                        pArgs->filler = '0';
+                }
+
                 clSkipUntil("}.#xb");
                 pArgs->maxLen = StringView(aBuff, buffIdx).toI64();
             }
@@ -185,6 +193,11 @@ parseFormatArg(FormatArgs* pArgs, const StringView fmt, isize fmtIdx) noexcept
             else if (fmt[i] == 'b')
             {
                 pArgs->eBase = BASE::TWO;
+                continue;
+            }
+            else if (fmt[i] == 'o')
+            {
+                pArgs->eBase = BASE::EIGHT;
                 continue;
             }
             else if (fmt[i] == '+')
@@ -227,23 +240,31 @@ intToBuffer(INT_T x, Span<char> spBuff, FormatArgs fmtArgs) noexcept
         return i;
     }
  
-    if (x < 0 && int(fmtArgs.eBase) != 10)
+    if (x < 0 && fmtArgs.eBase != BASE::TEN)
     {
         x = -x;
     }
-    else if (x < 0 && int(fmtArgs.eBase) == 10)
+    else if (x < 0 && fmtArgs.eBase == BASE::TEN)
     {
         bNegative = true;
         x = -x;
     }
 
-    while (x != 0)
-    {
-        const int rem = x % int(fmtArgs.eBase);
-        const char digit = (rem > 9) ? (rem - 10) + 'a' : rem + '0';
-        PUSH_OR_RET(digit);
-        x /= int(fmtArgs.eBase);
-    }
+    const char* ntsCharSet = "0123456789abcdef";
+
+#define _ITOA_(BASE)                                                                                                   \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        PUSH_OR_RET(ntsCharSet[x % BASE]);                                                                             \
+    } while ((x /= BASE) > 0);
+
+    /* About 2.5x faster code than generic base. */
+    if (fmtArgs.eBase == BASE::TEN) { _ITOA_(10); }
+    else if (fmtArgs.eBase == BASE::EIGHT) { _ITOA_(8); }
+    else if (fmtArgs.eBase == BASE::SIXTEEN) { _ITOA_(16); }
+    else if (fmtArgs.eBase == BASE::TWO) { _ITOA_(2); }
+
+#undef _ITOA_
  
     if (bool(fmtArgs.eFmtFlags & FMT_FLAGS::ALWAYS_SHOW_SIGN))
     {
@@ -273,6 +294,10 @@ intToBuffer(INT_T x, Span<char> spBuff, FormatArgs fmtArgs) noexcept
             PUSH_OR_RET('b');
             PUSH_OR_RET('0');
         }
+        else if (fmtArgs.eBase == BASE::EIGHT)
+        {
+            PUSH_OR_RET('o');
+        }
     }
 
 #undef PUSH_OR_RET
@@ -284,6 +309,7 @@ inline isize
 copyBackToContext(Context ctx, FormatArgs fmtArgs, const Span<char> spSrc) noexcept
 {
     isize i = 0;
+    const char filler = fmtArgs.filler ? fmtArgs.filler : ' ';
 
     auto clCopySpan = [&]
     {
@@ -300,7 +326,7 @@ copyBackToContext(Context ctx, FormatArgs fmtArgs, const Span<char> spSrc) noexc
         if (fmtArgs.maxLen != NPOS16 && fmtArgs.maxLen > i && nSpaces > 0)
         {
             for (j = 0; ctx.buffIdx < ctx.buffSize && j < nSpaces; ++j)
-                ctx.pBuff[ctx.buffIdx++] = ' ';
+                ctx.pBuff[ctx.buffIdx++] = filler;
         }
 
         clCopySpan();
@@ -314,7 +340,7 @@ copyBackToContext(Context ctx, FormatArgs fmtArgs, const Span<char> spSrc) noexc
         if (fmtArgs.maxLen != NPOS16 && fmtArgs.maxLen > i)
         {
             for (; ctx.buffIdx < ctx.buffSize && i < fmtArgs.maxLen; ++i)
-                ctx.pBuff[ctx.buffIdx++] = ' ';
+                ctx.pBuff[ctx.buffIdx++] = filler;
         }
     }
 
@@ -365,28 +391,19 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const INT_T& x) noexcept
     return copyBackToContext(ctx, fmtArgs, {aBuff, n});
 }
 
+template<typename FLOAT_T>
+requires std::is_floating_point_v<FLOAT_T>
 inline isize
-formatToContext(Context ctx, FormatArgs fmtArgs, const f32 x) noexcept
+formatToContext(Context ctx, FormatArgs fmtArgs, const FLOAT_T x) noexcept
 {
     char aBuff[64] {};
+    std::to_chars_result res {};
     if (fmtArgs.maxFloatLen == NPOS8)
-        snprintf(aBuff, utils::size(aBuff), "%g", x);
-    else
-        snprintf(aBuff, utils::size(aBuff), "%.*f", fmtArgs.maxFloatLen, x);
+        res = std::to_chars(aBuff, aBuff + sizeof(aBuff), x);
+    else res = std::to_chars(aBuff, aBuff + sizeof(aBuff), x, std::chars_format::general, fmtArgs.maxFloatLen);
 
-    return copyBackToContext(ctx, fmtArgs, {aBuff});
-}
-
-inline isize
-formatToContext(Context ctx, FormatArgs fmtArgs, const f64 x) noexcept
-{
-    char aBuff[128] {};
-    if (fmtArgs.maxFloatLen == NPOS8)
-        snprintf(aBuff, utils::size(aBuff), "%g", x);
-    else
-        snprintf(aBuff, utils::size(aBuff), "%.*lf", fmtArgs.maxFloatLen, x);
-
-    return copyBackToContext(ctx, fmtArgs, {aBuff});
+    if (res.ptr) return copyBackToContext(ctx, fmtArgs, {aBuff, res.ptr - aBuff});
+    else return copyBackToContext(ctx, fmtArgs, {aBuff});
 }
 
 inline isize
@@ -488,7 +505,7 @@ printArg(isize& nRead, isize& i, bool& bArg, Context& ctx, const T& arg) noexcep
         if (bArg)
         {
             isize addBuff = 0;
-            isize add = parseFormatArg(&fmtArgs, ctx.fmt, i);
+            const isize add = parseFormatArg(&fmtArgs, ctx.fmt, i);
 
             if (bool(fmtArgs.eFmtFlags & FMT_FLAGS::ARG_IS_FMT))
             {
