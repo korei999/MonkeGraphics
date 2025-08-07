@@ -2,10 +2,6 @@
 
 #pragma once
 
-#include "adt/Vec.hh"
-#include "adt/math.hh"
-#include "adt/String.hh"
-
 namespace gltf
 {
 
@@ -283,7 +279,7 @@ namespace adt::print
 {
 
 inline isize
-formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Channel::Target::PATH_TYPE e)
+format(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Channel::Target::PATH_TYPE e)
 {
     constexpr adt::StringView aMap[] {
         "TRANSLATION", "ROTATION", "SCALE", "WEIGHTS",
@@ -291,11 +287,11 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Channel:
 
     ADT_ASSERT(static_cast<int>(e) < adt::utils::size(aMap), " ");
 
-    return formatToContext(ctx, fmtArgs, aMap[static_cast<int>(e)]);
+    return format(ctx, fmtArgs, aMap[static_cast<int>(e)]);
 }
 
 inline isize
-formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Sampler::INTERPOLATION_TYPE e)
+format(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Sampler::INTERPOLATION_TYPE e)
 {
     constexpr adt::StringView aMap[] {
         "LINEAR", "STEP", "CUBICSPLINE",
@@ -303,11 +299,11 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Sampler:
 
     ADT_ASSERT(static_cast<int>(e) < adt::utils::size(aMap), " ");
 
-    return formatToContext(ctx, fmtArgs, aMap[static_cast<int>(e)]);
+    return format(ctx, fmtArgs, aMap[static_cast<int>(e)]);
 }
 
 inline isize
-formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Node::TRANSFORMATION_TYPE e)
+format(Context ctx, FormatArgs fmtArgs, const gltf::Node::TRANSFORMATION_TYPE e)
 {
     constexpr adt::StringView aMap[] {
         "NONE", "MATRIX", "ANIMATION",
@@ -315,11 +311,11 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Node::TRANSFORMATIO
 
     ADT_ASSERT(static_cast<int>(e) < adt::utils::size(aMap), " ");
 
-    return formatToContext(ctx, fmtArgs, aMap[static_cast<int>(e)]);
+    return format(ctx, fmtArgs, aMap[static_cast<int>(e)]);
 }
 
 inline isize
-formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::COMPONENT_TYPE x)
+format(Context ctx, FormatArgs fmtArgs, const gltf::COMPONENT_TYPE x)
 {
     const char* nts;
     switch (x)
@@ -334,12 +330,12 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::COMPONENT_TYPE x)
         case gltf::COMPONENT_TYPE::FLOAT: nts = "FLOAT"; break;
     }
 
-    return formatToContext(ctx, fmtArgs, nts);
+    return format(ctx, fmtArgs, nts);
 }
 
 
 inline isize
-formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::TARGET e)
+format(Context ctx, FormatArgs fmtArgs, const gltf::TARGET e)
 {
     const char* nts;
     switch (e)
@@ -351,11 +347,11 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::TARGET e)
         case gltf::TARGET::ELEMENT_ARRAY_BUFFER: nts = "ELEMENT_ARRAY_BUFFER"; break;
     }
 
-    return formatToContext(ctx, fmtArgs, nts);
+    return format(ctx, fmtArgs, nts);
 }
 
 inline isize
-formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Accessor::TYPE e)
+format(Context ctx, FormatArgs fmtArgs, const gltf::Accessor::TYPE e)
 {
     constexpr adt::StringView aMap[] {
         "SCALAR", "VEC2", "VEC3", "VEC4", "MAT2", "MAT3", "MAT4"
@@ -363,11 +359,11 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Accessor::TYPE e)
 
     ADT_ASSERT(static_cast<int>(e) < adt::utils::size(aMap), " ");
 
-    return formatToContext(ctx, fmtArgs, aMap[static_cast<int>(e)]);
+    return format(ctx, fmtArgs, aMap[static_cast<int>(e)]);
 }
 
 inline isize
-formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Primitive::TYPE e)
+format(Context ctx, FormatArgs fmtArgs, const gltf::Primitive::TYPE e)
 {
     constexpr adt::StringView aMap[] {
         "POINTS", "LINES", "LINE_LOOP", "LINE_STRIP", "TRIANGLES", "TRIANGLE_STRIP", "TRIANGLE_FAN",
@@ -375,7 +371,7 @@ formatToContext(Context ctx, FormatArgs fmtArgs, const gltf::Primitive::TYPE e)
 
     ADT_ASSERT(static_cast<int>(e) < adt::utils::size(aMap), " ");
 
-    return formatToContext(ctx, fmtArgs, aMap[static_cast<int>(e)]);
+    return format(ctx, fmtArgs, aMap[static_cast<int>(e)]);
 }
 
 } /* namespace adt::print */

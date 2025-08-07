@@ -1,8 +1,5 @@
 #pragma once
 
-#include "adt/Array.hh"
-#include "adt/math.hh"
-
 #include "frame.hh"
 #include "keys.hh"
 

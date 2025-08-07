@@ -6,16 +6,13 @@ namespace adt::print
 {
 
 [[maybe_unused]] static isize
-formatToContext(Context ctx, FormatArgs, const render::sw::clip::AXIS e)
+format(Context ctx, FormatArgs fmtArgs, const render::sw::clip::AXIS e)
 {
-    ctx.fmt = "{}";
-    ctx.fmtIdx = 0;
-    
-    const String asMap[] {
+    const StringView asMap[] {
         "NONE", "LEFT", "RIGHT", "TOP", "BOTTOM", "NEAR", "FAR", "W"
     };
 
-    return printArgs(ctx, asMap[e]);
+    return format(ctx, fmtArgs, asMap[e]);
 }
 
 } /* namespace adt::print */

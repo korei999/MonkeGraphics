@@ -1,7 +1,5 @@
 #include "app.hh"
 
-#include "adt/defer.hh"
-
 #if defined __linux__
     #include "platform/wayland/Client.hh"
     #if defined OPT_GL

@@ -3,7 +3,6 @@
 #include "control.hh"
 #include "keys.hh"
 
-#include "adt/logs.hh"
 #include "render/gl/glfunc.hh" /* IWYU pragma: keep */
 
 #include <windowsx.h>

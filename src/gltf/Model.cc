@@ -1,8 +1,5 @@
 #include "Model.hh"
 
-#include "adt/file.hh"
-#include "adt/logs.hh"
-
 using namespace adt;
 
 namespace gltf

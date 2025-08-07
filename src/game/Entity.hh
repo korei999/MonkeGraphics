@@ -1,8 +1,5 @@
 #pragma once
 
-#include "adt/math.hh"
-#include "adt/SOA.hh"
-
 namespace game
 {
 
@@ -33,7 +30,7 @@ namespace adt::print
 {
 
 inline isize
-formatToContext(Context ctx, FormatArgs, const game::Entity::Bind& x)
+format(Context ctx, FormatArgs, const game::Entity::Bind& x)
 {
     ctx.fmt =
         "\n\tname: '{}'"
@@ -47,7 +44,6 @@ formatToContext(Context ctx, FormatArgs, const game::Entity::Bind& x)
         "\n\ttype: {}"
         "\n\tbNoDraw: {}"
     ;
-
     ctx.fmtIdx = 0;
     return printArgs(ctx, x.sfName, x.color, x.pos, x.rot, x.scale, x.vel, x.assetI, x.modelI, int(x.eType), x.bNoDraw);
 }

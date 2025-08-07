@@ -2,10 +2,6 @@
 
 #include "Entity.hh"
 
-#include "adt/Arena.hh"
-#include "adt/Map.hh"
-#include "adt/VecSOA.hh"
-
 namespace game
 {
 

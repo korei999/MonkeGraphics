@@ -3,8 +3,6 @@
 #include "app.hh"
 #include "control.hh"
 
-#include "adt/logs.hh"
-
 using namespace adt;
 
 namespace platform::wayland

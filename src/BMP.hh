@@ -4,10 +4,6 @@
 
 #include "Image.hh"
 
-#include "adt/String.hh" /* IWYU pragma: keep */
-#include "adt/defer.hh"
-#include "adt/logs.hh"
-
 namespace BMP
 {
 
@@ -228,7 +224,7 @@ namespace adt::print
 {
 
 inline isize
-formatToContext(Context ctx, FormatArgs fmtArgs, BMP::COMPRESSION_METHOD_ID eCompressionMethod) noexcept
+format(Context ctx, FormatArgs fmtArgs, BMP::COMPRESSION_METHOD_ID eCompressionMethod) noexcept
 {
     constexpr StringView asMethods[] {
         "BI_RGB",
@@ -245,7 +241,7 @@ formatToContext(Context ctx, FormatArgs fmtArgs, BMP::COMPRESSION_METHOD_ID eCom
 
     ADT_ASSERT(int(eCompressionMethod) < utils::size(asMethods), " ");
 
-    return formatToContext(ctx, fmtArgs, asMethods[int(eCompressionMethod)]);
+    return format(ctx, fmtArgs, asMethods[int(eCompressionMethod)]);
 }
 
 } /* namespace adt::print */

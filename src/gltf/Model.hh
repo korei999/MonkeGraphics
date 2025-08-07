@@ -6,8 +6,6 @@
 
 #include "json/Parser.hh"
 
-#include "adt/View.hh"
-
 namespace gltf
 {
 

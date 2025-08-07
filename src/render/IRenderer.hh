@@ -1,7 +1,5 @@
 #pragma once
 
-#include "adt/Arena.hh"
-
 namespace render
 {
 

@@ -1,12 +1,6 @@
 #pragma once
 
-#include "adt/QueueSPSC.hh"
-
 #ifdef OPT_SW
-    #include "adt/Span2D.hh"
-    #include "adt/Vec.hh"
-    #include "adt/simd.hh"
-
     #include "Image.hh"
     #include "colors.hh"
 #endif

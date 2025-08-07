@@ -1,7 +1,5 @@
 #include "Client.hh"
 
-#include "adt/logs.hh"
-
 #include "shm.hh"
 
 using namespace adt;

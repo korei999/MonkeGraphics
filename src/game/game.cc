@@ -6,8 +6,6 @@
 #include "colors.hh"
 #include "frame.hh"
 
-#include "adt/logs.hh"
-
 using namespace adt;
 
 namespace game

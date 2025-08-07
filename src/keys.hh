@@ -1,8 +1,5 @@
 #pragma once
 
-#include "adt/types.hh"
-#include "adt/enum.hh"
-
 /* wayland(xkb) codes */
 enum class MOD_STATE : adt::u8
 {

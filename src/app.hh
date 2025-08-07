@@ -3,8 +3,6 @@
 #include "IWindow.hh"
 #include "render/IRenderer.hh"
 
-#include "adt/ThreadPool.hh"
-
 namespace app
 {
 

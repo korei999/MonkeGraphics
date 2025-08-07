@@ -1,8 +1,5 @@
 #pragma once
 
-#include "adt/print.hh"
-#include "adt/enum.hh"
-
 namespace json
 {
 
@@ -63,47 +60,41 @@ private:
 
 } /* namespace json */
 
-namespace adt
-{
-namespace print
+namespace adt::print
 {
 
 inline u32
-formatToContext(Context ctx, [[maybe_unused]] FormatArgs fmtArgs, const json::TOKEN_TYPE& x)
+format(Context ctx, FormatArgs fmtArgs, const json::TOKEN_TYPE& x)
 {
-    ctx.fmt = "{}";
-    ctx.fmtIdx = 0;
-
     char aBuff[256] {};
-    u32 n = 0;
+    isize n = 0;
 
-    if (u32(x & json::TOKEN_TYPE::NONE))
+    if (bool(x & json::TOKEN_TYPE::NONE))
         n += print::toBuffer(aBuff + n, sizeof(aBuff) - n - 1, "NONE");
-    if (u32(x & json::TOKEN_TYPE::DOT))
+    if (bool(x & json::TOKEN_TYPE::DOT))
         n += print::toBuffer(aBuff + n, sizeof(aBuff) - n - 1, n > 0 ? " | DOT" : "DOT");
-    if (u32(x & json::TOKEN_TYPE::COMMA))
+    if (bool(x & json::TOKEN_TYPE::COMMA))
         n += print::toBuffer(aBuff + n, sizeof(aBuff) - n - 1, n > 0 ? " | COMMA" : "COMMA");
-    if (u32(x & json::TOKEN_TYPE::STRING))
+    if (bool(x & json::TOKEN_TYPE::STRING))
         n += print::toBuffer(aBuff + n, sizeof(aBuff) - n - 1, n > 0 ? " | STRING" : "STRING");
-    if (u32(x & json::TOKEN_TYPE::QUOTED_STRING))
+    if (bool(x & json::TOKEN_TYPE::QUOTED_STRING))
         n += print::toBuffer(aBuff + n, sizeof(aBuff) - n - 1, n > 0 ? " | QUOTED_STRING" : "QUOTED_STRING");
-    if (u32(x & json::TOKEN_TYPE::COLON))
+    if (bool(x & json::TOKEN_TYPE::COLON))
         n += print::toBuffer(aBuff + n, sizeof(aBuff) - n - 1, n > 0 ? " | COLON" : "COLON");
-    if (u32(x & json::TOKEN_TYPE::L_BRACE))
+    if (bool(x & json::TOKEN_TYPE::L_BRACE))
         n += print::toBuffer(aBuff + n, sizeof(aBuff) - n - 1, n > 0 ? " | L_BRACE" : "L_BRACE");
-    if (u32(x & json::TOKEN_TYPE::R_BRACE))
+    if (bool(x & json::TOKEN_TYPE::R_BRACE))
         n += print::toBuffer(aBuff + n, sizeof(aBuff) - n - 1, n > 0 ? " | R_BRACE" : "R_BRACE");
-    if (u32(x & json::TOKEN_TYPE::L_BRACKET))
+    if (bool(x & json::TOKEN_TYPE::L_BRACKET))
         n += print::toBuffer(aBuff + n, sizeof(aBuff) - n - 1, n > 0 ? " | L_BRACKET" : "L_BRACKET");
-    if (u32(x & json::TOKEN_TYPE::R_BRACKET))
+    if (bool(x & json::TOKEN_TYPE::R_BRACKET))
         n += print::toBuffer(aBuff + n, sizeof(aBuff) - n - 1, n > 0 ? " | R_BRACKET" : "R_BRACKET");
-    if (u32(x & json::TOKEN_TYPE::NUMBER))
+    if (bool(x & json::TOKEN_TYPE::NUMBER))
         n += print::toBuffer(aBuff + n, sizeof(aBuff) - n - 1, n > 0 ? " | NUMBER" : "NUMBER");
-    if (u32(x & json::TOKEN_TYPE::FLOAT))
+    if (bool(x & json::TOKEN_TYPE::FLOAT))
         n += print::toBuffer(aBuff + n, sizeof(aBuff) - n - 1, n > 0 ? " | FLOAT" : "FLOAT");
 
-    return printArgs(ctx, aBuff);
+    return format(ctx, fmtArgs, StringView(aBuff, n));
 }
 
-} /* namespace print */
-} /* namespace adt */
+} /* namespace adt::print */

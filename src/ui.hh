@@ -4,13 +4,6 @@
 
 #include "colors.hh"
 
-#include "adt/Pair.hh"
-#include "adt/Arena.hh"
-#include "adt/Pool.hh"
-#include "adt/Vec.hh"
-#include "adt/enum.hh"
-#include "adt/math.hh"
-
 namespace ui
 {
 
@@ -152,9 +145,10 @@ namespace adt::print
 {
 
 inline isize
-formatToContext(Context ctx, FormatArgs fmtArgs, const ::ui::Offset x)
+format(Context ctx, FormatArgs fmtArgs, const ::ui::Offset x)
 {
-    return formatToContext(ctx, fmtArgs, Pair{x.x, x.y});
+    fmtArgs.eFmtFlags |= FormatArgs::FLAGS::SQUARE_BRACKETS;
+    return formatVariadic(ctx, fmtArgs, x.x, x.y);
 }
 
 } /* namespace adt::print */

@@ -3,8 +3,6 @@
 #include "app.hh"
 #include "asset.hh"
 
-#include "adt/View.hh"
-
 using namespace adt;
 
 Model::Pool Model::g_poolModels {INIT};

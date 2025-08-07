@@ -8,8 +8,6 @@
 #include "wayland-protocols/pointer-constraints-unstable-v1.h"
 #include "wayland-protocols/xdg-decoration.h"
 
-#include "adt/Vec.hh"
-
 #include <wayland-cursor.h>
 
 namespace platform::wayland

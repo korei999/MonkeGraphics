@@ -2,8 +2,6 @@
 
 #include "Lexer.hh"
 
-#include "adt/Vec.hh"
-
 namespace json
 {
 
@@ -123,7 +121,7 @@ public:
 
     bool parse(adt::IAllocator* pAlloc, adt::StringView sJson);
 
-    void print(FILE* fp);
+    void print(adt::IAllocator* pAlloc, FILE* fp);
 
     /* if root json object consists of only one object return that, otherwise get array of root objects */
     adt::Vec<Node>& getRoot();
@@ -148,7 +146,7 @@ private:
 
 /* pfn returns true for early return */
 void traverseNode(Node* pNode, bool (*pfn)(Node* pNode, void* pArgs), void* pArgs, TRAVERSAL_ORDER eOrder);
-void printNode(FILE* fp, const Node* pNode, adt::StringView svEnd = "", int depth = 0, bool bPrintKey = true);
+void printNode(adt::IAllocator* pAlloc, FILE* fp, const Node* pNode, adt::StringView svEnd = "", int depth = 0, bool bPrintKey = true);
 
 /* Linear search inside JSON object. Returns nullptr if not found */
 [[nodiscard]] inline Node*

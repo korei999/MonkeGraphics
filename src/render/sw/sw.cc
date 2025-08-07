@@ -8,8 +8,6 @@
 #include "game/game.hh"
 #include "gltf/gltf.hh"
 
-#include "adt/file.hh"
-
 using namespace adt;
 
 namespace render::sw

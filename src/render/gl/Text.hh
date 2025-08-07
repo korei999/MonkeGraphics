@@ -3,8 +3,6 @@
 #include "ttf/Rasterizer.hh"
 #include "gl.hh" /* IWYU pragma: keep */
 
-#include "adt/ScratchBuffer.hh"
-
 namespace render::gl
 {
 

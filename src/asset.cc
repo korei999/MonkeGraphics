@@ -2,12 +2,6 @@
 #include "app.hh"
 #include "BMP.hh"
 
-#include "adt/Directory.hh"
-#include "adt/Map.hh"
-#include "adt/Pool.hh"
-#include "adt/StdAllocator.hh"
-#include "adt/file.hh"
-
 using namespace adt;
 
 namespace asset
@@ -89,9 +83,11 @@ loadGLTF(const StringView svPath, const StringView sFile)
 static Pool<Object, 128>::Handle
 loadTTF([[maybe_unused]] const StringView svPath, String* pSFile)
 {
-    Object nObj(SIZE_1K * 500);
+    Object nObj {SIZE_1K * 500};
+    nObj.m_eType = Object::TYPE::FONT;
+    nObj.m_uData.font.sFontFile = String {&nObj.m_arena, *pSFile};
 
-    ttf::Font font(&nObj.m_arena, *pSFile);
+    ttf::Font font {&nObj.m_arena, nObj.m_uData.font.sFontFile};
     if (!font)
     {
         LOG_BAD("failed to load font '{}'\n", svPath);
@@ -100,8 +96,6 @@ loadTTF([[maybe_unused]] const StringView svPath, String* pSFile)
     }
 
     nObj.m_uData.font.ttf = font;
-    nObj.m_uData.font.sFontFile = pSFile->release();
-    nObj.m_eType = Object::TYPE::FONT;
 
     auto hnd = g_poolObjects.insert(nObj);
     return hnd;

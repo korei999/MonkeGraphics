@@ -2,11 +2,6 @@
 
 #include "gltf/Model.hh"
 
-#include "adt/Thread.hh"
-#include "adt/Pool.hh"
-#include "adt/Arena.hh"
-#include "adt/Opt.hh"
-
 /* Model holds the same order of nodes as the gltf::Model that it refers to */
 struct Model
 {

@@ -3,8 +3,6 @@
 #include "render/gl/glfunc.hh"
 #include "wglext.h"
 
-#include "adt/logs.hh"
-
 #include <clocale>
 #include <windowsx.h>
 

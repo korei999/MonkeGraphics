@@ -1,7 +1,5 @@
 #include "Text.hh"
 
-#include "adt/BufferAllocator.hh"
-
 using namespace adt;
 
 namespace render::gl

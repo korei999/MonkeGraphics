@@ -9,16 +9,6 @@
 #include "game/game.hh"
 #include "shaders/glsl.hh"
 
-#include "adt/BufferAllocator.hh"
-#include "adt/Map.hh"
-#include "adt/ScratchBuffer.hh"
-#include "adt/StdAllocator.hh"
-#include "adt/ThreadPool.hh"
-#include "adt/View.hh"
-#include "adt/defer.hh"
-#include "adt/file.hh"
-#include "adt/logs.hh"
-
 using namespace adt;
 
 namespace render::gl

@@ -1,8 +1,5 @@
 #include "ClientGL.hh"
 
-#include "adt/Array.hh"
-#include "adt/logs.hh"
-
 #include <EGL/eglext.h>
 
 using namespace adt;

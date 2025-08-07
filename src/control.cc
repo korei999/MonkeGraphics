@@ -3,9 +3,6 @@
 #include "keys.hh"
 #include "app.hh"
 
-#include "adt/logs.hh"
-#include "adt/defer.hh"
-
 using namespace adt;
 
 namespace control

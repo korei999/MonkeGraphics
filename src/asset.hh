@@ -4,9 +4,6 @@
 #include "gltf/Model.hh"
 #include "ttf/Font.hh"
 
-#include "adt/Pool.hh"
-#include "adt/Arena.hh"
-
 namespace asset
 {
 
@@ -84,18 +81,15 @@ namespace adt::print
 {
 
 [[maybe_unused]] static isize
-formatToContext(Context ctx, FormatArgs, const asset::Object::TYPE e)
+format(Context ctx, FormatArgs fmtArgs, const asset::Object::TYPE e)
 {
-    ctx.fmt = "{}";
-    ctx.fmtIdx = 0;
-
     constexpr StringView asMap[] {
         "NONE", "IMAGE", "MODEL", "FONT"
     };
 
     ADT_ASSERT(static_cast<int>(e) < utils::size(asMap), " ");
 
-    return printArgs(ctx, asMap[static_cast<int>(e)]);
+    return format(ctx, fmtArgs, asMap[static_cast<int>(e)]);
 }
 
 } /* namespace adt::print */

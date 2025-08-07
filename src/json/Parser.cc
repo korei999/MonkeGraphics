@@ -1,8 +1,5 @@
 #include "Parser.hh"
 
-#include "adt/logs.hh"
-#include "adt/defer.hh"
-
 using namespace adt;
 
 namespace json
@@ -39,7 +36,7 @@ bool
 Parser::printNodeError()
 {
     const auto& tok = m_token;
-    CERR("({}, {}): unexpected token: '{}'\n",
+    CERR("json::Parser: ({}, {}): unexpected token: '{}'\n",
         tok.row, tok.column, m_token.eType
     );
     return false;
@@ -56,7 +53,7 @@ Parser::expect(TOKEN_TYPE t)
     }
     else
     {
-        CERR("({}, {}): unexpected token: expected: '{}', got '{}' ('{}')\n",
+        CERR("json::Parser: ({}, {}): unexpected token: expected: '{}', got '{}' ('{}')\n",
              tok.row, tok.column, t, m_token.eType, m_token.svLiteral
         );
         return false;
@@ -70,7 +67,7 @@ Parser::expectNot(TOKEN_TYPE t)
 
     if (bool(tok.eType & t))
     {
-        CERR("({}, {}): unexpected token: not expected: '{}', got '{}' ('{}')\n",
+        CERR("json::Parser: ({}, {}): unexpected token: not expected: '{}', got '{}' ('{}')\n",
              tok.row, tok.column, t, m_token.eType, m_token.svLiteral
         );
         return false;
@@ -167,6 +164,8 @@ Parser::parseObject(Node* pNode)
     pNode->tagVal.val.o = Vec<Node>(m_pAlloc);
     auto& aObjs = getObject(pNode);
 
+    ADT_DEFER( aObjs.setCap(m_pAlloc, aObjs.size()) );
+
     while (m_token.eType != TOKEN_TYPE::R_BRACE)
     {
         /* make sure key is quoted */
@@ -206,6 +205,8 @@ Parser::parseArray(Node* pNode)
     pNode->tagVal.eTag = TAG::ARRAY;
     pNode->tagVal.val.a = Vec<Node>(m_pAlloc);
     auto& aTVs = getArray(pNode);
+
+    ADT_DEFER( aTVs.setCap(m_pAlloc, aTVs.size()) );
 
     /* collect each key/value pair inside array */
     while (m_token.eType != TOKEN_TYPE::R_BRACKET)
@@ -270,25 +271,24 @@ Parser::destroy()
 }
 
 void
-Parser::print(FILE* fp)
+Parser::print(IAllocator* pAlloc, FILE* fp)
 {
     for (auto& obj : m_aObjects)
     {
-        printNode(fp, &obj, "", 0, false); /* skip key for root nodes */
+        printNode(pAlloc, fp, &obj, "", 0, false); /* skip key for root nodes */
         fputc('\n', fp);
     }
 }
 
 void
-printNode(FILE* fp, const Node* pNode, StringView svEnd, int depth, bool bPrintKey)
+printNode(IAllocator* pAlloc, FILE* fp, const Node* pNode, StringView svEnd, int depth, bool bPrintKey)
 {
     const auto& svKey = pNode->svKey;
 
-    fprintf(fp, "%*s", depth, "");
-    ADT_DEFER( fprintf(fp, "%.*s", int(svEnd.size()), svEnd.data()) );
+    print::toFILE(pAlloc, fp, "{:{}}", depth, "");
+    ADT_DEFER( print::toFILE(pAlloc, fp, "{}", svEnd) );
 
-    if (bPrintKey)
-        fprintf(fp, "\"%.*s\": ", int(svKey.size()), svKey.data());
+    if (bPrintKey) print::toFILE(pAlloc, fp, "\"{}\": ", svKey);
 
     switch (pNode->tagVal.eTag)
     {
@@ -300,19 +300,19 @@ printNode(FILE* fp, const Node* pNode, StringView svEnd, int depth, bool bPrintK
 
             if (obj.empty())
             {
-                fprintf(fp, "{}");
+                print::toFILE<16>(fp, "{}");
                 break;
             }
 
-            fprintf(fp, "{\n");
+            print::toFILE<16>(fp, "{\n");
 
             for (isize i = 0; i < obj.size(); ++i)
             {
-                StringView svE = (i == obj.size() - 1) ? "\n" : ",\n";
-                printNode(fp, &obj[i], svE, depth + 2, true);
+                const StringView svE = (i == obj.size() - 1) ? "\n" : ",\n";
+                printNode(pAlloc, fp, &obj[i], svE, depth + 2, true);
             }
 
-            fprintf(fp, "%*s}", depth, "");
+            print::toFILE(pAlloc, fp, "{:{}}}", depth, "");
         }
         break;
 
@@ -320,54 +320,42 @@ printNode(FILE* fp, const Node* pNode, StringView svEnd, int depth, bool bPrintK
         {
             auto& arr = getArray(pNode);
 
-            if (arr.size() == 0)
+            if (arr.empty())
             {
-                fprintf(fp, "[]");
+                print::toFILE<16>(fp, "[]");
                 break;
             }
 
-            fprintf(fp, "[\n");
+            print::toFILE<16>(fp, "[\n");
 
             for (isize i = 0; i < arr.size(); ++i)
             {
-                StringView svE = (i == arr.size() - 1) ? "\n" : ",\n";
-                printNode(fp, &arr[i], svE, depth + 2, false);
+                const StringView svE = (i == arr.size() - 1) ? "\n" : ",\n";
+                printNode(pAlloc, fp, &arr[i], svE, depth + 2, false);
             }
 
-            fprintf(fp, "%*s" "]", depth, "");
+            print::toFILE(pAlloc, fp, "{:{}}]", depth, "");
         }
         break;
 
         case TAG::DOUBLE:
-        {
-            fprintf(fp, "%lf", getFloat(pNode));
-        }
+        print::toFILE(pAlloc, fp, "{}", getFloat(pNode));
         break;
 
         case TAG::LONG:
-        {
-            fprintf(fp, "%lld", getInteger(pNode));
-        }
+        print::toFILE(pAlloc, fp, "{}", getInteger(pNode));
         break;
 
         case TAG::NULL_:
-        {
-            fprintf(fp, "null");
-        }
+        print::toFILE<16>(fp, "null");
         break;
 
         case TAG::STRING:
-        {
-            StringView sv = getString(pNode);
-            fprintf(fp, "\"%.*s\"", int(sv.size()), sv.data());
-        }
+        print::toFILE(pAlloc, fp, "\"{}\"", getString(pNode));
         break;
 
         case TAG::BOOL:
-        {
-            bool b = getBool(pNode);
-            fprintf(fp, "%s", b ? "true" : "false");
-        }
+        print::toFILE<16>(fp, "{}", getBool(pNode));
         break;
     }
 }

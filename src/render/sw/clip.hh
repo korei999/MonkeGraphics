@@ -1,7 +1,5 @@
 #pragma once
 
-#include "adt/math.hh"
-
 namespace render::sw::clip
 {
 

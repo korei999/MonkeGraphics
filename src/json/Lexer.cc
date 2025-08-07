@@ -67,15 +67,9 @@ Lexer::next()
 void
 Lexer::skipWhitespace()
 {
-    auto oneOf = [](char ch) -> bool {
-        constexpr char nts[] = " \n\r\t\v\f";
-        for (auto& c : nts)
-            if (ch == c) return true;
+    constexpr StringView svChars = " \n\r\t\v\f";
 
-        return false;
-    };
-
-    while (m_pos < m_svJson.size() && oneOf(m_svJson[m_pos]))
+    while (m_pos < m_svJson.size() && svChars.contains(m_svJson[m_pos]))
     {
         if (m_svJson[m_pos] == '\n')
         {

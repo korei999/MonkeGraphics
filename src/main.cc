@@ -1,10 +1,6 @@
 #include "app.hh"
 #include "frame.hh"
 
-#include "adt/String.hh"
-#include "adt/FreeList.hh"
-#include "adt/defer.hh"
-
 using namespace adt;
 
 static int startup(int argc, char** argv);
@@ -75,13 +71,13 @@ startup(int argc, char* argv[])
 
     try
     {
-        FreeList allocator {SIZE_1K};
-        defer( allocator.freeAll() );
+        Arena arena {SIZE_1K};
+        defer( arena.freeAll() );
 
         const char* ntsName = "MonkeGraphics";
 
-        app::g_pWindow = app::allocWindow(&allocator, ntsName);
-        app::g_pRenderer = app::allocRenderer(&allocator);
+        app::g_pWindow = app::allocWindow(&arena, ntsName);
+        app::g_pRenderer = app::allocRenderer(&arena);
 
         app::g_pWindow->start(1280, 720);
         defer( app::g_pWindow->destroy() );

@@ -6,10 +6,6 @@
 #include "ui.hh"
 #include "asset.hh"
 
-#include "adt/Vec.hh"
-#include "adt/logs.hh"
-#include "adt/defer.hh"
-
 using namespace adt;
 
 namespace frame
@@ -187,6 +183,7 @@ start()
     win.m_bRunning = true;
 
     game::loadStuff();
+
     win.bindContext();
     renderer.init();
     ui::init();
@@ -209,7 +206,7 @@ start()
         app::g_threadPool.destroy(StdAllocator::inst());
         renderer.destroy();
 
-        isize nObj = asset::g_poolObjects.size();
+        [[maybe_unused]] isize nObj = asset::g_poolObjects.size();
         for (auto& asset : asset::g_poolObjects)
         {
             asset.destroy();
