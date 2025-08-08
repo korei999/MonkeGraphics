@@ -37,9 +37,14 @@ option(OPT_WAYLAND_GL "" ON)
 option(OPT_FAST_MATH "" OFF)
 option(OPT_PRECOMPILE_ADT "" ON)
 option(OPT_ANALYZE "" OFF)
+option(OPT_FTIME_TRACE "" OFF)
 
 if (OPT_ANALYZE)
     add_compile_options(-fanalyzer)
+endif()
+
+if (OPT_FTIME_TRACE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftime-trace")
 endif()
 
 if (OPT_MIMALLOC)
