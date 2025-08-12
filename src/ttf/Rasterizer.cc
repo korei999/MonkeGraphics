@@ -307,7 +307,14 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
 
         auto clRasterize = [this, pFont, pGlyph, xOff, yOff]
         {
-            rasterizeGlyph(*pFont, *pGlyph, xOff, yOff);
+            try
+            {
+                rasterizeGlyph(*pFont, *pGlyph, xOff, yOff);
+            }
+            catch (const AllocException& ex)
+            {
+                ex.printErrorMsg(stderr);
+            }
         };
 
         auto* pCl = arena.alloc<decltype(clRasterize)>(clRasterize);
@@ -316,15 +323,7 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
         app::g_threadPool.addRetry(+[](void* pArg) -> THREAD_STATUS
             {
                 auto* pTask = static_cast<decltype(clRasterize)*>(pArg);
-
-                try
-                {
-                    (*pTask)();
-                }
-                catch (const AllocException& ex)
-                {
-                    ex.printErrorMsg(stderr);
-                }
+                pTask->operator()();
 
                 return THREAD_STATUS(0);
             },

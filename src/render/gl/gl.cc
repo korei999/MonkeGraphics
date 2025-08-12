@@ -661,8 +661,9 @@ Renderer::draw(Arena* pArena)
         if (entities.size() > 0)
         {
             game::Entity::Bind bind0 = entities[0];
+            isize entityI = 0;
 
-            for (int entityI = 0; entityI < entities.size(); ++entityI)
+            do
             {
                 if ((&bind0.bNoDraw)[entityI]) continue;
 
@@ -685,6 +686,7 @@ Renderer::draw(Arena* pArena)
                     break;
                 }
             }
+            while (++entityI < entities.size());
         }
     }
 

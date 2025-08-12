@@ -740,7 +740,7 @@ Renderer::drawEntities(Arena* pArena)
     static Vec<f64> s_vFrameTimes(StdAllocatorInst(), 1000);
     static f64 s_lastAvgFrameTimeUpdate {};
 
-    const f64 t0 = utils::timeNowMS();
+    const f64 t0 = time::nowMS();
 
     auto& win = app::windowInst();
 
@@ -779,7 +779,7 @@ Renderer::drawEntities(Arena* pArena)
         }
     }
 
-    const f64 t1 = utils::timeNowMS();
+    const f64 t1 = time::nowMS();
     s_vFrameTimes.push(t1 - t0);
 
     if (t1 > s_lastAvgFrameTimeUpdate + 1000.0)

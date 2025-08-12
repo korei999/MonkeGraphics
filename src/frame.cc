@@ -26,7 +26,7 @@ refresh(void* pArg)
 
     static f64 s_accumulator = 0.0;
 
-    f64 newTime = utils::timeNowS();
+    f64 newTime = time::nowS();
     g_frameTime = newTime - g_time;
     g_time = newTime;
     /*if (frameTime > 0.25)*/
@@ -61,7 +61,7 @@ eventLoop()
     win.enableRelativeMode();
     win.update(); /* get events */
 
-    g_time = utils::timeNowS();
+    g_time = time::nowS();
 
     while (win.m_bRunning)
     {
@@ -88,7 +88,7 @@ renderLoop(Arena* pArena)
 
     while (win.m_bRunning)
     {
-        const f64 timer0 = utils::timeNowMS();
+        const f64 timer0 = time::nowMS();
 
         {
             f64 newTime = timer0 / 1000.0;
@@ -123,7 +123,7 @@ renderLoop(Arena* pArena)
             win.swapBuffers();
         }
 
-        f64 timer1 = utils::timeNowMS();
+        f64 timer1 = time::nowMS();
 
         if (g_maxFps > 0.0)
         {
@@ -131,7 +131,7 @@ renderLoop(Arena* pArena)
             if (sleepFor > 0.0) utils::sleepMS(sleepFor);
         }
 
-        timer1 = utils::timeNowMS();
+        timer1 = time::nowMS();
 
         vFrameTimes.push(timer1 - timer0);
 
@@ -167,7 +167,7 @@ mainLoop()
     win.toggleVSync();
     // win.toggleFullscreen();
 
-    g_time = utils::timeNowS();
+    g_time = time::nowS();
 
     game::updateState(&frameArena);
 
