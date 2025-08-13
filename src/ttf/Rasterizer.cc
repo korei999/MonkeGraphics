@@ -295,9 +295,6 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
     i16 yOff = 0;
     const i16 xStep = iScale * X_STEP;
 
-    BufferAllocator arena = app::g_threadPool.scratchBuffer().nextMem<u8>();
-    defer( app::g_threadPool.scratchBuffer().reset() );
-
     for (u32 ch = '!'; ch <= '~'; ++ch)
     {
         m_mapCodeToUV.insert(pAlloc, ch, {xOff, yOff});
@@ -317,18 +314,8 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
             }
         };
 
-        auto* pCl = arena.alloc<decltype(clRasterize)>(clRasterize);
-
         /* no data dependency between altas regions */
-        app::g_threadPool.addRetry(+[](void* pArg) -> THREAD_STATUS
-            {
-                auto* pTask = static_cast<decltype(clRasterize)*>(pArg);
-                pTask->operator()();
-
-                return THREAD_STATUS(0);
-            },
-            pCl
-        );
+        app::g_threadPool.addRetry(clRasterize);
 
         if ((xOff += xStep) >= (nSquares*iScale) - xStep)
         {
@@ -338,7 +325,7 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
         }
     }
 
-    app::g_threadPool.wait();
+    app::g_threadPool.wait(true);
 }
 
 void

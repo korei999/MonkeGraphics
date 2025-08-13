@@ -645,16 +645,10 @@ Renderer::draw(Arena* pArena)
         {
             for (auto& model : Model::g_poolModels)
             {
-                app::g_threadPool.addRetry(+[](void* p) -> THREAD_STATUS
-                    {
-                        auto* pModel = static_cast<Model*>(p);
-
-                        pModel->updateAnimation(pModel->m_time + frame::g_frameTime);
-                        pModel->m_future.signal();
-
-                        return THREAD_STATUS(0);
-                    }, &model
-                );
+                app::g_threadPool.addRetry([&model] {
+                    model.updateAnimation(model.m_time + frame::g_frameTime);
+                    model.m_future.signal();
+                });
             }
         }
 
