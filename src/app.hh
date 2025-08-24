@@ -24,6 +24,6 @@ inline render::IRenderer& rendererInst() { return *g_pRenderer; }
 
 static constexpr adt::isize SCRATCH_SIZE = adt::SIZE_1M;
 
-extern adt::ThreadPoolWithMemory<128> g_threadPool;
+extern adt::ThreadPoolWithMemory g_threadPool;
 
 } /* namespace app */;

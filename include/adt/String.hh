@@ -8,7 +8,6 @@
 #include "Span.hh" /* IWYU pragma: keep */
 #include "print.hh" /* IWYU pragma: keep */
 #include "wcwidth.hh"
-#include "hash.hh"
 
 #include <cwchar>
 
@@ -602,7 +601,10 @@ StringView::subString(isize start, isize size) const noexcept
         "out of range: ends at: {}, requested: {}",
         m_size, start + size
     );
-    return StringView((char*)&operator[](start), size);
+
+    ADT_ASSERT((start >= 0 && start < m_size) || size == 0, "start: {}, size: {}", start, size);
+
+    return StringView((char*)m_pData + start, size);
 }
 
 template<typename T>
@@ -805,13 +807,6 @@ StringCat(IAllocator* p, const StringView& l, const StringView& r)
     sNew.m_pData = ret;
     sNew.m_size = len;
     return sNew;
-}
-
-template<>
-inline usize
-hash::func(const StringView& str)
-{
-    return hash::func(str.m_pData, str.m_size);
 }
 
 namespace utils
