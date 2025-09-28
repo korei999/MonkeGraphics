@@ -1,7 +1,7 @@
 #pragma once
 
-#include "atomic.hh"
-#include "Opt.hh"
+#include "adt/atomic.hh"
+#include "adt/Opt.hh"
 
 namespace adt
 {

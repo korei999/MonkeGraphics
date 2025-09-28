@@ -1,6 +1,6 @@
 #pragma once
 
-#include "print.inc"
+#include "print-inl.hh"
 
 namespace adt
 {
@@ -10,59 +10,24 @@ struct Pair
 {
     ADT_NO_UNIQUE_ADDRESS A first {};
     ADT_NO_UNIQUE_ADDRESS B second {};
+
+    /* */
+
+    bool operator==(const Pair<A, B>&) const = default;
 };
 
 template<typename A, typename B>
-constexpr bool
-operator==(const Pair<A, B>& l, const Pair<A, B>& r)
-{
-    return l.first == r.first && l.second == r.second;
-}
-
-template<typename A, typename B>
-constexpr bool
-operator!=(const Pair<A, B>& l, const Pair<A, B>& r)
-{
-    return !(l == r);
-}
-
-template<typename A, typename B>
-constexpr bool
-operator<(const Pair<A, B>& l, const Pair<A, B>& r)
-{
-    return l.first < r.first && l.second < r.second;
-}
-
-template<typename A, typename B>
-constexpr bool
-operator>(const Pair<A, B>& l, const Pair<A, B>& r)
-{
-    return l.first > r.first && l.second > r.second;
-}
-
-template<typename A, typename B>
-constexpr bool
-operator<=(const Pair<A, B>& l, const Pair<A, B>& r)
-{
-    return l.first <= r.first && l.second <= r.second;
-}
-
-template<typename A, typename B>
-constexpr bool
-operator>=(const Pair<A, B>& l, const Pair<A, B>& r)
-{
-    return l.first >= r.first && l.second >= r.second;
-}
+Pair(A&&, B&&) -> Pair<A, B>;
 
 namespace print
 {
 
 template<typename A, typename B>
-inline u32
-format(Context ctx, FormatArgs fmtArgs, const Pair<A, B>& x)
+inline isize
+format(Context* pCtx, FormatArgs fmtArgs, const Pair<A, B>& x)
 {
-    fmtArgs.eFmtFlags |= FormatArgs::FLAGS::SQUARE_BRACKETS;
-    return formatVariadic(ctx, fmtArgs, x.first, x.second);
+    fmtArgs.eFmtFlags |= FormatArgs::FLAGS::PARENTHESES;
+    return formatVariadic(pCtx, fmtArgs, x.first, x.second);
 }
 
 } /* namespace print */

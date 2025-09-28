@@ -71,32 +71,32 @@ Image::swapRedBlue()
             const isize size = m_width * m_height;
             isize i = 0;
 
-#ifdef ADT_AVX2
+#if defined ADT_AVX2
             const isize divLen = size / 8;
             auto* pData = reinterpret_cast<__m256i*>(m_uData.pRGBA);
             for (; i < divLen; ++i, ++pData)
             {
                 i32x8 x = i32x8Load(pData);
 
-                i32x8 red =   (x & 0x000000ff) << 8 * 2;
-                i32x8 green = (x & 0x0000ff00);
-                i32x8 blue =  (x & 0x00ff0000) >> 8 * 2;
-                i32x8 alpha = (x & 0xff000000);
+                i32x8 red =   (x & i32x8(0x000000ff)) << 8 * 2;
+                i32x8 green = (x & i32x8(0x0000ff00));
+                i32x8 blue =  (x & i32x8(0x00ff0000)) >> 8 * 2;
+                i32x8 alpha = (x & i32x8(0xff000000));
 
                 i32x8Store(pData, red | green | blue | alpha);
             }
             i = divLen * 8;
-#else
+#elif defined ADT_SSE4_2
             const isize divLen = size / 4;
             auto* pData = reinterpret_cast<__m128i*>(m_uData.pRGBA);
             for (; i < divLen; ++i, ++pData)
             {
                 i32x4 x = i32x4Load(pData);
 
-                i32x4 red =   (x & 0x000000ff) << 8 * 2;
-                i32x4 green = (x & 0x0000ff00);
-                i32x4 blue =  (x & 0x00ff0000) >> 8 * 2;
-                i32x4 alpha = (x & 0xff000000);
+                i32x4 red =   (x & i32x4(0x000000ff)) << 8 * 2;
+                i32x4 green = (x & i32x4(0x0000ff00));
+                i32x4 blue =  (x & i32x4(0x00ff0000)) >> 8 * 2;
+                i32x4 alpha = (x & i32x4(0xff000000));
 
                 i32x4Store(pData, red | green | blue | alpha);
             }
@@ -136,9 +136,9 @@ Image::flipVertically(adt::IAllocator* pAlloc)
 
             for (int y = 0; y < halfHeight; ++y)
             {
-                utils::memCopy(pTemp, &sp(0, m_height - y - 1), m_width);
-                utils::memCopy(&sp(0, m_height - y - 1), &sp(0, y), m_width);
-                utils::memCopy(&sp(0, y), pTemp, m_width);
+                utils::memCopy(pTemp, &sp[0, m_height - y - 1], m_width);
+                utils::memCopy(&sp[0, m_height - y - 1], &sp[0, y], m_width);
+                utils::memCopy(&sp[0, y], pTemp, m_width);
             }
         }
         break;
@@ -153,9 +153,9 @@ Image::flipVertically(adt::IAllocator* pAlloc)
 
             for (int y = 0; y < halfHeight; ++y)
             {
-                utils::memCopy(pTemp, &sp(0, m_height - y - 1), m_width);
-                utils::memCopy(&sp(0, m_height - y - 1), &sp(0, y), m_width);
-                utils::memCopy(&sp(0, y), pTemp, m_width);
+                utils::memCopy(pTemp, &sp[0, m_height - y - 1], m_width);
+                utils::memCopy(&sp[0, m_height - y - 1], &sp[0, y], m_width);
+                utils::memCopy(&sp[0, y], pTemp, m_width);
             }
         }
         break;
@@ -170,9 +170,9 @@ Image::flipVertically(adt::IAllocator* pAlloc)
 
             for (int y = 0; y < halfHeight; ++y)
             {
-                utils::memCopy(pTemp, &sp(0, m_height - y - 1), m_width);
-                utils::memCopy(&sp(0, m_height - y - 1), &sp(0, y), m_width);
-                utils::memCopy(&sp(0, y), pTemp, m_width);
+                utils::memCopy(pTemp, &sp[0, m_height - y - 1], m_width);
+                utils::memCopy(&sp[0, m_height - y - 1], &sp[0, y], m_width);
+                utils::memCopy(&sp[0, y], pTemp, m_width);
             }
         }
         break;

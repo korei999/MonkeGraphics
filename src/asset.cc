@@ -13,7 +13,7 @@ static MapManaged<StringView, Pool<Object, 128>::Handle> s_mapStringsToObjects(g
 void
 Object::destroy()
 {
-    LOG_NOTIFY("hnd: {}, mappedWith: '{}'\n", g_poolObjects.idx(this), m_sMappedWith);
+    LogDebug("hnd: {}, mappedWith: '{}'\n", g_poolObjects.idx(this), m_sMappedWith);
 
     s_mapStringsToObjects.tryRemove(m_sMappedWith);
     m_arena.freeAll();
@@ -90,7 +90,7 @@ loadTTF([[maybe_unused]] const StringView svPath, String* pSFile)
     ttf::Font font {&nObj.m_arena, nObj.m_uData.font.sFontFile};
     if (!font)
     {
-        LOG_BAD("failed to load font '{}'\n", svPath);
+        LogError("failed to load font '{}'\n", svPath);
         nObj.m_arena.freeAll();
         return {};
     }
@@ -135,13 +135,13 @@ loadFile(const StringView svPath)
         auto& obj = g_poolObjects[retHnd];
         obj.m_sMappedWith = String(&obj.m_arena, svPath);
         [[maybe_unused]] auto mapRes = s_mapStringsToObjects.insert(obj.m_sMappedWith, retHnd);
-        LOG_GOOD("hnd: {}, type: '{}', mappedWith: '{}', hash: {}, len: {}\n",
+        LogDebug("hnd: {}, type: '{}', mappedWith: '{}', hash: {}, len: {}\n",
             retHnd, obj.m_eType, obj.m_sMappedWith, mapRes.hash, obj.m_sMappedWith.size()
         );
     }
     else
     {
-        LOG_BAD("failed to load: '{}'\n", svPath);
+        LogError("failed to load: '{}'\n", svPath);
     }
 
     return retHnd;
@@ -155,7 +155,7 @@ load(const StringView svPath)
     auto found = s_mapStringsToObjects.search(svPath);
     if (found)
     {
-        LOG_WARN("'{}' is already loaded\n", svPath);
+        LogWarn("'{}' is already loaded\n", svPath);
         return true;
     }
 
@@ -187,7 +187,7 @@ load(const StringView svPath)
         break;
 
         default:
-        LOG_WARN("unhandled filetype\n");
+        LogWarn("unhandled filetype\n");
         return false;
     }
 
@@ -204,7 +204,7 @@ search(const StringView svKey, Object::TYPE eType)
         auto r = &g_poolObjects[f.data().val];
         if (r->m_eType != eType)
         {
-            LOG_WARN("sKey: '{}', types don't match, got {}, asked for {}\n",
+            LogWarn("sKey: '{}', types don't match, got {}, asked for {}\n",
                 svKey, (int)r->m_eType, (int)eType
             );
             return nullptr;

@@ -37,7 +37,7 @@ ClientGL::setSwapInterval(int interval)
 {
     m_swapInterval = interval;
     EGLD( eglSwapInterval(m_eglDisplay, interval) );
-    LOG_NOTIFY("swapInterval: {}\n", m_swapInterval);
+    LogInfo("swapInterval: {}\n", m_swapInterval);
 }
 
 void
@@ -80,18 +80,27 @@ ClientGL::initGL()
 {
     EGLD( m_eglDisplay = eglGetDisplay(m_pDisplay) );
     if (m_eglDisplay == EGL_NO_DISPLAY)
-        LOG_FATAL("failed to create EGL display\n");
+    {
+        LogError("failed to create EGL display\n");
+        exit(0);
+    }
 
     EGLint major, minor;
     if (!eglInitialize(m_eglDisplay, &major, &minor))
-        LOG_FATAL("failed to initialize EGL\n");
+    {
+        LogError("failed to initialize EGL\n");
+        exit(0);
+    }
     EGLD();
 
     /* Default is GLES */
     if (!eglBindAPI(EGL_OPENGL_API))
-        LOG_FATAL("eglBindAPI(EGL_OPENGL_API) failed\n");
+    {
+        LogError("eglBindAPI(EGL_OPENGL_API) failed\n");
+        exit(0);
+    }
 
-    LOG_OK("egl: major: {}, minor: {}\n", major, minor);
+    LogDebug("egl: major: {}, minor: {}\n", major, minor);
 
     constexpr isize MAX_COUNT = 100;
 
@@ -142,7 +151,7 @@ ClientGL::initGL()
     m_eglWindow = wl_egl_window_create(m_pSurface, m_width, m_height);
     EGLD( m_eglSurface = eglCreateWindowSurface(m_eglDisplay, eglConfig, (EGLNativeWindowType)(m_eglWindow), nullptr) );
 
-    LOG_GOOD("wayland egl client started...\n");
+    LogDebug("wayland egl client started...\n");
 }
 
 } /* namespace platform::wayland */

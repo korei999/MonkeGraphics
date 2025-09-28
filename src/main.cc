@@ -71,22 +71,27 @@ startup(int argc, char* argv[])
 
     try
     {
-        Arena arena {SIZE_1K};
-        defer( arena.freeAll() );
+        ThreadPool threadPool {SIZE_1K, SIZE_1M * 128};
+        IThreadPool::setGlobal(&threadPool);
+        defer( threadPool.destroy() );
+
+        Logger logger {stderr, ILogger::LEVEL::DEBUG, SIZE_1K*4, true};
+        ILogger::setGlobal(&logger);
+        defer( logger.destroy() );
 
         const char* ntsName = "MonkeGraphics";
 
-        app::g_pWindow = app::allocWindow(&arena, ntsName);
-        app::g_pRenderer = app::allocRenderer(&arena);
+        app::g_pWindow = app::allocWindow(StdAllocator::inst(), ntsName);
+        app::g_pRenderer = app::allocRenderer(StdAllocator::inst());
 
         app::g_pWindow->start(1280, 720);
         defer( app::g_pWindow->destroy() );
 
         frame::start();
     }
-    catch (const IException& ex)
+    catch (const std::exception& ex)
     {
-        ex.printErrorMsg(stdout);
+        LogError{"{}\n", ex.what()};
     }
 
     return 0;

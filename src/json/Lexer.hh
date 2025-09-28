@@ -1,5 +1,8 @@
 #pragma once
 
+#include "adt/print.hh"
+#include "adt/enum.hh"
+
 namespace json
 {
 
@@ -63,8 +66,9 @@ private:
 namespace adt::print
 {
 
-inline u32
-format(Context ctx, FormatArgs fmtArgs, const json::TOKEN_TYPE& x)
+template<>
+inline isize
+format(Context* pCtx, FormatArgs fmtArgs, const json::TOKEN_TYPE& x)
 {
     char aBuff[256] {};
     isize n = 0;
@@ -94,7 +98,7 @@ format(Context ctx, FormatArgs fmtArgs, const json::TOKEN_TYPE& x)
     if (bool(x & json::TOKEN_TYPE::FLOAT))
         n += print::toBuffer(aBuff + n, sizeof(aBuff) - n - 1, n > 0 ? " | FLOAT" : "FLOAT");
 
-    return format(ctx, fmtArgs, StringView(aBuff, n));
+    return format(pCtx, fmtArgs, StringView(aBuff, n));
 }
 
 } /* namespace adt::print */

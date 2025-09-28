@@ -30,7 +30,7 @@ createDefaultTexture()
             p.b = 0;
             p.a = 255;
 
-            sp(x, y) = p;
+            sp[x, y] = p;
         }
     }
 

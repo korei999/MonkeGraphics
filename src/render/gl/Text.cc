@@ -8,13 +8,12 @@ namespace render::gl
 Vec<CharQuad2Pos2UV>
 Text::makeStringMesh(
     const ttf::Rasterizer& rast,
-    ScratchBuffer* pScratch,
+    IArena* pArena,
     const StringView vs,
     const bool bVerticalFlip
 )
 {
-    Span<CharQuad2Pos2UV> spMem = pScratch->nextMem<CharQuad2Pos2UV>();
-    if (spMem.size() < m_maxSize) return {};
+    Span<CharQuad2Pos2UV> spMem {pArena->zallocV<CharQuad2Pos2UV>(m_maxSize), m_maxSize};
 
     /* NOTE: problems with constructor */
     BufferAllocator al((u8*)spMem.data(), spMem.size() * sizeof(spMem[0]));
@@ -110,13 +109,13 @@ Text::makeStringMesh(
         }
 
         vQuads[idx] = {
-            0.0f + xOff, 1.0f + yOff, x0, y0,
-            1.0f + xOff, 0.0f + yOff, x3, y3,
-            0.0f + xOff, 0.0f + yOff, x2, y2,
+            Pair<math::V2, math::V2>{{0.0f + xOff, 1.0f + yOff}, {x0, y0}},
+            Pair<math::V2, math::V2>{{1.0f + xOff, 0.0f + yOff}, {x3, y3}},
+            Pair<math::V2, math::V2>{{0.0f + xOff, 0.0f + yOff}, {x2, y2}},
 
-            0.0f + xOff, 1.0f + yOff, x0, y0,
-            1.0f + xOff, 1.0f + yOff, x1, y1,
-            1.0f + xOff, 0.0f + yOff, x3, y3,
+            Pair<math::V2, math::V2>{{0.0f + xOff, 1.0f + yOff}, {x0, y0}},
+            Pair<math::V2, math::V2>{{1.0f + xOff, 1.0f + yOff}, {x1, y1}},
+            Pair<math::V2, math::V2>{{1.0f + xOff, 0.0f + yOff}, {x3, y3}},
         };
 
         xOff += 1.0f;
@@ -145,11 +144,13 @@ Text::Text(const int maxSize)
 }
 
 void
-Text::update(const ttf::Rasterizer& rast, ScratchBuffer* pScratch, const StringView sv, const bool bVerticalFlip)
+Text::update(const ttf::Rasterizer& rast, const StringView sv, const bool bVerticalFlip)
 {
-    defer( pScratch->reset() );
+    Arena* pArena = IThreadPool::inst()->arena();
+    ArenaScope ArenaScope {pArena};
+
     /* construct from gtl_scratch */
-    Vec<CharQuad2Pos2UV> vQuads = makeStringMesh(rast, pScratch, sv, bVerticalFlip);
+    Vec<CharQuad2Pos2UV> vQuads = makeStringMesh(rast, pArena, sv, bVerticalFlip);
     m_vboSize = vQuads.size() * 6; /* 6 vertices for 1 quad */
 
     if (m_vboSize > 0)

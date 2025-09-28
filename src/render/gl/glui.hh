@@ -2,13 +2,13 @@
 
 namespace adt
 {
-    struct Arena;
+    struct ArenaList;
 } /* namespace adt */
 
 namespace render::gl::ui
 {
 
 void init();
-void draw(adt::Arena* pArena);
+void draw(adt::ArenaList* pArena);
 
 } /* namespace render::gl::ui */

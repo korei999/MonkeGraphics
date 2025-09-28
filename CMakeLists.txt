@@ -14,7 +14,7 @@ set(CMAKE_C_EXTENSIONS OFF)
 message(STATUS "CMAKE_C_COMPILER_ID: '${CMAKE_C_COMPILER_ID}'")
 message(STATUS "CMAKE_CXX_COMPILER_ID: '${CMAKE_CXX_COMPILER_ID}'")
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 message(STATUS "CMAKE_CXX_STANDARD: '${CMAKE_CXX_STANDARD}'")
 
@@ -164,8 +164,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     # add_compile_options(/openmp)
 else()
     add_compile_options(-Wall -Wextra -Wshadow)
-    add_compile_options(-Wno-missing-braces)
-    add_compile_options(-fms-extensions -fvisibility=hidden)
+    add_compile_options(-fms-extensions -Wno-missing-braces -fvisibility=hidden)
 
     # add_compile_options(-fopenmp)
     # add_link_options(-fopenmp)
@@ -179,7 +178,6 @@ if (CMAKE_BUILD_TYPE MATCHES "Debug")
         add_compile_options(/wd4267 /wd4101 /wd4200 /wd4244)
     else()
         add_compile_options(
-            -Wmissing-field-initializers
             -Wno-unused-parameter
             -Wno-unused-variable
             -Wno-unused-function
@@ -189,7 +187,7 @@ if (CMAKE_BUILD_TYPE MATCHES "Debug")
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-class-memaccess")
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-class-memaccess")
 endif()
 
 message(STATUS "CMAKE_SYSTEM_NAME: '${CMAKE_SYSTEM_NAME}'")

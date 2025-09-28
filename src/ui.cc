@@ -100,7 +100,7 @@ Entry::dispatchOnUpdateActions()
 }
 
 isize
-Entry::pushEntry(Arena* pArena, const Entry& entry)
+Entry::pushEntry(ArenaList* pArena, const Entry& entry)
 {
     switch (m_eType)
     {
@@ -146,7 +146,7 @@ init()
     /* FIXME: grabWidth and grabHeight restrict the clickable area. */
     {
         Widget widget {
-            .arena = Arena {SIZE_1K * 10},
+            .arena = ArenaList {SIZE_1K * 10},
             .sfTitle = "Entities",
             .x = WIDTH - 30.0f,
             .y = 1.0f,

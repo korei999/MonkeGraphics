@@ -237,7 +237,7 @@ Client::decorationConfigure(
     [[maybe_unused]] uint32_t mode
 )
 {
-    LOG_WARN("decorationConfigure()\n");
+    LogWarn("decorationConfigure()\n");
 }
 
 } /* namespace platform::wayland */

@@ -278,8 +278,9 @@ struct Skin
 namespace adt::print
 {
 
+template<>
 inline isize
-format(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Channel::Target::PATH_TYPE e)
+format(Context* pCtx, FormatArgs fmtArgs, const gltf::Animation::Channel::Target::PATH_TYPE& e)
 {
     constexpr adt::StringView aMap[] {
         "TRANSLATION", "ROTATION", "SCALE", "WEIGHTS",
@@ -287,11 +288,12 @@ format(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Channel::Target::
 
     ADT_ASSERT(static_cast<int>(e) < adt::utils::size(aMap), " ");
 
-    return format(ctx, fmtArgs, aMap[static_cast<int>(e)]);
+    return format(pCtx, fmtArgs, aMap[static_cast<int>(e)]);
 }
 
+template<>
 inline isize
-format(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Sampler::INTERPOLATION_TYPE e)
+format(Context* pCtx, FormatArgs fmtArgs, const gltf::Animation::Sampler::INTERPOLATION_TYPE& e)
 {
     constexpr adt::StringView aMap[] {
         "LINEAR", "STEP", "CUBICSPLINE",
@@ -299,11 +301,12 @@ format(Context ctx, FormatArgs fmtArgs, const gltf::Animation::Sampler::INTERPOL
 
     ADT_ASSERT(static_cast<int>(e) < adt::utils::size(aMap), " ");
 
-    return format(ctx, fmtArgs, aMap[static_cast<int>(e)]);
+    return format(pCtx, fmtArgs, aMap[static_cast<int>(e)]);
 }
 
+template<>
 inline isize
-format(Context ctx, FormatArgs fmtArgs, const gltf::Node::TRANSFORMATION_TYPE e)
+format(Context* pCtx, FormatArgs fmtArgs, const gltf::Node::TRANSFORMATION_TYPE& e)
 {
     constexpr adt::StringView aMap[] {
         "NONE", "MATRIX", "ANIMATION",
@@ -311,11 +314,12 @@ format(Context ctx, FormatArgs fmtArgs, const gltf::Node::TRANSFORMATION_TYPE e)
 
     ADT_ASSERT(static_cast<int>(e) < adt::utils::size(aMap), " ");
 
-    return format(ctx, fmtArgs, aMap[static_cast<int>(e)]);
+    return format(pCtx, fmtArgs, aMap[static_cast<int>(e)]);
 }
 
+template<>
 inline isize
-format(Context ctx, FormatArgs fmtArgs, const gltf::COMPONENT_TYPE x)
+format(Context* pCtx, FormatArgs fmtArgs, const gltf::COMPONENT_TYPE& x)
 {
     const char* nts;
     switch (x)
@@ -330,12 +334,12 @@ format(Context ctx, FormatArgs fmtArgs, const gltf::COMPONENT_TYPE x)
         case gltf::COMPONENT_TYPE::FLOAT: nts = "FLOAT"; break;
     }
 
-    return format(ctx, fmtArgs, nts);
+    return format(pCtx, fmtArgs, nts);
 }
 
-
+template<>
 inline isize
-format(Context ctx, FormatArgs fmtArgs, const gltf::TARGET e)
+format(Context* pCtx, FormatArgs fmtArgs, const gltf::TARGET& e)
 {
     const char* nts;
     switch (e)
@@ -347,11 +351,12 @@ format(Context ctx, FormatArgs fmtArgs, const gltf::TARGET e)
         case gltf::TARGET::ELEMENT_ARRAY_BUFFER: nts = "ELEMENT_ARRAY_BUFFER"; break;
     }
 
-    return format(ctx, fmtArgs, nts);
+    return format(pCtx, fmtArgs, nts);
 }
 
+template<>
 inline isize
-format(Context ctx, FormatArgs fmtArgs, const gltf::Accessor::TYPE e)
+format(Context* pCtx, FormatArgs fmtArgs, const gltf::Accessor::TYPE& e)
 {
     constexpr adt::StringView aMap[] {
         "SCALAR", "VEC2", "VEC3", "VEC4", "MAT2", "MAT3", "MAT4"
@@ -359,11 +364,12 @@ format(Context ctx, FormatArgs fmtArgs, const gltf::Accessor::TYPE e)
 
     ADT_ASSERT(static_cast<int>(e) < adt::utils::size(aMap), " ");
 
-    return format(ctx, fmtArgs, aMap[static_cast<int>(e)]);
+    return format(pCtx, fmtArgs, aMap[static_cast<int>(e)]);
 }
 
+template<>
 inline isize
-format(Context ctx, FormatArgs fmtArgs, const gltf::Primitive::TYPE e)
+format(Context* pCtx, FormatArgs fmtArgs, const gltf::Primitive::TYPE& e)
 {
     constexpr adt::StringView aMap[] {
         "POINTS", "LINES", "LINE_LOOP", "LINE_STRIP", "TRIANGLES", "TRIANGLE_STRIP", "TRIANGLE_FAN",
@@ -371,7 +377,7 @@ format(Context ctx, FormatArgs fmtArgs, const gltf::Primitive::TYPE e)
 
     ADT_ASSERT(static_cast<int>(e) < adt::utils::size(aMap), " ");
 
-    return format(ctx, fmtArgs, aMap[static_cast<int>(e)]);
+    return format(pCtx, fmtArgs, aMap[static_cast<int>(e)]);
 }
 
 } /* namespace adt::print */

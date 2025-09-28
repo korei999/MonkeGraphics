@@ -30,8 +30,6 @@ RENDERER_TYPE g_eRendererType {};
 IWindow* g_pWindow {};
 render::IRenderer* g_pRenderer {};
 
-adt::ThreadPoolWithMemory g_threadPool {adt::StdAllocator::inst(), 1 << 11, SCRATCH_SIZE};
-
 IWindow*
 allocWindow(IAllocator* pAlloc, const char* ntsName)
 {

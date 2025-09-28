@@ -78,7 +78,7 @@ struct Entry
 
     [[nodiscard]] int height() const;
     void dispatchOnUpdateActions();
-    adt::isize pushEntry(adt::Arena* pArena, const Entry& entry);
+    adt::isize pushEntry(adt::ArenaList* pArena, const Entry& entry);
 
     /* */
 
@@ -100,7 +100,7 @@ struct Widget
 
     /* */
 
-    adt::Arena arena {};
+    adt::ArenaList arena {};
 
     adt::StringFixed<32> sfTitle {};
 
@@ -144,11 +144,12 @@ extern WidgetPool g_poolWidgets;
 namespace adt::print
 {
 
+template<>
 inline isize
-format(Context ctx, FormatArgs fmtArgs, const ::ui::Offset x)
+format(Context* pCtx, FormatArgs fmtArgs, const ::ui::Offset& x)
 {
     fmtArgs.eFmtFlags |= FormatArgs::FLAGS::SQUARE_BRACKETS;
-    return formatVariadic(ctx, fmtArgs, x.x, x.y);
+    return formatVariadic(pCtx, fmtArgs, x.x, x.y);
 }
 
 } /* namespace adt::print */

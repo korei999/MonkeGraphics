@@ -1,7 +1,6 @@
 #include "Rasterizer.hh"
 
 #include "Font.hh"
-#include "app.hh"
 
 using namespace adt;
 
@@ -173,12 +172,12 @@ makeItCurvy(IAllocator* pAlloc, const Vec<PointOnCurve>& aNonCurvyPoints, CurveE
 void
 Rasterizer::rasterizeGlyph(const Font& font, const Glyph& glyph, int xOff, int yOff)
 {
-    BufferAllocator allo {app::g_threadPool.scratchBuffer().nextMem<PointOnCurve>()};
-    defer( app::g_threadPool.scratchBuffer().reset() );
+    Arena* pArena = IThreadPool::inst()->arena();
+    ArenaScope ArenaScope {pArena};
 
     CurveEndIdx endIdxs {};
     Vec<PointOnCurve> vCurvyPoints = makeItCurvy(
-        &allo, pointsWithMissingOnCurve(&allo, glyph), &endIdxs, 6
+        pArena, pointsWithMissingOnCurve(pArena, glyph), &endIdxs, 6
     );
 
     const f32 xMax = font.m_head.xMax;
@@ -248,7 +247,7 @@ Rasterizer::rasterizeGlyph(const Font& font, const Glyph& glyph, int xOff, int y
                     const f32 endCovered = end - endI;
 
                     for (int col = startI + 1; col < endI; ++col)
-                        spAtlas(xOff + col, yOff + row) += alphaWeight;
+                        spAtlas[xOff + col, yOff + row] += alphaWeight;
 
                     if (startI == endI)
                     {
@@ -270,13 +269,13 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
 {
     if (!pAlloc)
     {
-        LOG_WARN("pAlloc: {}\n", pFont);
+        LogWarn("pAlloc: {}\n", pFont);
         return;
     }
 
     if (!pFont)
     {
-        LOG_WARN("pFont: {}\n", pFont);
+        LogWarn("pFont: {}\n", pFont);
         return;
     }
 
@@ -310,12 +309,12 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
             }
             catch (const AllocException& ex)
             {
-                ex.printErrorMsg(stderr);
+                LogError{"{}\n", ex.what()};
             }
         };
 
         /* no data dependency between altas regions */
-        app::g_threadPool.addRetry(clRasterize);
+        IThreadPool::inst()->addRetry(clRasterize);
 
         if ((xOff += xStep) >= (nSquares*iScale) - xStep)
         {
@@ -325,7 +324,7 @@ Rasterizer::rasterizeAscii(IAllocator* pAlloc, Font* pFont, f32 scale)
         }
     }
 
-    app::g_threadPool.wait(true);
+    IThreadPool::inst()->wait(true);
 }
 
 void

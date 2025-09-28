@@ -195,7 +195,7 @@ Client::togglePointerRelativeMode()
 {
     m_bPointerRelativeMode ? disableRelativeMode() : enableRelativeMode();
 
-    LOG("relative mode: {}\n", m_bPointerRelativeMode);
+    LogInfo("relative mode: {}\n", m_bPointerRelativeMode);
 }
 
 void
@@ -258,7 +258,7 @@ void
 Client::setSwapInterval([[maybe_unused]] int interval)
 {
     m_swapInterval = interval;
-    LOG_WARN("noop\n");
+    LogWarn("noop\n");
 }
 
 void
@@ -270,7 +270,7 @@ Client::toggleVSync()
 void
 Client::swapBuffers()
 {
-    LOG_WARN("noop\n");
+    LogWarn("noop\n");
 }
 
 void
@@ -325,13 +325,13 @@ Client::destroy()
 void
 Client::bindContext()
 {
-    LOG_WARN("noop\n");
+    LogWarn("noop\n");
 }
 
 void
 Client::unbindContext()
 {
-    LOG_WARN("noop\n");
+    LogWarn("noop\n");
 }
 
 #ifdef OPT_SW
@@ -386,7 +386,7 @@ Client::resizeCB(int width, int height)
 void
 Client::global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, uint32_t version)
 {
-    LOG("interface: '{}', version: {}, name: {}\n", ntsInterface, version, name);
+    LogInfo("interface: '{}', version: {}, name: {}\n", ntsInterface, version, name);
 
     /* TODO: choosing the latest version doesn't actually work,
      * since some distros (debian) ship older libwayland versions */
@@ -441,7 +441,7 @@ Client::global(wl_registry* pRegistry, uint32_t name, const char* ntsInterface, 
         );
 
         if (!m_pXdgDecorationManager)
-            LOG_WARN("failed to bind `zxdg_decoration_manager_v1_interface`\n");
+            LogWarn("failed to bind `zxdg_decoration_manager_v1_interface`\n");
     }
 }
 
@@ -453,7 +453,7 @@ Client::globalRemove(wl_registry*, uint32_t)
 void
 Client::shmFormat(wl_shm*, [[maybe_unused]] uint32_t format)
 {
-    LOG("format: {}\n", format);
+    LogInfo("format: {}\n", format);
 }
 
 void
@@ -493,7 +493,7 @@ Client::xdgToplevelConfigure(
 void
 Client::xdgToplevelClose(xdg_toplevel*)
 {
-    LOG_WARN("xdgToplevelClose()\n");
+    LogWarn("xdgToplevelClose()\n");
     m_bRunning = false;
 }
 
@@ -536,7 +536,7 @@ Client::seatName(
     [[maybe_unused]] const char* ntsName
 )
 {
-    LOG("seatName: '{}'\n", ntsName);
+    LogInfo("seatName: '{}'\n", ntsName);
 }
 
 void
@@ -552,7 +552,7 @@ Client::outputGeometry(
     [[maybe_unused]] int32_t transform
 )
 {
-    LOG("outputGeometry(): physicalWidth: {}, physicalHeight: {}, x: {}, y: {}, subpixel: {}, make: '{}', model: '{}', transform: {}\n",
+    LogInfo("outputGeometry(): physicalWidth: {}, physicalHeight: {}, x: {}, y: {}, subpixel: {}, make: '{}', model: '{}', transform: {}\n",
         physicalHeight, physicalHeight, x, y, subpixel, ntsMake, ntsModel, transform);
 }
 
@@ -565,7 +565,7 @@ Client::outputMode(
     [[maybe_unused]] int32_t refresh
 )
 {
-    LOG("outputMode() width: {}, height: {}, refresh: {}\n", width, height, refresh);
+    LogInfo("outputMode() width: {}, height: {}, refresh: {}\n", width, height, refresh);
 
     m_newWidth = width;
     m_newHeight = height;
@@ -574,7 +574,7 @@ Client::outputMode(
 void
 Client::outputDone(wl_output*)
 {
-    LOG("outputDone()\n");
+    LogInfo("outputDone()\n");
 }
 
 void
@@ -583,7 +583,7 @@ Client::outputScale(
     [[maybe_unused]] int32_t factor
 )
 {
-    LOG("outputScale(): {}\n", factor);
+    LogInfo("outputScale(): {}\n", factor);
     wl_surface_set_buffer_scale(m_pSurface, factor);
 }
 
@@ -601,7 +601,7 @@ Client::outputName(
         }
     );
 
-    LOG_NOTIFY("outputName() #{}: '{}'\n", idx, ntsName);
+    LogInfo("outputName() #{}: '{}'\n", idx, ntsName);
 }
 
 void
@@ -610,7 +610,7 @@ Client::outputDescription(
     [[maybe_unused]] const char* ntsDescription
 )
 {
-    LOG("outputDescription(): '{}'\n", ntsDescription);
+    LogInfo("outputDescription(): '{}'\n", ntsDescription);
 }
 
 void
@@ -651,7 +651,7 @@ Client::initShm()
     m_pSurfaceBufferBind = m_pPoolData;
 #endif
 
-    LOG_GOOD("wayland shm client started...\n");
+    LogInfo("wayland shm client started...\n");
 }
 
 } /* namespace platform::wayland */

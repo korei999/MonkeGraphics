@@ -29,23 +29,22 @@ ADT_SOA_GEN_STRUCT_ZERO(Entity, Bind, ENTITY_FIELDS);
 namespace adt::print
 {
 
+template<>
 inline isize
-format(Context ctx, FormatArgs, const game::Entity::Bind& x)
+format(Context* pCtx, FormatArgs fmtArgs, const game::Entity::Bind& x)
 {
-    ctx.fmt =
-        "\n\tname: '{}'"
-        "\n\tcolor: '{}'"
-        "\n\tpos: {}"
-        "\n\trot: {}"
-        "\n\tscale: {}"
-        "\n\tvel: {}"
-        "\n\tassetI: {}"
-        "\n\tmodelI: {}"
-        "\n\ttype: {}"
-        "\n\tbNoDraw: {}"
-    ;
-    ctx.fmtIdx = 0;
-    return printArgs(ctx, x.sfName, x.color, x.pos, x.rot, x.scale, x.vel, x.assetI, x.modelI, int(x.eType), x.bNoDraw);
+    return formatVariadicStacked(pCtx, fmtArgs,
+        "\n\tname: '", x.sfName, "'",
+        "\n\tcolor: ", x.color,
+        "\n\tpos: ", x.pos,
+        "\n\trot: ", x.rot,
+        "\n\tscale: ", x.scale,
+        "\n\tvel: ", x.vel,
+        "\n\tassetI: ", x.assetI,
+        "\n\tmodelI: ", x.modelI,
+        "\n\ttype: ", x.eType,
+        "\n\tbNoDraw: ", x.bNoDraw
+    );
 }
 
 } /* namespace adt::print */

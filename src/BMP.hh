@@ -171,7 +171,7 @@ writeToFile(const Image img, const char* ntsFile)
     FILE* fp = fopen(ntsFile, "wb");
     if (!fp)
     {
-        LOG_BAD("fpen(\"{}\", \"wb\") failed\n", ntsFile);
+        adt::LogError("fpen(\"{}\", \"wb\") failed\n", ntsFile);
         return;
     }
     defer( fclose(fp) );

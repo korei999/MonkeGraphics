@@ -92,7 +92,7 @@ AnimationChannelTargetPathTypeStringToPATH_TYPE(const StringView svPath)
     else if (svPath == "weights")
         return Animation::Channel::Target::PATH_TYPE::WEIGHTS;
 
-    LOG_BAD("failed to convert path string\n");
+    LogError("failed to convert path string\n");
     return {};
 }
 
@@ -188,7 +188,7 @@ Model::procAsset(IAllocator* pAlloc)
     auto* pVersion = json::searchNode(assetObj, "version");
     if (!pVersion)
     {
-        LOG_BAD("'version' string is required\n");
+        LogError("'version' string is required\n");
         return false;
     }
 
@@ -232,7 +232,7 @@ Model::procScenes(IAllocator* pAlloc)
     if (arr.empty())
     {
         m_defaultSceneI = -1;
-        LOG_WARN("no scenes\n");
+        LogWarn("no scenes\n");
         return true;
     }
     else
@@ -280,7 +280,7 @@ Model::procBuffers(IAllocator* pAlloc)
         auto pUri = json::searchNode(obj, "uri");
         if (!pByteLength)
         {
-            LOG_BAD("'byteLength' is required\n");
+            LogError("'byteLength' is required\n");
             return false;
         }
 
@@ -294,7 +294,7 @@ Model::procBuffers(IAllocator* pAlloc)
 
             aBin = file::load(pAlloc, sNewPath.data());
             if (!aBin)
-                LOG_WARN("error opening file: '{}'\n", sNewPath);
+                LogWarn("error opening file: '{}'\n", sNewPath);
         }
 
         m_vBuffers.push(pAlloc, {
@@ -321,7 +321,7 @@ Model::procBufferViews(IAllocator* pAlloc)
         auto pBuffer = json::searchNode(obj, "buffer");
         if (!pBuffer)
         {
-            LOG_BAD("'buffer' field is required\n");
+            LogError("'buffer' field is required\n");
             return false;
         }
         newView.bufferI = static_cast<int>(json::getInteger(pBuffer));
@@ -333,7 +333,7 @@ Model::procBufferViews(IAllocator* pAlloc)
         auto pByteLength = json::searchNode(obj, "byteLength");
         if (!pByteLength)
         {
-            LOG_BAD("'byteLength' field is required\n");
+            LogError("'byteLength' field is required\n");
             return false;
         }
         newView.byteLength = static_cast<int>(json::getInteger(pByteLength));
@@ -367,14 +367,14 @@ Model::procAccessors(IAllocator* pAlloc)
 
         if (!pComponentType)
         {
-            LOG_BAD("'componentType' field is required\n");
+            LogError("'componentType' field is required\n");
             return false;
         }
 
         auto pCount = json::searchNode(obj, "count");
         if (!pCount)
         {
-            LOG_BAD("'count' field is required\n");
+            LogError("'count' field is required\n");
             return false;
         }
 
@@ -384,7 +384,7 @@ Model::procAccessors(IAllocator* pAlloc)
 
         if (!pType)
         {
-            LOG_BAD("'type' field is required\n");
+            LogError("'type' field is required\n");
             return false;
         }
  
@@ -421,7 +421,7 @@ Model::procSkins(IAllocator* pAlloc)
         auto* pJoints = json::searchNode(skinObj, "joints");
         if (!pJoints)
         {
-            LOG_BAD("'joints' are required\n");
+            LogError("'joints' are required\n");
             return false;
         }
 
@@ -463,7 +463,7 @@ Model::procMeshes(IAllocator* pAlloc)
         auto pPrimitives = json::searchNode(obj, "primitives");
         if (!pPrimitives)
         {
-            LOG_BAD("'primitives' field is required\n");
+            LogError("'primitives' field is required\n");
             return false;
         }
  
@@ -493,7 +493,7 @@ Model::procMeshes(IAllocator* pAlloc)
             auto pAttributes = json::searchNode(op, "attributes");
             if (!pAttributes)
             {
-                LOG_BAD("'attributes' field is required\n");
+                LogError("'attributes' field is required\n");
                 return false;
             }
 
@@ -588,7 +588,7 @@ Model::procMaterials(IAllocator* pAlloc)
                     auto pIndex = json::searchNode(objBct, "index");
                     if (!pIndex)
                     {
-                        LOG_BAD("index field is required\n");
+                        LogError("index field is required\n");
                         return false;
                     }
 
@@ -610,7 +610,7 @@ Model::procMaterials(IAllocator* pAlloc)
             auto pIndex = json::searchNode(objNT, "index");
             if (!pIndex)
             {
-                LOG_BAD("index filed is required\n");
+                LogError("index filed is required\n");
                 return false;
             }
 
@@ -737,7 +737,7 @@ Model::procAnimations(IAllocator* pAlloc)
         auto* pChannelsObj = json::searchNode(obj, "channels");
         if (!pChannelsObj)
         {
-            LOG_BAD("'channels' object is required\n");
+            LogError("'channels' object is required\n");
             return false;
         }
 
@@ -751,7 +751,7 @@ Model::procAnimations(IAllocator* pAlloc)
             auto* pSampler = json::searchNode(channelObj, "sampler");
             if (!pSampler)
             {
-                LOG_BAD("'sampler' object is required\n");
+                LogError("'sampler' object is required\n");
                 return false;
             }
 
@@ -761,7 +761,7 @@ Model::procAnimations(IAllocator* pAlloc)
             auto* pTarget = json::searchNode(channelObj, "target");
             if (!pTarget)
             {
-                LOG_BAD("'target' object is required\n");
+                LogError("'target' object is required\n");
                 return false;
             }
 
@@ -778,7 +778,7 @@ Model::procAnimations(IAllocator* pAlloc)
             auto pPath = json::searchNode(targetObj, "path");
             if (!pPath)
             {
-                LOG_BAD("'path' object is required\n");
+                LogError("'path' object is required\n");
                 return false;
             }
 
@@ -792,7 +792,7 @@ Model::procAnimations(IAllocator* pAlloc)
         auto* pSamplers = json::searchNode(obj, "samplers");
         if (!pSamplers)
         {
-            LOG_BAD("'samplers' objects is required\n");
+            LogError("'samplers' objects is required\n");
             return false;
         }
 
@@ -806,7 +806,7 @@ Model::procAnimations(IAllocator* pAlloc)
             auto* pInput = json::searchNode(samplerObj, "input");
             if (!pInput)
             {
-                LOG_BAD("'input' is required\n");
+                LogError("'input' is required\n");
                 return false;
             }
 
@@ -819,7 +819,7 @@ Model::procAnimations(IAllocator* pAlloc)
             auto* pOutput = json::searchNode(samplerObj, "output");
             if (!pOutput)
             {
-                LOG_BAD("'output' field is required\n");
+                LogError("'output' field is required\n");
                 return false;
             }
 

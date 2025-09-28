@@ -27,14 +27,14 @@ struct Text
     /* */
 
     /* flip vertically if projection is flipped */
-    void update(const ttf::Rasterizer& rast, adt::ScratchBuffer* pScratch, const adt::StringView sv, const bool bVerticalFlip);
+    void update(const ttf::Rasterizer& rast, const adt::StringView sv, const bool bVerticalFlip);
     void bind() const { glBindVertexArray(m_vao); }
     void draw() const { glDrawArrays(GL_TRIANGLES, 0, m_vboSize); }
     void bindDraw() const { bind(); draw(); }
 
 protected:
     [[nodiscard]] adt::Vec<CharQuad2Pos2UV> makeStringMesh(
-        const ttf::Rasterizer& rast, adt::ScratchBuffer* pScratch, const adt::StringView sv, const bool bVerticalFlip
+        const ttf::Rasterizer& rast, adt::IArena* pArena, const adt::StringView sv, const bool bVerticalFlip
     );
 };
 

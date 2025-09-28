@@ -192,7 +192,9 @@ Pool<T, CAP>::insert()
 
     if (m_aFreeSlots.empty())
     {
-        print::err("pool is empty, returning -1\n");
+#ifndef NDEBUG
+        LogError("pool is empty, returning -1\n");
+#endif
         return ret;
     }
 
@@ -255,9 +257,9 @@ namespace print
 
 template<typename T, isize CAP>
 inline isize
-format(Context ctx, FormatArgs fmtArgs, const typename Pool<T, CAP>::Handle& x)
+format(Context* pCtx, FormatArgs fmtArgs, const typename Pool<T, CAP>::Handle& x)
 {
-    return format(ctx, fmtArgs, x.i);
+    return format(pCtx, fmtArgs, x.i);
 }
 
 } /* namespace print */

@@ -59,7 +59,7 @@ makeEntity(const StringView svModel, const StringView svName, ENTITY_TYPE eType)
 
     bind.eType = eType;
 
-    LOG("entity #{}: {}\n", handle, bind);
+    LogDebug("entity #{}: {}\n", handle, bind);
 
     return handle;
 }
@@ -70,7 +70,7 @@ loadStuff()
     for (const auto& svPath : s_aAssetsToLoad)
     {
         if (!asset::load(svPath))
-            LOG_BAD("failed to load: '{}'\n", svPath);
+            LogError("failed to load: '{}'\n", svPath);
     }
 
     /* NOTE: Skybox needs this cube */
@@ -176,7 +176,7 @@ loadStuff()
         /*entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, frame::g_time);*/
     }
 
-    Arena firstUpdateArena(SIZE_1K);
+    ArenaList firstUpdateArena(SIZE_1K);
     defer( firstUpdateArena.freeAll() );
     updateState(&firstUpdateArena);
 
@@ -185,7 +185,7 @@ loadStuff()
 }
 
 void
-updateState(Arena*)
+updateState(ArenaList*)
 {
 }
 

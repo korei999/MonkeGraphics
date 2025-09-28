@@ -42,7 +42,7 @@ struct Model
 
     /* */
 
-    adt::Arena m_arena {};
+    adt::ArenaList m_arena {};
 
     adt::Vec<Node> m_vNodes {};
     adt::Vec<Skin> m_vSkins {};

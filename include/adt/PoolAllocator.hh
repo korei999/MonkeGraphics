@@ -44,7 +44,7 @@ struct PoolAllocator : public IArena
 
 #endif
     ) noexcept(false)
-        : m_blockCap {alignUp(blockSize, chunkSize + sizeof(Node))},
+        : m_blockCap {alignUpPO2(blockSize, chunkSize + sizeof(Node))},
           m_chunkSize {chunkSize + sizeof(Node)},
           m_pBackAlloc(pBackAlloc),
 #if !defined NDEBUG && defined ADT_DBG_MEMORY
@@ -60,12 +60,13 @@ struct PoolAllocator : public IArena
     ADT_WARN_IMPOSSIBLE_OPERATION virtual void* realloc(void* ptr, usize oldCount, usize newCount, usize mSize) noexcept(false) override final;
     void virtual free(void* ptr) noexcept override final;
     void virtual freeAll() noexcept override final;
-    [[nodiscard]] virtual constexpr bool doesFree() const noexcept override final { return true; }
-    [[nodiscard]] virtual constexpr bool doesRealloc() const noexcept override final { return false; }
+    [[nodiscard]] virtual bool doesFree() const noexcept override final { return true; }
+    [[nodiscard]] virtual bool doesRealloc() const noexcept override final { return false; }
 
     /* */
 
-    template<typename T> ADT_WARN_IMPOSSIBLE_OPERATION constexpr T*
+    template<typename T>
+    ADT_WARN_IMPOSSIBLE_OPERATION T*
     reallocV(T*, isize, isize)
     {
         ADT_ASSERT_ALWAYS(false, "can't realloc"); return nullptr;
@@ -84,8 +85,8 @@ PoolAllocator::allocBlock()
     Block* r = (Block*)m_pBackAlloc->zalloc(1, total);
 
 #if !defined NDEBUG && defined ADT_DBG_MEMORY
-    print::err("[PoolAllocator: {}, {}, {}]: new block of size: {}\n",
-        print::stripSourcePath(m_loc.file_name()), m_loc.function_name(), m_loc.line(), m_blockCap
+    LogError("[PoolAllocator: {}, {}, {}]: new block of size: {}\n",
+        print::shorterSourcePath(m_loc.file_name()), m_loc.function_name(), m_loc.line(), m_blockCap
     );
 #endif
 

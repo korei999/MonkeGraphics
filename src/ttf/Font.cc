@@ -108,7 +108,7 @@ Font::readGlyphFromOffset(isize offset)
 
     if (offset >= glyfTable.offset + glyfTable.length)
     {
-        LOG_BAD("offset >= glyfTable.offset + glyfTable.length\n");
+        LogError("offset >= glyfTable.offset + glyfTable.length\n");
         return nullptr;
     }
 
@@ -531,7 +531,7 @@ Font::getGlyphIdx(u16 code)
         }
     }
 
-    LOG_BAD("no glyph for code: {}\n", code);
+    LogError("no glyph for code: {}\n", code);
 
     return idx;
 }
@@ -556,26 +556,26 @@ void
 Font::printGlyphDBG(const Glyph& g, bool bNormalize)
 {
     auto& sg = g.uGlyph.simple;
-    COUT("xMin: {}, yMin: {}, xMax: {}, yMax: {}\n", g.xMin, g.yMin, g.xMax, g.yMax);
-    COUT("instructionLength: {}, points: {}, numberOfContours: {}, aEndPtsOfContours.size: {}\n",
+    LogDebug("xMin: {}, yMin: {}, xMax: {}, yMax: {}\n", g.xMin, g.yMin, g.xMax, g.yMax);
+    LogDebug("instructionLength: {}, points: {}, numberOfContours: {}, aEndPtsOfContours.size: {}\n",
         sg.instructionLength, sg.vPoints.size(), g.numberOfContours, sg.vEndPtsOfContours.size()
     );
 
     for (auto& cn : sg.vEndPtsOfContours)
     {
         u32 idx = sg.vEndPtsOfContours.idx(&cn);
-        COUT("cn({}): {}", idx, cn);
-        if (idx != sg.vEndPtsOfContours.size() - 1) COUT(", ");
-        else COUT(" ");
+        LogDebug("cn({}): {}", idx, cn);
+        if (idx != sg.vEndPtsOfContours.size() - 1) LogDebug(", ");
+        else LogDebug(" ");
     }
-    COUT("\n");
+    LogDebug("\n");
 
     if (bNormalize)
     {
         for (auto& e : sg.vPoints)
         {
             u32 i = sg.vPoints.idx(&e);
-            COUT("({}): x: {}, y: {}, bOnCurve: {}\n",
+            LogDebug("({}): x: {}, y: {}, bOnCurve: {}\n",
                 i, f32(e.x) / f32(g.xMax), f32(e.y) / f32(g.yMax),
                 e.bOnCurve
             );
@@ -584,7 +584,7 @@ Font::printGlyphDBG(const Glyph& g, bool bNormalize)
     else
     {
         for (auto& e : sg.vPoints)
-            COUT("x: {}, y: {}, bOnCurve: {}\n", e.x, e.y, e.bOnCurve);
+            LogDebug("x: {}, y: {}, bOnCurve: {}\n", e.x, e.y, e.bOnCurve);
     }
 }
 
@@ -600,7 +600,10 @@ Font::parse2()
     td.rangeShift = m_bin.read16Rev();
 
     if (td.sfntVersion != 0x00010000 && td.sfntVersion != 0x4f54544f)
-        LOG_FATAL("Unable to read ttf header: sfntVersion: {}'\n", td.sfntVersion);
+    {
+        LogError("Unable to read ttf header: sfntVersion: {}'\n", td.sfntVersion);
+        abort();
+    }
 
 #ifdef OPT_DBG_TTF
     u16 _searchRangeCheck = std::pow(2, std::floor(log2(td.numTables))) * 16;
@@ -637,7 +640,7 @@ Font::parse2()
         //     auto checkSum = getTableChecksum((u32*)(&m_bin[r.offset]), r.length);
         //     if (r.checkSum - checkSum != 0)
         //     {
-        //         LOG_BAD("checkSums don't match: expected: {}, got: {}\n", r.checkSum, checkSum);
+        //         LogError("checkSums don't match: expected: {}, got: {}\n", r.checkSum, checkSum);
         //         return false;
         //     }
         // }

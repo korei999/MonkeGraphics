@@ -1,6 +1,5 @@
 #include "Model.hh"
 
-#include "app.hh"
 #include "asset.hh"
 
 using namespace adt;
@@ -267,11 +266,12 @@ Model::loadAnimations()
         {
             constexpr StringView svPrefix = "animation";
 
-            Span<char> sp = app::g_threadPool.scratchBuffer().nextMemZero<char>(svPrefix.size() + 5);
-            defer( app::g_threadPool.scratchBuffer().reset() );
+            Arena* pArena = IThreadPool::inst()->arena();
+            ArenaScope ArenaScope {pArena};
 
-            const isize n = print::toSpan(sp, "{}{}", "animation", model.m_vAnimations.idx(&gltfAnim));
-            newAnim.sName = String(&m_arena, sp.data(), n);
+            print::Builder pb {pArena, svPrefix.size() * 2};
+            pb.print("{}{}", svPrefix, model.m_vAnimations.idx(&gltfAnim));
+            newAnim.sName = String(&m_arena, StringView(pb));
         }
         else
         {

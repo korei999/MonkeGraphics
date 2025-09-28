@@ -18,11 +18,11 @@ static void cameraBoost() { g_camera.m_lastBoost *= 2.0f; }
 static void cameraDeboost() { g_camera.m_lastBoost *= 0.25f; }
 
 static void toggleFullscreen() { app::windowInst().toggleFullscreen(); }
-static void quit() { LOG_WARN("QUIT\n"); app::windowInst().m_bRunning = false; }
+static void quit() { LogWarn("QUIT\n"); app::windowInst().m_bRunning = false; }
 static void toggleRelativePointer() { app::windowInst().togglePointerRelativeMode(); }
 static void toggleVSync() { app::windowInst().toggleVSync(); }
-static void togglePause() { utils::toggle(&g_bPauseSimulation); LOG_WARN("PAUSE: {}\n", g_bPauseSimulation); }
-static void toggleDrawUI() { utils::toggle(&g_bDrawUI); LOG_WARN("draw UI: {}\n", g_bDrawUI); }
+static void togglePause() { g_bPauseSimulation = !g_bPauseSimulation; LogWarn("PAUSE: {}\n", g_bPauseSimulation); }
+static void toggleDrawUI() { g_bDrawUI = !g_bDrawUI; LogWarn("draw UI: {}\n", g_bDrawUI); }
 
 Camera g_camera {.m_pos {0, 0, -3}, .m_lastMove {}, .m_sens = 0.05f, .m_speed = 4.0f, .m_fov = 60.0f};
 Mouse g_mouse;

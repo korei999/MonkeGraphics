@@ -5,6 +5,7 @@
 #include "game/game.hh"
 #include "ui.hh"
 #include "asset.hh"
+#include "time2.hh"
 
 using namespace adt;
 
@@ -21,12 +22,12 @@ f64 g_maxFps = 0.0;
 [[maybe_unused]] static void
 refresh(void* pArg)
 {
-    Arena* pArena = static_cast<Arena*>(pArg);
+    ArenaList* pArena = static_cast<ArenaList*>(pArg);
     auto& renderer = app::rendererInst();
 
     static f64 s_accumulator = 0.0;
 
-    f64 newTime = time::nowS();
+    f64 newTime = time2::nowS();
     g_frameTime = newTime - g_time;
     g_time = newTime;
     /*if (frameTime > 0.25)*/
@@ -75,7 +76,7 @@ eventLoop()
 }
 
 static void
-renderLoop(Arena* pArena)
+renderLoop(ArenaList* pArena)
 {
     auto& win = app::windowInst();
     auto& renderer = app::rendererInst();
@@ -88,7 +89,7 @@ renderLoop(Arena* pArena)
 
     while (win.m_bRunning)
     {
-        const f64 timer0 = time::nowMS();
+        const f64 timer0 = time2::nowMS();
 
         {
             f64 newTime = timer0 / 1000.0;
@@ -123,7 +124,7 @@ renderLoop(Arena* pArena)
             win.swapBuffers();
         }
 
-        f64 timer1 = time::nowMS();
+        f64 timer1 = time2::nowMS();
 
         if (g_maxFps > 0.0)
         {
@@ -131,7 +132,7 @@ renderLoop(Arena* pArena)
             if (sleepFor > 0.0) utils::sleepMS(sleepFor);
         }
 
-        timer1 = time::nowMS();
+        timer1 = time2::nowMS();
 
         vFrameTimes.push(timer1 - timer0);
 
@@ -157,7 +158,7 @@ mainLoop()
 {
     auto& win = app::windowInst();
 
-    Arena frameArena {SIZE_1M}; /* reset inside renderLoop */
+    ArenaList frameArena {SIZE_1M}; /* reset inside renderLoop */
     defer( frameArena.freeAll() );
 
     win.showWindow();
@@ -167,7 +168,7 @@ mainLoop()
     win.toggleVSync();
     // win.toggleFullscreen();
 
-    g_time = time::nowS();
+    g_time = time2::nowS();
 
     game::updateState(&frameArena);
 
@@ -202,8 +203,8 @@ start()
 
     /* wait for running tasks */
     defer(
-        LOG_GOOD("cleaning up...\n");
-        app::g_threadPool.destroy(StdAllocator::inst());
+        LogDebug("cleaning up...\n");
+        IThreadPool::inst()->wait(true);
         renderer.destroy();
 
         [[maybe_unused]] isize nObj = asset::g_poolObjects.size();

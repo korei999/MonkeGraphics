@@ -14,6 +14,63 @@ using namespace adt;
 namespace render::gl
 {
 
+union IV4u8
+{
+    u8 e[4];
+    struct { u8 x, y, z, w; };
+
+    /* */
+
+    constexpr explicit operator math::IV4() const
+    {
+        return {
+            static_cast<i32>(x),
+            static_cast<i32>(y),
+            static_cast<i32>(z),
+            static_cast<i32>(w)
+        };
+    }
+
+    constexpr explicit operator math::V4() const
+    {
+        return {
+            static_cast<f32>(x),
+            static_cast<f32>(y),
+            static_cast<f32>(z),
+            static_cast<f32>(w)
+        };
+    }
+};
+
+union IV4u16
+{
+    u16 e[4];
+    struct { u16 x, y, z, w; };
+
+    /* */
+
+    constexpr explicit operator math::IV4() const
+    {
+        return {
+            static_cast<i32>(x),
+            static_cast<i32>(y),
+            static_cast<i32>(z),
+            static_cast<i32>(w)
+        };
+    }
+
+    constexpr explicit operator math::V4() const
+    {
+        return {
+            static_cast<f32>(x),
+            static_cast<f32>(y),
+            static_cast<f32>(z),
+            static_cast<f32>(w)
+        };
+    }
+};
+
+
 /* used for gltf::Primitive::pData */
 struct PrimitiveData
 {
@@ -115,7 +172,7 @@ debugCallback(
         default: break;
     }
 
-    LOG_WARN("source: '{}', type: '{}'\n{}\n", sourceStr, typeStr, message);
+    LogWarn("source: '{}', type: '{}'\n{}\n", sourceStr, typeStr, message);
 }
 
 #endif
@@ -203,8 +260,8 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
     V4 stencilColor {};
     void* pStencilExtra {};
 
-    BufferAllocator buff = app::g_threadPool.scratchBuffer().nextMem<u8>();
-    defer( app::g_threadPool.scratchBuffer().reset() );
+    Arena* pArena = IThreadPool::inst()->arena();
+    ArenaScope ArenaScope {pArena};
 
     auto clBindTexture = [&](const gltf::Primitive& primitive)
     {
@@ -219,7 +276,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
             try
             {
                 const isize spanSize = img.sUri.size() + 300;
-                Span<char> sp {buff.zallocV<char>(spanSize), spanSize};
+                Span<char> sp {pArena->zallocV<char>(spanSize), spanSize};
                 file::replacePathEnding(&sp, reinterpret_cast<const asset::Object*>(&gltfModel)->m_sMappedWith, img.sUri);
 
                 auto* pObj = asset::search(sp, asset::Object::TYPE::IMAGE);
@@ -349,7 +406,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
                         Span<const M4> spJointMatrcies;
                     };
 
-                    Arg* pArg = buff.alloc<Arg>();
+                    Arg* pArg = pArena->alloc<Arg>();
                     pArg->trmProj = trmProj;
                     pArg->trmView = trmView;
                     pArg->spJointMatrcies = Span<const M4>(skin.vJointMatrices);
@@ -378,7 +435,7 @@ drawNode(const Model& model, const Model::Node& node, const math::M4& trm, const
                     auto& tex = gltfModel.m_vTextures[mat.pbrMetallicRoughness.baseColorTexture.index];
                     auto& img = gltfModel.m_vImages[tex.sourceI];
 
-                    Span<char> sp = {buff.alloc<char>(img.sUri.size() + 300), img.sUri.size() + 300};
+                    Span<char> sp = {pArena->alloc<char>(img.sUri.size() + 300), img.sUri.size() + 300};
                     if (sp.size() >= img.sUri.size() + 300)
                     {
                         file::replacePathEnding(&sp,
@@ -615,7 +672,7 @@ drawSkybox()
 }
 
 void
-Renderer::draw(Arena* pArena)
+Renderer::draw(ArenaList* pArena)
 {
     using namespace adt::math;
 
@@ -645,7 +702,7 @@ Renderer::draw(Arena* pArena)
         {
             for (auto& model : Model::g_poolModels)
             {
-                app::g_threadPool.addRetry([&model] {
+                IThreadPool::inst()->addRetry([&model] {
                     model.updateAnimation(model.m_time + frame::g_frameTime);
                     model.m_future.signal();
                 });
@@ -788,7 +845,7 @@ Shader::Shader(
         if (infoLen > 1)
             glGetProgramInfoLog(m_id, infoLen, nullptr, infoLog);
 
-        LOG_BAD("error linking program: {}\n", infoLog);
+        LogError("error linking program: {}\n", infoLog);
         glDeleteProgram(m_id);
         exit(1);
     }
@@ -818,7 +875,7 @@ Shader::loadOne(GLenum type, adt::StringView sShader)
     glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
     if (!ok)
     {
-        LOG("\n{}\n", sShader);
+        LogDebug("\n{}\n", sShader);
 
         GLint infoLen = 0;
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
@@ -827,7 +884,7 @@ Shader::loadOne(GLenum type, adt::StringView sShader)
             char aBuff[512] {};
             GLsizei len {};
             glGetShaderInfoLog(shader, infoLen, &len, aBuff);
-            LOG_BAD("error compiling shader:\n{}\n", StringView{aBuff, len});
+            LogError("error compiling shader:\n{}\n", StringView{aBuff, len});
             exit(1);
         }
 
@@ -848,7 +905,7 @@ Shader::queryActiveUniforms()
     glGetProgramiv(m_id, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxUniformLen);
 
     char uniformName[255] {};
-    LOG_OK("queryActiveUniforms for '{}':\n", m_id);
+    LogDebug("queryActiveUniforms for '{}':\n", m_id);
 
     for (int i = 0; i < nUniforms; ++i)
     {
@@ -892,7 +949,7 @@ Shader::queryActiveUniforms()
             break;
         }
 
-        LOG_OK("\tuniformName: '{}', type: '{}'\n", uniformName, typeName);
+        LogDebug("\tuniformName: '{}', type: '{}'\n", uniformName, typeName);
     }
 }
 
@@ -901,7 +958,7 @@ Shader::destroy()
 {
     glDeleteProgram(m_id);
     s_mapStringToShaders.remove(m_svMappedTo);
-    LOG_NOTIFY("shader {} '{}'\n", m_id, m_svMappedTo);
+    LogInfo("shader {} '{}'\n", m_id, m_svMappedTo);
     *this = {};
 }
 
@@ -934,7 +991,7 @@ Quad::Quad(InitFlag, TYPE eType)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    LOG_GOOD("Quad: '{}' created\n", m_vao);
+    LogDebug("Quad: '{}' created\n", m_vao);
 }
 
 Shader*
@@ -960,7 +1017,7 @@ loadShaders()
             case ShaderMapping::TYPE::VS_FS:
             {
                 /* maps to gl::g_shaders */
-                LOG_GOOD("loading shader '{}' ...\n", shader.m_svMappedTo);
+                LogDebug("loading shader '{}' ...\n", shader.m_svMappedTo);
                 gl::Shader(shader.m_svVert, shader.m_svFrag, shader.m_svMappedTo);
             }
             break;
@@ -1057,12 +1114,12 @@ loadImage(Image* pImage)
 {
     if (!pImage)
     {
-        LOG_WARN("pImage: {}\n", pImage);
+        LogWarn("pImage: {}\n", pImage);
         return;
     }
 
     auto& obj = *reinterpret_cast<asset::Object*>(pImage);
-    LOG_GOOD("loading image '{}'...\n", obj.m_sMappedWith);
+    LogDebug("loading image '{}'...\n", obj.m_sMappedWith);
 
     obj.m_pExtraData = obj.m_arena.alloc<Texture>(pImage->spanRGBA());
 }
@@ -1072,7 +1129,7 @@ loadGLTF(gltf::Model* pModel)
 {
     if (!pModel)
     {
-        LOG_WARN("pModel: {}\n", pModel);
+        LogWarn("pModel: {}\n", pModel);
         return;
     }
 
@@ -1080,13 +1137,13 @@ loadGLTF(gltf::Model* pModel)
 
     if (pModel->m_vBuffers.empty())
     {
-        LOG_WARN("no buffers in '{}'\n", obj.m_sMappedWith);
+        LogWarn("no buffers in '{}'\n", obj.m_sMappedWith);
         return;
     }
 
     for (auto& mesh : pModel->m_vMeshes)
     {
-        LOG_GOOD("loading mesh: '{}'...\n", mesh.sName);
+        LogDebug("loading mesh: '{}'...\n", mesh.sName);
         for (auto& primitive : mesh.vPrimitives)
         {
             PrimitiveData newPrimitiveData {};
@@ -1272,13 +1329,13 @@ loadGLTF(gltf::Model* pModel)
 
                 switch (accJoints.eComponentType)
                 {
-                    default: LOG_BAD("unexpected component type\n"); break;
+                    default: LogError("unexpected component type\n"); break;
 
                     case gltf::COMPONENT_TYPE::UNSIGNED_BYTE:
                     {
-                        View<math::IV4u8> vwU8(pModel->accessorView<math::IV4u8>(primitive.attributes.JOINTS_0));
+                        View<IV4u8> vwU8(pModel->accessorView<IV4u8>(primitive.attributes.JOINTS_0));
 
-                        bufferViewConvert<math::IV4u8, math::IV4>(
+                        bufferViewConvert<IV4u8, math::IV4>(
                             vwU8, accJoints.count, shaders::glsl::JOINT_LOCATION, 4, GL_INT, &newPrimitiveData.vboJoints
                         );
                     }
@@ -1286,9 +1343,9 @@ loadGLTF(gltf::Model* pModel)
 
                     case gltf::COMPONENT_TYPE::UNSIGNED_SHORT:
                     {
-                        View<math::IV4u16> vwU16(pModel->accessorView<math::IV4u16>(primitive.attributes.JOINTS_0));
+                        View<IV4u16> vwU16(pModel->accessorView<IV4u16>(primitive.attributes.JOINTS_0));
 
-                        bufferViewConvert<math::IV4u16, math::IV4>(
+                        bufferViewConvert<IV4u16, math::IV4>(
                             vwU16, accJoints.count, shaders::glsl::JOINT_LOCATION, 4, GL_INT, &newPrimitiveData.vboJoints
                         );
                     }
@@ -1299,7 +1356,7 @@ loadGLTF(gltf::Model* pModel)
             /* weights */
             if (primitive.attributes.JOINTS_0 > -1 && primitive.attributes.WEIGHTS_0 == -1)
             {
-                LOG_BAD("Skinned nodes must contain WEIGHTS_*\n");
+                LogError("Skinned nodes must contain WEIGHTS_*\n");
             }
             else if (primitive.attributes.JOINTS_0 > -1 && primitive.attributes.WEIGHTS_0 > -1)
             {
@@ -1307,7 +1364,7 @@ loadGLTF(gltf::Model* pModel)
 
                 switch (accWeights.eComponentType)
                 {
-                    default: LOG_BAD("unhandled component type\n"); break;
+                    default: LogError("unhandled component type\n"); break;
 
                     case gltf::COMPONENT_TYPE::UNSIGNED_BYTE:
                     {
@@ -1316,9 +1373,9 @@ loadGLTF(gltf::Model* pModel)
 
                     case gltf::COMPONENT_TYPE::UNSIGNED_SHORT:
                     {
-                        const View<math::IV4u16> vwU16(pModel->accessorView<math::IV4u16>(primitive.attributes.WEIGHTS_0));
+                        const View<IV4u16> vwU16(pModel->accessorView<IV4u16>(primitive.attributes.WEIGHTS_0));
 
-                        bufferViewConvert<math::IV4u16, math::V4>(
+                        bufferViewConvert<IV4u16, math::V4>(
                             vwU16, accWeights.count, shaders::glsl::WEIGHT_LOCATION, 4, GL_FLOAT, &newPrimitiveData.vboWeights
                         );
                     }
@@ -1347,7 +1404,7 @@ static void
 loadAssetObjects()
 {
     if (asset::g_poolObjects.empty())
-        LOG_WARN("asset::g_aObjects.empty(): {}\n", asset::g_poolObjects.empty());
+        LogWarn("asset::g_aObjects.empty(): {}\n", asset::g_poolObjects.empty());
 
     for (auto& obj : asset::g_poolObjects)
     {
@@ -1381,7 +1438,7 @@ loadSkybox()
 
     if (!i0 || !i1 || !i2 || !i3 || !i4 || !i5)
     {
-        LOG_BAD("failed to load skybox, using default texture\n");
+        LogError("failed to load skybox, using default texture\n");
 
         Image img {
             .m_uData {.pRGBA = const_cast<ImagePixelRGBA*>(common::g_spDefaultTexture.data())},

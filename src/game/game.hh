@@ -8,7 +8,7 @@ namespace game
 constexpr int MAX_ENTITIES = 256;
 
 void loadStuff();
-void updateState(adt::Arena* pArena);
+void updateState(adt::ArenaList* pArena);
 /* NPOS */ [[nodiscard]] adt::isize searchEntity(adt::StringView svName);
 
 using VSOAEntity = adt::VecSOAM<ENTITY_TEMPLATE_ARGS>;

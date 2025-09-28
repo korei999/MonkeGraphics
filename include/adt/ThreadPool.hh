@@ -1,8 +1,10 @@
 #pragma once
 
+#include "IThreadPool.hh"
+
+#include "Arena.hh"
 #include "FuncBuffer.hh"
 #include "Queue.hh"
-#include "ScratchBuffer.hh"
 #include "StdAllocator.hh"
 #include "Thread.hh"
 #include "Vec.hh"
@@ -12,156 +14,12 @@
 namespace adt
 {
 
-struct IThreadPool
+inline int
+IThreadPool::optimalThreadCount() noexcept
 {
-    /* TODO: buffer size can be moved to implementation */
-    using Task = FuncBuffer<void, 56>;
-    static_assert(sizeof(Task) == 64);
-
-    template<typename T>
-    struct Future : adt::Future<T>
-    {
-        using Base = adt::Future<T>;
-
-        /* */
-
-        IThreadPool* m_pPool {};
-
-        /* */
-
-        Future() noexcept = default;
-        Future(IThreadPool* pPool) noexcept;
-
-        /* */
-
-        void wait() noexcept;
-        decltype(auto) waitData() noexcept; /* decltype(auto) for the <void> case. */
-    };
-
-    /* */
-
-    static int
-    optimalThreadCount() noexcept
-    {
-        static const int s_count = utils::max(ADT_GET_NPROCS() - 1, 1);
-        return s_count;
-    }
-
-    /* */
-
-    virtual const atomic::Int& nActiveTasks() const noexcept = 0;
-
-    virtual int nThreads() const noexcept = 0;
-
-    virtual bool addTask(void (*pfn)(void*), void* pArg, isize argSize) noexcept = 0;
-
-    virtual void wait(bool bHelp) noexcept = 0; /* bHelp: try to call leftover tasks on waiting thread. */
-
-    virtual Task tryStealTask() noexcept = 0;
-
-    template<typename CL>
-    bool
-    add(const CL& cl) noexcept
-    {
-        return addTask([](void* p) {
-            static_cast<CL*>(p)->operator()();
-        }, (void*)&cl, sizeof(cl));
-    }
-
-    template<typename T, typename CL>
-    bool
-    add(Future<T>* pFut, const CL& cl) noexcept
-    {
-        auto cl2 = [pFut, cl]
-        {
-            if constexpr (std::is_same_v<void, T>)
-            {
-                cl();
-                pFut->signal();
-            }
-            else
-            {
-                pFut->signalData(cl());
-            }
-        };
-
-        static_assert(sizeof(cl2) >= sizeof(cl) + sizeof(pFut));
-
-        return addTask([](void* p) {
-            static_cast<decltype(cl2)*>(p)->operator()();
-        }, &cl2, sizeof(cl2));
-    }
-
-    template<typename CL>
-    void addRetry(const CL& cl) noexcept { while (!add(cl)); }
-
-    template<typename CL>
-    bool
-    addRetry(const CL& cl, int n) noexcept
-    {
-        for (int i = 0; i < n; ++i)
-            if (add(cl)) return true;
-        return false;
-    }
-
-    template<typename T, typename CL>
-    void addRetry(Future<T>* pFut, const CL& cl) noexcept { while (!add(pFut, cl)); }
-
-    template<typename T, typename CL>
-    bool
-    addRetry(Future<T>* pFut, const CL& cl, int n) noexcept
-    {
-        for (int i = 0; i < n; ++i)
-            if (add(pFut, cl)) return true;
-        return false;
-    }
-
-    template<typename CL>
-    void
-    addRetryOrDo(const CL& cl) noexcept
-    {
-        if (nActiveTasks().load(atomic::ORDER::ACQUIRE) >= nThreads()) cl();
-        else addRetry(cl);
-    }
-
-    template<typename CL>
-    bool
-    addRetryOrDo(const CL& cl, int n) noexcept
-    {
-        if (nActiveTasks().load(atomic::ORDER::ACQUIRE) >= nThreads())
-        {
-            cl();
-            return true;
-        }
-        else
-        {
-            return addRetry(cl, n);
-        }
-    }
-
-    template<typename T, typename CL>
-    void
-    addRetryOrDo(Future<T>* pFut, const CL& cl) noexcept
-    {
-        if (nActiveTasks().load(atomic::ORDER::ACQUIRE) >= nThreads()) cl();
-        else addRetry(pFut, cl);
-    }
-
-    template<typename T, typename CL>
-    bool
-    addRetryOrDo(Future<T>* pFut, const CL& cl, int n) noexcept
-    {
-        if (nActiveTasks().load(atomic::ORDER::ACQUIRE) >= nThreads())
-        {
-            cl();
-            return true;
-        }
-        else
-        {
-            return addRetry(pFut, cl, n);
-        }
-    }
-};
+    static const int s_count = utils::max(ADT_GET_NPROCS() - 1, 1);
+    return s_count;
+}
 
 template<typename T>
 inline
@@ -208,43 +66,45 @@ struct ThreadPool : IThreadPool
     atomic::Int m_atomBDone {};
     atomic::Int m_atomIdCounter {};
     bool m_bStarted {};
-    Queue<Task> m_qTasks {};
+    QueueM<Task> m_qTasks {};
+    isize m_arenaReserved {};
 
     /* */
 
     static inline thread_local int gtl_threadId {};
+    static inline thread_local Arena gtl_arena {};
 
     /* */
 
     ThreadPool() = default;
 
-    ThreadPool(IAllocator* pAlloc, isize qSize, int nThreads = optimalThreadCount());
+    ThreadPool(isize arenaReserve);
+
+    ThreadPool(isize qSize, isize arenaReserve, int nThreads = optimalThreadCount());
 
     ThreadPool(
-        IAllocator* pAlloc,
         void (*pfnOnLoopStart)(void*),
         void* pLoopStartArg,
         void (*pfnOnLoopEnd)(void*),
         void* pLoopEndArg,
         isize qSize,
+        isize arenaReserve,
         int nThreads = optimalThreadCount()
     );
 
     /* */
 
     virtual const atomic::Int& nActiveTasks() const noexcept override { return m_atomNActiveTasks; }
-
     virtual void wait(bool bHelp) noexcept override;
-
     virtual bool addTask(void (*pfn)(void*), void* pArg, isize argSize) noexcept override;
-
     virtual int nThreads() const noexcept override { return m_spThreads.size(); }
-
     virtual Task tryStealTask() noexcept override;
+    virtual int threadId() noexcept override;
+    virtual Arena* arena() noexcept override;
 
     /* */
 
-    void destroy(IAllocator* pAlloc) noexcept;
+    void destroy() noexcept;
 
 protected:
     void start();
@@ -252,25 +112,33 @@ protected:
 };
 
 inline
-ThreadPool::ThreadPool(IAllocator* pAlloc, isize qSize, int nThreads)
-    : m_spThreads(pAlloc->zallocV<Thread>(nThreads), nThreads),
+ThreadPool::ThreadPool(isize arenaReserve)
+    : m_arenaReserved{arenaReserve}
+{
+    start();
+}
+
+inline
+ThreadPool::ThreadPool(isize qSize, isize arenaReserve, int nThreads)
+    : m_spThreads(StdAllocator::inst()->zallocV<Thread>(nThreads), nThreads),
       m_mtxQ(Mutex::TYPE::PLAIN),
       m_cndQ(INIT),
       m_cndWait(INIT),
-      m_qTasks(pAlloc, qSize)
+      m_qTasks(qSize),
+      m_arenaReserved(arenaReserve)
 {
     start();
 }
 
 inline
 ThreadPool::ThreadPool(
-    IAllocator* pAlloc,
     void (*pfnOnLoopStart)(void*), void* pLoopStartArg,
     void (*pfnOnLoopEnd)(void*), void* pLoopEndArg,
     isize qSize,
+    isize arenaReserve,
     int nThreads
 )
-    : m_spThreads(pAlloc->zallocV<Thread>(nThreads), nThreads),
+    : m_spThreads(StdAllocator::inst()->zallocV<Thread>(nThreads), nThreads),
       m_mtxQ(Mutex::TYPE::PLAIN),
       m_cndQ(INIT),
       m_cndWait(INIT),
@@ -278,7 +146,8 @@ ThreadPool::ThreadPool(
       m_pLoopStartArg(pLoopStartArg),
       m_pfnLoopEnd(pfnOnLoopEnd),
       m_pLoopEndArg(pLoopEndArg),
-      m_qTasks(pAlloc, qSize)
+      m_qTasks(qSize),
+      m_arenaReserved(arenaReserve)
 {
     start();
 }
@@ -289,14 +158,16 @@ ThreadPool::loop()
     if (m_pfnLoopStart) m_pfnLoopStart(m_pLoopStartArg);
     ADT_DEFER( if (m_pfnLoopEnd) m_pfnLoopEnd(m_pLoopEndArg) );
 
-    gtl_threadId = 1 + m_atomIdCounter.fetchAdd(1, atomic::ORDER::RELAXED);
+    new(&gtl_arena) Arena {m_arenaReserved};
+    ADT_DEFER( gtl_arena.freeAll() );
+    gtl_threadId = m_atomIdCounter.fetchAdd(1, atomic::ORDER::RELAXED);
 
     while (true)
     {
         Task task {};
 
         {
-            LockGuard qLock {&m_mtxQ};
+            LockScope qLock {&m_mtxQ};
 
             while (m_qTasks.empty() && !m_atomBDone.load(atomic::ORDER::ACQUIRE))
                 m_cndQ.wait(&m_mtxQ);
@@ -312,7 +183,7 @@ ThreadPool::loop()
         m_atomNActiveTasks.fetchSub(1, atomic::ORDER::RELEASE);
 
         {
-            LockGuard qLock {&m_mtxQ};
+            LockScope qLock {&m_mtxQ};
 
             if (m_qTasks.empty() && m_atomNActiveTasks.load(atomic::ORDER::ACQUIRE) <= 0)
                 m_cndWait.signal();
@@ -325,6 +196,7 @@ ThreadPool::loop()
 inline void
 ThreadPool::start()
 {
+    m_atomIdCounter.fetchAdd(1, atomic::ORDER::RELAXED); /* Id 0 for the main thread. */
     for (auto& thread : m_spThreads)
     {
         thread = Thread(
@@ -333,11 +205,12 @@ ThreadPool::start()
         );
     }
 
+    new(&gtl_arena) Arena {m_arenaReserved};
+
     m_bStarted = true;
 
-#ifndef NDEBUG
-    print::err("[ThreadPool]: new pool with {} threads\n", m_spThreads.size());
-#endif
+    while (m_atomIdCounter.load(atomic::ORDER::RELAXED) <= m_spThreads.size())
+        Thread::yield();
 }
 
 inline void
@@ -361,33 +234,38 @@ again:
         }
     }
 
-    LockGuard qLock {&m_mtxQ};
+    LockScope qLock {&m_mtxQ};
     while (!m_qTasks.empty() || m_atomNActiveTasks.load(atomic::ORDER::RELAXED) > 0)
         m_cndWait.wait(&m_mtxQ);
 }
 
 inline void
-ThreadPool::destroy(IAllocator* pAlloc) noexcept
+ThreadPool::destroy() noexcept
 {
-    wait(true);
-
+    if (!m_spThreads.empty())
     {
-        LockGuard qLock {&m_mtxQ};
-        m_atomBDone.store(true, atomic::ORDER::RELEASE);
+        wait(true);
+
+        {
+            LockScope qLock {&m_mtxQ};
+            m_atomBDone.store(true, atomic::ORDER::RELEASE);
+        }
+
+        m_cndQ.broadcast();
+
+        for (auto& thread : m_spThreads)
+            thread.join();
+
+        ADT_ASSERT(m_atomNActiveTasks.load(atomic::ORDER::ACQUIRE) == 0, "{}", m_atomNActiveTasks.load(atomic::ORDER::RELAXED));
+
+        StdAllocator::inst()->free(m_spThreads.data());
+        m_qTasks.destroy();
+        m_mtxQ.destroy();
+        m_cndQ.destroy();
+        m_cndWait.destroy();
     }
 
-    m_cndQ.broadcast();
-
-    for (auto& thread : m_spThreads)
-        thread.join();
-
-    ADT_ASSERT(m_atomNActiveTasks.load(atomic::ORDER::ACQUIRE) == 0, "{}", m_atomNActiveTasks.load(atomic::ORDER::RELAXED));
-
-    pAlloc->free(m_spThreads.data());
-    m_qTasks.destroy(pAlloc);
-    m_mtxQ.destroy();
-    m_cndQ.destroy();
-    m_cndWait.destroy();
+    gtl_arena.freeAll();
 }
 
 inline bool
@@ -397,7 +275,7 @@ ThreadPool::addTask(void (*pfn)(void*), void* pArg, isize argSize) noexcept
 
     isize i;
     {
-        LockGuard lock {&m_mtxQ};
+        LockScope lock {&m_mtxQ};
         i = m_qTasks.emplaceBackNoGrow(pfn, pArg, argSize);
     }
 
@@ -416,96 +294,24 @@ ThreadPool::tryStealTask() noexcept
     Task task {};
 
     {
-        LockGuard lock {&m_mtxQ};
+        LockScope lock {&m_mtxQ};
         if (!m_qTasks.empty()) task = m_qTasks.popFront();
     }
 
     return task;
 }
 
-struct IThreadPoolWithMemory : IThreadPool
+inline int
+ThreadPool::threadId() noexcept
 {
-    virtual ScratchBuffer& scratchBuffer() = 0;
-};
+    return gtl_threadId;
+}
 
-/* ThreadPool with ScratchBuffers created for each thread.
- * Any thread can access its own thread local buffer with `threadPool.scratch()`. */
-struct ThreadPoolWithMemory : IThreadPoolWithMemory
+inline Arena*
+ThreadPool::arena() noexcept
 {
-    using Task = ThreadPool::Task;
-
-    /* */
-
-    static inline thread_local u8* gtl_pScratchMem;
-    static inline thread_local ScratchBuffer gtl_scratchBuff;
-
-    /* */
-
-    ThreadPool m_base {};
-
-    /* */
-
-    ThreadPoolWithMemory() = default;
-
-    ThreadPoolWithMemory(IAllocator* pAlloc, isize qSize, isize nBytesEachBuffer, int nThreads = optimalThreadCount())
-        : m_base(
-            pAlloc,
-            +[](void* p) { allocScratchBufferForThisThread(reinterpret_cast<isize>(p)); },
-            reinterpret_cast<void*>(nBytesEachBuffer),
-            +[](void*) { destroyScratchBufferForThisThread(); },
-            nullptr,
-            qSize,
-            nThreads
-        )
-    {
-        ADT_ASSERT(nThreads > 0, "nThreads: {}", nThreads);
-        allocScratchBufferForThisThread(nBytesEachBuffer);
-    }
-
-    /* */
-
-    virtual ScratchBuffer& scratchBuffer() override { return gtl_scratchBuff; }
-    virtual const atomic::Int& nActiveTasks() const noexcept override { return m_base.nActiveTasks(); }
-    virtual void wait(bool bHelp) noexcept override { m_base.wait(bHelp); }
-    virtual bool addTask(void (*pfn)(void*), void* pArg, isize argSize) noexcept override { return m_base.addTask(pfn, pArg, argSize); }
-    virtual int nThreads() const noexcept override { return m_base.nThreads(); }
-    virtual Task tryStealTask() noexcept override { return m_base.tryStealTask(); }
-
-    /* */
-
-    void
-    destroy(IAllocator* pAlloc) noexcept
-    {
-        m_base.destroy(pAlloc);
-        destroyScratchBufferForThisThread();
-    }
-
-    /* `destroyScratchBufferForThisThread()` later. */
-    void
-    destroyKeepScratchBuffer(IAllocator* pAlloc) noexcept
-    {
-        m_base.destroy(pAlloc);
-    }
-
-    /* */
-
-    static void
-    allocScratchBufferForThisThread(isize size)
-    {
-        ADT_ASSERT(gtl_pScratchMem == nullptr, "already allocated");
-
-        gtl_pScratchMem = StdAllocator::inst()->zallocV<u8>(size);
-        gtl_scratchBuff = ScratchBuffer {gtl_pScratchMem, size};
-    }
-
-    static void
-    destroyScratchBufferForThisThread() noexcept
-    {
-        StdAllocator::inst()->free(gtl_pScratchMem);
-        gtl_pScratchMem = {};
-        gtl_scratchBuff = {};
-    }
-};
+    return &gtl_arena;
+}
 
 /* Usage example:
  * Vec<IThreadPool::Future<Span<f32>>*> vFutures = parallelFor(&arena, &tp, Span<f32> {v},

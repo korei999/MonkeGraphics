@@ -1,5 +1,8 @@
 #include "Parser.hh"
 
+#include "adt/defer.hh"
+#include "adt/Logger.hh"
+
 using namespace adt;
 
 namespace json
@@ -23,7 +26,7 @@ Parser::parse(IAllocator* pAlloc, StringView svJson)
         m_aObjects.push(m_pAlloc, {});
         if (!parseNode(&m_aObjects.last()))
         {
-            LOG_WARN("parseNode() failed\n");
+            LogWarn("parseNode() failed\n");
             return false;
         }
     }
@@ -36,7 +39,7 @@ bool
 Parser::printNodeError()
 {
     const auto& tok = m_token;
-    CERR("json::Parser: ({}, {}): unexpected token: '{}'\n",
+    print::err("json::Parser: ({}, {}): unexpected token: '{}'\n",
         tok.row, tok.column, m_token.eType
     );
     return false;
@@ -53,7 +56,7 @@ Parser::expect(TOKEN_TYPE t)
     }
     else
     {
-        CERR("json::Parser: ({}, {}): unexpected token: expected: '{}', got '{}' ('{}')\n",
+        print::err("json::Parser: ({}, {}): unexpected token: expected: '{}', got '{}' ('{}')\n",
              tok.row, tok.column, t, m_token.eType, m_token.svLiteral
         );
         return false;
@@ -67,7 +70,7 @@ Parser::expectNot(TOKEN_TYPE t)
 
     if (bool(tok.eType & t))
     {
-        CERR("json::Parser: ({}, {}): unexpected token: not expected: '{}', got '{}' ('{}')\n",
+        print::err("json::Parser: ({}, {}): unexpected token: not expected: '{}', got '{}' ('{}')\n",
              tok.row, tok.column, t, m_token.eType, m_token.svLiteral
         );
         return false;

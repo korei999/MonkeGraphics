@@ -24,7 +24,7 @@ struct Object
     } m_uData {};
     TYPE m_eType {};
 
-    adt::Arena m_arena {};
+    adt::ArenaList m_arena {};
     adt::String m_sMappedWith {};
     // TODO: adt::Vec<int> m_vObservers {}; /* array of pool handles that refer to this object */
 
@@ -80,8 +80,9 @@ fromFontI(adt::i16 handleI)
 namespace adt::print
 {
 
-[[maybe_unused]] static isize
-format(Context ctx, FormatArgs fmtArgs, const asset::Object::TYPE e)
+template<>
+inline isize
+format(Context* pCtx, FormatArgs fmtArgs, const asset::Object::TYPE& e)
 {
     constexpr StringView asMap[] {
         "NONE", "IMAGE", "MODEL", "FONT"
@@ -89,7 +90,7 @@ format(Context ctx, FormatArgs fmtArgs, const asset::Object::TYPE e)
 
     ADT_ASSERT(static_cast<int>(e) < utils::size(asMap), " ");
 
-    return format(ctx, fmtArgs, asMap[static_cast<int>(e)]);
+    return format(pCtx, fmtArgs, asMap[static_cast<int>(e)]);
 }
 
 } /* namespace adt::print */

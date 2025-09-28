@@ -21,7 +21,7 @@ struct DrawCommand
 };
 
 static ::ui::Offset drawArrowList(
-    Arena* pArean,
+    ArenaList* pArean,
     Vec<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
@@ -56,7 +56,7 @@ init()
 
 static ::ui::Offset
 drawText(
-    Arena* pArena,
+    ArenaList* pArena,
     Vec<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const StringView sv,
@@ -75,7 +75,7 @@ drawText(
         );
         s_pShTexMonoBlur->setV4("u_color", fgColor);
 
-        s_text.update(s_rastLiberation, &app::g_threadPool.scratchBuffer(), sv, true);
+        s_text.update(s_rastLiberation, sv, true);
         s_text.draw();
     };
 
@@ -94,7 +94,7 @@ drawText(
 
 static ::ui::Offset
 drawMenu(
-    Arena* pArena,
+    ArenaList* pArena,
     Vec<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
@@ -156,7 +156,7 @@ drawMenu(
 
 static ::ui::Offset
 drawArrowList(
-    Arena* pArena,
+    ArenaList* pArena,
     Vec<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
@@ -213,7 +213,7 @@ drawArrowList(
 }
 
 static void
-drawWidget(Arena* pArena, Vec<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const math::M4& proj)
+drawWidget(ArenaList* pArena, Vec<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const math::M4& proj)
 {
     ::ui::Offset off {0, 0};
     ::ui::Offset thisOff {0, 0};
@@ -285,7 +285,7 @@ drawWidget(Arena* pArena, Vec<DrawCommand>* pVCommands, ::ui::Widget* pWidget, c
 }
 
 static void
-drawWidgets(Arena* pArena, Vec<DrawCommand>* pVCommands, const math::M4& proj)
+drawWidgets(ArenaList* pArena, Vec<DrawCommand>* pVCommands, const math::M4& proj)
 {
     for (::ui::Widget& widget : ::ui::g_poolWidgets)
     {
@@ -297,7 +297,7 @@ drawWidgets(Arena* pArena, Vec<DrawCommand>* pVCommands, const math::M4& proj)
 }
 
 void
-draw(Arena* pArena)
+draw(ArenaList* pArena)
 {
     /* Save drawText commands in the buffer. Draw them over the rectangle later. */
     Vec<DrawCommand> vCommands(pArena, 1 << 4);
@@ -320,7 +320,7 @@ draw(Arena* pArena)
         s_pShTexMonoBlur->setV4("u_color", V4From(colors::GREEN, 0.75f));
         s_pShTexMonoBlur->setM4("u_trm", proj * math::M4TranslationFrom({0.0f, 0.0f, -1.0f}));
 
-        s_text.update(s_rastLiberation, &app::g_threadPool.scratchBuffer(), frame::g_sfFpsStatus, true);
+        s_text.update(s_rastLiberation, frame::g_sfFpsStatus, true);
         s_text.draw();
     }
 
@@ -353,7 +353,7 @@ draw(Arena* pArena)
             )
         );
 
-        s_text.update(s_rastLiberation, &app::g_threadPool.scratchBuffer(), sv, true);
+        s_text.update(s_rastLiberation, sv, true);
         s_text.draw();
     }
 
