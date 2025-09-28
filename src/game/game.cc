@@ -176,16 +176,14 @@ loadStuff()
         /*entity.rot = math::QtAxisAngle({0.0f, 1.0f, 0.0f}, frame::g_time);*/
     }
 
-    ArenaList firstUpdateArena(SIZE_1K);
-    defer( firstUpdateArena.freeAll() );
-    updateState(&firstUpdateArena);
+    updateState(IThreadPool::inst()->arena());
 
     for (auto& model : Model::g_poolModels)
         model.updateAnimation(model.m_time + frame::g_frameTime);
 }
 
 void
-updateState(ArenaList*)
+updateState(Arena*)
 {
 }
 

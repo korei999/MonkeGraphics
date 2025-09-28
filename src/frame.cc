@@ -5,7 +5,6 @@
 #include "game/game.hh"
 #include "ui.hh"
 #include "asset.hh"
-#include "time2.hh"
 
 using namespace adt;
 
@@ -22,12 +21,12 @@ f64 g_maxFps = 0.0;
 [[maybe_unused]] static void
 refresh(void* pArg)
 {
-    ArenaList* pArena = static_cast<ArenaList*>(pArg);
+    Arena* pArena = static_cast<Arena*>(pArg);
     auto& renderer = app::rendererInst();
 
     static f64 s_accumulator = 0.0;
 
-    f64 newTime = time2::nowS();
+    f64 newTime = time::nowS();
     g_frameTime = newTime - g_time;
     g_time = newTime;
     /*if (frameTime > 0.25)*/
@@ -76,7 +75,7 @@ eventLoop()
 }
 
 static void
-renderLoop(ArenaList* pArena)
+renderLoop(Arena* pArena)
 {
     auto& win = app::windowInst();
     auto& renderer = app::rendererInst();
@@ -89,7 +88,7 @@ renderLoop(ArenaList* pArena)
 
     while (win.m_bRunning)
     {
-        const f64 timer0 = time2::nowMS();
+        const f64 timer0 = time::nowMS();
 
         {
             f64 newTime = timer0 / 1000.0;
@@ -119,12 +118,11 @@ renderLoop(ArenaList* pArena)
 
             renderer.draw(pArena);
 
-            pArena->shrinkToFirstBlock();
             pArena->reset();
             win.swapBuffers();
         }
 
-        f64 timer1 = time2::nowMS();
+        f64 timer1 = time::nowMS();
 
         if (g_maxFps > 0.0)
         {
@@ -132,7 +130,7 @@ renderLoop(ArenaList* pArena)
             if (sleepFor > 0.0) utils::sleepMS(sleepFor);
         }
 
-        timer1 = time2::nowMS();
+        timer1 = time::nowMS();
 
         vFrameTimes.push(timer1 - timer0);
 
@@ -158,9 +156,6 @@ mainLoop()
 {
     auto& win = app::windowInst();
 
-    ArenaList frameArena {SIZE_1M}; /* reset inside renderLoop */
-    defer( frameArena.freeAll() );
-
     win.showWindow();
     win.swapBuffers(); /* start events */
 
@@ -168,11 +163,13 @@ mainLoop()
     win.toggleVSync();
     // win.toggleFullscreen();
 
-    g_time = time2::nowS();
+    g_time = time::nowS();
 
-    game::updateState(&frameArena);
+    Arena* pArena = IThreadPool::inst()->arena();
 
-    renderLoop(&frameArena);
+    game::updateState(pArena);
+
+    renderLoop(pArena);
 }
 
 void

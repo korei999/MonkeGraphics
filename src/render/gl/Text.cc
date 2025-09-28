@@ -13,13 +13,8 @@ Text::makeStringMesh(
     const bool bVerticalFlip
 )
 {
-    Span<CharQuad2Pos2UV> spMem {pArena->zallocV<CharQuad2Pos2UV>(m_maxSize), m_maxSize};
-
-    /* NOTE: problems with constructor */
-    BufferAllocator al((u8*)spMem.data(), spMem.size() * sizeof(spMem[0]));
-
-    Vec<CharQuad2Pos2UV> vQuads(&al, m_maxSize);
-    vQuads.setSize(&al, m_maxSize);
+    Vec<CharQuad2Pos2UV> vQuads(pArena, m_maxSize);
+    vQuads.setSize(pArena, m_maxSize);
 
     f32 xOff = 0.0f;
     f32 yOff = 0.0f;

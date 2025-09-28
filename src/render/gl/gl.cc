@@ -672,9 +672,11 @@ drawSkybox()
 }
 
 void
-Renderer::draw(ArenaList* pArena)
+Renderer::draw(Arena* pArena)
 {
     using namespace adt::math;
+
+    ArenaScope arenaState {pArena};
 
     auto& win = app::windowInst();
 

@@ -21,7 +21,7 @@ struct DrawCommand
 };
 
 static ::ui::Offset drawArrowList(
-    ArenaList* pArean,
+    IArena* pArean,
     Vec<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
@@ -56,7 +56,7 @@ init()
 
 static ::ui::Offset
 drawText(
-    ArenaList* pArena,
+    IArena* pArena,
     Vec<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const StringView sv,
@@ -94,7 +94,7 @@ drawText(
 
 static ::ui::Offset
 drawMenu(
-    ArenaList* pArena,
+    IArena* pArena,
     Vec<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
@@ -156,7 +156,7 @@ drawMenu(
 
 static ::ui::Offset
 drawArrowList(
-    ArenaList* pArena,
+    IArena* pArena,
     Vec<DrawCommand>* pVCommands,
     const ::ui::Widget& widget,
     const ::ui::Entry& entry,
@@ -213,7 +213,7 @@ drawArrowList(
 }
 
 static void
-drawWidget(ArenaList* pArena, Vec<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const math::M4& proj)
+drawWidget(IArena* pArena, Vec<DrawCommand>* pVCommands, ::ui::Widget* pWidget, const math::M4& proj)
 {
     ::ui::Offset off {0, 0};
     ::ui::Offset thisOff {0, 0};
@@ -285,7 +285,7 @@ drawWidget(ArenaList* pArena, Vec<DrawCommand>* pVCommands, ::ui::Widget* pWidge
 }
 
 static void
-drawWidgets(ArenaList* pArena, Vec<DrawCommand>* pVCommands, const math::M4& proj)
+drawWidgets(IArena* pArena, Vec<DrawCommand>* pVCommands, const math::M4& proj)
 {
     for (::ui::Widget& widget : ::ui::g_poolWidgets)
     {
@@ -297,8 +297,10 @@ drawWidgets(ArenaList* pArena, Vec<DrawCommand>* pVCommands, const math::M4& pro
 }
 
 void
-draw(ArenaList* pArena)
+draw(Arena* pArena)
 {
+    ArenaScope arenaScope {pArena};
+
     /* Save drawText commands in the buffer. Draw them over the rectangle later. */
     Vec<DrawCommand> vCommands(pArena, 1 << 4);
 

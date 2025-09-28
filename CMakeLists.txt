@@ -8,7 +8,7 @@ message(STATUS "CMAKE_PROJECT_VERSION: '${CMAKE_PROJECT_VERSION}'")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_COLOR_DIAGNOSTICS ON)
-set(CMAKE_C_STANDARD 17)
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_EXTENSIONS OFF)
 
 message(STATUS "CMAKE_C_COMPILER_ID: '${CMAKE_C_COMPILER_ID}'")
@@ -35,7 +35,6 @@ option(OPT_SW "" OFF)
 option(OPT_GL "" ON)
 option(OPT_WAYLAND_GL "" ON)
 option(OPT_FAST_MATH "" OFF)
-option(OPT_PRECOMPILE_ADT "" ON)
 option(OPT_ANALYZE "" OFF)
 option(OPT_FTIME_TRACE "" OFF)
 
@@ -217,21 +216,12 @@ add_executable(
     src/game/game.cc
 )
 
-if (OPT_PRECOMPILE_ADT)
-    file(GLOB_RECURSE ADT_PRECOMPILED_HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/adt/*")
-
-    if (NOT OPT_MIMALLOC)
-        list(REMOVE_ITEM
-            ADT_PRECOMPILED_HEADERS
-            "${CMAKE_CURRENT_SOURCE_DIR}/include/adt/MiMalloc.hh"
-        )
-    endif()
-
-    target_precompile_headers(
-        ${CMAKE_PROJECT_NAME} PRIVATE
-        "$<$<COMPILE_LANGUAGE:CXX>:${ADT_PRECOMPILED_HEADERS}>"
-    )
-endif()
+include(adtlib.cmake)
+add_library(ADTLIB_PCH INTERFACE)
+target_precompile_headers(ADTLIB_PCH INTERFACE
+    "$<$<COMPILE_LANGUAGE:CXX>:${ADT_PRECOMPILED_HEADERS}>"
+)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ADTLIB_PCH)
 
 if (OPT_MIMALLOC)
     target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE mimalloc-static)
