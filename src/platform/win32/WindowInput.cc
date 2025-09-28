@@ -253,7 +253,7 @@ Window::windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         {
             s->m_winWidth = LOWORD(lParam);
             s->m_winHeight = HIWORD(lParam);
-            LOG("WM_SIZE: [{}, {}]\n", s->m_winWidth, s->m_winHeight);
+            LogDebug("WM_SIZE: [{}, {}]\n", s->m_winWidth, s->m_winHeight);
             glViewport(0, 0, s->m_winWidth, s->m_winHeight);
         }
         break;

@@ -289,7 +289,7 @@ f32x4::operator<(const f32x4& r) const
 inline i32x4
 i32x4::operator>=(const i32x4& r) const
 {
-    return i32x4{_mm_cmpgt_epi32(pack, r.pack) | _mm_cmpeq_epi32(pack, r.pack)};
+    return i32x4{_mm_cmpgt_epi32(pack, r.pack)} | i32x4{_mm_cmpeq_epi32(pack, r.pack)};
 }
 
 inline i32x4
@@ -646,7 +646,7 @@ f32x8::operator<(const f32x8& r) const
 inline i32x8
 i32x8::operator>=(const i32x8& r) const
 {
-    return i32x8{_mm256_cmpgt_epi32(pack, r.pack) | _mm256_cmpeq_epi32(pack, r.pack)};
+    return i32x8{_mm256_cmpgt_epi32(pack, r.pack)} | i32x8{_mm256_cmpeq_epi32(pack, r.pack)};
 }
 
 inline i32x8

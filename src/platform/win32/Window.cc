@@ -66,7 +66,7 @@ loadWGLFunctions(void)
 
     for (auto svWord : StringWordIt(ext, " "))
     {
-        LOG("'{}'\n", svWord);
+        LogDebug("'{}'\n", svWord);
 
         if (svWord == "WGL_ARB_pixel_format")
             wglChoosePixelFormatARB = (PFNWGLCHOOSEPIXELFORMATARBPROC)wglGetProcAddress("wglChoosePixelFormatARB");
@@ -262,7 +262,7 @@ Window::start(int width, int height)
     m_bPaused = false;
     m_bRunning = true;
 
-    LOG_GOOD("window started...\n");
+    LogDebug("window started...\n");
 }
 
 void
@@ -283,7 +283,7 @@ void
 Window::togglePointerRelativeMode()
 {
     m_bPointerRelativeMode == 0 ? enableRelativeMode() : disableRelativeMode();
-    LOG_OK("relative mode: {}\n", m_bPointerRelativeMode);
+    LogInfo("relative mode: {}\n", m_bPointerRelativeMode);
 }
 
 void
@@ -329,7 +329,7 @@ Window::setSwapInterval(int interval)
 {
     m_swapInterval = interval;
     wglSwapIntervalEXT(m_swapInterval);
-    LOG_NOTIFY("swapInterval: {}\n", m_swapInterval);
+    LogInfo("swapInterval: {}\n", m_swapInterval);
 }
 
 void
@@ -342,7 +342,7 @@ void
 Window::swapBuffers()
 {
     if (!SwapBuffers(m_hDeviceContext))
-        LOG_WARN("SwapBuffers(dc): failed\n");
+        LogWarn("SwapBuffers(dc): failed\n");
 }
 
 void
